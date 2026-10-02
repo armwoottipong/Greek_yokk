@@ -234,6 +234,20 @@
               </button>
             </div>
           </div>
+
+          <!-- Option to deduct sub-ingredients right now if initial stock is entered -->
+          <div
+            v-if="form.stock > 0"
+            class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs"
+          >
+            <div>
+              <span class="block font-medium text-stone-800">หักสต็อกวัตถุดิบรองตามสต็อกนี้ทันที</span>
+              <span class="text-[11px] text-stone-500">
+                ระบบจะตัดสต็อก นมสด และ หัวเชื้อ ตามสัดส่วนของ {{ form.stock }} {{ form.unit }} ที่ระบุ
+              </span>
+            </div>
+            <ToggleSwitch v-model="form.deductSubStockNow" color="amber" />
+          </div>
         </div>
 
         <!-- Live Total Valuation Line -->
@@ -309,6 +323,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
       isSubIngredient: mat ? Boolean(mat.isSubIngredient) : false,
       hasSubRecipe: mat ? Boolean(mat.hasSubRecipe) : false,
       yieldQty: mat && mat.yieldQty ? Number(mat.yieldQty) : 1200,
+      deductSubStockNow: false,
       subRecipe: mat && Array.isArray(mat.subRecipe) && mat.subRecipe.length > 0
         ? JSON.parse(JSON.stringify(mat.subRecipe))
         : [
@@ -372,13 +387,35 @@ function submit() {
   // If sub-ingredient is true, remove recipe
   const isSub = Boolean(form.value.isSubIngredient)
   const hasRecipe = !isSub && Boolean(form.value.hasSubRecipe)
+  const targetStock = Number(form.value.stock) || 0
+
+  // Deduct sub-ingredients if option checked
+  if (hasRecipe && form.value.deductSubStockNow && targetStock > 0) {
+    const yieldQ = Number(form.value.yieldQty) || 1200
+    const ratio = targetStock / yieldQ
+    const deducted = []
+
+    for (const r of form.value.subRecipe) {
+      const subMat = store.materials.find(m => m.id === r.materialId)
+      if (subMat) {
+        const deductAmount = Math.round((Number(r.qty) || 0) * ratio * 100) / 100
+        const currentSubStock = Number(subMat.stock) || 0
+        const newStock = Math.max(0, Math.round((currentSubStock - deductAmount) * 100) / 100)
+        subMat.stock = newStock
+        deducted.push(`${subMat.name} -${deductAmount} ${subMat.unit}`)
+      }
+    }
+    if (deducted.length > 0) {
+      store.showToast(`ตัดสต็อกวัตถุดิบรองแล้ว: ${deducted.join(', ')}`, 'info')
+    }
+  }
 
   store.saveMaterial({
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     category: form.value.category,
     unit: form.value.unit.trim() || 'g',
-    stock: Number(form.value.stock) || 0,
+    stock: targetStock,
     minAlert: Number(form.value.minAlert) || 0,
     unitCost: Number(form.value.unitCost) || 0,
     emoji: form.value.emoji || '🥣',

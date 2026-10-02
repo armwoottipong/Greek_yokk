@@ -23,8 +23,26 @@ export const usePosStore = defineStore('pos', {
       currentTab: 'dashboard', // 'dashboard' | 'pos' | 'menu' | 'addon' | 'stock' | 'settings'
       dashboardPeriod: 'today', // 'today' | 'week' | 'month' | 'all'
 
-      // Master Collections
-      materials: storedMaterials.map(m => ({ ...m, isDeleted: Boolean(m.isDeleted) })),
+      // Master Collections with strict number parsing and default recipe migration
+      materials: storedMaterials.map(m => {
+        const item = {
+          ...m,
+          stock: Number(m.stock) || 0,
+          minAlert: Number(m.minAlert) || 0,
+          unitCost: Number(m.unitCost) || 0,
+          isDeleted: Boolean(m.isDeleted),
+          isSubIngredient: Boolean(m.isSubIngredient)
+        }
+        if (item.id === 'MAT001' && (!item.subRecipe || item.subRecipe.length === 0)) {
+          item.hasSubRecipe = true
+          item.yieldQty = 1200
+          item.subRecipe = [
+            { materialId: 'MAT002', qty: 5000 },
+            { materialId: 'MAT003', qty: 300 }
+          ]
+        }
+        return item
+      }),
       menus: storedMenus,
       addons: storedAddons,
       platforms: storedPlatforms,
@@ -462,38 +480,51 @@ export const usePosStore = defineStore('pos', {
       const target = this.materials.find(m => m.id === targetMatId)
       if (!target) return false
 
-      // Check if sub-ingredients have enough stock
+      const targetCurrentStock = Number(target.stock) || 0
+      const targetCurrentCost = Number(target.unitCost) || 0
+      const addedQty = Number(yieldQty) || 0
+
+      // Check if sub-ingredients have enough stock (with strict Number conversion)
       let totalCost = 0
       for (const item of subIngredients) {
         const subMat = this.materials.find(m => m.id === item.materialId)
-        if (!subMat || subMat.stock < item.qty) {
-          const name = subMat ? subMat.name : item.materialId
-          this.showToast(`สต็อกวัตถุดิบรองไม่พอ: ${name}`, 'error')
+        if (!subMat) continue
+        const neededQty = Number(item.qty) || 0
+        const availableStock = Number(subMat.stock) || 0
+
+        if (neededQty > availableStock) {
+          this.showToast(`สต็อกไม่พอ: ${subMat.name} (มี ${availableStock} ${subMat.unit}, ต้องการ ${neededQty} ${subMat.unit})`, 'error')
           return false
         }
-        totalCost += (item.qty * (subMat.unitCost || 0))
+        totalCost += (neededQty * (Number(subMat.unitCost) || 0))
       }
 
-      // Deduct sub-ingredients
+      // Deduct sub-ingredients (with strict Number calculation)
+      const deductedSummary = []
       for (const item of subIngredients) {
         const subMat = this.materials.find(m => m.id === item.materialId)
         if (subMat) {
-          subMat.stock = Math.max(0, Math.round((subMat.stock - item.qty) * 100) / 100)
+          const neededQty = Number(item.qty) || 0
+          const oldStock = Number(subMat.stock) || 0
+          const newStock = Math.max(0, Math.round((oldStock - neededQty) * 100) / 100)
+          subMat.stock = newStock
+          deductedSummary.push(`${subMat.name} -${neededQty} ${subMat.unit} (เหลือ ${newStock.toLocaleString()} ${subMat.unit})`)
         }
       }
 
       // Calculate new weighted unit cost for finished target
-      const addedQty = Number(yieldQty) || 0
-      const currentValuation = target.stock * (target.unitCost || 0)
+      const currentValuation = targetCurrentStock * targetCurrentCost
       const newValuation = currentValuation + totalCost
-      const newTotalStock = target.stock + addedQty
-      const newUnitCost = newTotalStock > 0 ? (newValuation / newTotalStock) : target.unitCost
+      const newTotalStock = targetCurrentStock + addedQty
+      const newUnitCost = newTotalStock > 0 ? (newValuation / newTotalStock) : targetCurrentCost
 
-      target.stock = newTotalStock
-      target.unitCost = Math.round(newUnitCost * 1000) / 1000
+      target.stock = Math.round(newTotalStock * 100) / 100
+      target.unitCost = Math.round(newUnitCost * 10000) / 10000
 
       this.persistLocal()
-      this.showToast(`แปรรูป/ผลิต ${target.name} +${addedQty} ${target.unit} สำเร็จ (ตัดสต็อกวัตถุดิบรองแล้ว)`, 'success')
+
+      const summaryText = deductedSummary.join(', ')
+      this.showToast(`เพิ่มสต็อก ${target.name} +${addedQty} ${target.unit} สำเร็จ! [หักสต็อก: ${summaryText}]`, 'success')
       return true
     },
 

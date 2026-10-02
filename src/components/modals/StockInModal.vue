@@ -235,14 +235,37 @@
             </div>
           </div>
 
-          <!-- Calm Cost Summary Pill (No multiple colored boxes) -->
-          <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs font-mono">
-            <span class="text-stone-500">
-              รวมต้นทุนวัตถุดิบรอง: <strong class="text-stone-800">฿{{ totalProduceCost.toFixed(2) }}</strong>
-            </span>
-            <span class="text-stone-500">
-              ต้นทุนเฉลี่ย: <strong class="text-emerald-800 font-number text-sm">฿{{ produceYieldQty > 0 ? (totalProduceCost / produceYieldQty).toFixed(4) : '0.00' }}/{{ currentMat?.unit }}</strong>
-            </span>
+          <!-- Live Deduction Summary Pill (Showing exact subtraction before confirming) -->
+          <div class="p-3.5 rounded-xl bg-[#FAF9F6] text-xs space-y-2">
+            <div class="flex items-center justify-between font-mono">
+              <span class="text-stone-500">
+                รวมต้นทุนวัตถุดิบรอง: <strong class="text-stone-800">฿{{ totalProduceCost.toFixed(2) }}</strong>
+              </span>
+              <span class="text-stone-500">
+                ต้นทุนเฉลี่ย: <strong class="text-emerald-800 font-number text-sm">฿{{ produceYieldQty > 0 ? (totalProduceCost / produceYieldQty).toFixed(4) : '0.00' }}/{{ currentMat?.unit }}</strong>
+              </span>
+            </div>
+            
+            <!-- Real-time change indicator -->
+            <div class="pt-2 border-t border-stone-200/60 flex flex-col gap-1 text-[11px]">
+              <div class="flex items-center justify-between text-emerald-800 font-medium">
+                <span>📈 วัตถุดิบหลักเพิ่มเข้าคลัง:</span>
+                <span class="font-number font-bold">+{{ (produceYieldQty || 0).toLocaleString() }} {{ currentMat?.unit }}</span>
+              </div>
+              <div
+                v-for="sub in produceSubRows"
+                :key="sub.materialId"
+                class="flex items-center justify-between text-rose-700"
+              >
+                <span>📉 หักออกจากสต็อก: {{ store.matMap[sub.materialId]?.name }}</span>
+                <span class="font-number font-bold">
+                  -{{ (Number(sub.qty) || 0).toLocaleString() }} {{ store.matMap[sub.materialId]?.unit }}
+                  <span class="text-[10px] text-stone-400 font-normal">
+                    (คงเหลือ {{ Math.max(0, (Number(store.matMap[sub.materialId]?.stock) || 0) - (Number(sub.qty) || 0)).toLocaleString() }})
+                  </span>
+                </span>
+              </div>
+            </div>
           </div>
 
           <div>
