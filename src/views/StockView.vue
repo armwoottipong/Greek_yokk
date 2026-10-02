@@ -10,16 +10,6 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- Batch Conversion / Produce Button -->
-        <button
-          @click="isBatchProduceOpen = true"
-          class="inline-flex items-center gap-2 px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200/60 rounded-xl text-xs font-semibold transition-colors"
-          title="หมัก/แปรรูปนมสดและหัวเชื้อเป็นกรีกโยเกิร์ต"
-        >
-          <Sparkles class="w-4 h-4 text-purple-600" />
-          <span>ผลิตกรีกโยเกิร์ต (Batch)</span>
-        </button>
-
         <button
           @click="openStockIn()"
           class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors"
@@ -436,9 +426,6 @@
         </table>
       </div>
     </div>
-
-    <!-- Batch Produce Modal -->
-    <BatchProduceModal v-model="isBatchProduceOpen" />
   </div>
 </template>
 
@@ -452,10 +439,8 @@ import {
   Search,
   Edit3,
   EyeOff,
-  RotateCcw,
-  Sparkles
+  RotateCcw
 } from 'lucide-vue-next'
-import BatchProduceModal from '@/components/modals/BatchProduceModal.vue'
 
 const store = usePosStore()
 
@@ -463,7 +448,6 @@ const searchQuery = ref('')
 const selectedRole = ref('all') // 'all' | 'main' | 'sub'
 const selectedCategory = ref('all')
 const showDeleted = ref(false)
-const isBatchProduceOpen = ref(false)
 
 const categories = [
   { id: 'all', label: 'ทุกหมวดหมู่' },
