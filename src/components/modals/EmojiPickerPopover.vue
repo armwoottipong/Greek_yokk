@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="store.modals.emojiPicker.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
     @click.self="close"
   >
     <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-sm w-full p-4 overflow-hidden space-y-3 animate-in fade-in zoom-in-95 duration-150">

@@ -153,11 +153,12 @@
     <!-- ======================================================== -->
     <!-- POPUP MODAL: รายละเอียดสูตรวัตถุดิบ & บรรจุภัณฑ์ (BOM)       -->
     <!-- ======================================================== -->
-    <div
-      v-if="isBomModalOpen && selectedMenuForBom"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-      @click.self="closeBomModal"
-    >
+    <Teleport to="body">
+      <div
+        v-if="isBomModalOpen && selectedMenuForBom"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-stone-900/50 backdrop-blur-xs"
+        @click.self="closeBomModal"
+      >
       <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <!-- Modal Header -->
         <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
@@ -300,6 +301,7 @@
         </div>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 

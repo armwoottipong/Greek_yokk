@@ -16,19 +16,19 @@
       </main>
     </div>
 
-    <!-- Modals Layer -->
-    <MenuEditModal />
-    <AddonEditModal />
-    <MaterialEditModal />
-    <StockInModal />
-    <StockAdjustModal />
-    <CustomOrderModal />
-    <ReceiptModal />
-    <LowStockWarningModal />
-    <EmojiPickerPopover />
-
-    <!-- Global Toast Notifications -->
-    <ToastContainer />
+    <!-- Modals Layer & Toasts (Teleported to body to ensure full screen coverage) -->
+    <Teleport to="body">
+      <MenuEditModal />
+      <AddonEditModal />
+      <MaterialEditModal />
+      <StockInModal />
+      <StockAdjustModal />
+      <CustomOrderModal />
+      <ReceiptModal />
+      <LowStockWarningModal />
+      <EmojiPickerPopover />
+      <ToastContainer />
+    </Teleport>
   </div>
 </template>
 
