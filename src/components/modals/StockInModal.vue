@@ -1,35 +1,36 @@
 <template>
   <div
     v-if="store.modals.stockIn.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
     @click.self="close"
   >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <!-- Calm Header -->
+      <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
           <h3 class="text-base font-semibold text-stone-900 flex items-center gap-2">
             <span>📥</span>
-            <span>เพิ่มสต็อกวัตถุดิบ (Stock In)</span>
+            <span>รับเข้าสต็อกวัตถุดิบ (Stock In)</span>
           </h3>
-          <p class="text-[11px] text-stone-400 mt-0.5">
+          <p class="text-[11px] text-stone-500 mt-0.5">
             เลือกรับซื้อเข้าทั่วไป หรือผลิตวัตถุดิบหลักโดยใช้ส่วนผสมวัตถุดิบรอง
           </p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg">
-          <X class="w-4 h-4" />
+        <button @click="close" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors">
+          <X class="w-5 h-5" />
         </button>
       </div>
 
-      <div class="space-y-4 text-xs">
-        <!-- Select Target Material -->
+      <!-- Pure Flat Body -->
+      <div class="p-7 space-y-5 overflow-y-auto flex-1 text-xs">
+        <!-- Target Material Selection -->
         <div>
-          <label class="block text-xs font-semibold text-stone-700 mb-1">
+          <label class="block text-xs font-medium text-stone-700 mb-1.5">
             เลือกวัตถุดิบที่ต้องการเพิ่มสต็อก <span class="text-rose-500">*</span>
           </label>
           <select
             v-model="selectedMatId"
-            class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
+            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900"
           >
             <optgroup label="🥣 วัตถุดิบหลัก (หน้าร้าน)">
               <option
@@ -52,10 +53,10 @@
           </select>
         </div>
 
-        <!-- Mode Toggle for Main Material: Direct Restock vs Produce from Sub-ingredients -->
+        <!-- Mode Toggle for Main Material (Clean Flat Capsule) -->
         <div
           v-if="isMainMaterial"
-          class="p-1 bg-stone-100 rounded-xl flex items-center text-xs font-semibold"
+          class="flex items-center gap-1.5 p-1 bg-[#F5F4F0] rounded-xl text-xs font-semibold"
         >
           <button
             type="button"
@@ -67,7 +68,7 @@
                 : 'text-stone-500 hover:text-stone-900'
             ]"
           >
-            <span>📦 รับซื้อเข้าโดยตรง</span>
+            <span>📦 ซื้อเข้าโดยตรง</span>
           </button>
           <button
             type="button"
@@ -76,7 +77,7 @@
               'flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5',
               mode === 'produce'
                 ? 'bg-amber-900 text-white shadow-xs'
-                : 'text-stone-500 hover:text-amber-900'
+                : 'text-stone-500 hover:text-stone-900'
             ]"
           >
             <span>🥣 ใช้ส่วนผสมวัตถุดิบรอง</span>
@@ -84,28 +85,28 @@
         </div>
 
         <!-- ================================================================= -->
-        <!-- MODE 1: DIRECT PURCHASE / NORMAL STOCK IN                        -->
+        <!-- MODE A: DIRECT PURCHASE (รับซื้อเข้าปกติ)                         -->
         <!-- ================================================================= -->
-        <div v-if="mode === 'direct' || !isMainMaterial" class="space-y-3">
-          <div class="grid grid-cols-2 gap-3">
+        <div v-if="mode === 'direct' || !isMainMaterial" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-stone-700 mb-1">
+              <label class="block text-xs font-medium text-stone-700 mb-1.5">
                 จำนวนที่รับเข้า <span class="text-rose-500">*</span>
               </label>
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-2">
                 <input
                   v-model.number="directQty"
                   type="number"
                   min="0.1"
                   step="any"
                   placeholder="0"
-                  class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-stone-900"
+                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
                 />
-                <span class="text-stone-500 text-xs shrink-0 font-medium">{{ currentMat?.unit }}</span>
+                <span class="text-stone-400 text-xs shrink-0 font-medium w-8">{{ currentMat?.unit }}</span>
               </div>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-stone-700 mb-1">
+              <label class="block text-xs font-medium text-stone-700 mb-1.5">
                 ต้นทุนซื้อต่อหน่วย (฿)
               </label>
               <input
@@ -113,41 +114,41 @@
                 type="number"
                 step="any"
                 placeholder="0.00"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-stone-900"
+                class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
               />
             </div>
           </div>
 
-          <!-- Total batch purchase valuation card -->
-          <div class="p-3 bg-[#FAF9F6] rounded-xl border border-stone-100 flex items-center justify-between text-xs">
-            <span class="text-stone-600">งบต้นทุนการรับเข้ารอบนี้:</span>
-            <span class="font-number font-bold text-sm text-emerald-800">
-              ฿{{ ((directQty || 0) * (directUnitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-            </span>
-          </div>
-
           <div>
-            <label class="block text-xs font-semibold text-stone-700 mb-1">หมายเหตุ / แหล่งซื้อ</label>
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">หมายเหตุ / แหล่งซื้อ</label>
             <input
               v-model="directNote"
               type="text"
               placeholder="เช่น ซื้อจากแม็คโคร, ล็อตวันหมดอายุ 25/10"
-              class="soft-input w-full px-3 py-2 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
+              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
             />
+          </div>
+
+          <!-- Total purchase valuation line -->
+          <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs">
+            <span class="text-stone-500">งบต้นทุนการรับเข้ารอบนี้:</span>
+            <span class="font-number font-bold text-amber-900 text-sm">
+              ฿{{ ((directQty || 0) * (directUnitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+            </span>
           </div>
         </div>
 
         <!-- ================================================================= -->
-        <!-- MODE 2: PRODUCE MAIN MATERIAL USING SUB-INGREDIENTS (หักสต็อกรอง)   -->
+        <!-- MODE B: PRODUCE FROM SUB-INGREDIENTS (หักสต็อกวัตถุดิบรอง)        -->
         <!-- ================================================================= -->
         <div v-else class="space-y-4">
-          <!-- 1. Specify Output Yield of Main Material -->
-          <div class="p-3 bg-amber-50/50 border border-amber-200/80 rounded-xl space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="block font-bold text-amber-950 text-xs">
-                1. ระบุปริมาณที่วัตถุดิบหลักจะได้เพิ่ม (Main Output Yield) <span class="text-rose-500">*</span>
+          <!-- Yield output produced -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-medium text-stone-700">
+                ปริมาณที่วัตถุดิบหลักจะได้เพิ่ม <span class="text-rose-500">*</span>
               </label>
-              <span class="text-[10px] text-amber-800">สต็อกจะเพิ่มขึ้นตามจำนวนนี้</span>
+              <span class="text-[11px] text-stone-400">สต็อกจะเพิ่มตามจำนวนนี้</span>
             </div>
             <div class="flex items-center gap-2">
               <input
@@ -156,130 +157,112 @@
                 min="0.1"
                 step="any"
                 placeholder="เช่น 1200"
-                class="soft-input flex-1 px-3 py-2 rounded-xl text-xs font-number font-bold text-amber-950"
+                class="soft-input flex-1 px-3.5 py-2.5 rounded-xl text-xs font-number font-bold text-amber-950"
               />
-              <span class="text-xs text-stone-600 shrink-0 font-bold px-2 py-1.5 bg-white rounded-lg border border-amber-200/60">
+              <span class="text-xs text-stone-500 shrink-0 font-medium px-3 py-2 bg-[#F5F4F0] rounded-xl">
                 {{ currentMat?.unit }}
               </span>
             </div>
           </div>
 
-          <!-- 2. Sub-ingredients to consume & deduct from stock -->
-          <div class="p-3.5 bg-stone-50 border border-stone-200/80 rounded-xl space-y-3">
+          <!-- Sub-ingredients to consume -->
+          <div class="space-y-2.5 pt-2 border-t border-stone-100">
             <div class="flex items-center justify-between">
-              <div>
-                <label class="block font-bold text-stone-800 text-xs">
-                  2. วัตถุดิบรองที่ใช้เป็นส่วนผสม (จะหักจากสต็อกทันที)
-                </label>
-                <span class="text-[10px] text-stone-400">ระบบจะตัดสต็อกวัตถุดิบรองเหล่านี้ออกตามจริง</span>
-              </div>
+              <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
+                <span>🥛</span>
+                <span>วัตถุดิบรองที่นำมาเป็นส่วนผสม (หักจากสต็อก)</span>
+              </span>
               <button
                 type="button"
                 @click="addSubRow"
-                class="text-[11px] font-semibold text-amber-900 hover:text-amber-950 flex items-center gap-1"
+                class="text-[11px] font-semibold text-amber-900 hover:text-amber-950 flex items-center gap-1 transition-colors"
               >
                 <Plus class="w-3.5 h-3.5" />
                 <span>เพิ่มส่วนผสม</span>
               </button>
             </div>
 
-            <!-- List of Sub-ingredients -->
+            <!-- Flat Sub-ingredient Rows (Zero heavy borders) -->
             <div class="space-y-2">
               <div
                 v-for="(row, idx) in produceSubRows"
                 :key="idx"
-                class="p-2.5 bg-white rounded-xl border border-stone-200 text-xs space-y-1.5"
+                class="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[#FAF9F6] hover:bg-[#F5F4F0] transition-colors"
               >
-                <div class="flex items-center gap-2">
-                  <!-- Select sub-ingredient material -->
-                  <select
-                    v-model="row.materialId"
-                    class="soft-input flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-900"
+                <select
+                  v-model="row.materialId"
+                  class="bg-transparent border-0 flex-1 text-xs font-medium text-stone-900 focus:outline-none"
+                >
+                  <option
+                    v-for="sub in store.subMaterials"
+                    :key="sub.id"
+                    :value="sub.id"
                   >
-                    <option
-                      v-for="sub in store.subMaterials"
-                      :key="sub.id"
-                      :value="sub.id"
-                    >
-                      {{ sub.emoji }} {{ sub.name }} (มีในคลัง: {{ sub.stock }} {{ sub.unit }})
-                    </option>
-                  </select>
+                    {{ sub.emoji }} {{ sub.name }} (มีในคลัง: {{ sub.stock }} {{ sub.unit }})
+                  </option>
+                </select>
 
-                  <!-- Quantity to consume -->
-                  <div class="relative w-32 shrink-0">
-                    <input
-                      v-model.number="row.qty"
-                      type="number"
-                      min="0.1"
-                      step="any"
-                      placeholder="ปริมาณ"
-                      class="soft-input w-full pl-2.5 pr-8 py-1.5 rounded-lg text-xs font-number font-bold text-stone-900"
-                    />
-                    <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-stone-400">
-                      {{ store.matMap[row.materialId]?.unit }}
-                    </span>
-                  </div>
-
-                  <!-- Remove row button -->
-                  <button
-                    v-if="produceSubRows.length > 1"
-                    type="button"
-                    @click="removeSubRow(idx)"
-                    class="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors"
-                  >
-                    <X class="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <!-- Stock availability & cost check line -->
-                <div class="flex items-center justify-between text-[11px] text-stone-500 pt-0.5">
-                  <span :class="isStockSufficient(row) ? 'text-emerald-700' : 'text-rose-600 font-bold'">
-                    {{ isStockSufficient(row) ? `✓ สต็อกพอ (คงเหลือหลังตัด: ${(store.matMap[row.materialId]?.stock - row.qty).toLocaleString()} ${store.matMap[row.materialId]?.unit})` : `⚠️ สต็อกไม่พอ! มีแค่ ${store.matMap[row.materialId]?.stock} ${store.matMap[row.materialId]?.unit}` }}
-                  </span>
-                  <span class="font-number font-medium text-stone-700">
-                    ต้นทุน: ฿{{ ((row.qty || 0) * (store.matMap[row.materialId]?.unitCost || 0)).toFixed(2) }}
+                <div class="flex items-center gap-1 w-28 shrink-0">
+                  <input
+                    v-model.number="row.qty"
+                    type="number"
+                    min="0.1"
+                    step="any"
+                    placeholder="0"
+                    class="w-full bg-white px-2 py-1 rounded-lg text-right font-number font-semibold text-xs text-stone-900 focus:outline-none shadow-2xs"
+                  />
+                  <span class="text-[11px] text-stone-400 shrink-0 w-6">
+                    {{ store.matMap[row.materialId]?.unit }}
                   </span>
                 </div>
+
+                <span
+                  class="text-[10px] shrink-0 font-medium"
+                  :class="isStockSufficient(row) ? 'text-emerald-700' : 'text-rose-600 font-bold'"
+                >
+                  {{ isStockSufficient(row) ? '✓ พอ' : '⚠️ ไม่พอ' }}
+                </span>
+
+                <button
+                  v-if="produceSubRows.length > 1"
+                  type="button"
+                  @click="removeSubRow(idx)"
+                  class="p-1 text-stone-400 hover:text-rose-600 rounded-lg transition-colors"
+                >
+                  <X class="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- Real-time Production Cost Summary -->
-          <div class="p-3 bg-emerald-50 border border-emerald-200/80 rounded-xl space-y-1.5 font-mono text-[11px]">
-            <div class="flex items-center justify-between text-emerald-900">
-              <span>ต้นทุนวัตถุดิบรองที่นำมาใช้รวม:</span>
-              <span class="font-bold">฿{{ totalProduceCost.toFixed(2) }}</span>
-            </div>
-            <div class="flex items-center justify-between text-emerald-900">
-              <span>ปริมาณที่วัตถุดิบหลักจะได้:</span>
-              <span class="font-bold">+{{ (produceYieldQty || 0).toLocaleString() }} {{ currentMat?.unit }}</span>
-            </div>
-            <div class="flex items-center justify-between text-emerald-950 font-bold border-t border-emerald-300/70 pt-1 text-xs">
-              <span>ต้นทุนเฉลี่ยของวัตถุดิบหลักรอบนี้:</span>
-              <span class="text-emerald-800 font-number text-sm">
-                ฿{{ produceYieldQty > 0 ? (totalProduceCost / produceYieldQty).toFixed(4) : '0.00' }} / {{ currentMat?.unit }}
-              </span>
-            </div>
+          <!-- Calm Cost Summary Pill (No multiple colored boxes) -->
+          <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs font-mono">
+            <span class="text-stone-500">
+              รวมต้นทุนวัตถุดิบรอง: <strong class="text-stone-800">฿{{ totalProduceCost.toFixed(2) }}</strong>
+            </span>
+            <span class="text-stone-500">
+              ต้นทุนเฉลี่ย: <strong class="text-emerald-800 font-number text-sm">฿{{ produceYieldQty > 0 ? (totalProduceCost / produceYieldQty).toFixed(4) : '0.00' }}/{{ currentMat?.unit }}</strong>
+            </span>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-stone-700 mb-1">บันทึกรอบการผลิต</label>
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">บันทึกรอบการผลิต</label>
             <input
               v-model="produceNote"
               type="text"
-              placeholder="เช่น หมักนมสด Meiji + โยเกิร์ตธรรมชาติ กรองเวย์ 16 ชม."
-              class="soft-input w-full px-3 py-2 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
+              placeholder="เช่น หมักนมสด Meiji + หัวเชื้อ กรองเวย์ 16 ชม."
+              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
             />
           </div>
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
+      <!-- Spacious Calm Footer -->
+      <div class="px-7 py-4 border-t border-stone-100 bg-white flex items-center justify-end gap-3 shrink-0">
         <button
           type="button"
           @click="close"
-          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
         >
           ยกเลิก
         </button>
@@ -287,9 +270,9 @@
           type="button"
           @click="submit"
           :disabled="mode === 'produce' && isMainMaterial && (!canProduce || produceYieldQty <= 0)"
-          class="px-5 py-2 text-xs font-semibold bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl shadow-xs disabled:opacity-50 transition-all flex items-center gap-1.5"
+          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs disabled:opacity-50 transition-all flex items-center gap-2"
         >
-          <Check class="w-3.5 h-3.5" />
+          <Check class="w-4 h-4" />
           <span>{{ mode === 'produce' && isMainMaterial ? 'ยืนยันผลิต & หักสต็อกวัตถุดิบรอง' : 'บันทึกรับเข้า' }}</span>
         </button>
       </div>

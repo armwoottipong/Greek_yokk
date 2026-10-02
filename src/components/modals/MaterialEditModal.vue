@@ -1,34 +1,35 @@
 <template>
   <div
     v-if="store.modals.materialEdit.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
     @click.self="close"
   >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <!-- Calm Header -->
+      <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
           <h3 class="text-base font-semibold text-stone-900">
             {{ isEditing ? `แก้ไขวัตถุดิบ: ${form.name}` : 'เพิ่มวัตถุดิบ / สินค้า' }}
           </h3>
-          <p class="text-[11px] text-stone-400 mt-0.5">ระบุข้อมูลต้นทุน หรือกำหนดสูตรการผลิตจากวัตถุดิบรอง</p>
+          <p class="text-[11px] text-stone-500 mt-0.5">ระบุข้อมูลต้นทุน หรือกำหนดสูตรการผลิตจากวัตถุดิบรอง</p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg">
-          <X class="w-4 h-4" />
+        <button @click="close" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors">
+          <X class="w-5 h-5" />
         </button>
       </div>
 
-      <div class="space-y-4 text-xs">
-        <!-- Emoji & Name -->
-        <div class="flex items-start gap-3">
+      <!-- Pure Flat Body -->
+      <div class="p-7 space-y-5 overflow-y-auto flex-1 text-xs">
+        <!-- Section 1: Emoji & Name -->
+        <div class="flex items-start gap-3.5">
           <div class="shrink-0">
             <label class="block text-xs font-medium text-stone-700 mb-1.5">ไอคอน</label>
             <button
               type="button"
               @click="openEmojiPicker"
-              class="soft-input flex items-center justify-center w-11 h-10 rounded-xl hover:bg-[#EAE8E1]"
+              class="soft-input flex items-center justify-center w-12 h-11 rounded-xl transition-all hover:bg-[#EAE8E1]"
             >
-              <span class="text-xl leading-none">{{ form.emoji }}</span>
+              <span class="text-2xl leading-none">{{ form.emoji }}</span>
             </button>
           </div>
           <div class="flex-1">
@@ -37,18 +38,18 @@
               v-model="form.name"
               type="text"
               placeholder="เช่น กรีกโยเกิร์ตแท้, นมสดพาสเจอร์ไรส์, สตรอว์เบอร์รี"
-              class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
+              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
             />
           </div>
         </div>
 
-        <!-- Category & Unit -->
-        <div class="grid grid-cols-2 gap-3">
+        <!-- Section 2: Category & Unit -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-medium text-stone-700 mb-1.5">หมวดหมู่</label>
             <select
               v-model="form.category"
-              class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
+              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900"
             >
               <option value="Base Yogurt">🥣 เบสกรีกโยเกิร์ต (Base)</option>
               <option value="วัตถุดิบรอง">🥛 วัตถุดิบรอง (Dairy/Starter)</option>
@@ -64,82 +65,118 @@
               v-model="form.unit"
               type="text"
               placeholder="เช่น g, ml, pcs, ชิ้น"
-              class="soft-input w-full px-3 py-2 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
+              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
             />
           </div>
         </div>
 
-        <!-- Role Toggle: วัตถุดิบรอง หรือ วัตถุดิบหลัก -->
-        <div class="flex items-center justify-between p-3 rounded-xl bg-purple-50/60 border border-purple-100/80">
+        <!-- Section 3: Stock, Min Alert, Unit Cost -->
+        <div class="grid grid-cols-3 gap-3">
           <div>
-            <span class="block text-xs font-semibold text-purple-900">กำหนดเป็นวัตถุดิบรอง (Sub-ingredient)</span>
-            <span class="text-[11px] text-purple-700/80">วัตถุดิบตั้งต้นสำหรับหมัก/ผลิตเบส (เช่น นมสด, หัวเชื้อ) ไม่ได้ตักขายหน้าร้าน</span>
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">สต็อกปัจจุบัน:</label>
+            <input
+              v-model.number="form.stock"
+              type="number"
+              step="any"
+              placeholder="0"
+              class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-semibold text-stone-900"
+            />
           </div>
-          <ToggleSwitch v-model="form.isSubIngredient" />
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">จุดเตือนหมด:</label>
+            <input
+              v-model.number="form.minAlert"
+              type="number"
+              step="any"
+              placeholder="0"
+              class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-semibold text-stone-900"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">ต้นทุน/หน่วย (฿):</label>
+            <input
+              v-model.number="form.unitCost"
+              type="number"
+              step="any"
+              placeholder="0.00"
+              class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-semibold text-stone-900"
+            />
+          </div>
         </div>
 
-        <!-- RECIPE SECTION: เฉพาะวัตถุดิบหลัก (Main Material) ที่แปรรูป/ผลิตจากวัตถุดิบรอง -->
+        <!-- Section 4: Dual Functional Toggle Tiles (Consistent with MenuEditModal) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <ToggleSwitch
+            v-model="form.isSubIngredient"
+            label="เป็นวัตถุดิบรอง"
+            description="วัตถุดิบใช้หมัก/ผลิตเบส ไม่ได้ตักขาย"
+            icon="🥛"
+            color="purple"
+          />
+          <ToggleSwitch
+            v-if="!form.isSubIngredient"
+            v-model="form.hasSubRecipe"
+            label="ผลิตจากวัตถุดิบรอง"
+            description="เปิดเพื่อผูกสูตรผลิตและคำนวณต้นทุน"
+            icon="🥣"
+            color="amber"
+          />
+        </div>
+
+        <!-- Section 5: Production Recipe (Flat rows, zero nested boxes) -->
         <div
-          v-if="!form.isSubIngredient"
-          class="p-3.5 rounded-2xl bg-amber-50/40 border border-amber-200/70 space-y-3"
+          v-if="!form.isSubIngredient && form.hasSubRecipe"
+          class="space-y-4 pt-2 border-t border-stone-100"
         >
-          <div class="flex items-center justify-between">
-            <div>
-              <span class="block text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                <span>🥣</span>
-                <span>ผลิตจากวัตถุดิบรอง (Production Recipe)</span>
-              </span>
-              <span class="text-[11px] text-stone-500">
-                เปิดเพื่อผูกสูตร เช่น ทำกรีกโยเกิร์ตด้วยนมสดและหัวเชื้อ พร้อมคำนวณต้นทุน
+          <!-- Yield output produced -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-medium text-stone-700">
+                ผลผลิตที่ได้ต่อรอบ (Batch Yield Output)
+              </label>
+              <span class="text-[11px] text-stone-400">ปริมาณเนื้อที่ได้จากการหมัก 1 รอบ</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <input
+                v-model.number="form.yieldQty"
+                type="number"
+                min="1"
+                step="any"
+                placeholder="เช่น 1200"
+                class="soft-input flex-1 px-3.5 py-2.5 rounded-xl text-xs font-number font-bold text-amber-950"
+              />
+              <span class="text-xs text-stone-500 shrink-0 font-medium px-3 py-2 bg-[#F5F4F0] rounded-xl">
+                {{ form.unit || 'g' }}
               </span>
             </div>
-            <ToggleSwitch v-model="form.hasSubRecipe" />
           </div>
 
-          <!-- Recipe Details Form -->
-          <div v-if="form.hasSubRecipe" class="space-y-3 pt-2 border-t border-amber-200/60">
-            <!-- Expected Yield Output -->
-            <div class="p-2.5 rounded-xl bg-white border border-amber-100 flex items-center justify-between gap-3">
-              <div>
-                <label class="block text-xs font-semibold text-stone-800">ได้ผลผลิตต่อรอบ (Batch Yield Output)</label>
-                <p class="text-[10px] text-stone-400">ปริมาณเนื้อวัตถุดิบหลักที่ผลิตได้จากการหมัก 1 รอบ</p>
-              </div>
-              <div class="flex items-center gap-1.5 w-36 shrink-0">
-                <input
-                  v-model.number="form.yieldQty"
-                  type="number"
-                  min="1"
-                  step="any"
-                  placeholder="เช่น 1200"
-                  class="soft-input w-full px-2.5 py-1.5 rounded-lg text-xs font-number font-bold text-amber-950"
-                />
-                <span class="text-xs text-stone-500 shrink-0 font-medium">{{ form.unit || 'g' }}</span>
-              </div>
+          <!-- Sub-ingredients List -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
+                <span>🥛</span>
+                <span>วัตถุดิบรองที่ต้องใช้ (Sub-ingredients)</span>
+              </span>
+              <button
+                type="button"
+                @click="addSubRecipeRow"
+                class="text-[11px] font-semibold text-amber-900 hover:text-amber-950 flex items-center gap-1 transition-colors"
+              >
+                <Plus class="w-3.5 h-3.5" />
+                <span>เพิ่มวัตถุดิบรอง</span>
+              </button>
             </div>
 
-            <!-- Sub-ingredients List -->
             <div class="space-y-2">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-semibold text-stone-800">วัตถุดิบรองที่ต้องใช้ (Sub-ingredients):</span>
-                <button
-                  type="button"
-                  @click="addSubRecipeRow"
-                  class="text-[11px] font-semibold text-amber-900 hover:text-amber-950 flex items-center gap-1"
-                >
-                  <Plus class="w-3.5 h-3.5" />
-                  <span>เพิ่มวัตถุดิบรอง</span>
-                </button>
-              </div>
-
               <div
                 v-for="(row, idx) in form.subRecipe"
                 :key="idx"
-                class="flex items-center gap-2 p-2 bg-white rounded-xl border border-stone-200/80 text-xs"
+                class="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[#FAF9F6] hover:bg-[#F5F4F0] transition-colors"
               >
-                <!-- Select Sub Material -->
                 <select
                   v-model="row.materialId"
-                  class="soft-input flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-800"
+                  class="bg-transparent border-0 flex-1 text-xs font-medium text-stone-900 focus:outline-none"
                 >
                   <option
                     v-for="sub in store.subMaterials"
@@ -150,122 +187,79 @@
                   </option>
                 </select>
 
-                <!-- Input Quantity -->
-                <div class="relative w-28 shrink-0">
+                <div class="flex items-center gap-1 w-28 shrink-0">
                   <input
                     v-model.number="row.qty"
                     type="number"
                     min="0.1"
                     step="any"
-                    placeholder="ปริมาณ"
-                    class="soft-input w-full pl-2.5 pr-8 py-1.5 rounded-lg text-xs font-number font-bold text-stone-900"
+                    placeholder="0"
+                    class="w-full bg-white px-2 py-1 rounded-lg text-right font-number font-semibold text-xs text-stone-900 focus:outline-none shadow-2xs"
                   />
-                  <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-stone-400">
+                  <span class="text-[11px] text-stone-400 shrink-0 w-6">
                     {{ store.matMap[row.materialId]?.unit }}
                   </span>
                 </div>
 
-                <!-- Cost Subtotal for this row -->
                 <span class="text-[11px] font-number text-stone-500 shrink-0 w-16 text-right">
                   ฿{{ ((row.qty || 0) * (store.matMap[row.materialId]?.unitCost || 0)).toFixed(1) }}
                 </span>
 
-                <!-- Remove Row -->
                 <button
                   type="button"
                   @click="removeSubRecipeRow(idx)"
-                  class="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors"
+                  class="p-1 text-stone-400 hover:text-rose-600 rounded-lg transition-colors"
                 >
                   <X class="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
+          </div>
 
-            <!-- Recipe Live Cost Summary -->
-            <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-1.5 font-mono">
-              <div class="flex items-center justify-between text-emerald-900">
-                <span>ต้นทุนวัตถุดิบรองที่ใช้รวม:</span>
-                <span class="font-bold">฿{{ calculatedSubCost.toFixed(2) }}</span>
-              </div>
-              <div class="flex items-center justify-between text-emerald-950 font-bold border-t border-emerald-200/80 pt-1.5">
-                <span>ต้นทุนเฉลี่ยต่อหน่วย:</span>
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-number text-emerald-800">
-                    ฿{{ (form.yieldQty > 0 ? calculatedSubCost / form.yieldQty : 0).toFixed(4) }} / {{ form.unit || 'g' }}
-                  </span>
-                  <button
-                    type="button"
-                    @click="applyCalculatedCost"
-                    class="px-2.5 py-0.5 rounded bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-sans font-semibold transition-colors shadow-2xs"
-                  >
-                    ใช้ราคานี้
-                  </button>
-                </div>
-              </div>
+          <!-- Recipe Live Cost Summary Line -->
+          <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs font-mono">
+            <span class="text-stone-500">
+              รวมต้นทุนวัตถุดิบรอง: <strong class="text-stone-800">฿{{ calculatedSubCost.toFixed(2) }}</strong>
+            </span>
+            <div class="flex items-center gap-2">
+              <span class="text-stone-500">
+                เฉลี่ย: <strong class="text-emerald-800 font-number text-sm">฿{{ (form.yieldQty > 0 ? calculatedSubCost / form.yieldQty : 0).toFixed(4) }}/{{ form.unit || 'g' }}</strong>
+              </span>
+              <button
+                type="button"
+                @click="applyCalculatedCost"
+                class="px-2.5 py-1 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-[10px] font-sans font-semibold transition-colors"
+              >
+                ใช้ราคานี้
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- Stock, Min Alert, Unit Cost -->
-        <div class="grid grid-cols-3 gap-2.5">
-          <div>
-            <label class="block text-[11px] font-medium text-stone-700 mb-1">สต็อกปัจจุบัน:</label>
-            <input
-              v-model.number="form.stock"
-              type="number"
-              step="any"
-              placeholder="0"
-              class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-semibold text-stone-900"
-            />
-          </div>
-          <div>
-            <label class="block text-[11px] font-medium text-stone-700 mb-1">จุดเตือนหมด:</label>
-            <input
-              v-model.number="form.minAlert"
-              type="number"
-              step="any"
-              placeholder="0"
-              class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-semibold text-stone-900"
-            />
-          </div>
-          <div>
-            <label class="block text-[11px] font-medium text-stone-700 mb-1">ต้นทุน/หน่วย (฿):</label>
-            <input
-              v-model.number="form.unitCost"
-              type="number"
-              step="any"
-              placeholder="0.00"
-              class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-semibold text-stone-900"
-            />
-          </div>
-        </div>
-
-        <!-- Valuation Card -->
-        <div class="p-3 bg-[#FAF9F6] rounded-xl text-[11px] text-stone-500 space-y-1">
-          <div class="flex items-center justify-between">
-            <span>มูลค่าวัตถุดิบคงคลังของรายการนี้:</span>
-            <span class="font-number font-semibold text-amber-900">
-              ฿{{ ((form.stock || 0) * (form.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-            </span>
-          </div>
+        <!-- Live Total Valuation Line -->
+        <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs">
+          <span class="text-stone-500">มูลค่าวัตถุดิบคงคลังของรายการนี้:</span>
+          <span class="font-number font-bold text-amber-900 text-sm">
+            ฿{{ ((form.stock || 0) * (form.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+          </span>
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-stone-100">
+      <!-- Spacious Calm Footer -->
+      <div class="px-7 py-4 border-t border-stone-100 bg-white flex items-center justify-end gap-3 shrink-0">
         <button
           type="button"
           @click="close"
-          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
         >
           ยกเลิก
         </button>
         <button
           type="button"
           @click="submit"
-          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-2"
         >
-          <Check class="w-3.5 h-3.5" />
+          <Check class="w-4 h-4" />
           <span>บันทึกวัตถุดิบ</span>
         </button>
       </div>

@@ -1,26 +1,31 @@
 <template>
   <div
     v-if="store.modals.stockAdjust.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
     @click.self="close"
   >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <!-- Calm Header -->
+      <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
-          <h3 class="text-base font-semibold text-stone-900">ปรับยอดสต็อกจริง (Stock Adjust)</h3>
-          <p class="text-[11px] text-stone-400 mt-0.5">เทียบยอดนับจริงกับระบบและบันทึกเหตุผลผลต่าง</p>
+          <h3 class="text-base font-semibold text-stone-900 flex items-center gap-2">
+            <span>⚖️</span>
+            <span>ปรับยอดสต็อกจริง (Stock Adjust)</span>
+          </h3>
+          <p class="text-[11px] text-stone-500 mt-0.5">เทียบยอดนับจริงกับระบบและบันทึกเหตุผลผลต่าง</p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg">
-          <X class="w-4 h-4" />
+        <button @click="close" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors">
+          <X class="w-5 h-5" />
         </button>
       </div>
 
-      <div class="space-y-3.5 text-xs">
+      <!-- Pure Flat Body -->
+      <div class="p-7 space-y-5 overflow-y-auto flex-1 text-xs">
         <div>
-          <label class="block text-xs font-medium text-stone-700 mb-1">เลือกวัตถุดิบ <span class="text-rose-500">*</span></label>
+          <label class="block text-xs font-medium text-stone-700 mb-1.5">เลือกวัตถุดิบ <span class="text-rose-500">*</span></label>
           <select
             v-model="selectedMatId"
-            class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
+            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900"
           >
             <option
               v-for="m in store.activeMaterials"
@@ -32,51 +37,45 @@
           </select>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div class="p-3 bg-[#FAF9F6] rounded-xl border border-stone-100">
-            <span class="block text-[11px] text-stone-500 mb-1">ยอดในระบบปัจจุบัน:</span>
-            <span class="text-sm font-number font-bold text-stone-800">
-              {{ currentStock }} {{ selectedMaterial?.unit }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="px-4 py-3 rounded-xl bg-[#FAF9F6] flex flex-col justify-center">
+            <span class="block text-[11px] text-stone-500 mb-0.5">ยอดในระบบปัจจุบัน:</span>
+            <span class="text-sm font-number font-bold text-stone-900">
+              {{ currentStock.toLocaleString() }} {{ selectedMaterial?.unit }}
             </span>
           </div>
           <div>
-            <label class="block text-xs font-medium text-stone-700 mb-1">ยอดนับจริงใหม่ <span class="text-rose-500">*</span></label>
-            <div class="flex items-center gap-1.5">
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">ยอดนับจริงใหม่ <span class="text-rose-500">*</span></label>
+            <div class="flex items-center gap-2">
               <input
                 v-model.number="actualStock"
                 type="number"
                 min="0"
                 step="any"
                 placeholder="0"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-semibold text-stone-900"
+                class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
               />
-              <span class="text-stone-400 text-xs shrink-0 w-8">{{ selectedMaterial?.unit }}</span>
+              <span class="text-stone-400 text-xs shrink-0 font-medium w-8">{{ selectedMaterial?.unit }}</span>
             </div>
           </div>
         </div>
 
-        <!-- Difference Card -->
-        <div
-          :class="[
-            'p-3 rounded-xl border flex items-center justify-between text-xs transition-colors',
-            difference === 0
-              ? 'bg-stone-50 border-stone-200 text-stone-600'
-              : difference > 0
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : 'bg-rose-50 border-rose-200 text-rose-800'
-          ]"
-        >
-          <span>ผลต่างที่ปรับ:</span>
-          <span class="font-number font-bold text-sm">
-            {{ difference > 0 ? `+${difference}` : difference }} {{ selectedMaterial?.unit }}
+        <!-- Difference Line -->
+        <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs">
+          <span class="text-stone-500">ผลต่างที่ปรับ:</span>
+          <span
+            class="font-number font-bold text-sm"
+            :class="difference === 0 ? 'text-stone-600' : difference > 0 ? 'text-emerald-700' : 'text-rose-600'"
+          >
+            {{ difference > 0 ? `+${difference.toLocaleString()}` : difference.toLocaleString() }} {{ selectedMaterial?.unit }}
           </span>
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-stone-700 mb-1">สาเหตุการปรับยอด</label>
+          <label class="block text-xs font-medium text-stone-700 mb-1.5">สาเหตุการปรับยอด</label>
           <select
             v-model="reason"
-            class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
+            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900"
           >
             <option value="นับสต็อกจริงรายวัน">📋 นับสต็อกจริงรายวัน / ตรวจสอบรอบ</option>
             <option value="ของเสีย/หมดอายุ">🗑️ ของเสีย / หมดอายุ / คุณภาพไม่ผ่าน</option>
@@ -87,30 +86,31 @@
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-stone-700 mb-1">หมายเหตุเพิ่มเติม</label>
+          <label class="block text-xs font-medium text-stone-700 mb-1.5">หมายเหตุเพิ่มเติม</label>
           <input
             v-model="note"
             type="text"
             placeholder="เช่น ปรับยอดหลังปิดกะรอบเย็น"
-            class="soft-input w-full px-3 py-2 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
+            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
           />
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-stone-100">
+      <!-- Spacious Calm Footer -->
+      <div class="px-7 py-4 border-t border-stone-100 bg-white flex items-center justify-end gap-3 shrink-0">
         <button
           type="button"
           @click="close"
-          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
         >
           ยกเลิก
         </button>
         <button
           type="button"
           @click="submit"
-          class="px-5 py-2 text-xs font-semibold bg-rose-700 hover:bg-rose-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-2"
         >
-          <Check class="w-3.5 h-3.5" />
+          <Check class="w-4 h-4" />
           <span>บันทึกปรับยอด</span>
         </button>
       </div>
@@ -139,12 +139,12 @@ const currentStock = computed(() => {
 })
 
 const difference = computed(() => {
-  return Math.round(((actualStock.value || 0) - currentStock.value) * 100) / 100
+  return (Number(actualStock.value) || 0) - currentStock.value
 })
 
 watch(() => store.modals.stockAdjust.isOpen, (open) => {
   if (open) {
-    const id = store.modals.stockAdjust.materialId || (store.activeMaterials[0] ? store.activeMaterials[0].id : '')
+    const id = store.modals.stockAdjust.materialId || (store.activeMaterials[0]?.id || '')
     selectedMatId.value = id
     const mat = store.matMap[id]
     actualStock.value = mat ? mat.stock : 0
@@ -170,8 +170,8 @@ function submit() {
     store.showToast('กรุณาเลือกวัตถุดิบ', 'error')
     return
   }
-  if (actualStock.value === undefined || actualStock.value < 0) {
-    store.showToast('ยอดคงเหลือต้องไม่ติดลบ', 'error')
+  if (actualStock.value < 0) {
+    store.showToast('ยอดนับจริงต้องไม่ติดลบ', 'error')
     return
   }
 
