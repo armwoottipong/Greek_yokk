@@ -4,12 +4,12 @@
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
     @click.self="close"
   >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Calm Clean Header -->
       <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
           <h3 class="text-sm font-semibold text-stone-900">
-            {{ isEditing ? `แก้ไข: ${form.name}` : 'เพิ่มวัตถุดิบ / สินค้า' }}
+            {{ isEditing ? `แก้ไขวัตถุดิบ: ${form.name}` : 'เพิ่มวัตถุดิบ / สินค้า' }}
           </h3>
           <p class="text-[11px] text-stone-400 mt-0.5">ระบุข้อมูลต้นทุน หรือตั้งสูตรการผลิต</p>
         </div>
@@ -37,7 +37,7 @@
             <input
               v-model="form.name"
               type="text"
-              placeholder="เช่น นมสดพาสเจอร์ไรส์, กรีกโยเกิร์ต"
+              placeholder="เช่น นมสดพาสเจอร์ไรส์, สตรอว์เบอร์รี, ถ้วยกระดาษ"
               class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
             />
           </div>
@@ -57,69 +57,151 @@
           </div>
         </div>
 
-        <!-- 2. Packaging & Units (Simplified inline sentence flow) -->
-        <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-stone-200/50 space-y-2.5">
-          <div class="flex items-center justify-between text-stone-700 font-medium">
-            <span>หน่วยซื้อและขนาดบรรจุ</span>
-            <span class="text-[10px] text-stone-400 font-normal">คำนวณต้นทุนต่อหน่วยให้อัตโนมัติ</span>
+        <!-- 2. การตั้งหน่วยและการแปลงขนาดบรรจุ (Organized & Intuitive Dual-Compartment) -->
+        <div class="rounded-2xl border border-stone-200/80 bg-[#FAF9F6] p-4 space-y-3.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 font-semibold text-stone-800 text-xs">
+              <span>📏</span>
+              <span>การตั้งหน่วยและขนาดบรรจุ (Units & Pack Size)</span>
+            </div>
+            <span class="text-[10px] text-stone-400">คำนวณต้นทุนให้อัตโนมัติ</span>
           </div>
 
-          <div class="grid grid-cols-4 gap-2 items-end">
-            <!-- Pack Unit -->
-            <div>
-              <label class="block text-[10px] text-stone-500 mb-1">หน่วยซื้อเข้า</label>
-              <input
-                v-model="form.packUnit"
-                type="text"
-                placeholder="ขวด/ลัง"
-                class="w-full bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 text-xs font-medium text-stone-900 focus:outline-none"
-              />
+          <!-- Compartment 1: หน่วยใช้หลัก (สำหรับชั่งตักขาย / ในสูตร) -->
+          <div class="bg-white p-3 rounded-xl border border-stone-200/60 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-medium text-stone-700">1. หน่วยใช้ (ชั่ง/ตักขาย/ใส่ในสูตร)</span>
+              <!-- Quick preset chips -->
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-stone-400 mr-0.5">เลือกด่วน:</span>
+                <button
+                  type="button"
+                  @click="applyPreset('ml', 'ขวด', 1200, 54)"
+                  class="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-medium transition-colors"
+                >
+                  มล. (ml)
+                </button>
+                <button
+                  type="button"
+                  @click="applyPreset('g', 'ลัง', 500, 175)"
+                  class="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-medium transition-colors"
+                >
+                  กรัม (g)
+                </button>
+                <button
+                  type="button"
+                  @click="applyPreset('ชิ้น', 'แพ็ค', 100, 60)"
+                  class="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-medium transition-colors"
+                >
+                  ชิ้น (pcs)
+                </button>
+              </div>
             </div>
 
-            <!-- Pack Size & Unit -->
-            <div>
-              <label class="block text-[10px] text-stone-500 mb-1">ขนาดบรรจุ</label>
-              <div class="flex items-center bg-white px-2 py-1.5 rounded-lg border border-stone-200">
-                <input
-                  v-model.number="form.packSize"
-                  @input="recalculateUnitCost"
-                  type="number"
-                  step="any"
-                  placeholder="1200"
-                  class="w-full font-number font-semibold text-xs text-right focus:outline-none"
-                />
+            <div class="grid grid-cols-2 gap-3 items-center">
+              <div>
+                <label class="block text-[10px] text-stone-500 mb-1">ชื่อหน่วยใช้ (เช่น g, ml, ชิ้น)</label>
                 <input
                   v-model="form.unit"
                   type="text"
-                  placeholder="ml"
-                  title="หน่วยย่อย (ml, g, pcs)"
-                  class="w-7 text-[11px] text-stone-500 font-medium text-center focus:outline-none"
+                  placeholder="g, ml, ชิ้น"
+                  class="soft-input w-full px-3 py-1.5 rounded-lg text-xs font-medium text-stone-900"
                 />
               </div>
+              <div>
+                <label class="block text-[10px] text-stone-500 mb-1">ต้นทุนคำนวณได้ต่อ 1 {{ form.unit || 'หน่วย' }}</label>
+                <div class="flex items-center soft-input px-3 py-1.5 rounded-lg bg-emerald-50/50 border-emerald-200/50">
+                  <span class="text-[11px] text-emerald-800 mr-1 font-semibold">฿</span>
+                  <input
+                    v-model.number="form.unitCost"
+                    @input="recalculatePackCost"
+                    type="number"
+                    step="any"
+                    class="w-full text-right font-number font-bold text-xs text-emerald-900 bg-transparent focus:outline-none"
+                  />
+                  <span class="text-[10px] text-emerald-700 ml-1 shrink-0">/ {{ form.unit || 'หน่วย' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compartment 2: หน่วยสั่งซื้อเข้าคลัง (Pack Size Conversion) -->
+          <div class="bg-white p-3 rounded-xl border border-stone-200/60 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-medium text-stone-700">2. การสั่งซื้อเข้าสต็อก (หน่วยแพ็ค/ลัง/ขวด)</span>
+              <button
+                type="button"
+                @click="resetToSingleUnit"
+                class="text-[10px] text-stone-400 hover:text-stone-700 underline"
+                title="ตั้งเป็น 1 ต่อ 1 สำหรับสินค้าที่ซื้อเป็นชิ้นเดี่ยว"
+              >
+                ซื้อชิ้นเดี่ยว (1:1)
+              </button>
             </div>
 
-            <!-- Pack Price -->
-            <div>
-              <label class="block text-[10px] text-stone-500 mb-1">ราคาต่อ 1 {{ form.packUnit || 'แพ็ค' }}</label>
-              <div class="flex items-center bg-white px-2 py-1.5 rounded-lg border border-stone-200">
-                <span class="text-[11px] text-stone-400 mr-0.5">฿</span>
+            <div class="grid grid-cols-3 gap-2.5">
+              <!-- 1. หน่วยซื้อ -->
+              <div>
+                <label class="block text-[10px] text-stone-500 mb-1">หน่วยซื้อเข้า</label>
                 <input
-                  v-model.number="form.packCost"
-                  @input="recalculateUnitCost"
-                  type="number"
-                  step="any"
-                  placeholder="54"
-                  class="w-full font-number font-semibold text-xs text-right focus:outline-none"
+                  v-model="form.packUnit"
+                  type="text"
+                  placeholder="เช่น ขวด, ลัง, แพ็ค"
+                  class="soft-input w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-900"
                 />
+              </div>
+
+              <!-- 2. ขนาดบรรจุ -->
+              <div>
+                <label class="block text-[10px] text-stone-500 mb-1">
+                  1 {{ form.packUnit || 'แพ็ค' }} บรรจุ
+                </label>
+                <div class="flex items-center soft-input px-2.5 py-1.5 rounded-lg">
+                  <input
+                    v-model.number="form.packSize"
+                    @input="recalculateUnitCost"
+                    type="number"
+                    min="0.001"
+                    step="any"
+                    placeholder="1200"
+                    class="w-full text-right font-number font-semibold text-xs bg-transparent focus:outline-none"
+                  />
+                  <span class="text-[10px] text-stone-400 ml-1 shrink-0">{{ form.unit || 'g' }}</span>
+                </div>
+              </div>
+
+              <!-- 3. ราคาซื้อ -->
+              <div>
+                <label class="block text-[10px] text-stone-500 mb-1">
+                  ราคาซื้อต่อ 1 {{ form.packUnit || 'แพ็ค' }}
+                </label>
+                <div class="flex items-center soft-input px-2.5 py-1.5 rounded-lg">
+                  <span class="text-[10px] text-stone-400 mr-0.5">฿</span>
+                  <input
+                    v-model.number="form.packCost"
+                    @input="recalculateUnitCost"
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="54"
+                    class="w-full text-right font-number font-semibold text-xs bg-transparent focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
 
-            <!-- Derived Unit Cost -->
-            <div>
-              <label class="block text-[10px] text-stone-500 mb-1">เฉลี่ย / {{ form.unit || 'หน่วย' }}</label>
-              <div class="bg-stone-100/80 px-2 py-1.5 rounded-lg text-xs font-number font-bold text-emerald-800 text-right">
-                ฿{{ (Number(form.unitCost) || 0).toFixed(4) }}
-              </div>
+            <!-- สรุปผลการแปลงแบบชัดเจน เข้าใจง่าย -->
+            <div class="p-2.5 rounded-lg bg-[#F5F4F0] flex items-center justify-between text-[11px] font-medium text-stone-700">
+              <span class="flex items-center gap-1.5">
+                <span>💡</span>
+                <span>
+                  1 {{ form.packUnit || 'แพ็ค' }} = {{ (Number(form.packSize) || 1).toLocaleString() }} {{ form.unit || 'หน่วย' }}
+                  <span class="text-stone-400 font-normal">(@ ฿{{ (Number(form.packCost) || 0).toFixed(2) }})</span>
+                </span>
+              </span>
+              <span class="font-number font-bold text-emerald-800">
+                เฉลี่ย ฿{{ (Number(form.unitCost) || 0).toFixed(4) }} / {{ form.unit || 'หน่วย' }}
+              </span>
             </div>
           </div>
         </div>
@@ -130,34 +212,36 @@
             <label class="block text-[11px] font-medium text-stone-600 mb-1">
               สต็อกปัจจุบัน ({{ form.unit || 'หน่วย' }})
             </label>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center soft-input w-full px-3 py-1.5 rounded-xl">
               <input
                 v-model.number="form.stock"
                 type="number"
                 step="any"
-                class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-number font-semibold text-stone-900"
+                class="w-full font-number font-semibold text-xs text-stone-900 bg-transparent focus:outline-none"
               />
-              <span v-if="form.packSize > 1" class="text-[10px] text-stone-400 shrink-0 font-number">
-                ≈ {{ ((form.stock || 0) / form.packSize).toFixed(1) }} {{ form.packUnit }}
-              </span>
+              <span class="text-[10px] text-stone-400 shrink-0 ml-1">{{ form.unit || 'g' }}</span>
             </div>
+            <p v-if="form.packSize > 1" class="text-[10px] text-stone-400 mt-1 font-number">
+              ≈ {{ ((form.stock || 0) / form.packSize).toFixed(1) }} {{ form.packUnit }}
+            </p>
           </div>
 
           <div>
             <label class="block text-[11px] font-medium text-stone-600 mb-1">
               เตือนเมื่อต่ำกว่า ({{ form.unit || 'หน่วย' }})
             </label>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center soft-input w-full px-3 py-1.5 rounded-xl">
               <input
                 v-model.number="form.minAlert"
                 type="number"
                 step="any"
-                class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-number font-semibold text-stone-900"
+                class="w-full font-number font-semibold text-xs text-stone-900 bg-transparent focus:outline-none"
               />
-              <span v-if="form.packSize > 1" class="text-[10px] text-stone-400 shrink-0 font-number">
-                ≈ {{ ((form.minAlert || 0) / form.packSize).toFixed(1) }} {{ form.packUnit }}
-              </span>
+              <span class="text-[10px] text-stone-400 shrink-0 ml-1">{{ form.unit || 'g' }}</span>
             </div>
+            <p v-if="form.packSize > 1" class="text-[10px] text-stone-400 mt-1 font-number">
+              ≈ {{ ((form.minAlert || 0) / form.packSize).toFixed(1) }} {{ form.packUnit }}
+            </p>
           </div>
         </div>
 
@@ -328,6 +412,26 @@ function recalculateUnitCost() {
   if (size > 0) {
     form.value.unitCost = Number((cost / size).toFixed(4))
   }
+}
+
+function recalculatePackCost() {
+  const size = Number(form.value.packSize) || 1
+  const uCost = Number(form.value.unitCost) || 0
+  form.value.packCost = Number((uCost * size).toFixed(2))
+}
+
+function applyPreset(baseUnit, defaultPackUnit, defaultPackSize, defaultPackCost) {
+  form.value.unit = baseUnit
+  form.value.packUnit = defaultPackUnit
+  form.value.packSize = defaultPackSize
+  form.value.packCost = defaultPackCost
+  recalculateUnitCost()
+}
+
+function resetToSingleUnit() {
+  form.value.packUnit = form.value.unit || 'ชิ้น'
+  form.value.packSize = 1
+  form.value.packCost = form.value.unitCost
 }
 
 watch(() => store.modals.materialEdit.isOpen, (open) => {
