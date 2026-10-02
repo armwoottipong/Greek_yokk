@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Greek Yogg. — Stock, POS & Menu Management</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#FAF8F5',
+              100: '#F5EBE1',
+              200: '#E6D3C2',
+              500: '#8C532B',
+              600: '#78350F',
+              800: '#451A03',
+              900: '#2A1002'
+            },
+            warm: {
+              50: '#FAF9F6',
+              100: '#F4F1EA',
+              200: '#E9E4D8',
+              500: '#78716C',
+              800: '#292524',
+              900: '#1C1917'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css?v=3">
+  <style>
+    /* Direct embedded styling for instant rendering and cache immunity */
+    .soft-input {
+      background-color: #F5F4F0 !important;
+      border: 0 !important;
+      outline: none !important;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .soft-input:focus {
+      background-color: #ECEAE4 !important;
+      box-shadow: 0 0 0 1.5px rgba(28, 25, 23, 0.18) !important;
+    }
+    select.soft-input {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716C'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 0.9rem 0.9rem;
+      padding-right: 2.2rem !important;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+  </style>
+</head>
+<body class="h-full bg-[#FAF8F5] text-stone-900 flex flex-col md:flex-row overflow-hidden">
+
+  <!-- ========================================================================= -->
+  <!-- SIDEBAR NAVIGATION (EDITORIAL MINIMAL)                                    -->
+  <!-- ========================================================================= -->
+  <aside class="w-full md:w-64 bg-white border-r border-stone-200 flex flex-col shrink-0 z-20">
+    <!-- Brand Header -->
+    <div class="p-6 border-b border-stone-100 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl p-1 bg-amber-50 rounded-xl border border-amber-200/60">🥣</span>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-stone-900 leading-none">Greek Yogg.</h1>
+          <p class="text-xs text-stone-500 font-medium tracking-wider mt-1 uppercase">Bar & Cafe Management</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <nav class="p-4 flex-1 space-y-1 overflow-y-auto">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span>แดชบอร์ดภาพรวม</span>
+      </button>
+
+      <button onclick="switchTab('pos')" id="nav-pos" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors">
+        <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+        <span>ขายหน้าร้าน (POS)</span>
+        <span id="pos-badge" class="ml-auto bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-semibold hidden">0</span>
+      </button>
+
+      <button onclick="switchTab('stock')" id="nav-stock" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors">
+        <i data-lucide="boxes" class="w-4 h-4"></i>
+        <span>คลังวัตถุดิบ & สต็อก</span>
+        <span id="stock-alert-badge" class="ml-auto bg-rose-100 text-rose-700 text-xs px-2 py-0.5 rounded-full font-semibold hidden">!</span>
+      </button>
+
+      <button onclick="switchTab('menu')" id="nav-menu" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors">
+        <i data-lucide="utensils" class="w-4 h-4"></i>
+        <span>จัดการเมนู</span>
+      </button>
+
+      <button onclick="switchTab('addon')" id="nav-addon" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors">
+        <i data-lucide="layers" class="w-4 h-4"></i>
+        <span>จัดการ Add-on</span>
+      </button>
+
+      <button onclick="switchTab('settings')" id="nav-settings" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 transition-colors">
+        <i data-lucide="sliders" class="w-4 h-4"></i>
+        <span>ตั้งค่า & Preset ผลไม้</span>
+      </button>
+    </nav>
+
+    <!-- Google Sheet Connection Footer -->
+    <div class="p-4 border-t border-stone-100 bg-stone-50/50">
+      <div class="p-3 bg-white border border-stone-200 rounded-xl space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-stone-500 uppercase tracking-wider">ฐานข้อมูล</span>
+          <span id="db-status-pill" class="badge-pill bg-amber-50 text-amber-700 border border-amber-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+            <span id="db-status-text">โหมดสาธิต (Demo)</span>
+          </span>
+        </div>
+        <button onclick="syncWithGoogleSheet()" class="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100 rounded-lg transition-colors border border-stone-200">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="sync-icon"></i>
+          <span>ซิงค์ข้อมูลชีต (Sync)</span>
+        </button>
+        <button onclick="resetDemoData()" class="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-200">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>รีเซ็ตข้อมูลตัวอย่าง (Demo)</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE                                                            -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden bg-[#FAF8F5]">
+
+    <!-- TOP BAR -->
+    <header class="h-16 bg-white/80 backdrop-blur-md border-b border-stone-200 px-6 flex items-center justify-between shrink-0 z-10">
+      <div class="flex items-center gap-3">
+        <h2 id="top-title" class="text-lg font-semibold text-stone-800">แดชบอร์ดภาพรวม</h2>
+        <span id="current-date" class="text-xs font-medium text-stone-400 font-number hidden sm:inline">2026-10-02</span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Quick Order Shortcut Button -->
+        <button onclick="switchTab('pos')" class="flex items-center gap-2 px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>สร้างออเดอร์ใหม่</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- SCROLLABLE VIEWS CONTAINER -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-6" id="views-container">
+
+      <!-- ===================================================================== -->
+      <!-- VIEW 1: DASHBOARD                                                     -->
+      <!-- ===================================================================== -->
+      <section id="view-dashboard" class="space-y-6">
+        <!-- Filters Bar -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-stone-200">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-stone-500 uppercase tracking-wider">กรองช่วงเวลา:</span>
+            <div class="inline-flex p-1 bg-stone-100 rounded-xl">
+              <button onclick="setDashboardPeriod('today')" id="dash-btn-today" class="period-btn px-3 py-1 text-xs font-medium rounded-lg bg-white shadow-sm text-stone-900 transition-all">วันนี้</button>
+              <button onclick="setDashboardPeriod('week')" id="dash-btn-week" class="period-btn px-3 py-1 text-xs font-medium rounded-lg text-stone-600 hover:text-stone-900 transition-all">7 วันล่าสุด</button>
+              <button onclick="setDashboardPeriod('month')" id="dash-btn-month" class="period-btn px-3 py-1 text-xs font-medium rounded-lg text-stone-600 hover:text-stone-900 transition-all">เดือนนี้</button>
+              <button onclick="setDashboardPeriod('all')" id="dash-btn-all" class="period-btn px-3 py-1 text-xs font-medium rounded-lg text-stone-600 hover:text-stone-900 transition-all">ทั้งหมด</button>
+            </div>
+          </div>
+          <div class="text-xs text-stone-500 font-medium" id="dashboard-period-label">
+            แสดงข้อมูล: <span class="text-stone-800 font-semibold">วันนี้</span>
+          </div>
+        </div>
+
+        <!-- KPI Cards Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Gross Sales -->
+          <div class="editorial-card p-5">
+            <div class="flex items-center justify-between text-stone-500 mb-2">
+              <span class="text-xs font-medium">ยอดขายรวม (Gross)</span>
+              <i data-lucide="circle-dollar-sign" class="w-4 h-4 text-stone-400"></i>
+            </div>
+            <div class="text-2xl font-bold font-number text-stone-900" id="kpi-gross-sales">฿0</div>
+            <p class="text-xs text-stone-400 mt-1">ยอดขายก่อนหักค่า GP</p>
+          </div>
+
+          <!-- Net Revenue -->
+          <div class="editorial-card p-5">
+            <div class="flex items-center justify-between text-stone-500 mb-2">
+              <span class="text-xs font-medium">รายรับสุทธิ (Net Revenue)</span>
+              <i data-lucide="wallet" class="w-4 h-4 text-emerald-600"></i>
+            </div>
+            <div class="text-2xl font-bold font-number text-emerald-700" id="kpi-net-revenue">฿0</div>
+            <p class="text-xs text-stone-400 mt-1">หัก GP แล้ว (GP รวม: <span id="kpi-gp-fee">฿0</span>)</p>
+          </div>
+
+          <!-- Food Cost -->
+          <div class="editorial-card p-5">
+            <div class="flex items-center justify-between text-stone-500 mb-2">
+              <span class="text-xs font-medium">ต้นทุนวัตถุดิบ (COGS)</span>
+              <i data-lucide="scale" class="w-4 h-4 text-amber-600"></i>
+            </div>
+            <div class="text-2xl font-bold font-number text-amber-700" id="kpi-food-cost">฿0</div>
+            <p class="text-xs text-stone-400 mt-1">คำนวณจากสูตร & ท็อปปิ้ง</p>
+          </div>
+
+          <!-- Gross Profit -->
+          <div class="editorial-card p-5 bg-gradient-to-br from-white to-amber-50/30 border-amber-200/60">
+            <div class="flex items-center justify-between text-stone-500 mb-2">
+              <span class="text-xs font-medium text-amber-900 font-semibold">กำไรขั้นต้น (Profit)</span>
+              <i data-lucide="trending-up" class="w-4 h-4 text-amber-700"></i>
+            </div>
+            <div class="text-2xl font-bold font-number text-stone-900" id="kpi-gross-profit">฿0</div>
+            <div class="flex items-center gap-1.5 mt-1">
+              <span class="text-xs font-semibold text-emerald-700 font-number" id="kpi-margin-percent">0%</span>
+              <span class="text-xs text-stone-400">อัตรากำไร (Margin)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Low Stock Warning Alert Banner -->
+        <div id="low-stock-banner" class="hidden editorial-card p-4 bg-rose-50/70 border-rose-200">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span class="p-2 bg-rose-100 text-rose-700 rounded-xl">⚠️</span>
+              <div>
+                <h4 class="text-sm font-semibold text-rose-900">วัตถุดิบใกล้หมดสต็อก!</h4>
+                <p class="text-xs text-rose-700 mt-0.5" id="low-stock-list-text">มี 0 รายการที่เหลือน้อยกว่าเกณฑ์</p>
+              </div>
+            </div>
+            <button onclick="switchTab('stock')" class="px-3 py-1.5 bg-rose-700 text-white rounded-lg text-xs font-medium hover:bg-rose-800 transition-colors">
+              ไปเติมสต็อก
+            </button>
+          </div>
+        </div>
+
+        <!-- Split Grid: Best Sellers & Platform Distribution -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Top Menus -->
+          <div class="editorial-card p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+              <h3 class="text-sm font-semibold text-stone-800 flex items-center gap-2">
+                <span>🥣</span> เมนูขายดี (Top Menus)
+              </h3>
+              <span class="text-xs text-stone-400">ยอดขาย</span>
+            </div>
+            <div id="top-menus-list" class="space-y-3">
+              <!-- populated by JS -->
+            </div>
+          </div>
+
+          <!-- Top Add-ons -->
+          <div class="editorial-card p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+              <h3 class="text-sm font-semibold text-stone-800 flex items-center gap-2">
+                <span>🍓</span> ท็อปปิ้งยอดนิยม (Top Add-ons)
+              </h3>
+              <span class="text-xs text-stone-400">จำนวนที่สั่ง</span>
+            </div>
+            <div id="top-addons-list" class="space-y-3">
+              <!-- populated by JS -->
+            </div>
+          </div>
+
+          <!-- Platform Breakdown -->
+          <div class="editorial-card p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+              <h3 class="text-sm font-semibold text-stone-800 flex items-center gap-2">
+                <span>🛵</span> สัดส่วนยอดขายตาม Platform
+              </h3>
+              <span class="text-xs text-stone-400">ช่องทาง</span>
+            </div>
+            <div id="platform-breakdown-list" class="space-y-3">
+              <!-- populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Orders Table -->
+        <div class="editorial-card p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div>
+              <h3 class="text-sm font-semibold text-stone-800">ประวัติออเดอร์ล่าสุด</h3>
+              <p class="text-xs text-stone-400 mt-0.5">รายการบิลขายที่ถูกบันทึกล่าสุด</p>
+            </div>
+            <span class="text-xs font-semibold text-stone-500 font-number" id="dashboard-total-orders-count">0 บิล</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-stone-600">
+              <thead class="bg-stone-50 uppercase text-stone-400 font-medium">
+                <tr>
+                  <th class="py-2.5 px-3">เลขที่บิล</th>
+                  <th class="py-2.5 px-3">วัน-เวลา</th>
+                  <th class="py-2.5 px-3">Platform</th>
+                  <th class="py-2.5 px-3 text-right">ยอดรวม</th>
+                  <th class="py-2.5 px-3 text-right">GP</th>
+                  <th class="py-2.5 px-3 text-right">รับสุทธิ</th>
+                  <th class="py-2.5 px-3 text-right">กำไร</th>
+                  <th class="py-2.5 px-3 text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="recent-orders-tbody" class="divide-y divide-stone-100">
+                <!-- populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VIEW 2: POS ORDER SCREEN                                              -->
+      <!-- ===================================================================== -->
+      <section id="view-pos" class="hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- LEFT 8 COLS: MENU CATALOG -->
+          <div class="lg:col-span-8 space-y-5">
+            <!-- Platform Selection Banner -->
+            <div class="editorial-card p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <i data-lucide="store" class="w-3.5 h-3.5"></i>
+                  <span>เลือกช่องทางการขาย (Platform):</span>
+                </span>
+                <span id="pos-active-gp-label" class="text-xs font-medium text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">
+                  ค่าธรรมเนียม GP: 0%
+                </span>
+              </div>
+              <div id="pos-platform-chips" class="flex flex-wrap gap-2">
+                <!-- Platform chips populated by JS -->
+              </div>
+            </div>
+
+            <!-- Categories & Search Bar -->
+            <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+              <!-- Category Pills -->
+              <div id="pos-category-pills" class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                <!-- Category pills populated by JS -->
+              </div>
+
+              <!-- Search -->
+              <div class="relative w-full sm:w-56 shrink-0">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"></i>
+                <input type="text" id="pos-search-input" oninput="filterPosMenus()" placeholder="ค้นหาเมนู..." class="w-full pl-9 pr-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-amber-800">
+              </div>
+            </div>
+
+            <!-- Menus Grid -->
+            <div id="pos-menu-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <!-- Menu cards populated by JS -->
+            </div>
+          </div>
+
+          <!-- RIGHT 4 COLS: ORDER CART -->
+          <div class="lg:col-span-4 sticky top-2">
+            <div class="editorial-card p-5 space-y-4 shadow-sm">
+              <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">🛒</span>
+                  <div>
+                    <h3 class="text-sm font-bold text-stone-900 leading-none">รายการในบิล</h3>
+                    <p class="text-xs text-stone-400 mt-1" id="cart-platform-name">หน้าร้าน</p>
+                  </div>
+                </div>
+                <button onclick="clearCart()" class="text-xs text-stone-400 hover:text-rose-600 transition-colors">ล้างตะกร้า</button>
+              </div>
+
+              <!-- Cart Items List -->
+              <div id="cart-items-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                <!-- Populated by JS -->
+              </div>
+
+              <!-- Discount & Notes -->
+              <div class="pt-3 border-t border-stone-100 space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs text-stone-500">ส่วนลด (฿):</span>
+                  <input type="number" id="cart-discount-input" onchange="updateCartTotals()" value="0" min="0" class="w-24 text-right px-2 py-1 text-xs border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-800 font-number">
+                </div>
+
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs text-stone-500">วิธีชำระ:</span>
+                  <select id="cart-payment-method" class="text-xs border border-stone-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-amber-800">
+                    <option value="QR PromptPay">QR PromptPay</option>
+                    <option value="เงินสด (Cash)">เงินสด (Cash)</option>
+                    <option value="บัตรเครดิต">บัตรเครดิต</option>
+                    <option value="Platform Delivery">Platform Delivery</option>
+                    <option value="ฟรี / เลี้ยง">ฟรี / เลี้ยง</option>
+                  </select>
+                </div>
+
+                <input type="text" id="cart-note-input" placeholder="หมายเหตุบิล เช่น หวานน้อย, แยกท็อปปิ้ง..." class="w-full text-xs px-2.5 py-1.5 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-800">
+              </div>
+
+              <!-- Cart Calculation Breakdown -->
+              <div class="bg-stone-50 p-3 rounded-xl space-y-1.5 text-xs">
+                <div class="flex justify-between text-stone-500">
+                  <span>ยอดรวม (Subtotal)</span>
+                  <span class="font-number" id="cart-subtotal">฿0</span>
+                </div>
+                <div class="flex justify-between text-stone-500" id="cart-discount-row">
+                  <span>ส่วนลด</span>
+                  <span class="font-number text-rose-600" id="cart-discount-display">-฿0</span>
+                </div>
+                <div class="flex justify-between text-stone-500" id="cart-gp-row">
+                  <span id="cart-gp-label">หัก GP (0%)</span>
+                  <span class="font-number text-amber-700" id="cart-gp-display">-฿0</span>
+                </div>
+                <div class="flex justify-between text-stone-500">
+                  <span>ต้นทุนวัตถุดิบโดยประมาณ</span>
+                  <span class="font-number text-stone-600" id="cart-cogs-display">฿0</span>
+                </div>
+                <div class="flex justify-between text-sm font-bold text-stone-900 pt-2 border-t border-stone-200">
+                  <span>ยอดสุทธิที่เรียกเก็บ</span>
+                  <span class="font-number text-lg text-amber-900" id="cart-total">฿0</span>
+                </div>
+              </div>
+
+              <!-- Checkout Button -->
+              <button onclick="submitOrder()" id="btn-checkout" class="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-xl font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                <span>ยืนยันการขาย & ตัดสต็อก</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VIEW 3: STOCK & INVENTORY                                             -->
+      <!-- ===================================================================== -->
+      <section id="view-stock" class="hidden space-y-6">
+        <!-- Stock Controls Bar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-stone-200">
+          <div class="flex flex-wrap items-center gap-2" id="stock-category-filters">
+            <!-- Filter buttons -->
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="openStockInModal()" class="flex items-center gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all">
+              <i data-lucide="arrow-down-left" class="w-4 h-4"></i>
+              <span>รับเข้าสต็อก (Stock In)</span>
+            </button>
+            <button onclick="openStockAdjustModal()" class="flex items-center gap-1.5 px-3 py-2 bg-stone-800 hover:bg-stone-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all">
+              <i data-lucide="sliders" class="w-4 h-4"></i>
+              <span>ปรับของเสีย / ตรวจนับ</span>
+            </button>
+            <button onclick="openAddMaterialModal()" class="flex items-center gap-1.5 px-3 py-2 bg-white border border-stone-300 hover:bg-stone-50 text-stone-700 rounded-xl text-xs font-semibold transition-all">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>เพิ่มวัตถุดิบ</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Stock Table -->
+        <div class="editorial-card overflow-hidden">
+          <div class="p-4 border-b border-stone-100 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-stone-800">รายการวัตถุดิบทั้งหมดในคลัง</h3>
+            <span class="text-xs text-stone-400 font-number" id="stock-count-label">0 รายการ</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-stone-700">
+              <thead class="bg-stone-50 uppercase text-stone-400 font-medium">
+                <tr>
+                  <th class="py-3 px-4">วัตถุดิบ</th>
+                  <th class="py-3 px-4">หมวดหมู่</th>
+                  <th class="py-3 px-4 text-right">คงเหลือ</th>
+                  <th class="py-3 px-4 text-right">จุดเตือน</th>
+                  <th class="py-3 px-4 text-right">ต้นทุน/หน่วย</th>
+                  <th class="py-3 px-4 text-right">มูลค่ารวม</th>
+                  <th class="py-3 px-4 text-center">สถานะ</th>
+                  <th class="py-3 px-4 text-center">การกระทำ</th>
+                </tr>
+              </thead>
+              <tbody id="stock-table-tbody" class="divide-y divide-stone-100">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Stock History Log -->
+        <div class="editorial-card p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div>
+              <h3 class="text-sm font-semibold text-stone-800">ประวัติความเคลื่อนไหวสต็อก (Stock Transactions)</h3>
+              <p class="text-xs text-stone-400 mt-0.5">บันทึกการตัดจากการขาย, รับของเข้า, หรือปรับของเสีย</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-stone-600">
+              <thead class="bg-stone-50 uppercase text-stone-400 font-medium">
+                <tr>
+                  <th class="py-2.5 px-3">วัน-เวลา</th>
+                  <th class="py-2.5 px-3">วัตถุดิบ</th>
+                  <th class="py-2.5 px-3">ประเภท</th>
+                  <th class="py-2.5 px-3 text-right">จำนวนที่เปลี่ยน</th>
+                  <th class="py-2.5 px-3 text-right">ยอดคงเหลือหลังทำ</th>
+                  <th class="py-2.5 px-3">หมายเหตุ</th>
+                </tr>
+              </thead>
+              <tbody id="stock-transactions-tbody" class="divide-y divide-stone-100">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VIEW 4: MENU MANAGEMENT (SINGLE PAGE)                                -->
+      <!-- ===================================================================== -->
+      <section id="view-menu" class="hidden space-y-6">
+        <!-- Top Action Bar for Menus -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="p-2.5 bg-amber-50 text-amber-900 rounded-xl border border-amber-200 text-xl shrink-0">🥣</span>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-stone-900">จัดการเมนูหลัก (Menu Management)</h3>
+                <span class="text-xs font-number px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-semibold" id="menu-count-badge">0 เมนู</span>
+              </div>
+              <p class="text-[11px] text-stone-500 mt-0.5">ตั้งชื่อเมนู, สูตรวัตถุดิบ (BOM), สวิตช์ Add-on และสวิตช์ Package</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="openMenuEditModal()" id="btn-add-menu" class="flex items-center gap-1.5 px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>เพิ่มเมนูใหม่</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Menus Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="manage-menus-grid">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VIEW 5: ADD-ON MANAGEMENT                                             -->
+      <!-- ===================================================================== -->
+      <section id="view-addon" class="hidden space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="p-2.5 bg-purple-50 text-purple-700 rounded-xl border border-purple-200 text-lg">🍓</span>
+            <div>
+              <h3 class="text-base font-bold text-stone-900">จัดการ Add-on & ท็อปปิ้ง</h3>
+              <p class="text-xs text-stone-500 mt-0.5">จัดการรายการผลไม้สด ซอส และท็อปปิ้งที่ลูกค้าสามารถเลือกเพิ่มในเมนูหน้าร้าน</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="openAddonEditModal()" id="btn-add-addon" class="flex items-center gap-1.5 px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>เพิ่ม Add-on ใหม่</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Add-ons Table Card -->
+        <div class="editorial-card overflow-hidden">
+          <div class="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/40">
+            <div class="flex items-center gap-3">
+              <h3 class="text-sm font-bold text-stone-800 flex items-center gap-2">
+                <span>🍓</span> รายการท็อปปิ้งและ Add-ons ทั้งหมด
+              </h3>
+              <span class="text-xs text-stone-400 font-number" id="addon-count-label">0 รายการ</span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-stone-700">
+              <thead class="bg-stone-50 uppercase text-stone-400 font-medium">
+                <tr>
+                  <th class="py-3 px-4">ชื่อ Add-on</th>
+                  <th class="py-3 px-4">หมวดหมู่</th>
+                  <th class="py-3 px-4">ราคาตามแต่ละ Platform</th>
+                  <th class="py-3 px-4">ผูกตัดวัตถุดิบ</th>
+                  <th class="py-3 px-4 text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="manage-addons-tbody" class="divide-y divide-stone-100">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- VIEW 5: SETTINGS & PRESET EMOJIS                                      -->
+      <!-- ===================================================================== -->
+      <section id="view-settings" class="hidden space-y-6">
+        
+        <!-- Google Sheet API Setup Box -->
+        <div class="editorial-card p-6 space-y-4">
+          <div class="flex items-center gap-3">
+            <span class="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">📊</span>
+            <div>
+              <h3 class="text-base font-bold text-stone-900">การเชื่อมต่อ Google Sheets (Apps Script API)</h3>
+              <p class="text-xs text-stone-500 mt-0.5">เชื่อมต่อ Web App URL จาก Google Apps Script เพื่อใช้ Google Sheets เป็นฐานข้อมูลแบบ Realtime</p>
+            </div>
+          </div>
+
+          <div class="space-y-3 pt-2">
+            <div>
+              <label class="block text-xs font-semibold text-stone-600 mb-1">Google Apps Script Web App URL:</label>
+              <div class="flex gap-2">
+                <input type="url" id="settings-gas-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="flex-1 text-xs px-3.5 py-2.5 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800 font-mono">
+                <button onclick="saveApiUrl()" class="px-4 py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold transition-all">บันทึก URL</button>
+                <button onclick="testApiConnection()" class="px-4 py-2.5 bg-white border border-stone-300 hover:bg-stone-50 text-stone-700 rounded-xl text-xs font-semibold transition-all">ทดสอบต่อ API</button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-3 bg-stone-50 rounded-xl text-xs">
+              <span class="text-stone-600">ยังไม่ได้สร้างชีตหรือไม่รู้วิธีติดตั้ง?</span>
+              <button onclick="openGasGuideModal()" class="text-amber-800 hover:underline font-semibold flex items-center gap-1">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                <span>ดูวิธีตั้งค่า Google Sheet ใน 3 นาที</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fruit & Topping Preset Emojis Picker Box -->
+        <div class="editorial-card p-6 space-y-4">
+          <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div class="flex items-center gap-3">
+              <span class="p-2.5 bg-amber-50 text-amber-800 rounded-xl border border-amber-200">🍓</span>
+              <div>
+                <h3 class="text-base font-bold text-stone-900">Preset อีโมจิผลไม้ & วัตถุดิบ (Fruit & Topping Emojis)</h3>
+                <p class="text-xs text-stone-500 mt-0.5">คลิกที่อีโมจิเพื่อคัดลอก หรือเพิ่มอีโมจิใหม่ลงในชุด Preset</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preset Emoji Grid -->
+          <div id="settings-preset-emojis-grid" class="flex flex-wrap gap-2.5 pt-2">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Add custom emoji input -->
+          <div class="flex items-center gap-2 pt-2">
+            <input type="text" id="new-preset-emoji-input" placeholder="พิมพ์อีโมจิใหม่ เช่น 🍒 หรือ 🥥" class="w-48 text-xs px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800">
+            <button onclick="addNewPresetEmoji()" class="px-3.5 py-2 bg-stone-800 text-white rounded-xl text-xs font-semibold hover:bg-stone-700 transition-all">เพิ่มเข้า Preset</button>
+            <button onclick="resetPresetEmojis()" class="text-xs text-stone-400 hover:text-stone-700 ml-auto">รีเซ็ตเป็นค่าเริ่มต้น</button>
+          </div>
+        </div>
+
+        <!-- Platform & GP Settings -->
+        <div class="editorial-card p-6 space-y-4">
+          <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div class="flex items-center gap-3">
+              <span class="p-2.5 bg-blue-50 text-blue-700 rounded-xl border border-blue-200">🛵</span>
+              <div>
+                <h3 class="text-base font-bold text-stone-900">การตั้งค่า Platform & ค่าธรรมเนียม GP</h3>
+                <p class="text-xs text-stone-500 mt-0.5">จัดการช่องทางการขาย กำหนดอัตรา GP % เพื่อให้ระบบคำนวณกำไรสุทธิได้ตรงตามจริง</p>
+              </div>
+            </div>
+            <button onclick="openAddPlatformModal()" class="px-3.5 py-1.5 bg-stone-900 text-white rounded-xl text-xs font-semibold hover:bg-stone-800 transition-all">
+              + เพิ่ม Platform
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-stone-700">
+              <thead class="bg-stone-50 uppercase text-stone-400 font-medium">
+                <tr>
+                  <th class="py-2.5 px-3">รหัส</th>
+                  <th class="py-2.5 px-3">ชื่อช่องทาง</th>
+                  <th class="py-2.5 px-3 text-right">ค่าธรรมเนียม GP (%)</th>
+                  <th class="py-2.5 px-3 text-center">สีป้าย</th>
+                  <th class="py-2.5 px-3 text-center">สถานะ</th>
+                  <th class="py-2.5 px-3 text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="settings-platforms-tbody" class="divide-y divide-stone-100">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Demo Data Reset Card -->
+        <div class="editorial-card p-6 space-y-3 bg-stone-50/60 border-stone-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="p-2.5 bg-amber-100 text-amber-900 rounded-xl">🔄</span>
+              <div>
+                <h4 class="text-sm font-bold text-stone-900">รีเซ็ตและรีเฟรชข้อมูลตัวอย่าง (Reset Demo Data)</h4>
+                <p class="text-xs text-stone-500 mt-0.5">ล้างข้อมูลบิลขายทดสอบ สต็อกที่ถูกตัด และคืนค่าวัตถุดิบและเมนูเป็นค่าเริ่มต้นของร้าน Greek Yogurt</p>
+              </div>
+            </div>
+            <button onclick="resetDemoData()" class="px-4 py-2 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-2">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              <span>รีเซ็ตข้อมูลเริ่มต้นใหม่</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODALS & DRAWERS CONTAINER                                                -->
+  <!-- ========================================================================= -->
+
+  <!-- MODAL 1: POS ADD-ON SELECTION DRAWER -->
+  <div id="modal-pos-addon" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col modal-content-animated overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-stone-100 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span id="pos-modal-emoji" class="text-3xl p-1 bg-amber-50 rounded-xl">🥣</span>
+          <div>
+            <h3 id="pos-modal-title" class="text-base font-bold text-stone-900 leading-none">Greek Yogurt Bowl</h3>
+            <p id="pos-modal-desc" class="text-xs text-stone-500 mt-1">ราคาฐาน: ฿69 (หน้าร้าน)</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-pos-addon')" class="p-1 text-stone-400 hover:text-stone-700 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Add-on Categories List -->
+      <div class="p-5 space-y-4 overflow-y-auto flex-1" id="pos-modal-addons-container">
+        <!-- Addon items grouped by categories populated by JS -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
+        <div>
+          <span class="text-xs text-stone-400">ราคารวมเมนูนี้:</span>
+          <div class="text-lg font-bold font-number text-amber-900" id="pos-modal-total-price">฿0</div>
+        </div>
+        <button onclick="confirmAddPosItemToCart()" class="px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-md transition-all">
+          เพิ่มลงในบิล (Add to Order)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: STOCK IN (รับเข้า / แปรรูปวัตถุดิบรอง) -->
+  <div id="modal-stock-in" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-lg w-full p-6 modal-content-animated space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+        <div>
+          <h3 class="text-base font-bold text-stone-900 flex items-center gap-2">
+            <span>📥</span> รับวัตถุดิบเข้าคลัง (Stock In)
+          </h3>
+          <p class="text-xs text-stone-400 mt-0.5">เลือกรับซื้อเข้าทั่วไป หรือแปรรูป/ผลิตจากวัตถุดิบรอง</p>
+        </div>
+        <button onclick="closeModal('modal-stock-in')" class="text-stone-400 hover:text-stone-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- SWITCH TOGGLE: รับเข้าปกติ vs แปรรูปจากวัตถุดิบรอง -->
+      <div class="p-3 bg-stone-100/80 rounded-xl flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🥣</span>
+          <div>
+            <div class="text-xs font-bold text-stone-800">โหมดแปรรูปจากวัตถุดิบรอง</div>
+            <div class="text-[11px] text-stone-500">เช่น หมักและกรองเวย์จาก นมสด + โยเกิร์ตธรรมชาติ</div>
+          </div>
+        </div>
+        <!-- Toggle Switch -->
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="stock-in-mode-toggle" onchange="toggleStockInMode(this.checked)" class="sr-only peer">
+          <div class="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-800"></div>
+        </label>
+      </div>
+
+      <!-- SECTION A: รับซื้อเข้าปกติ (NORMAL RESTOCK) -->
+      <div id="stock-in-normal-section" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">เลือกวัตถุดิบที่รับเข้า:</label>
+          <select id="stock-in-material-id" class="w-full px-3 py-2 border border-stone-300 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-amber-800"></select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">จำนวนที่รับเข้า:</label>
+            <input type="number" id="stock-in-qty" min="1" step="any" placeholder="เช่น 1000" class="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800 font-number">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">ราคาซื้อต่อหน่วย (฿):</label>
+            <input type="number" id="stock-in-unit-cost" step="any" placeholder="เช่น 0.20" class="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800 font-number">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">หมายเหตุ / แหล่งซื้อ:</label>
+          <input type="text" id="stock-in-note" placeholder="เช่น ซื้อจากแม็คโคร ล็อตใหม่" class="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800">
+        </div>
+      </div>
+
+      <!-- SECTION B: แปรรูปจากวัตถุดิบรอง (SUB-INGREDIENTS CONVERSION / PREP) -->
+      <div id="stock-in-conversion-section" class="hidden space-y-4 text-xs">
+        <!-- Target Output Material -->
+        <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2">
+          <label class="block font-bold text-amber-950 uppercase tracking-wider text-[11px]">1. ผลผลิตหลักที่จะได้รับ (Main Output):</label>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-2">
+              <select id="stock-conversion-target-mat" class="w-full px-3 py-2 border border-stone-300 rounded-xl bg-white font-semibold text-stone-800"></select>
+            </div>
+            <div>
+              <div class="relative">
+                <input type="number" id="stock-conversion-yield-qty" oninput="calculateConversionCostPreview()" min="1" step="any" placeholder="ได้จริง (g)" class="w-full px-3 py-2 border border-stone-300 rounded-xl font-number font-bold text-amber-900">
+              </div>
+            </div>
+          </div>
+          <p class="text-[10px] text-amber-800">* ชั่งน้ำหนักเนื้อกรีกโยเกิร์ตที่กรองเวย์ได้จริง แล้วระบุในช่องขวา</p>
+        </div>
+
+        <!-- Sub-Ingredients Used Section -->
+        <div class="p-3 bg-stone-50 border border-stone-200 rounded-xl space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="block font-bold text-stone-700 uppercase tracking-wider text-[11px]">2. วัตถุดิบรองที่นำมาใช้ผลิต (Sub-ingredients):</label>
+            <button type="button" onclick="addSubIngredientRow()" class="text-[11px] text-amber-800 font-semibold hover:underline flex items-center gap-1">
+              <i data-lucide="plus" class="w-3 h-3"></i>
+              <span>เพิ่มวัตถุดิบรอง</span>
+            </button>
+          </div>
+
+          <div id="sub-ingredient-rows-container" class="space-y-2">
+            <!-- Dynamic rows of sub-ingredients -->
+          </div>
+        </div>
+
+        <!-- Real-time Cost Calculation Preview -->
+        <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-1.5 font-mono text-[11px]">
+          <div class="flex justify-between text-emerald-900">
+            <span>ต้นทุนวัตถุดิบรองทั้งหมดที่ใช้:</span>
+            <span class="font-bold" id="preview-sub-cost">฿0.00</span>
+          </div>
+          <div class="flex justify-between text-emerald-900">
+            <span>ผลผลิตที่ได้จริง:</span>
+            <span class="font-bold" id="preview-yield-qty">0 หน่วย</span>
+          </div>
+          <div class="flex justify-between text-emerald-950 font-bold border-t border-emerald-300/60 pt-1.5 text-xs">
+            <span>ต้นทุนเฉลี่ยต่อหน่วยที่ได้:</span>
+            <span class="text-emerald-800 font-number text-sm" id="preview-unit-cost">฿0.00 / หน่วย</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">หมายเหตุรอบการผลิต (Batch Note):</label>
+          <input type="text" id="stock-conversion-note" placeholder="เช่น กรองเวย์ 18 ชม. นม Meiji + โยเกิร์ตโยลิดา" class="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-stone-100">
+        <button onclick="closeModal('modal-stock-in')" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl">ยกเลิก</button>
+        <button onclick="submitStockIn()" id="btn-submit-stock-in" class="px-5 py-2 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-sm">บันทึกรับเข้า</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: STOCK ADJUST / WASTE -->
+  <div id="modal-stock-adjust" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 modal-content-animated space-y-4">
+      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+        <h3 class="text-base font-bold text-stone-900 flex items-center gap-2">
+          <span>⚠️</span> บันทึกของเสีย / ปรับยอดตรวจนับ
+        </h3>
+        <button onclick="closeModal('modal-stock-adjust')" class="text-stone-400 hover:text-stone-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">เลือกวัตถุดิบ:</label>
+          <select id="stock-adj-material-id" class="w-full px-3 py-2 border border-stone-300 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-amber-800"></select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">ประเภทการปรับยอด:</label>
+          <select id="stock-adj-type" class="w-full px-3 py-2 border border-stone-300 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-amber-800">
+            <option value="WASTE">ตัดของเสีย / สปอยล์ / ทิ้ง (ลดยอด)</option>
+            <option value="ADJUST">ตรวจนับยอดจริง (แทนที่ยอดคงเหลือ)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1" id="stock-adj-qty-label">จำนวนที่ตัดทิ้ง:</label>
+          <input type="number" id="stock-adj-qty" min="0" step="any" placeholder="ระบุจำนวน" class="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800 font-number">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">สาเหตุ / หมายเหตุ:</label>
+          <input type="text" id="stock-adj-note" placeholder="เช่น สตรอว์เบอร์รีขึ้นรา, นับยอดสิ้นวัน" class="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-stone-100">
+        <button onclick="closeModal('modal-stock-adjust')" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl">ยกเลิก</button>
+        <button onclick="submitStockAdjust()" class="px-5 py-2 text-xs font-semibold bg-rose-700 hover:bg-rose-800 text-white rounded-xl shadow-sm">บันทึกปรับยอด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: ADD/EDIT MENU (Artisanal Editorial Design - Soft Inputs & Generous Spacing) -->
+  <div id="modal-menu-edit" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 sm:p-6 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col modal-content-animated overflow-hidden">
+      <!-- Calm Header -->
+      <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
+        <div>
+          <h3 class="text-base font-semibold text-stone-900" id="menu-modal-header">รายละเอียดเมนู</h3>
+          <p class="text-[11px] text-stone-500 mt-0.5">กำหนดราคาขายแต่ละแพลตฟอร์ม สูตรวัตถุดิบ และบรรจุภัณฑ์ที่ตัดสต็อก</p>
+        </div>
+        <button onclick="closeModal('modal-menu-edit')" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Pure Flat Body (No nested block frames, generous breathing room) -->
+      <div class="p-7 space-y-5 overflow-y-auto flex-1 text-xs">
+        <input type="hidden" id="edit-menu-id">
+
+        <!-- Section 1: Emoji Icon & Menu Name -->
+        <div class="flex items-start gap-3.5">
+          <div class="shrink-0">
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">ไอคอน</label>
+            <button type="button" onclick="openEmojiPicker('edit-menu-emoji', this)" class="soft-input flex items-center justify-center w-12 h-11 rounded-xl transition-all hover:bg-[#EAE8E1]" title="คลิกเพื่อเปลี่ยนไอคอน">
+              <span id="edit-menu-emoji-display" class="text-2xl leading-none">🥣</span>
+            </button>
+            <input type="hidden" id="edit-menu-emoji" value="🥣">
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">ชื่อเมนู <span class="text-rose-500">*</span></label>
+            <input type="text" id="edit-menu-name" placeholder="เช่น Greek Yogurt Bowl (M)" class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400">
+          </div>
+        </div>
+
+        <!-- Section 2: Category & Description -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">หมวดหมู่</label>
+            <input type="text" id="edit-menu-category" placeholder="Classic Bowls" class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400">
+            <div class="flex items-center gap-1.5 mt-1.5 overflow-x-auto no-scrollbar">
+              <button type="button" onclick="setMenuCategoryPreset('Classic Bowls')" class="px-2 py-0.5 rounded-md bg-[#FAF9F6] hover:bg-[#ECEAE4] text-[10px] text-stone-500 hover:text-stone-900 transition-colors">Classic</button>
+              <button type="button" onclick="setMenuCategoryPreset('Fruit Bowls')" class="px-2 py-0.5 rounded-md bg-[#FAF9F6] hover:bg-[#ECEAE4] text-[10px] text-stone-500 hover:text-stone-900 transition-colors">Fruit</button>
+              <button type="button" onclick="setMenuCategoryPreset('Set & Package')" class="px-2 py-0.5 rounded-md bg-[#FAF9F6] hover:bg-[#ECEAE4] text-[10px] text-stone-500 hover:text-stone-900 transition-colors">Set & Drinks</button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">คำอธิบายสั้น</label>
+            <input type="text" id="edit-menu-desc" placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด" class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400">
+          </div>
+        </div>
+
+        <!-- Section 3: Platform Prices (Compact capsules) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-stone-700 flex items-center gap-1.5">
+              <span>🏷️</span>
+              <span>ราคาขายแต่ละช่องทาง</span>
+            </span>
+            <span class="text-[10px] text-stone-400">บาท (฿)</span>
+          </div>
+          <div id="edit-menu-platform-prices-container" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <!-- Dynamic Platform Prices -->
+          </div>
+        </div>
+
+        <!-- Section 4: Dual Functional Toggle Tiles -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <!-- Toggle 1: Add-ons -->
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-[#FAF9F6] border border-stone-100 hover:border-stone-200/80 cursor-pointer select-none transition-all">
+            <div class="pr-2">
+              <div class="flex items-center gap-1.5 font-medium text-stone-800 text-xs">
+                <span>🍓</span>
+                <span>อนุญาตให้เลือก Add-on</span>
+              </div>
+              <p class="text-[10px] text-stone-400 mt-0.5">เปิดให้ลูกค้าสั่งท็อปปิ้งเพิ่มเติมได้</p>
+            </div>
+            <div class="relative inline-flex items-center shrink-0">
+              <input type="checkbox" id="edit-menu-has-addons" checked class="sr-only peer">
+              <div class="w-10 h-6 bg-stone-200 peer-checked:bg-purple-700 rounded-full transition-colors relative">
+                <div class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
+              </div>
+            </div>
+          </label>
+
+          <!-- Toggle 2: Packaging -->
+          <label class="flex items-center justify-between p-3.5 rounded-xl bg-[#FAF9F6] border border-stone-100 hover:border-stone-200/80 cursor-pointer select-none transition-all">
+            <div class="pr-2">
+              <div class="flex items-center gap-1.5 font-medium text-stone-800 text-xs">
+                <span>📦</span>
+                <span>ตัดสต็อกบรรจุภัณฑ์</span>
+              </div>
+              <p class="text-[10px] text-stone-400 mt-0.5">หัก ถ้วย ช้อน ถุง ในสต็อกอัตโนมัติ</p>
+            </div>
+            <div class="relative inline-flex items-center shrink-0">
+              <input type="checkbox" id="edit-menu-has-package" onchange="toggleMenuPackageNotice(this.checked)" checked class="sr-only peer">
+              <div class="w-10 h-6 bg-stone-200 peer-checked:bg-amber-800 rounded-full transition-colors relative">
+                <div class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform peer-checked:translate-x-4"></div>
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Section 5: Base Recipe (Flat tabular rows) -->
+        <div class="space-y-2.5 pt-2 border-t border-stone-100">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
+              <span>🥣</span>
+              <span>สูตรวัตถุดิบหลัก & ผลไม้</span>
+            </span>
+            <button type="button" onclick="addBaseRecipeRowToMenuModal()" class="text-xs text-amber-900 hover:text-amber-950 font-medium flex items-center gap-1 py-1 px-2.5 rounded-lg hover:bg-amber-50/80 transition-colors">
+              <span>+ เพิ่มวัตถุดิบ</span>
+            </button>
+          </div>
+          <div id="edit-menu-base-recipe-rows" class="space-y-2">
+            <!-- Dynamic Base Recipe rows -->
+          </div>
+        </div>
+
+        <!-- Section 6: Packaging BOM (Flat tabular rows + Quick Chips) -->
+        <div class="space-y-2.5 pt-2 border-t border-stone-100">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
+              <span>📦</span>
+              <span>บรรจุภัณฑ์ & อุปกรณ์ที่ใช้</span>
+            </span>
+            <div id="menu-package-quick-bar" class="flex items-center gap-1.5">
+              <button type="button" onclick="quickAddPackageToModal('MAT010', 1)" class="px-2.5 py-1 bg-[#FAF9F6] hover:bg-[#EFECE6] text-stone-600 rounded-full text-[11px] font-medium transition-colors border border-stone-100">+ ถ้วย A</button>
+              <button type="button" onclick="quickAddPackageToModal('MAT012', 1)" class="px-2.5 py-1 bg-[#FAF9F6] hover:bg-[#EFECE6] text-stone-600 rounded-full text-[11px] font-medium transition-colors border border-stone-100">+ ช้อนไม้</button>
+              <button type="button" onclick="quickAddPackageToModal('MAT013', 1)" class="px-2.5 py-1 bg-[#FAF9F6] hover:bg-[#EFECE6] text-stone-600 rounded-full text-[11px] font-medium transition-colors border border-stone-100">+ ถุงกระดาษ</button>
+              <button type="button" onclick="addPackageRecipeRowToMenuModal()" class="ml-1 text-xs text-amber-900 hover:text-amber-950 font-medium py-1 px-2 rounded-lg hover:bg-amber-50/80 transition-colors">+ เพิ่ม Package</button>
+            </div>
+          </div>
+
+          <div id="menu-package-disabled-alert" class="hidden py-2.5 px-3.5 rounded-xl bg-amber-50/70 border border-amber-200/50 text-amber-900 text-xs flex items-center gap-2">
+            <span class="text-sm">ℹ️</span>
+            <span><strong>ปิดใช้งานตัดสต็อก Package:</strong> เมนูนี้จะไม่หักสต็อกบรรจุภัณฑ์ใดๆ เมื่อมีคำสั่งซื้อ</span>
+          </div>
+
+          <div id="menu-package-content" class="space-y-2">
+            <div id="edit-menu-package-recipe-rows" class="space-y-2">
+              <!-- Dynamic Package rows -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grounded Footer -->
+      <div class="px-7 py-4 bg-stone-50/70 border-t border-stone-100 flex items-center justify-end gap-3 shrink-0">
+        <button type="button" onclick="closeModal('modal-menu-edit')" class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 rounded-xl transition-colors">ยกเลิก</button>
+        <button type="button" onclick="saveMenuFromModal()" class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-sm transition-all flex items-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>บันทึกข้อมูลเมนู</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: ADD/EDIT ADD-ON -->
+  <div id="modal-addon-edit" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 modal-content-animated space-y-4">
+      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+        <h3 class="text-base font-bold text-stone-900" id="addon-modal-header">เพิ่ม/แก้ไข Add-on</h3>
+        <button onclick="closeModal('modal-addon-edit')" class="text-stone-400 hover:text-stone-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <input type="hidden" id="edit-addon-id">
+
+        <div class="grid grid-cols-4 gap-3">
+          <div class="col-span-1">
+            <label class="block font-semibold text-stone-700 mb-1">อีโมจิ:</label>
+            <button type="button" onclick="openEmojiPicker('edit-addon-emoji', this)" class="w-full flex items-center justify-between px-2.5 py-1.5 bg-stone-50 hover:bg-stone-100 border border-stone-300 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-1 focus:ring-amber-800">
+              <span id="edit-addon-emoji-display" class="text-2xl leading-none">🍓</span>
+              <span class="text-[10px] text-stone-400">▼</span>
+            </button>
+            <input type="hidden" id="edit-addon-emoji" value="🍓">
+          </div>
+          <div class="col-span-3">
+            <label class="block font-semibold text-stone-700 mb-1">ชื่อ Add-on / ท็อปปิ้ง:</label>
+            <input type="text" id="edit-addon-name" placeholder="เช่น สตรอว์เบอร์รีสด (30g)" class="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-stone-700 mb-1">หมวดหมู่ Add-on:</label>
+          <select id="edit-addon-category" class="w-full px-3 py-2 border border-stone-300 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-amber-800">
+            <option value="ผลไม้สด">ผลไม้สด</option>
+            <option value="ซอส & น้ำผึ้ง">ซอส & น้ำผึ้ง</option>
+            <option value="ธัญพืช & กรอบ">ธัญพืช & กรอบ</option>
+            <option value="ท็อปปิ้งพิเศษ">ท็อปปิ้งพิเศษ</option>
+          </select>
+        </div>
+
+        <!-- Prices Per Platform -->
+        <div class="p-3 bg-stone-50 rounded-xl space-y-2">
+          <label class="block font-bold text-stone-700 uppercase tracking-wider text-[11px]">ราคาบวกเพิ่มตามแต่ละ Platform (฿):</label>
+          <div id="edit-addon-platform-prices" class="grid grid-cols-2 gap-2">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Material Linkage -->
+        <div class="p-3 bg-stone-50 rounded-xl space-y-2">
+          <label class="block font-bold text-stone-700 uppercase tracking-wider text-[11px]">ผูกตัดวัตถุดิบในคลัง:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-stone-500 mb-0.5">วัตถุดิบที่ตัด:</label>
+              <select id="edit-addon-material-id" class="w-full px-2 py-1.5 border border-stone-300 rounded-lg bg-white"></select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-stone-500 mb-0.5">ปริมาณที่ตัดต่อครั้ง:</label>
+              <input type="number" id="edit-addon-amount" step="any" placeholder="เช่น 30" class="w-full px-2 py-1.5 border border-stone-300 rounded-lg font-number">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-stone-100">
+        <button onclick="closeModal('modal-addon-edit')" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl">ยกเลิก</button>
+        <button onclick="saveAddonFromModal()" class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-md">บันทึก Add-on</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: ADD RAW MATERIAL -->
+  <div id="modal-material-add" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 modal-content-animated space-y-4">
+      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+        <h3 class="text-base font-bold text-stone-900" id="material-add-modal-title">เพิ่มวัตถุดิบใหม่เข้าคลัง</h3>
+        <button onclick="closeModal('modal-material-add')" class="text-stone-400 hover:text-stone-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-4 gap-3">
+          <div class="col-span-1">
+            <label class="block font-semibold text-stone-700 mb-1">อีโมจิ:</label>
+            <button type="button" onclick="openEmojiPicker('add-mat-emoji', this)" class="w-full flex items-center justify-between px-2.5 py-1.5 bg-stone-50 hover:bg-stone-100 border border-stone-300 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-1 focus:ring-amber-800">
+              <span id="add-mat-emoji-display" class="text-2xl leading-none">📦</span>
+              <span class="text-[10px] text-stone-400">▼</span>
+            </button>
+            <input type="hidden" id="add-mat-emoji" value="📦">
+          </div>
+          <div class="col-span-3">
+            <label class="block font-semibold text-stone-700 mb-1" id="add-mat-name-label">ชื่อวัตถุดิบ:</label>
+            <input type="text" id="add-mat-name" placeholder="เช่น เมล็ดเจียออร์แกนิก" class="w-full px-3 py-2 border border-stone-300 rounded-xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">หมวดหมู่:</label>
+            <input type="text" id="add-mat-category" placeholder="Toppings" class="w-full px-3 py-2 border border-stone-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">หน่วยนับ:</label>
+            <select id="add-mat-unit" class="w-full px-3 py-2 border border-stone-300 rounded-xl bg-white">
+              <option value="g">กรัม (g)</option>
+              <option value="ml">มิลลิลิตร (ml)</option>
+              <option value="pcs">ชิ้น / ใบ / อัน (pcs)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">สต็อกเริ่มต้น:</label>
+            <input type="number" id="add-mat-stock" value="0" class="w-full px-3 py-2 border border-stone-300 rounded-xl font-number">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">จุดเตือนหมด:</label>
+            <input type="number" id="add-mat-alert" value="200" class="w-full px-3 py-2 border border-stone-300 rounded-xl font-number">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">ต้นทุน/หน่วย (฿):</label>
+            <input type="number" id="add-mat-cost" step="any" value="0.2" class="w-full px-3 py-2 border border-stone-300 rounded-xl font-number">
+          </div>
+        </div>
+
+        <!-- Sub-ingredient toggle checkbox -->
+        <div id="add-mat-sub-container" class="p-2.5 bg-purple-50/60 border border-purple-200 rounded-xl">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="add-mat-is-sub" class="rounded text-purple-700 focus:ring-purple-700">
+            <span class="font-semibold text-purple-900">กำหนดเป็น "วัตถุดิบรอง"</span>
+          </label>
+          <p class="text-[10px] text-purple-700 mt-0.5 pl-5">ติ๊กเมื่อเป็นวัตถุดิบสำหรับนำไปแปรรูป/หมัก (เช่น นมสด, หัวเชื้อโยเกิร์ต)</p>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-stone-100">
+        <button onclick="closeModal('modal-material-add')" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl">ยกเลิก</button>
+        <button onclick="submitAddMaterial()" class="px-5 py-2 text-xs font-semibold bg-stone-900 text-white rounded-xl shadow-md">บันทึกวัตถุดิบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6.5: EDIT RAW MATERIAL -->
+  <div id="modal-material-edit" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 modal-content-animated space-y-4">
+      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+        <div>
+          <h3 class="text-base font-bold text-stone-900 flex items-center gap-2">
+            <span>✏️</span> แก้ไขข้อมูลวัตถุดิบ
+          </h3>
+          <p class="text-[11px] text-stone-400 mt-0.5" id="edit-mat-header-id">MAT001</p>
+        </div>
+        <button onclick="closeModal('modal-material-edit')" class="text-stone-400 hover:text-stone-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <input type="hidden" id="edit-mat-id">
+
+        <div class="grid grid-cols-4 gap-3">
+          <div class="col-span-1">
+            <label class="block font-semibold text-stone-700 mb-1">อีโมจิ:</label>
+            <button type="button" onclick="openEmojiPicker('edit-mat-emoji', this)" class="w-full flex items-center justify-between px-2.5 py-1.5 bg-stone-50 hover:bg-stone-100 border border-stone-300 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-1 focus:ring-amber-800">
+              <span id="edit-mat-emoji-display" class="text-2xl leading-none">📦</span>
+              <span class="text-[10px] text-stone-400">▼</span>
+            </button>
+            <input type="hidden" id="edit-mat-emoji" value="📦">
+          </div>
+          <div class="col-span-3">
+            <label class="block font-semibold text-stone-700 mb-1">ชื่อวัตถุดิบ:</label>
+            <input type="text" id="edit-mat-name" class="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">หมวดหมู่:</label>
+            <input type="text" id="edit-mat-category" class="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">หน่วยนับ:</label>
+            <select id="edit-mat-unit" class="w-full px-3 py-2 border border-stone-300 rounded-xl bg-white">
+              <option value="g">กรัม (g)</option>
+              <option value="ml">มิลลิลิตร (ml)</option>
+              <option value="pcs">ชิ้น / ใบ / อัน (pcs)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">สต็อกปัจจุบัน:</label>
+            <input type="number" id="edit-mat-stock" class="w-full px-3 py-2 border border-stone-300 rounded-xl font-number bg-stone-50 text-stone-600" readonly title="ปรับสต็อกผ่านปุ่ม เติม/ปรับยอด">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">จุดเตือนหมด:</label>
+            <input type="number" id="edit-mat-alert" class="w-full px-3 py-2 border border-stone-300 rounded-xl font-number">
+          </div>
+          <div>
+            <label class="block font-semibold text-stone-700 mb-1">ต้นทุน/หน่วย (฿):</label>
+            <input type="number" id="edit-mat-cost" step="any" class="w-full px-3 py-2 border border-stone-300 rounded-xl font-number">
+          </div>
+        </div>
+
+        <!-- Sub-ingredient toggle checkbox -->
+        <div class="p-2.5 bg-purple-50/60 border border-purple-200 rounded-xl">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="edit-mat-is-sub" class="rounded text-purple-700 focus:ring-purple-700">
+            <span class="font-semibold text-purple-900">กำหนดเป็น "วัตถุดิบรอง"</span>
+          </label>
+          <p class="text-[10px] text-purple-700 mt-0.5 pl-5">ติ๊กเมื่อเป็นวัตถุดิบสำหรับนำไปแปรรูป/หมัก (เช่น นมสด, หัวเชื้อโยเกิร์ต)</p>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-stone-100">
+        <button onclick="closeModal('modal-material-edit')" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl">ยกเลิก</button>
+        <button onclick="saveMaterialEditFromModal()" class="px-5 py-2 text-xs font-semibold bg-stone-900 text-white rounded-xl shadow-md">บันทึกการแก้ไข</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6.6: SOFT DELETE MATERIAL CONFIRMATION -->
+  <div id="modal-delete-material-confirm" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 modal-content-animated space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-xl shrink-0">🗑️</div>
+        <div>
+          <h3 class="text-base font-bold text-stone-900">ยืนยันการลบวัตถุดิบ</h3>
+          <p class="text-xs text-stone-500 mt-0.5">ระบบจะซ่อนวัตถุดิบนี้ แต่ยังคงเก็บข้อมูลประวัติเดิมไว้ทั้งหมด</p>
+        </div>
+      </div>
+
+      <!-- Target Material Card -->
+      <div class="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl p-1 bg-white rounded-lg border border-stone-200" id="del-mat-emoji">📦</span>
+          <div>
+            <div class="font-bold text-stone-900" id="del-mat-name">ชื่อวัตถุดิบ</div>
+            <div class="text-[10px] text-stone-400 font-mono" id="del-mat-id">MAT001</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-stone-700 font-number font-bold text-xs" id="del-mat-stock">0 หน่วย</div>
+          <div class="text-[10px] text-stone-400" id="del-mat-category">Category</div>
+        </div>
+      </div>
+
+      <!-- Preservation Notice -->
+      <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1 text-xs text-emerald-900">
+        <div class="font-semibold flex items-center gap-1.5 text-emerald-800">
+          <span>🛡️</span> <span>ประวัติเดิมยังคงอยู่ครบถ้วน:</span>
+        </div>
+        <ul class="text-[11px] text-emerald-700 list-disc list-inside space-y-0.5 pl-1">
+          <li>ยอดขายและบิลในอดีต (Orders) จะไม่เปลี่ยนแปลง</li>
+          <li>ประวัติความเคลื่อนไหวสต็อก (Stock Transactions) ยังคงแสดงชื่อเดิม</li>
+          <li>สามารถกดกู้คืน (Restore) กลับมาใช้งานใหม่ได้ทุกเมื่อ</li>
+        </ul>
+      </div>
+
+      <!-- Warnings if referenced in active menus or addons -->
+      <div id="del-mat-warning-box" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5 text-xs">
+        <div class="font-semibold text-amber-900 flex items-center gap-1.5">
+          <span>⚠️</span> <span>วัตถุดิบนี้กำลังถูกใช้ในสูตร:</span>
+        </div>
+        <div id="del-mat-warning-content" class="text-[11px] text-amber-800 space-y-1">
+          <!-- Populated by JS -->
+        </div>
+        <p class="text-[10px] text-amber-700">* หากลบ เมนูเหล่านี้จะไม่สามารถตัดสต็อกวัตถุดิบนี้ได้</p>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-stone-100">
+        <button onclick="closeModal('modal-delete-material-confirm')" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl">ยกเลิก</button>
+        <button onclick="executeDeleteMaterial()" class="px-5 py-2 text-xs font-semibold bg-rose-700 hover:bg-rose-800 text-white rounded-xl shadow-sm">ยืนยันการลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 7: ORDER SUCCESS & RECEIPT -->
+  <div id="modal-receipt" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-sm w-full p-6 modal-content-animated space-y-4">
+      <div class="text-center space-y-1">
+        <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl">✓</div>
+        <h3 class="text-lg font-bold text-stone-900">บันทึกการขายสำเร็จ!</h3>
+        <p class="text-xs text-stone-500" id="receipt-order-id">ORD-261002-001</p>
+      </div>
+
+      <div id="printable-receipt" class="bg-stone-50 p-4 rounded-xl space-y-2 text-xs border border-dashed border-stone-300 font-mono">
+        <div class="text-center border-b border-stone-200 pb-2">
+          <div class="font-bold text-sm">GREEK YOGG. BAR</div>
+          <div class="text-[10px] text-stone-500">Fresh Greek Yogurt & Toppings</div>
+          <div class="text-[10px] text-stone-400" id="receipt-date">2026-10-02 11:30</div>
+        </div>
+
+        <div id="receipt-items-list" class="space-y-1 py-1">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="border-t border-stone-200 pt-2 space-y-1 text-[11px]">
+          <div class="flex justify-between"><span>ยอดรวม:</span><span id="receipt-subtotal">฿0</span></div>
+          <div class="flex justify-between text-rose-600" id="receipt-discount-row"><span>ส่วนลด:</span><span id="receipt-discount">-฿0</span></div>
+          <div class="flex justify-between text-stone-500" id="receipt-gp-row"><span>GP แพลตฟอร์ม:</span><span id="receipt-gp">-฿0</span></div>
+          <div class="flex justify-between font-bold text-sm text-stone-900 pt-1 border-t border-stone-300">
+            <span>ยอดชำระ:</span><span id="receipt-total">฿0</span>
+          </div>
+          <div class="text-[10px] text-stone-400 text-center pt-1" id="receipt-payment-info">QR PromptPay</div>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="window.print()" class="flex-1 py-2 text-xs font-semibold border border-stone-300 hover:bg-stone-100 rounded-xl transition-colors">พิมพ์ใบเสร็จ</button>
+        <button onclick="closeModal('modal-receipt')" class="flex-1 py-2 text-xs font-semibold bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-colors">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 9: LOW STOCK WARNING CONFIRMATION -->
+  <div id="modal-low-stock-confirm" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-md w-full p-6 modal-content-animated space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-xl shrink-0">⚠️</div>
+        <div>
+          <h3 class="text-base font-bold text-stone-900">แจ้งเตือน: วัตถุดิบใกล้หมดสต็อก!</h3>
+          <p class="text-xs text-stone-500 mt-0.5">การเพิ่มรายการนี้จะทำให้วัตถุดิบในคลังลดลงจนต่ำกว่าเกณฑ์เตือน</p>
+        </div>
+      </div>
+
+      <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
+        <span class="text-[11px] font-bold text-amber-900 uppercase tracking-wider block">รายการวัตถุดิบที่ใกล้หมด:</span>
+        <div id="low-stock-confirm-list" class="space-y-1.5 text-xs text-stone-700">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <p class="text-xs text-stone-600">สต็อกยังคงมีพอสำหรับบิลนี้ แต่เหลือน้อยมาก คุณต้องการยืนยันเพิ่มรายการหรือไม่?</p>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-stone-100">
+        <button onclick="cancelLowStockAction()" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl">ยกเลิก</button>
+        <button onclick="confirmLowStockAction()" class="px-5 py-2 text-xs font-semibold bg-amber-800 hover:bg-amber-900 text-white rounded-xl shadow-sm">ยืนยันและดำเนินการต่อ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 8: GOOGLE SHEET SETUP GUIDE -->
+  <div id="modal-gas-guide" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-xl w-full p-6 modal-content-animated space-y-4 max-h-[90vh] overflow-y-auto text-xs">
+      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+        <h3 class="text-base font-bold text-stone-900 flex items-center gap-2">
+          <span>📖</span> คู่มือเชื่อมต่อ Google Sheet ใน 3 นาที
+        </h3>
+        <button onclick="closeModal('modal-gas-guide')" class="text-stone-400 hover:text-stone-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-stone-700 leading-relaxed">
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+          <strong class="text-amber-900">💡 สิ่งที่เตรียมไว้ให้แล้ว:</strong>
+          <p class="mt-0.5 text-amber-800">โค้ด Google Apps Script ทั้งหมดอยู่ในไฟล์ <code class="bg-white px-1.5 py-0.5 rounded border border-amber-200 font-mono">google_apps_script/Code.gs</code> พร้อมฟังก์ชันสร้างโครงสร้างชีตอัตโนมัติ</p>
+        </div>
+
+        <ol class="list-decimal list-inside space-y-2 pl-1">
+          <li>เปิด <a href="https://sheets.new" target="_blank" class="text-blue-600 underline font-semibold">sheets.new</a> ในเบราว์เซอร์เพื่อสร้าง Google Sheet ใหม่</li>
+          <li>ไปที่เมนู <strong>ส่วนขยาย (Extensions)</strong> &gt; <strong>Apps Script</strong></li>
+          <li>ลบโค้ดเริ่มต้นออก แล้วคัดลอกโค้ดจากไฟล์ <code class="font-mono bg-stone-100 px-1 rounded">google_apps_script/Code.gs</code> ไปวางทั้งหมด</li>
+          <li>เลือกฟังก์ชัน <strong>setupDatabase</strong> จากดรอปดาวน์ด้านบน แล้วกดปุ่ม <strong>เรียกใช้ (Run)</strong> 1 ครั้ง (ระบบจะสร้างตารางและข้อมูลตัวอย่างร้านกรีกโยเกิร์ตให้ทันที)</li>
+          <li>กดปุ่มสีน้ำเงิน <strong>ทำให้ใช้งานได้ (Deploy)</strong> &gt; <strong>การทำให้ใช้งานได้รายการใหม่ (New deployment)</strong></li>
+          <li>เลือกประเภท: <strong>เว็บแอป (Web app)</strong>
+            <ul class="list-disc list-inside pl-4 text-stone-500 mt-1">
+              <li>คำอธิบาย: Greek Yogg API</li>
+              <li>ดำเนินการในฐานะ: <strong>ฉัน (Me)</strong></li>
+              <li>ผู้ที่มีสิทธิ์เข้าถึง: <strong class="text-rose-600">ทุกคน (Anyone)</strong> <em>(สำคัญมาก)</em></li>
+            </ul>
+          </li>
+          <li>กด Deploy แล้วคัดลอก <strong>Web App URL</strong> นำมาวางในช่องหน้าตั้งค่าของระบบนี้!</li>
+        </ol>
+      </div>
+
+      <div class="flex justify-end pt-3 border-t border-stone-100">
+        <button onclick="closeModal('modal-gas-guide')" class="px-5 py-2 bg-stone-900 text-white rounded-xl font-semibold">เข้าใจแล้ว</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- GLOBAL FLOATING EMOJI PICKER DROPDOWN BOX                                 -->
+  <!-- ========================================================================= -->
+  <div id="global-emoji-picker" class="fixed z-[9999] hidden bg-white rounded-2xl border border-stone-200 shadow-2xl p-3 w-80 space-y-2.5 font-sans modal-content-animated" style="top: 0; left: 0;">
+    <!-- Search & Custom Direct Input Bar -->
+    <div class="relative">
+      <input type="text" id="emoji-picker-search" oninput="filterEmojiPicker(this.value)" onkeydown="if(event.key==='Enter') applyCustomTypedEmoji()" placeholder="ค้นหา เช่น สตรอว์, นม, ช้อน, 🍓..." class="w-full pl-8 pr-12 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-800">
+      <i data-lucide="search" class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+      <button type="button" onclick="applyCustomTypedEmoji()" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold bg-stone-800 text-white px-2 py-0.5 rounded-lg hover:bg-stone-700 transition-colors">ใช้</button>
+    </div>
+
+    <!-- Category Tabs Filter -->
+    <div class="flex items-center gap-1 overflow-x-auto pb-1 text-[11px] no-scrollbar" id="emoji-picker-tabs">
+      <!-- Generated dynamically in JS -->
+    </div>
+
+    <!-- Emoji Grid Container -->
+    <div class="grid grid-cols-6 gap-1 max-h-52 overflow-y-auto p-1 bg-stone-50/70 rounded-xl border border-stone-100" id="emoji-picker-grid">
+      <!-- Populated dynamically in JS -->
+    </div>
+
+    <!-- Footer Note & Close -->
+    <div class="pt-1 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-400">
+      <span>คลิกเพื่อเลือกทันที</span>
+      <button type="button" onclick="closeEmojiPicker()" class="text-stone-500 hover:text-stone-800 font-semibold transition-colors">ปิด ✕</button>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
+
+  <!-- Core Javascript Application -->
+  <script src="app.js"></script>
+  <script>
+    // Initialize Lucide Icons after DOM loads
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

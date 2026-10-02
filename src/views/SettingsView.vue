@@ -1,0 +1,288 @@
+<template>
+  <div class="max-w-4xl space-y-6">
+    <!-- Header -->
+    <div>
+      <h2 class="text-xl font-bold text-stone-900 tracking-tight">ตั้งค่าระบบ (System Settings)</h2>
+      <p class="text-xs text-stone-400 mt-0.5">
+        เชื่อมต่อ Google Sheets API, จัดการช่องทางการขาย และสำรองฐานข้อมูล
+      </p>
+    </div>
+
+    <!-- Section 1: Google Apps Script Web App Integration -->
+    <div class="editorial-card p-6 bg-white space-y-4">
+      <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
+        <div class="p-2 rounded-xl bg-emerald-50 text-emerald-800">
+          <Cloud class="w-5 h-5" />
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-stone-900">เชื่อมต่อ Google Sheets (GAS API)</h3>
+          <p class="text-xs text-stone-400">ซิงค์ประวัติคำสั่งซื้อและสถานะสต็อกคงเหลือขึ้น Google Sheets อัตโนมัติ</p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 mb-1">
+            Google Apps Script Web App URL
+          </label>
+          <div class="flex items-center gap-2">
+            <input
+              v-model="gasUrlInput"
+              type="url"
+              placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+              class="soft-input flex-1 px-3 py-2 rounded-xl text-xs font-mono text-stone-900 placeholder:text-stone-400"
+            />
+            <button
+              @click="saveGasUrl"
+              class="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold transition-colors shrink-0"
+            >
+              บันทึก URL
+            </button>
+          </div>
+          <p class="text-[11px] text-stone-400 mt-1.5">
+            URL ที่ได้จากการ Deploy เป็น Web App ใน Google Apps Script (Who has access: Anyone)
+          </p>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <div class="flex items-center gap-2 text-xs">
+            <span
+              class="w-2.5 h-2.5 rounded-full"
+              :class="store.gasApiUrl ? 'bg-emerald-500' : 'bg-stone-300'"
+            ></span>
+            <span class="text-stone-600 font-medium">
+              {{ store.gasApiUrl ? 'สถานะ: เชื่อมต่อ Web App URL แล้ว' : 'สถานะ: ยังไม่ได้ระบุ URL' }}
+            </span>
+            <span v-if="store.lastSyncTime" class="text-stone-400 text-[11px]">
+              (ซิงค์ล่าสุด: {{ store.lastSyncTime }})
+            </span>
+          </div>
+
+          <button
+            @click="testSync"
+            :disabled="store.isSyncing || !store.gasApiUrl"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': store.isSyncing }" />
+            <span>{{ store.isSyncing ? 'กำลังส่งข้อมูล...' : 'ทดสอบซิงค์ข้อมูลเดี๋ยวนี้' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Platform & Channel GP Rates -->
+    <div class="editorial-card p-6 bg-white space-y-4">
+      <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
+        <div class="p-2 rounded-xl bg-amber-50 text-amber-800">
+          <Store class="w-5 h-5" />
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-stone-900">ช่องทางการขายและค่าธรรมเนียม GP (Platform GP Rates)</h3>
+          <p class="text-xs text-stone-400">อัตราหักเปอร์เซ็นต์ GP ที่นำไปคำนวณกำไรสุทธิแบบ Real-time</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div
+          v-for="plat in store.platforms"
+          :key="plat.id"
+          class="p-3.5 rounded-xl border border-stone-100 bg-[#FAF9F6] flex items-center justify-between"
+        >
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">{{ plat.icon }}</span>
+            <div>
+              <div class="font-bold text-stone-900 text-xs">{{ plat.name }}</div>
+              <div class="text-[11px] text-stone-400 font-mono">{{ plat.id }}</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-bold font-number text-amber-900 bg-amber-100/60 px-2 py-0.5 rounded-md">
+              GP {{ plat.gpPercent }}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Data Management & Backup -->
+    <div class="editorial-card p-6 bg-white space-y-4">
+      <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
+        <div class="p-2 rounded-xl bg-rose-50 text-rose-800">
+          <Database class="w-5 h-5" />
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-stone-900">การจัดการฐานข้อมูลและการสำรอง (Database & Backup)</h3>
+          <p class="text-xs text-stone-400">สำรองข้อมูลทั้งหมดเป็น JSON หรือรีเฟรชกลับสู่ค่าเริ่มต้น</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Export Backup -->
+        <div class="p-4 rounded-xl border border-stone-100 bg-[#FAF9F6] flex flex-col justify-between space-y-3">
+          <div>
+            <div class="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+              <Download class="w-4 h-4 text-stone-600" />
+              <span>ส่งออกข้อมูลสำรอง (Export)</span>
+            </div>
+            <p class="text-[11px] text-stone-400 mt-1">
+              ดาวน์โหลดไฟล์ .json รวมเมนู วัตถุดิบ และประวัติคำสั่งซื้อ
+            </p>
+          </div>
+          <button
+            @click="exportBackup"
+            class="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+          >
+            ดาวน์โหลด JSON Backup
+          </button>
+        </div>
+
+        <!-- Import Backup -->
+        <div class="p-4 rounded-xl border border-stone-100 bg-[#FAF9F6] flex flex-col justify-between space-y-3">
+          <div>
+            <div class="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+              <Upload class="w-4 h-4 text-stone-600" />
+              <span>นำเข้าข้อมูล (Import)</span>
+            </div>
+            <p class="text-[11px] text-stone-400 mt-1">
+              กู้คืนข้อมูลจากไฟล์ JSON ที่เคยสำรองไว้
+            </p>
+          </div>
+          <div>
+            <input
+              type="file"
+              ref="fileInput"
+              accept=".json"
+              class="hidden"
+              @change="handleImportFile"
+            />
+            <button
+              @click="$refs.fileInput.click()"
+              class="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+            >
+              เลือกไฟล์ JSON กู้คืน
+            </button>
+          </div>
+        </div>
+
+        <!-- Reset Demo Data -->
+        <div class="p-4 rounded-xl border border-rose-100 bg-rose-50/30 flex flex-col justify-between space-y-3">
+          <div>
+            <div class="font-bold text-xs text-rose-900 flex items-center gap-1.5">
+              <RotateCcw class="w-4 h-4 text-rose-600" />
+              <span>คืนค่าตัวอย่าง (Reset Demo)</span>
+            </div>
+            <p class="text-[11px] text-stone-400 mt-1">
+              คืนค่าเมนู วัตถุดิบ และออเดอร์ตัวอย่างของร้านกรีกโยเกิร์ต
+            </p>
+          </div>
+          <button
+            @click="confirmResetDemo"
+            class="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+          >
+            รีเซ็ตข้อมูลตัวอย่าง
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: System Information -->
+    <div class="editorial-card p-5 bg-white flex items-center justify-between text-xs text-stone-400">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span class="text-stone-600 font-medium">Greek Yogurt POS & Inventory System v2.0 (Vue 3 + Pinia)</span>
+      </div>
+      <div>
+        Local Data Stored: {{ (store.materials.length + store.menus.length + store.addons.length + store.orders.length) }} records
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { usePosStore } from '@/stores/posStore'
+import {
+  Cloud,
+  Store,
+  Database,
+  RefreshCw,
+  Download,
+  Upload,
+  RotateCcw
+} from 'lucide-vue-next'
+
+const store = usePosStore()
+const gasUrlInput = ref(store.gasApiUrl)
+const fileInput = ref(null)
+
+function saveGasUrl() {
+  store.saveGasUrl(gasUrlInput.value)
+}
+
+function testSync() {
+  store.syncWithGas()
+}
+
+function exportBackup() {
+  const data = {
+    exportDate: new Date().toISOString(),
+    system: 'Greek Yogurt POS v2.0',
+    materials: store.materials,
+    menus: store.menus,
+    addons: store.addons,
+    platforms: store.platforms,
+    orders: store.orders,
+    gasApiUrl: store.gasApiUrl
+  }
+
+  const jsonStr = JSON.stringify(data, null, 2)
+  const blob = new Blob([jsonStr], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  const dateStr = new Date().toISOString().split('T')[0]
+  a.href = url
+  a.download = `greek-yogurt-pos-backup-${dateStr}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+  store.showToast('ดาวน์โหลดไฟล์ข้อมูลสำรองสำเร็จ', 'success')
+}
+
+function handleImportFile(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result)
+      if (data.materials && data.menus && data.addons) {
+        if (confirm('ยืนยันการกู้คืนข้อมูล? ข้อมูลปัจจุบันในเครื่องจะถูกแทนที่ด้วยข้อมูลจากไฟล์สำรอง')) {
+          store.materials = data.materials
+          store.menus = data.menus
+          store.addons = data.addons
+          if (data.platforms) store.platforms = data.platforms
+          if (data.orders) store.orders = data.orders
+          if (data.gasApiUrl) {
+            store.gasApiUrl = data.gasApiUrl
+            gasUrlInput.value = data.gasApiUrl
+          }
+          store.persistLocal()
+          store.showToast('กู้คืนข้อมูลจากไฟล์สำรองสำเร็จเรียบร้อย', 'success')
+        }
+      } else {
+        store.showToast('รูปแบบไฟล์สำรองไม่ถูกต้อง', 'error')
+      }
+    } catch (err) {
+      console.error(err)
+      store.showToast('ไม่สามารถอ่านไฟล์ JSON ได้: ' + err.message, 'error')
+    }
+  }
+  reader.readAsText(file)
+}
+
+function confirmResetDemo() {
+  if (confirm('คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นชุดตัวอย่างตั้งต้น (Default Demo Data) หรือไม่?')) {
+    store.resetDemoData()
+  }
+}
+</script>

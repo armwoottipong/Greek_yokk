@@ -1,0 +1,289 @@
+/* ==========================================================================
+   GREEK YOGURT & CAFE POS - EDITORIAL MINIMAL STYLES
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+:root {
+  --bg-primary: #FAF8F5;
+  --bg-card: #FFFFFF;
+  --text-main: #1C1917;
+  --text-muted: #78716C;
+  --border-subtle: #E7E5E4;
+  --accent-brand: #78350F;
+  --accent-soft: #F5EBE1;
+  --accent-green: #15803D;
+  --accent-red: #B91C1C;
+}
+
+body {
+  font-family: 'Prompt', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Number / English specific clean font */
+.font-number {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Custom Scrollbar for modern editorial feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D6D3D1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A8A29E;
+}
+
+/* Subtle elevation card */
+.editorial-card {
+  background: #FFFFFF;
+  border: 1px solid #E7E5E4;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+  border-radius: 14px;
+}
+
+.editorial-card-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.editorial-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.05);
+  border-color: #D6D3D1;
+}
+
+/* Pill Badges */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Modal and Drawer animations */
+.modal-backdrop {
+  background-color: rgba(28, 25, 23, 0.45);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-content-animated {
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Toast Notification */
+#toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast-message {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  background: #1C1917;
+  color: #FFFFFF;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Emoji selection grid buttons */
+.emoji-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  border-radius: 10px;
+  border: 1px solid #E7E5E4;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.1s, border-color 0.1s;
+}
+
+.emoji-btn:hover {
+  transform: scale(1.15);
+  background-color: #F5F5F4;
+  border-color: #D6D3D1;
+}
+
+.emoji-btn.active {
+  border-color: #78350F;
+  background-color: #FEF3C7;
+  box-shadow: 0 0 0 2px #D97706;
+}
+
+/* Hide scrollbar for category tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Floating Emoji Picker Popover */
+#global-emoji-picker {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.emoji-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0.35rem;
+  border-radius: 10px;
+  cursor: pointer;
+  background: transparent;
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.12s ease;
+}
+
+.emoji-picker-item:hover {
+  transform: scale(1.25);
+  background-color: #F5EBE1;
+  z-index: 10;
+}
+
+.emoji-picker-item:active {
+  transform: scale(1.05);
+}
+
+/* Print Styling for Receipts */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-receipt, #printable-receipt * {
+    visibility: visible;
+  }
+  #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    margin: 0;
+    padding: 10px;
+    font-size: 12px;
+  }
+}
+
+/* ==========================================================================
+   CLEAN MINIMAL TOGGLE SWITCH & SOFT INPUTS
+   ========================================================================== */
+
+.editorial-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 38px;
+  height: 22px;
+  background-color: #E7E5E4;
+  border-radius: 9999px;
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.editorial-switch-thumb {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  background-color: #FFFFFF;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+input:checked + .editorial-switch {
+  background-color: #78350F;
+}
+
+input:checked + .editorial-switch.switch-berry {
+  background-color: #6B21A8;
+}
+
+input:checked + .editorial-switch .editorial-switch-thumb {
+  transform: translateX(16px);
+}
+
+/* Soft borderless inputs & selects */
+.soft-input {
+  background-color: #F5F4F0 !important;
+  border: 0 !important;
+  outline: none !important;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.soft-input:focus {
+  background-color: #ECEAE4 !important;
+  box-shadow: 0 0 0 1.5px rgba(28, 25, 23, 0.15) !important;
+}
+
+select.soft-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716C'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.9rem 0.9rem;
+  padding-right: 2.2rem !important;
+}
+
+
