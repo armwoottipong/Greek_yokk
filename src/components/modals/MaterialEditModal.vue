@@ -4,445 +4,282 @@
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
     @click.self="close"
   >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      <!-- Calm Header -->
-      <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
+    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <!-- Calm Clean Header -->
+      <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
-          <h3 class="text-base font-semibold text-stone-900">
-            {{ isEditing ? `แก้ไขวัตถุดิบ: ${form.name}` : 'เพิ่มวัตถุดิบ / สินค้า' }}
+          <h3 class="text-sm font-semibold text-stone-900">
+            {{ isEditing ? `แก้ไข: ${form.name}` : 'เพิ่มวัตถุดิบ / สินค้า' }}
           </h3>
-          <p class="text-[11px] text-stone-500 mt-0.5">
-            ตั้งหน่วยซื้อ หน่วยใช้ ขนาดบรรจุ และกำหนดสูตรผลิตจากวัตถุดิบรอง
-          </p>
+          <p class="text-[11px] text-stone-400 mt-0.5">ระบุข้อมูลต้นทุน หรือตั้งสูตรการผลิต</p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors">
-          <X class="w-5 h-5" />
+        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors">
+          <X class="w-4 h-4" />
         </button>
       </div>
 
-      <!-- Pure Flat Body -->
-      <div class="p-7 space-y-5 overflow-y-auto flex-1 text-xs">
-        <!-- Section 1: Emoji & Name -->
-        <div class="flex items-start gap-3.5">
-          <div class="shrink-0">
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">ไอคอน</label>
-            <button
-              type="button"
-              @click="openEmojiPicker"
-              class="soft-input flex items-center justify-center w-12 h-11 rounded-xl transition-all hover:bg-[#EAE8E1]"
-            >
-              <span class="text-2xl leading-none">{{ form.emoji }}</span>
-            </button>
-          </div>
-          <div class="flex-1">
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">
+      <!-- Pure Minimal Body -->
+      <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+        <!-- 1. Emoji, Name & Category -->
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            @click="openEmojiPicker"
+            title="เปลี่ยนไอคอน"
+            class="w-11 h-11 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-2xl transition-colors shrink-0"
+          >
+            {{ form.emoji }}
+          </button>
+          <div class="flex-1 min-w-0">
+            <label class="block text-[11px] font-medium text-stone-600 mb-1">
               ชื่อวัตถุดิบ <span class="text-rose-500">*</span>
             </label>
             <input
               v-model="form.name"
               type="text"
-              placeholder="เช่น กรีกโยเกิร์ตแท้, นมสดพาสเจอร์ไรส์, สตรอว์เบอร์รี"
-              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
+              placeholder="เช่น นมสดพาสเจอร์ไรส์, กรีกโยเกิร์ต"
+              class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
             />
           </div>
+          <div class="w-36 shrink-0">
+            <label class="block text-[11px] font-medium text-stone-600 mb-1">หมวดหมู่</label>
+            <select
+              v-model="form.category"
+              class="soft-input w-full px-2.5 py-2 rounded-xl text-xs font-medium text-stone-900"
+            >
+              <option value="Base Yogurt">🥣 เบสกรีกโยเกิร์ต</option>
+              <option value="วัตถุดิบรอง">🥛 วัตถุดิบรอง</option>
+              <option value="Fresh Fruits">🍓 ผลไม้สด</option>
+              <option value="Sauces">🍯 ซอส & น้ำผึ้ง</option>
+              <option value="Toppings">🥜 ท็อปปิ้ง</option>
+              <option value="Packaging">📦 บรรจุภัณฑ์</option>
+            </select>
+          </div>
         </div>
 
-        <!-- Section 2: Category -->
-        <div>
-          <label class="block text-xs font-medium text-stone-700 mb-1.5">หมวดหมู่วัตถุดิบ</label>
-          <select
-            v-model="form.category"
-            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900"
-          >
-            <option value="Base Yogurt">🥣 เบสกรีกโยเกิร์ต (Base)</option>
-            <option value="วัตถุดิบรอง">🥛 วัตถุดิบรอง (Dairy / Starter นมสด, หัวเชื้อ)</option>
-            <option value="Fresh Fruits">🍓 ผลไม้สด (Fresh Fruits)</option>
-            <option value="Sauces">🍯 ซอส & น้ำเชื่อม (Sauces)</option>
-            <option value="Toppings">🥜 ท็อปปิ้ง & กรอบ (Toppings)</option>
-            <option value="Packaging">📦 บรรจุภัณฑ์ (Packaging)</option>
-          </select>
-        </div>
-
-        <!-- Section 3: Granular Units & Packaging (หน่วยซื้อ vs หน่วยใช้ ละเอียด) -->
-        <div class="p-4 rounded-2xl bg-[#FAF9F6] border border-stone-200/60 space-y-3.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-stone-800 flex items-center gap-1.5">
-              <span>📏</span>
-              <span>การตั้งหน่วยและการแปลงขนาดบรรจุ (Units & Pack Size)</span>
-            </span>
-            <span class="text-[10px] text-stone-400">คำนวณต้นทุนอัตโนมัติ</span>
+        <!-- 2. Packaging & Units (Simplified inline sentence flow) -->
+        <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-stone-200/50 space-y-2.5">
+          <div class="flex items-center justify-between text-stone-700 font-medium">
+            <span>หน่วยซื้อและขนาดบรรจุ</span>
+            <span class="text-[10px] text-stone-400 font-normal">คำนวณต้นทุนต่อหน่วยให้อัตโนมัติ</span>
           </div>
 
-          <!-- Unit Definitions: Base Unit vs Pack Unit -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div class="grid grid-cols-4 gap-2 items-end">
+            <!-- Pack Unit -->
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-[11px] font-medium text-stone-700">หน่วยใช้ (ชั่ง/ตักขาย/สูตร)</label>
-                <div class="flex items-center gap-1 text-[10px]">
-                  <button type="button" @click="form.unit = 'g'" class="px-1.5 py-0.5 rounded bg-white hover:bg-stone-200 text-stone-600 transition-colors">g</button>
-                  <button type="button" @click="form.unit = 'ml'" class="px-1.5 py-0.5 rounded bg-white hover:bg-stone-200 text-stone-600 transition-colors">ml</button>
-                  <button type="button" @click="form.unit = 'pcs'" class="px-1.5 py-0.5 rounded bg-white hover:bg-stone-200 text-stone-600 transition-colors">pcs</button>
-                </div>
-              </div>
-              <input
-                v-model="form.unit"
-                type="text"
-                placeholder="เช่น g, ml, pcs, ชิ้น"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs text-stone-900 font-medium"
-              />
-            </div>
-
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-[11px] font-medium text-stone-700">หน่วยซื้อ (รับเข้าคลัง)</label>
-                <div class="flex items-center gap-1 text-[10px]">
-                  <button type="button" @click="form.packUnit = 'ขวด'" class="px-1.5 py-0.5 rounded bg-white hover:bg-stone-200 text-stone-600 transition-colors">ขวด</button>
-                  <button type="button" @click="form.packUnit = 'ลัง'" class="px-1.5 py-0.5 rounded bg-white hover:bg-stone-200 text-stone-600 transition-colors">ลัง</button>
-                  <button type="button" @click="form.packUnit = 'ถุง'" class="px-1.5 py-0.5 rounded bg-white hover:bg-stone-200 text-stone-600 transition-colors">ถุง</button>
-                  <button type="button" @click="form.packUnit = 'แพ็ค'" class="px-1.5 py-0.5 rounded bg-white hover:bg-stone-200 text-stone-600 transition-colors">แพ็ค</button>
-                  <button type="button" @click="form.packUnit = 'ถัง'" class="px-1.5 py-0.5 rounded bg-white hover:bg-stone-200 text-stone-600 transition-colors">ถัง</button>
-                </div>
-              </div>
+              <label class="block text-[10px] text-stone-500 mb-1">หน่วยซื้อเข้า</label>
               <input
                 v-model="form.packUnit"
                 type="text"
-                placeholder="เช่น ขวด, ลัง, ถุง, แพ็ค, ถัง"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs text-stone-900 font-medium"
+                placeholder="ขวด/ลัง"
+                class="w-full bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 text-xs font-medium text-stone-900 focus:outline-none"
               />
             </div>
-          </div>
 
-          <!-- Pack Size & Pack Cost -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- Pack Size & Unit -->
             <div>
-              <label class="block text-[11px] font-medium text-stone-700 mb-1">
-                ขนาดบรรจุต่อ 1 {{ form.packUnit || 'หน่วยซื้อ' }}
-              </label>
-              <div class="flex items-center gap-1.5">
+              <label class="block text-[10px] text-stone-500 mb-1">ขนาดบรรจุ</label>
+              <div class="flex items-center bg-white px-2 py-1.5 rounded-lg border border-stone-200">
                 <input
                   v-model.number="form.packSize"
                   @input="recalculateUnitCost"
                   type="number"
-                  min="0.001"
                   step="any"
-                  placeholder="เช่น 1200"
-                  class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-semibold text-stone-900"
+                  placeholder="1200"
+                  class="w-full font-number font-semibold text-xs text-right focus:outline-none"
                 />
-                <span class="text-[11px] text-stone-500 shrink-0 font-medium w-6">
-                  {{ form.unit || 'g' }}
-                </span>
+                <input
+                  v-model="form.unit"
+                  type="text"
+                  placeholder="ml"
+                  title="หน่วยย่อย (ml, g, pcs)"
+                  class="w-7 text-[11px] text-stone-500 font-medium text-center focus:outline-none"
+                />
               </div>
             </div>
 
+            <!-- Pack Price -->
             <div>
-              <label class="block text-[11px] font-medium text-stone-700 mb-1">
-                ราคาซื้อต่อ 1 {{ form.packUnit || 'หน่วยซื้อ' }} (฿)
-              </label>
-              <input
-                v-model.number="form.packCost"
-                @input="recalculateUnitCost"
-                type="number"
-                min="0"
-                step="any"
-                placeholder="เช่น 54"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-semibold text-stone-900"
-              />
+              <label class="block text-[10px] text-stone-500 mb-1">ราคาต่อ 1 {{ form.packUnit || 'แพ็ค' }}</label>
+              <div class="flex items-center bg-white px-2 py-1.5 rounded-lg border border-stone-200">
+                <span class="text-[11px] text-stone-400 mr-0.5">฿</span>
+                <input
+                  v-model.number="form.packCost"
+                  @input="recalculateUnitCost"
+                  type="number"
+                  step="any"
+                  placeholder="54"
+                  class="w-full font-number font-semibold text-xs text-right focus:outline-none"
+                />
+              </div>
             </div>
 
+            <!-- Derived Unit Cost -->
             <div>
-              <label class="block text-[11px] font-medium text-stone-700 mb-1">
-                ต้นทุนต่อ {{ form.unit || 'หน่วยใช้' }} (฿)
-              </label>
-              <input
-                v-model.number="form.unitCost"
-                @input="recalculatePackCost"
-                type="number"
-                min="0"
-                step="any"
-                placeholder="0.0450"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-amber-950"
-              />
+              <label class="block text-[10px] text-stone-500 mb-1">เฉลี่ย / {{ form.unit || 'หน่วย' }}</label>
+              <div class="bg-stone-100/80 px-2 py-1.5 rounded-lg text-xs font-number font-bold text-emerald-800 text-right">
+                ฿{{ (Number(form.unitCost) || 0).toFixed(4) }}
+              </div>
             </div>
-          </div>
-
-          <!-- Live Conversion Formula Pill -->
-          <div class="px-3.5 py-2.5 rounded-xl bg-white border border-stone-200/50 flex items-center justify-between flex-wrap gap-2 text-xs">
-            <span class="text-stone-600 font-medium flex items-center gap-1">
-              <span>💡</span>
-              <span>1 {{ form.packUnit || 'หน่วย' }} = {{ (Number(form.packSize) || 1).toLocaleString() }} {{ form.unit || 'g' }} @ ฿{{ (Number(form.packCost) || 0).toFixed(2) }}</span>
-            </span>
-            <span class="font-number font-bold text-emerald-800 text-xs bg-emerald-50 px-2 py-0.5 rounded-md">
-              เฉลี่ย ฿{{ (Number(form.unitCost) || 0).toFixed(4) }} / {{ form.unit || 'g' }}
-            </span>
           </div>
         </div>
 
-        <!-- Section 4: Current Stock & Min Alert -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- 3. Current Stock & Alert Threshold -->
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="block text-xs font-medium text-stone-700">สต็อกคงเหลือปัจจุบัน</label>
-              <span v-if="form.packSize > 1" class="text-[10px] text-stone-400 font-number">
-                ≈ {{ ((form.stock || 0) / (form.packSize || 1)).toFixed(2) }} {{ form.packUnit }}
-              </span>
-            </div>
+            <label class="block text-[11px] font-medium text-stone-600 mb-1">
+              สต็อกปัจจุบัน ({{ form.unit || 'หน่วย' }})
+            </label>
             <div class="flex items-center gap-2">
               <input
                 v-model.number="form.stock"
                 type="number"
                 step="any"
-                placeholder="0"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-semibold text-stone-900"
+                class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-number font-semibold text-stone-900"
               />
-              <span class="text-stone-400 text-xs shrink-0 font-medium w-8">{{ form.unit || 'g' }}</span>
+              <span v-if="form.packSize > 1" class="text-[10px] text-stone-400 shrink-0 font-number">
+                ≈ {{ ((form.stock || 0) / form.packSize).toFixed(1) }} {{ form.packUnit }}
+              </span>
             </div>
           </div>
 
           <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="block text-xs font-medium text-stone-700">จุดเตือนสต็อกใกล้หมด</label>
-              <span v-if="form.packSize > 1" class="text-[10px] text-stone-400 font-number">
-                ≈ {{ ((form.minAlert || 0) / (form.packSize || 1)).toFixed(2) }} {{ form.packUnit }}
-              </span>
-            </div>
+            <label class="block text-[11px] font-medium text-stone-600 mb-1">
+              เตือนเมื่อต่ำกว่า ({{ form.unit || 'หน่วย' }})
+            </label>
             <div class="flex items-center gap-2">
               <input
                 v-model.number="form.minAlert"
                 type="number"
                 step="any"
-                placeholder="0"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-semibold text-stone-900"
+                class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-number font-semibold text-stone-900"
               />
-              <span class="text-stone-400 text-xs shrink-0 font-medium w-8">{{ form.unit || 'g' }}</span>
+              <span v-if="form.packSize > 1" class="text-[10px] text-stone-400 shrink-0 font-number">
+                ≈ {{ ((form.minAlert || 0) / form.packSize).toFixed(1) }} {{ form.packUnit }}
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Section 5: SINGLE SWITCH (สวิตช์เดียว - ค่าเริ่มต้น วัตถุดิบหลัก กำหนดว่าใช้วัตถุดิบรองหรือไม่) -->
+        <!-- 4. The Single Switch (สวิตช์เดียว) -->
         <div class="pt-1">
           <ToggleSwitch
             v-model="form.hasSubRecipe"
-            label="ผลิตจากวัตถุดิบรอง (มีสูตรส่วนผสม)"
-            description="เปิดหากวัตถุดิบนี้ต้องหมัก/ผลิตจากวัตถุดิบอื่น (เช่น กรีกโยเกิร์ตที่ทำจาก นมสด + หัวเชื้อ)"
+            label="ผลิตจากวัตถุดิบอื่น (มีสูตรส่วนผสม)"
+            description="เปิดหากต้องหมักหรือทำจากวัตถุดิบอื่น (เช่น กรีกโยเกิร์ตแท้)"
             icon="🥣"
             color="amber"
           />
         </div>
 
-        <!-- Section 6: Sub-Ingredients Recipe (When Single Switch is ON) -->
-        <div
-          v-if="form.hasSubRecipe"
-          class="space-y-4 pt-3 border-t border-stone-100"
-        >
-          <!-- Yield output produced -->
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-xs font-medium text-stone-700">
-                ผลผลิตที่ได้ต่อรอบการผลิต (Batch Yield Output)
-              </label>
-              <span class="text-[11px] text-stone-400">
-                1 รอบได้ผลผลิต {{ form.yieldQty }} {{ form.unit }} {{ form.packSize > 1 ? `(≈ ${(form.yieldQty / form.packSize).toFixed(1)} ${form.packUnit})` : '' }}
-              </span>
-            </div>
+        <!-- 5. Sub-Recipe Section (Clean, flat rows) -->
+        <div v-if="form.hasSubRecipe" class="space-y-3 pt-2 border-t border-stone-100">
+          <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
+              <span class="text-[11px] font-medium text-stone-700">ผลผลิตต่อ 1 รอบ:</span>
               <input
                 v-model.number="form.yieldQty"
                 type="number"
                 min="1"
-                step="any"
-                placeholder="เช่น 1200"
-                class="soft-input flex-1 px-3.5 py-2.5 rounded-xl text-xs font-number font-bold text-amber-950"
+                class="w-20 bg-stone-100 px-2 py-1 rounded-lg text-xs font-number font-bold text-amber-950 text-right focus:outline-none"
               />
-              <span class="text-xs text-stone-500 shrink-0 font-medium px-3 py-2 bg-[#F5F4F0] rounded-xl">
-                {{ form.unit || 'g' }}
-              </span>
+              <span class="text-stone-500 font-medium">{{ form.unit || 'g' }}</span>
             </div>
+            <button
+              type="button"
+              @click="addSubRecipeRow"
+              class="text-[11px] font-semibold text-amber-900 hover:text-amber-950 flex items-center gap-1 transition-colors"
+            >
+              <Plus class="w-3.5 h-3.5" />
+              <span>เพิ่มส่วนผสม</span>
+            </button>
           </div>
 
-          <!-- Sub-ingredients List -->
-          <div class="space-y-2.5">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
-                <span>🥛</span>
-                <span>สูตรวัตถุดิบรองที่ต้องใช้ (Sub-ingredients Formula)</span>
+          <!-- Ingredients List -->
+          <div class="space-y-1.5">
+            <div
+              v-for="(row, idx) in form.subRecipe"
+              :key="idx"
+              class="flex items-center gap-2 bg-[#FAF9F6] px-3 py-1.5 rounded-xl hover:bg-[#F5F4F0] transition-colors"
+            >
+              <select
+                v-model="row.materialId"
+                class="flex-1 bg-transparent border-0 text-xs font-medium text-stone-900 focus:outline-none min-w-[120px]"
+              >
+                <option
+                  v-for="sub in availableSubMaterials"
+                  :key="sub.id"
+                  :value="sub.id"
+                >
+                  {{ sub.emoji }} {{ sub.name }}
+                </option>
+              </select>
+
+              <div class="flex items-center gap-1">
+                <input
+                  v-model.number="row.qty"
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  placeholder="0"
+                  class="w-20 bg-white px-2 py-1 rounded-lg text-right font-number font-semibold text-xs text-stone-900 shadow-2xs focus:outline-none"
+                />
+                <span class="text-[10px] text-stone-400 w-7">
+                  {{ getSubMat(row.materialId)?.unit }}
+                </span>
+              </div>
+
+              <span class="text-[11px] font-number text-stone-500 w-14 text-right">
+                ฿{{ ((row.qty || 0) * (getSubMat(row.materialId)?.unitCost || 0)).toFixed(1) }}
               </span>
+
               <button
                 type="button"
-                @click="addSubRecipeRow"
-                class="text-[11px] font-semibold text-amber-900 hover:text-amber-950 flex items-center gap-1 transition-colors"
+                @click="removeSubRecipeRow(idx)"
+                class="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors"
               >
-                <Plus class="w-3.5 h-3.5" />
-                <span>เพิ่มวัตถุดิบรอง</span>
+                <X class="w-3.5 h-3.5" />
               </button>
-            </div>
-
-            <!-- Sub Recipe Rows with Unit Switch (ขวด / ml / g) -->
-            <div class="space-y-2">
-              <div
-                v-for="(row, idx) in form.subRecipe"
-                :key="idx"
-                class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#FAF9F6] hover:bg-[#F5F4F0] transition-colors"
-              >
-                <!-- Material Selector -->
-                <select
-                  v-model="row.materialId"
-                  @change="onSubMaterialChanged(row)"
-                  class="bg-transparent border-0 flex-1 text-xs font-medium text-stone-900 focus:outline-none min-w-[140px]"
-                >
-                  <optgroup label="🥛 วัตถุดิบรอง (Dairy / Starter)">
-                    <option
-                      v-for="sub in availableSubMaterials.filter(m => m.isSubIngredient)"
-                      :key="sub.id"
-                      :value="sub.id"
-                    >
-                      {{ sub.emoji }} {{ sub.name }} (฿{{ sub.unitCost }}/{{ sub.unit }})
-                    </option>
-                  </optgroup>
-                  <optgroup label="📦 วัตถุดิบอื่นๆ">
-                    <option
-                      v-for="sub in availableSubMaterials.filter(m => !m.isSubIngredient)"
-                      :key="sub.id"
-                      :value="sub.id"
-                    >
-                      {{ sub.emoji }} {{ sub.name }} (฿{{ sub.unitCost }}/{{ sub.unit }})
-                    </option>
-                  </optgroup>
-                </select>
-
-                <!-- Unit Switch Capsule (ขวด vs ml / ลัง vs g) -->
-                <div
-                  v-if="getSubMat(row.materialId)?.packUnit && getSubMat(row.materialId)?.packSize > 1"
-                  class="flex items-center p-0.5 bg-stone-200/70 rounded-lg text-[10px] font-semibold shrink-0"
-                >
-                  <button
-                    type="button"
-                    @click="setRowUnitMode(row, 'base')"
-                    :class="[
-                      'px-1.5 py-0.5 rounded transition-all',
-                      row.inputMode !== 'pack'
-                        ? 'bg-white text-stone-900 shadow-2xs font-bold'
-                        : 'text-stone-500 hover:text-stone-800'
-                    ]"
-                  >
-                    {{ getSubMat(row.materialId)?.unit }}
-                  </button>
-                  <button
-                    type="button"
-                    @click="setRowUnitMode(row, 'pack')"
-                    :class="[
-                      'px-1.5 py-0.5 rounded transition-all',
-                      row.inputMode === 'pack'
-                        ? 'bg-amber-900 text-white shadow-2xs font-bold'
-                        : 'text-stone-500 hover:text-stone-800'
-                    ]"
-                  >
-                    {{ getSubMat(row.materialId)?.packUnit }}
-                  </button>
-                </div>
-
-                <!-- Input Quantity -->
-                <div class="flex items-center gap-1 w-24 shrink-0">
-                  <input
-                    v-if="row.inputMode === 'pack'"
-                    v-model.number="row.inputPackQty"
-                    @input="syncRowQtyFromPack(row)"
-                    type="number"
-                    min="0.01"
-                    step="any"
-                    placeholder="0"
-                    class="w-full bg-white px-2 py-1 rounded-lg text-right font-number font-semibold text-xs text-stone-900 focus:outline-none shadow-2xs"
-                  />
-                  <input
-                    v-else
-                    v-model.number="row.qty"
-                    @input="syncRowPackFromQty(row)"
-                    type="number"
-                    min="0.1"
-                    step="any"
-                    placeholder="0"
-                    class="w-full bg-white px-2 py-1 rounded-lg text-right font-number font-semibold text-xs text-stone-900 focus:outline-none shadow-2xs"
-                  />
-                  <span class="text-[11px] text-stone-400 shrink-0 w-6">
-                    {{ row.inputMode === 'pack' ? getSubMat(row.materialId)?.packUnit : getSubMat(row.materialId)?.unit }}
-                  </span>
-                </div>
-
-                <!-- Row Cost -->
-                <span class="text-[11px] font-number text-stone-600 shrink-0 w-16 text-right">
-                  ฿{{ ((row.qty || 0) * (getSubMat(row.materialId)?.unitCost || 0)).toFixed(1) }}
-                </span>
-
-                <!-- Delete Row -->
-                <button
-                  type="button"
-                  @click="removeSubRecipeRow(idx)"
-                  class="p-1 text-stone-400 hover:text-rose-600 rounded-lg transition-colors"
-                >
-                  <X class="w-3.5 h-3.5" />
-                </button>
-              </div>
             </div>
           </div>
 
-          <!-- Recipe Live Cost Summary Line -->
-          <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs font-mono">
+          <!-- Cost Calculation Summary -->
+          <div class="flex items-center justify-between px-3 py-2 bg-stone-100/70 rounded-xl text-[11px]">
             <span class="text-stone-500">
-              รวมต้นทุนวัตถุดิบรอง: <strong class="text-stone-800">฿{{ calculatedSubCost.toFixed(2) }}</strong>
+              รวมต้นทุน: <strong class="text-stone-800">฿{{ calculatedSubCost.toFixed(2) }}</strong>
             </span>
             <div class="flex items-center gap-2">
               <span class="text-stone-500">
-                เฉลี่ย: <strong class="text-emerald-800 font-number text-sm">฿{{ (form.yieldQty > 0 ? calculatedSubCost / form.yieldQty : 0).toFixed(4) }}/{{ form.unit || 'g' }}</strong>
+                เฉลี่ย: <strong class="text-emerald-800 font-number text-xs">฿{{ (form.yieldQty > 0 ? calculatedSubCost / form.yieldQty : 0).toFixed(4) }}/{{ form.unit }}</strong>
               </span>
               <button
                 type="button"
                 @click="applyCalculatedCost"
-                class="px-2.5 py-1 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-[10px] font-sans font-semibold transition-colors"
+                class="px-2 py-0.5 rounded bg-stone-900 hover:bg-stone-800 text-white text-[10px] font-medium transition-colors"
               >
                 ใช้ราคานี้
               </button>
             </div>
           </div>
-
-          <!-- Option to deduct sub-ingredients right now if initial stock is entered -->
-          <div
-            v-if="form.stock > 0"
-            class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs"
-          >
-            <div>
-              <span class="block font-medium text-stone-800">หักสต็อกวัตถุดิบรองตามสต็อกนี้ทันที</span>
-              <span class="text-[11px] text-stone-500">
-                ระบบจะตัดสต็อกวัตถุดิบรองตามสัดส่วนของ {{ form.stock }} {{ form.unit }} ที่ระบุ
-              </span>
-            </div>
-            <ToggleSwitch v-model="form.deductSubStockNow" color="amber" />
-          </div>
-        </div>
-
-        <!-- Live Total Valuation Line -->
-        <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs">
-          <span class="text-stone-500">มูลค่าวัตถุดิบคงคลังของรายการนี้:</span>
-          <span class="font-number font-bold text-amber-950 text-sm">
-            ฿{{ ((form.stock || 0) * (form.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-          </span>
         </div>
       </div>
 
-      <!-- Spacious Calm Footer -->
-      <div class="px-7 py-4 border-t border-stone-100 bg-white flex items-center justify-end gap-3 shrink-0">
+      <!-- Clean Footer -->
+      <div class="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-end gap-2.5 shrink-0">
         <button
           type="button"
           @click="close"
-          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
         >
           ยกเลิก
         </button>
         <button
           type="button"
           @click="submit"
-          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-2"
+          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
         >
-          <Check class="w-4 h-4" />
-          <span>บันทึกวัตถุดิบ</span>
+          <Check class="w-3.5 h-3.5" />
+          <span>บันทึก</span>
         </button>
       </div>
     </div>
@@ -472,13 +309,11 @@ const form = ref({
   isSubIngredient: false,
   hasSubRecipe: false,
   yieldQty: 1200,
-  deductSubStockNow: false,
   subRecipe: []
 })
 
 const isEditing = computed(() => Boolean(store.modals.materialEdit.materialId))
 
-// List of other materials available to be used as sub-ingredients
 const availableSubMaterials = computed(() => {
   return store.materials.filter(m => !m.isDeleted && m.id !== form.value.id)
 })
@@ -492,46 +327,6 @@ function recalculateUnitCost() {
   const cost = Number(form.value.packCost) || 0
   if (size > 0) {
     form.value.unitCost = Number((cost / size).toFixed(4))
-  }
-}
-
-function recalculatePackCost() {
-  const size = Number(form.value.packSize) || 1
-  const unitC = Number(form.value.unitCost) || 0
-  form.value.packCost = Number((unitC * size).toFixed(2))
-}
-
-function setRowUnitMode(row, mode) {
-  row.inputMode = mode
-  if (mode === 'pack') {
-    syncRowPackFromQty(row)
-  } else {
-    syncRowQtyFromPack(row)
-  }
-}
-
-function syncRowQtyFromPack(row) {
-  const sub = getSubMat(row.materialId)
-  const packSize = sub && sub.packSize > 0 ? sub.packSize : 1
-  row.qty = Math.round((Number(row.inputPackQty) || 0) * packSize * 100) / 100
-}
-
-function syncRowPackFromQty(row) {
-  const sub = getSubMat(row.materialId)
-  const packSize = sub && sub.packSize > 0 ? sub.packSize : 1
-  row.inputPackQty = Math.round(((Number(row.qty) || 0) / packSize) * 100) / 100
-}
-
-function onSubMaterialChanged(row) {
-  const sub = getSubMat(row.materialId)
-  if (sub && sub.packSize > 1) {
-    row.inputMode = 'pack'
-    row.inputPackQty = 1
-    row.qty = sub.packSize
-  } else {
-    row.inputMode = 'base'
-    row.qty = 100
-    row.inputPackQty = 1
   }
 }
 
@@ -561,25 +356,15 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         isSubIngredient: Boolean(mat.isSubIngredient),
         hasSubRecipe: Boolean(mat.hasSubRecipe),
         yieldQty: mat.yieldQty ? Number(mat.yieldQty) : 1200,
-        deductSubStockNow: false,
         subRecipe: mat.subRecipe && Array.isArray(mat.subRecipe) && mat.subRecipe.length > 0
-          ? mat.subRecipe.map(r => {
-              const subMat = store.matMap[r.materialId]
-              const pSize = subMat && subMat.packSize > 0 ? subMat.packSize : 1
-              return {
-                materialId: r.materialId,
-                qty: Number(r.qty) || 0,
-                inputMode: r.inputMode || 'base',
-                inputPackQty: Number((Number(r.qty || 0) / pSize).toFixed(2))
-              }
-            })
+          ? JSON.parse(JSON.stringify(mat.subRecipe))
           : [
-              { materialId: store.subMaterials[0]?.id || 'MAT002', qty: 5000, inputMode: 'base', inputPackQty: 4.17 },
-              { materialId: store.subMaterials[1]?.id || 'MAT003', qty: 300, inputMode: 'base', inputPackQty: 0.6 }
+              { materialId: store.subMaterials[0]?.id || 'MAT002', qty: 5000 },
+              { materialId: store.subMaterials[1]?.id || 'MAT003', qty: 300 }
             ]
       }
     } else {
-      // New Material: Default is Main Material (Single switch OFF)
+      // New Material: Default is Main Material
       form.value = {
         id: '',
         name: '',
@@ -593,19 +378,17 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         minAlert: 500,
         emoji: '🥣',
         isSubIngredient: false,
-        hasSubRecipe: false, // Default is OFF (Main material without sub-ingredients)
+        hasSubRecipe: false,
         yieldQty: 1200,
-        deductSubStockNow: false,
         subRecipe: [
-          { materialId: store.subMaterials[0]?.id || 'MAT002', qty: 5000, inputMode: 'base', inputPackQty: 4.17 },
-          { materialId: store.subMaterials[1]?.id || 'MAT003', qty: 300, inputMode: 'base', inputPackQty: 0.6 }
+          { materialId: store.subMaterials[0]?.id || 'MAT002', qty: 5000 },
+          { materialId: store.subMaterials[1]?.id || 'MAT003', qty: 300 }
         ]
       }
     }
   }
 })
 
-// Calculate total cost of sub-ingredients in recipe
 const calculatedSubCost = computed(() => {
   if (!form.value.subRecipe || form.value.subRecipe.length === 0) return 0
   return form.value.subRecipe.reduce((sum, row) => {
@@ -619,20 +402,17 @@ function applyCalculatedCost() {
   const yieldQ = Number(form.value.yieldQty) || 1
   if (yieldQ > 0) {
     form.value.unitCost = Number((calculatedSubCost.value / yieldQ).toFixed(4))
-    recalculatePackCost()
-    store.showToast(`นำต้นทุนที่คำนวณได้ (฿${form.value.unitCost}/${form.value.unit}) ไปใช้แล้ว`, 'success')
+    const size = Number(form.value.packSize) || 1
+    form.value.packCost = Number((form.value.unitCost * size).toFixed(2))
+    store.showToast(`นำต้นทุน ฿${form.value.unitCost}/${form.value.unit} ไปใช้แล้ว`, 'success')
   }
 }
 
 function addSubRecipeRow() {
   const defaultSubId = store.subMaterials[0]?.id || availableSubMaterials.value[0]?.id || 'MAT002'
-  const sub = getSubMat(defaultSubId)
-  const pSize = sub && sub.packSize > 0 ? sub.packSize : 1
   form.value.subRecipe.push({
     materialId: defaultSubId,
-    qty: 1000,
-    inputMode: 'base',
-    inputPackQty: Number((1000 / pSize).toFixed(2))
+    qty: 1000
   })
 }
 
@@ -661,31 +441,7 @@ function submit() {
   }
 
   const hasRecipe = Boolean(form.value.hasSubRecipe)
-  // If category is "วัตถุดิบรอง" and hasSubRecipe is false, mark as sub-ingredient
   const isSub = !hasRecipe && form.value.category === 'วัตถุดิบรอง'
-  const targetStock = Number(form.value.stock) || 0
-
-  // Deduct sub-ingredients if option checked
-  if (hasRecipe && form.value.deductSubStockNow && targetStock > 0) {
-    const yieldQ = Number(form.value.yieldQty) || 1200
-    const ratio = targetStock / yieldQ
-    const deducted = []
-
-    for (const r of form.value.subRecipe) {
-      const subMat = store.materials.find(m => m.id === r.materialId)
-      if (subMat) {
-        const deductAmount = Math.round((Number(r.qty) || 0) * ratio * 100) / 100
-        const currentSubStock = Number(subMat.stock) || 0
-        const newStock = Math.max(0, Math.round((currentSubStock - deductAmount) * 100) / 100)
-        subMat.stock = newStock
-        deducted.push(`${subMat.name} -${deductAmount} ${subMat.unit}`)
-      }
-    }
-    if (deducted.length > 0) {
-      store.showToast(`ตัดสต็อกวัตถุดิบรองแล้ว: ${deducted.join(', ')}`, 'info')
-    }
-  }
-
   const pSize = Number(form.value.packSize) > 0 ? Number(form.value.packSize) : 1
   const pCost = Number(form.value.packCost) >= 0 ? Number(form.value.packCost) : 0
   const uCost = Number(form.value.unitCost) >= 0 ? Number(form.value.unitCost) : (pCost / pSize)
@@ -698,7 +454,7 @@ function submit() {
     packUnit: form.value.packUnit.trim() || 'ชิ้น',
     packSize: pSize,
     packCost: pCost,
-    stock: targetStock,
+    stock: Number(form.value.stock) || 0,
     minAlert: Number(form.value.minAlert) || 0,
     unitCost: Math.round(uCost * 10000) / 10000,
     emoji: form.value.emoji || '🥣',
@@ -708,7 +464,7 @@ function submit() {
     subRecipe: hasRecipe
       ? form.value.subRecipe
           .filter(r => r.materialId && r.qty > 0)
-          .map(r => ({ materialId: r.materialId, qty: Number(r.qty), inputMode: r.inputMode }))
+          .map(r => ({ materialId: r.materialId, qty: Number(r.qty) }))
       : []
   })
 

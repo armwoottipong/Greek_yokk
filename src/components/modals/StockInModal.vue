@@ -4,382 +4,264 @@
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
     @click.self="close"
   >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      <!-- Calm Header -->
-      <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
+    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <!-- Calm Clean Header -->
+      <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
-          <h3 class="text-base font-semibold text-stone-900 flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-stone-900 flex items-center gap-1.5">
             <span>📥</span>
-            <span>รับเข้าสต็อกวัตถุดิบ (Stock In)</span>
+            <span>รับเข้าสต็อกวัตถุดิบ</span>
           </h3>
-          <p class="text-[11px] text-stone-500 mt-0.5">
-            {{ isProducedFromRecipe ? 'ผลิตวัตถุดิบหลักโดยใช้ส่วนผสมวัตถุดิบรอง (หักสต็อกอัตโนมัติ)' : 'รับซื้อวัตถุดิบเข้าคลัง เลือกหน่วยขวด/ลัง/กรัมได้' }}
+          <p class="text-[11px] text-stone-400 mt-0.5">
+            {{ isProducedFromRecipe ? 'ผลิตตามสูตร (หักวัตถุดิบรองอัตโนมัติ)' : 'รับซื้อวัตถุดิบเข้าคลัง' }}
           </p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors">
-          <X class="w-5 h-5" />
+        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors">
+          <X class="w-4 h-4" />
         </button>
       </div>
 
-      <!-- Pure Flat Body -->
-      <div class="p-7 space-y-5 overflow-y-auto flex-1 text-xs">
-        <!-- Target Material Selection -->
+      <!-- Pure Minimal Body -->
+      <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+        <!-- 1. Select Material -->
         <div>
-          <label class="block text-xs font-medium text-stone-700 mb-1.5">
-            เลือกวัตถุดิบที่ต้องการเพิ่มสต็อก <span class="text-rose-500">*</span>
-          </label>
+          <label class="block text-[11px] font-medium text-stone-600 mb-1">เลือกวัตถุดิบ</label>
           <select
             v-model="selectedMatId"
-            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900"
+            class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
           >
-            <optgroup label="🥣 วัตถุดิบหลัก (หน้าร้าน)">
-              <option
-                v-for="m in store.mainMaterials"
-                :key="m.id"
-                :value="m.id"
-              >
-                {{ m.emoji }} {{ m.name }} (คงเหลือ: {{ m.stock.toLocaleString() }} {{ m.unit }} {{ m.packSize > 1 ? `≈ ${(m.stock / m.packSize).toFixed(1)} ${m.packUnit}` : '' }})
+            <optgroup label="🥣 วัตถุดิบหลัก">
+              <option v-for="m in store.mainMaterials" :key="m.id" :value="m.id">
+                {{ m.emoji }} {{ m.name }} (คงเหลือ: {{ m.stock.toLocaleString() }} {{ m.unit }})
               </option>
             </optgroup>
-            <optgroup label="🥛 วัตถุดิบรอง (ใช้หมัก/ผลิต)">
-              <option
-                v-for="m in store.subMaterials"
-                :key="m.id"
-                :value="m.id"
-              >
-                {{ m.emoji }} {{ m.name }} (คงเหลือ: {{ m.stock.toLocaleString() }} {{ m.unit }} {{ m.packSize > 1 ? `≈ ${(m.stock / m.packSize).toFixed(1)} ${m.packUnit}` : '' }})
+            <optgroup label="🥛 วัตถุดิบรอง">
+              <option v-for="m in store.subMaterials" :key="m.id" :value="m.id">
+                {{ m.emoji }} {{ m.name }} (คงเหลือ: {{ m.stock.toLocaleString() }} {{ m.unit }})
               </option>
             </optgroup>
           </select>
         </div>
 
-        <!-- ================================================================= -->
-        <!-- MANDATORY RECIPE BADGE (บังคับใช้วัตถุดิบรองตามสูตร ห้ามข้าม)      -->
-        <!-- ================================================================= -->
-        <div
-          v-if="isProducedFromRecipe"
-          class="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/60 flex items-start gap-3"
-        >
-          <span class="text-lg">🥣</span>
-          <div class="flex-1 text-[11px] leading-relaxed">
-            <span class="font-bold text-amber-950 block text-xs">วัตถุดิบนี้ผลิตจากวัตถุดิบรอง (สูตรบังคับ)</span>
-            <span class="text-amber-800">
-              ระบบบังคับหักสต็อกวัตถุดิบรอง (เช่น นมสด, หัวเชื้อ) ตามอัตราส่วนของผลผลิตที่ต้องการเพิ่ม เพื่อให้ยอดสต็อกจริงถูกต้องเสมอ
-            </span>
-          </div>
-        </div>
-
-        <!-- ================================================================= -->
-        <!-- MODE A: DIRECT PURCHASE (รับซื้อเข้าปกติ เช่น นม, ผลไม้, ถ้วย)      -->
-        <!-- ================================================================= -->
-        <div v-if="!isProducedFromRecipe" class="space-y-4">
-          <!-- Unit Switch: [ ขวด (1200 ml) ] vs [ ml ] -->
-          <div v-if="currentMat?.packUnit && currentMat?.packSize > 1" class="space-y-1.5">
-            <label class="block text-xs font-medium text-stone-700">เลือกหน่วยที่ต้องการเพิ่มสต็อก</label>
-            <div class="flex items-center gap-1.5 p-1 bg-[#F5F4F0] rounded-xl text-xs font-semibold">
-              <button
-                type="button"
-                @click="setDirectUnitMode('pack')"
-                :class="[
-                  'flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5',
-                  directUnitMode === 'pack'
-                    ? 'bg-amber-900 text-white shadow-xs font-bold'
-                    : 'text-stone-600 hover:text-stone-900'
-                ]"
-              >
-                <span>📦 นับเป็น{{ currentMat.packUnit }} (1 {{ currentMat.packUnit }} = {{ currentMat.packSize }} {{ currentMat.unit }})</span>
-              </button>
-              <button
-                type="button"
-                @click="setDirectUnitMode('base')"
-                :class="[
-                  'flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5',
-                  directUnitMode === 'base'
-                    ? 'bg-white text-stone-900 shadow-xs font-bold'
-                    : 'text-stone-500 hover:text-stone-900'
-                ]"
-              >
-                <span>⚖️ นับเป็น{{ currentMat.unit }} (หน่วยย่อย)</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Quantity and Price inputs -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <!-- Qty input based on mode -->
-            <div>
-              <label class="block text-xs font-medium text-stone-700 mb-1.5">
-                จำนวนที่รับเข้า ({{ activeDirectUnitLabel }}) <span class="text-rose-500">*</span>
-              </label>
-              <div class="flex items-center gap-2">
-                <input
-                  v-if="directUnitMode === 'pack'"
-                  v-model.number="directPackQty"
-                  @input="onDirectPackQtyInput"
-                  type="number"
-                  min="0.1"
-                  step="any"
-                  placeholder="0"
-                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
-                />
-                <input
-                  v-else
-                  v-model.number="directBaseQty"
-                  @input="onDirectBaseQtyInput"
-                  type="number"
-                  min="0.1"
-                  step="any"
-                  placeholder="0"
-                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
-                />
-                <span class="text-stone-500 text-xs shrink-0 font-medium w-12">{{ activeDirectUnitLabel }}</span>
+        <!-- ============================================================= -->
+        <!-- CASE A: DIRECT PURCHASE (วัตถุดิบทั่วไป เช่น นม, ผลไม้, ถ้วย)   -->
+        <!-- ============================================================= -->
+        <div v-if="!isProducedFromRecipe" class="space-y-3.5">
+          <!-- Quantity input with mini unit toggle -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] font-medium text-stone-600">จำนวนที่รับเข้า</label>
+              <!-- Mini unit capsule -->
+              <div v-if="currentMat?.packUnit && currentMat?.packSize > 1" class="flex items-center p-0.5 bg-stone-100 rounded-lg text-[10px] font-semibold">
+                <button
+                  type="button"
+                  @click="unitMode = 'pack'"
+                  :class="[
+                    'px-2 py-0.5 rounded transition-all',
+                    unitMode === 'pack' ? 'bg-white text-stone-900 shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'
+                  ]"
+                >
+                  {{ currentMat.packUnit }}
+                </button>
+                <button
+                  type="button"
+                  @click="unitMode = 'base'"
+                  :class="[
+                    'px-2 py-0.5 rounded transition-all',
+                    unitMode === 'base' ? 'bg-white text-stone-900 shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'
+                  ]"
+                >
+                  {{ currentMat.unit }}
+                </button>
               </div>
             </div>
 
-            <!-- Price input based on mode -->
-            <div>
-              <label class="block text-xs font-medium text-stone-700 mb-1.5">
-                {{ directUnitMode === 'pack' ? `ราคาซื้อต่อ 1 ${currentMat?.packUnit} (฿)` : `ต้นทุนต่อ 1 ${currentMat?.unit} (฿)` }}
-              </label>
+            <div class="flex items-center gap-2">
               <input
-                v-if="directUnitMode === 'pack'"
-                v-model.number="directPackCost"
-                @input="onDirectPackCostInput"
+                v-if="unitMode === 'pack'"
+                v-model.number="inputPackQty"
+                @input="syncFromPackQty"
                 type="number"
+                min="0.1"
                 step="any"
-                placeholder="0.00"
-                class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
+                placeholder="0"
+                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-stone-900"
               />
               <input
                 v-else
-                v-model.number="directUnitCost"
-                @input="onDirectUnitCostInput"
+                v-model.number="inputBaseQty"
+                @input="syncFromBaseQty"
+                type="number"
+                min="0.1"
+                step="any"
+                placeholder="0"
+                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-stone-900"
+              />
+              <span class="text-stone-500 font-medium shrink-0 w-12 text-center">
+                {{ unitMode === 'pack' ? currentMat?.packUnit : currentMat?.unit }}
+              </span>
+            </div>
+
+            <!-- Light conversion helper -->
+            <p v-if="currentMat?.packSize > 1" class="text-[11px] text-stone-400 mt-1 font-number">
+              <span v-if="unitMode === 'pack'">
+                = {{ inputBaseQty.toLocaleString() }} {{ currentMat?.unit }} (1 {{ currentMat.packUnit }} = {{ currentMat.packSize }} {{ currentMat.unit }})
+              </span>
+              <span v-else>
+                = {{ inputPackQty }} {{ currentMat?.packUnit }}
+              </span>
+            </p>
+          </div>
+
+          <!-- Price & Valuation summary -->
+          <div class="grid grid-cols-2 gap-3 items-center p-3 rounded-xl bg-[#FAF9F6] border border-stone-200/50">
+            <div>
+              <label class="block text-[10px] text-stone-500 mb-0.5">ราคาซื้อ (฿ / {{ currentMat?.packUnit || currentMat?.unit }})</label>
+              <input
+                v-model.number="inputPackCost"
                 type="number"
                 step="any"
-                placeholder="0.00"
-                class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
+                class="w-full bg-white px-2.5 py-1 rounded-lg border border-stone-200 text-xs font-number font-semibold text-stone-900 focus:outline-none"
               />
             </div>
-          </div>
-
-          <!-- Live Conversion Result Pill -->
-          <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-stone-200/60 space-y-2 text-xs">
-            <div class="flex items-center justify-between text-stone-700">
-              <span class="font-medium">สรุปยอดที่จะเพิ่มเข้าคลัง:</span>
-              <span class="font-number font-bold text-emerald-800 text-sm">
-                +{{ directBaseQty.toLocaleString() }} {{ currentMat?.unit }}
-                <span v-if="currentMat?.packSize > 1" class="text-xs font-normal text-stone-500">
-                  ({{ directPackQty }} {{ currentMat?.packUnit }})
-                </span>
-              </span>
-            </div>
-            <div class="flex items-center justify-between text-stone-700 pt-1.5 border-t border-stone-200/50">
-              <span>งบต้นทุนการรับเข้ารอบนี้:</span>
+            <div class="text-right">
+              <span class="block text-[10px] text-stone-400 mb-0.5">รวมงบซื้อรอบนี้</span>
               <span class="font-number font-bold text-amber-950 text-sm">
-                ฿{{ totalDirectCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-                <span class="text-[11px] font-normal text-stone-400">
-                  (ตก ฿{{ directUnitCost.toFixed(4) }} / {{ currentMat?.unit }})
-                </span>
+                ฿{{ calculatedDirectTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
               </span>
             </div>
           </div>
 
+          <!-- Note -->
           <div>
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">หมายเหตุ / แหล่งซื้อ</label>
+            <label class="block text-[11px] font-medium text-stone-600 mb-1">หมายเหตุ (ถ้ามี)</label>
             <input
-              v-model="directNote"
+              v-model="note"
               type="text"
-              placeholder="เช่น ซื้อจากแม็คโคร, โลตัส, ล็อตวันหมดอายุ 25/10"
-              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
+              placeholder="เช่น ซื้อจากแม็คโคร, ล็อต 25/10"
+              class="soft-input w-full px-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
             />
           </div>
         </div>
 
-        <!-- ================================================================= -->
-        <!-- MODE B: PRODUCE FROM SUB-INGREDIENTS (หักสต็อกวัตถุดิบรอง บังคับ)  -->
-        <!-- ================================================================= -->
-        <div v-else class="space-y-4">
-          <!-- Switch Output Unit: [ รอบ / ถัง (1200 g) ] vs [ g ] -->
-          <div class="space-y-1.5">
-            <label class="block text-xs font-medium text-stone-700">
-              ระบุปริมาณที่ต้องการผลิต
-            </label>
-            <div class="flex items-center gap-1.5 p-1 bg-[#F5F4F0] rounded-xl text-xs font-semibold">
-              <button
-                type="button"
-                @click="setProduceUnitMode('batch')"
-                :class="[
-                  'flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5',
-                  produceUnitMode === 'batch'
-                    ? 'bg-amber-900 text-white shadow-xs font-bold'
-                    : 'text-stone-600 hover:text-stone-900'
-                ]"
-              >
-                <span>🥣 นับเป็นรอบการผลิต (1 รอบ = {{ formulaYield }} {{ currentMat?.unit }})</span>
-              </button>
-              <button
-                type="button"
-                @click="setProduceUnitMode('base')"
-                :class="[
-                  'flex-1 py-2 rounded-lg transition-all flex items-center justify-center gap-1.5',
-                  produceUnitMode === 'base'
-                    ? 'bg-white text-stone-900 shadow-xs font-bold'
-                    : 'text-stone-500 hover:text-stone-900'
-                ]"
-              >
-                <span>⚖️ ระบุน้ำหนักผลผลิต ({{ currentMat?.unit }})</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Yield Output Input -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-stone-700 mb-1.5">
-                {{ produceUnitMode === 'batch' ? 'จำนวนรอบการผลิต (Batch)' : `ปริมาณผลผลิตที่ได้ (${currentMat?.unit})` }} <span class="text-rose-500">*</span>
-              </label>
-              <div class="flex items-center gap-2">
-                <input
-                  v-if="produceUnitMode === 'batch'"
-                  v-model.number="produceBatchCount"
-                  @input="onBatchCountInput"
-                  type="number"
-                  min="0.1"
-                  step="any"
-                  placeholder="1"
-                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-bold text-amber-950"
-                />
-                <input
-                  v-else
-                  v-model.number="produceYieldQty"
-                  @input="onYieldQtyInput"
-                  type="number"
-                  min="1"
-                  step="any"
-                  placeholder="1200"
-                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-bold text-amber-950"
-                />
-                <span class="text-stone-500 text-xs shrink-0 font-medium w-16">
-                  {{ produceUnitMode === 'batch' ? 'รอบ' : currentMat?.unit }}
-                </span>
-              </div>
-            </div>
-
-            <div class="flex flex-col justify-center px-4 py-2 rounded-xl bg-[#FAF9F6]">
-              <span class="text-[11px] text-stone-500">ผลผลิตที่จะเพิ่มเข้าคลัง:</span>
-              <span class="font-number font-bold text-emerald-800 text-sm">
-                +{{ produceYieldQty.toLocaleString() }} {{ currentMat?.unit }}
-                <span v-if="currentMat?.packSize > 1" class="text-xs font-normal text-stone-500">
-                  (≈ {{ (produceYieldQty / currentMat.packSize).toFixed(1) }} {{ currentMat.packUnit }})
-                </span>
-              </span>
-            </div>
-          </div>
-
-          <!-- Sub-ingredients to consume (Strict Recipe Table) -->
-          <div class="space-y-2.5 pt-2 border-t border-stone-100">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
-                <span>🥛</span>
-                <span>วัตถุดิบรองที่จะถูกหักจากสต็อก (คำนวณตามสัดส่วนอัตโนมัติ)</span>
-              </span>
-              <span class="text-[10px] text-stone-400">สัดส่วน {{ (produceYieldQty / formulaYield).toFixed(2) }}x</span>
-            </div>
-
-            <!-- Recipe Ingredient Rows -->
-            <div class="space-y-2">
-              <div
-                v-for="row in scaledSubIngredients"
-                :key="row.materialId"
-                class="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-stone-200/50"
-              >
-                <div class="flex items-center gap-2">
-                  <span class="text-base">{{ store.matMap[row.materialId]?.emoji }}</span>
-                  <div>
-                    <span class="font-medium text-stone-900 block text-xs">
-                      {{ store.matMap[row.materialId]?.name }}
-                    </span>
-                    <span class="text-[10px] text-stone-500">
-                      คงเหลือในคลัง: {{ (store.matMap[row.materialId]?.stock || 0).toLocaleString() }} {{ store.matMap[row.materialId]?.unit }}
-                      <span v-if="store.matMap[row.materialId]?.packSize > 1">
-                        (≈ {{ ((store.matMap[row.materialId]?.stock || 0) / store.matMap[row.materialId].packSize).toFixed(1) }} {{ store.matMap[row.materialId].packUnit }})
-                      </span>
-                    </span>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-3 text-right">
-                  <div>
-                    <span class="font-number font-bold text-rose-700 block text-xs">
-                      -{{ row.qty.toLocaleString() }} {{ store.matMap[row.materialId]?.unit }}
-                    </span>
-                    <span v-if="store.matMap[row.materialId]?.packSize > 1" class="text-[10px] text-stone-400 font-number">
-                      (≈ {{ (row.qty / store.matMap[row.materialId].packSize).toFixed(2) }} {{ store.matMap[row.materialId].packUnit }})
-                    </span>
-                  </div>
-
-                  <span
-                    class="text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0"
-                    :class="row.isSufficient ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'"
-                  >
-                    {{ row.isSufficient ? '✓ พอ' : '⚠️ ไม่พอ' }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Cost & Balance Summary Card -->
-          <div class="p-3.5 rounded-xl bg-[#FAF9F6] text-xs space-y-2">
-            <div class="flex items-center justify-between font-mono">
-              <span class="text-stone-500">
-                รวมต้นทุนวัตถุดิบรอง: <strong class="text-stone-800">฿{{ totalProduceCost.toFixed(2) }}</strong>
-              </span>
-              <span class="text-stone-500">
-                ต้นทุนเฉลี่ย: <strong class="text-emerald-800 font-number text-sm">฿{{ produceYieldQty > 0 ? (totalProduceCost / produceYieldQty).toFixed(4) : '0.00' }}/{{ currentMat?.unit }}</strong>
-              </span>
-            </div>
-
-            <!-- Forecast after confirmation -->
-            <div class="pt-2 border-t border-stone-200/60 flex flex-col gap-1 text-[11px]">
-              <div class="flex items-center justify-between text-emerald-800 font-medium">
-                <span>📈 {{ currentMat?.name }} เพิ่มเข้าคลัง:</span>
-                <span class="font-number font-bold">+{{ produceYieldQty.toLocaleString() }} {{ currentMat?.unit }}</span>
-              </div>
-              <div
-                v-for="sub in scaledSubIngredients"
-                :key="sub.materialId"
-                class="flex items-center justify-between text-rose-700"
-              >
-                <span>📉 หักออกจากสต็อก: {{ store.matMap[sub.materialId]?.name }}</span>
-                <span class="font-number font-bold">
-                  -{{ sub.qty.toLocaleString() }} {{ store.matMap[sub.materialId]?.unit }}
-                  <span class="text-[10px] text-stone-400 font-normal">
-                    (เหลือ {{ Math.max(0, (store.matMap[sub.materialId]?.stock || 0) - sub.qty).toLocaleString() }} {{ store.matMap[sub.materialId]?.unit }})
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
-
+        <!-- ============================================================= -->
+        <!-- CASE B: PRODUCE FROM SUB-RECIPE (เช่น กรีกโยเกิร์ต)             -->
+        <!-- ============================================================= -->
+        <div v-else class="space-y-3.5">
+          <!-- Quantity to Produce -->
           <div>
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">บันทึกรอบการผลิต</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] font-medium text-stone-600">จำนวนที่ต้องการผลิต</label>
+              <!-- Mini unit capsule -->
+              <div class="flex items-center p-0.5 bg-stone-100 rounded-lg text-[10px] font-semibold">
+                <button
+                  type="button"
+                  @click="produceUnitMode = 'batch'"
+                  :class="[
+                    'px-2 py-0.5 rounded transition-all',
+                    produceUnitMode === 'batch' ? 'bg-white text-stone-900 shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'
+                  ]"
+                >
+                  รอบ (Batch)
+                </button>
+                <button
+                  type="button"
+                  @click="produceUnitMode = 'base'"
+                  :class="[
+                    'px-2 py-0.5 rounded transition-all',
+                    produceUnitMode === 'base' ? 'bg-white text-stone-900 shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'
+                  ]"
+                >
+                  {{ currentMat?.unit }}
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input
+                v-if="produceUnitMode === 'batch'"
+                v-model.number="produceBatchCount"
+                @input="syncProduceFromBatch"
+                type="number"
+                min="0.1"
+                step="any"
+                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-amber-950"
+              />
+              <input
+                v-else
+                v-model.number="produceYieldQty"
+                @input="syncProduceFromYield"
+                type="number"
+                min="1"
+                step="any"
+                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-amber-950"
+              />
+              <span class="text-stone-500 font-medium shrink-0 w-12 text-center">
+                {{ produceUnitMode === 'batch' ? 'รอบ' : currentMat?.unit }}
+              </span>
+            </div>
+
+            <p class="text-[11px] text-stone-400 mt-1 font-number">
+              ผลผลิตที่จะได้: +{{ produceYieldQty.toLocaleString() }} {{ currentMat?.unit }}
+              <span v-if="currentMat?.packSize > 1">
+                (≈ {{ (produceYieldQty / currentMat.packSize).toFixed(1) }} {{ currentMat.packUnit }})
+              </span>
+            </p>
+          </div>
+
+          <!-- Deducted Sub-ingredients (Compact list) -->
+          <div class="space-y-1.5 p-3 rounded-xl bg-[#FAF9F6] border border-stone-200/50">
+            <div class="flex items-center justify-between text-[11px] font-medium text-stone-700 mb-1">
+              <span>วัตถุดิบรองที่จะถูกหัก:</span>
+              <span class="text-[10px] text-stone-400 font-number">สัดส่วน {{ (produceYieldQty / formulaYield).toFixed(2) }}x</span>
+            </div>
+
+            <div
+              v-for="sub in scaledSubIngredients"
+              :key="sub.materialId"
+              class="flex items-center justify-between text-xs py-1 border-b border-stone-100 last:border-0"
+            >
+              <div class="flex items-center gap-1.5">
+                <span>{{ store.matMap[sub.materialId]?.emoji }}</span>
+                <span class="text-stone-800 font-medium">{{ store.matMap[sub.materialId]?.name }}</span>
+              </div>
+              <div class="flex items-center gap-2 font-number">
+                <span class="text-rose-600 font-semibold">-{{ sub.qty.toLocaleString() }} {{ store.matMap[sub.materialId]?.unit }}</span>
+                <span
+                  class="text-[9px] px-1.5 py-0.5 rounded font-sans font-medium"
+                  :class="sub.isSufficient ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700 font-bold'"
+                >
+                  {{ sub.isSufficient ? 'พอ' : 'ไม่พอ' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Cost Line -->
+            <div class="flex items-center justify-between pt-1.5 text-[11px] text-stone-500 font-number">
+              <span>ต้นทุนวัตถุดิบรอบนี้:</span>
+              <span class="font-bold text-stone-800">฿{{ totalProduceCost.toFixed(2) }} (฿{{ produceYieldQty > 0 ? (totalProduceCost / produceYieldQty).toFixed(4) : 0 }}/{{ currentMat?.unit }})</span>
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div>
+            <label class="block text-[11px] font-medium text-stone-600 mb-1">หมายเหตุ (ถ้ามี)</label>
             <input
-              v-model="produceNote"
+              v-model="note"
               type="text"
-              placeholder="เช่น หมักนมสด Meiji + หัวเชื้อ กรองเวย์ 16 ชม."
-              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
+              placeholder="เช่น หมักนมสด Meiji + หัวเชื้อ 16 ชม."
+              class="soft-input w-full px-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
             />
           </div>
         </div>
       </div>
 
-      <!-- Spacious Calm Footer -->
-      <div class="px-7 py-4 border-t border-stone-100 bg-white flex items-center justify-end gap-3 shrink-0">
+      <!-- Clean Footer -->
+      <div class="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-end gap-2.5 shrink-0">
         <button
           type="button"
           @click="close"
-          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
         >
           ยกเลิก
         </button>
@@ -387,10 +269,10 @@
           type="button"
           @click="submit"
           :disabled="isProducedFromRecipe && (!canProduce || produceYieldQty <= 0)"
-          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs disabled:opacity-50 transition-all flex items-center gap-2"
+          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs disabled:opacity-40 transition-all flex items-center gap-1.5"
         >
-          <Check class="w-4 h-4" />
-          <span>{{ isProducedFromRecipe ? 'ยืนยันผลิต & หักสต็อกวัตถุดิบรอง' : 'บันทึกรับเข้าสต็อก' }}</span>
+          <Check class="w-3.5 h-3.5" />
+          <span>{{ isProducedFromRecipe ? 'ผลิตและหักสต็อก' : 'บันทึกรับเข้า' }}</span>
         </button>
       </div>
     </div>
@@ -405,89 +287,56 @@ import { X, Check } from 'lucide-vue-next'
 const store = usePosStore()
 
 const selectedMatId = ref('')
+const unitMode = ref('pack') // 'pack' | 'base'
+const inputPackQty = ref(1)
+const inputBaseQty = ref(1200)
+const inputPackCost = ref(54)
+const note = ref('')
 
-// Direct restock state
-const directUnitMode = ref('pack') // 'pack' | 'base'
-const directPackQty = ref(1)
-const directBaseQty = ref(1200)
-const directPackCost = ref(54)
-const directUnitCost = ref(0.045)
-const directNote = ref('')
-
-// Produce from sub-recipe state
+// Produce mode
 const produceUnitMode = ref('batch') // 'batch' | 'base'
 const produceBatchCount = ref(1)
 const produceYieldQty = ref(1200)
-const produceNote = ref('')
 
 const currentMat = computed(() => {
   return store.matMap[selectedMatId.value]
 })
 
-// Strictly determine if this material is produced from sub-ingredients
 const isProducedFromRecipe = computed(() => {
-  return Boolean(currentMat.value && currentMat.value.hasSubRecipe && currentMat.value.subRecipe && currentMat.value.subRecipe.length > 0)
+  return Boolean(currentMat.value?.hasSubRecipe && currentMat.value?.subRecipe && currentMat.value.subRecipe.length > 0)
 })
 
-// Standard formula yield
 const formulaYield = computed(() => {
   return Number(currentMat.value?.yieldQty) || 1200
 })
 
-const activeDirectUnitLabel = computed(() => {
-  if (directUnitMode.value === 'pack' && currentMat.value?.packUnit) {
-    return currentMat.value.packUnit
+const calculatedDirectTotal = computed(() => {
+  if (unitMode.value === 'pack') {
+    return (Number(inputPackQty.value) || 0) * (Number(inputPackCost.value) || 0)
   }
-  return currentMat.value?.unit || 'หน่วย'
+  const packSize = currentMat.value?.packSize > 0 ? currentMat.value.packSize : 1
+  const unitCost = (Number(inputPackCost.value) || 0) / packSize
+  return (Number(inputBaseQty.value) || 0) * unitCost
 })
 
-const totalDirectCost = computed(() => {
-  if (directUnitMode.value === 'pack') {
-    return (Number(directPackQty.value) || 0) * (Number(directPackCost.value) || 0)
-  }
-  return (Number(directBaseQty.value) || 0) * (Number(directUnitCost.value) || 0)
-})
-
-function setDirectUnitMode(mode) {
-  directUnitMode.value = mode
+function syncFromPackQty() {
+  const pSize = currentMat.value?.packSize > 0 ? currentMat.value.packSize : 1
+  inputBaseQty.value = Math.round((Number(inputPackQty.value) || 0) * pSize * 100) / 100
 }
 
-function onDirectPackQtyInput() {
-  const packSize = currentMat.value?.packSize > 0 ? currentMat.value.packSize : 1
-  directBaseQty.value = Math.round((Number(directPackQty.value) || 0) * packSize * 100) / 100
+function syncFromBaseQty() {
+  const pSize = currentMat.value?.packSize > 0 ? currentMat.value.packSize : 1
+  inputPackQty.value = Number(((Number(inputBaseQty.value) || 0) / pSize).toFixed(2))
 }
 
-function onDirectBaseQtyInput() {
-  const packSize = currentMat.value?.packSize > 0 ? currentMat.value.packSize : 1
-  directPackQty.value = Number(((Number(directBaseQty.value) || 0) / packSize).toFixed(2))
-}
-
-function onDirectPackCostInput() {
-  const packSize = currentMat.value?.packSize > 0 ? currentMat.value.packSize : 1
-  directUnitCost.value = Number(((Number(directPackCost.value) || 0) / packSize).toFixed(4))
-}
-
-function onDirectUnitCostInput() {
-  const packSize = currentMat.value?.packSize > 0 ? currentMat.value.packSize : 1
-  directPackCost.value = Number(((Number(directUnitCost.value) || 0) * packSize).toFixed(2))
-}
-
-function setProduceUnitMode(mode) {
-  produceUnitMode.value = mode
-  if (mode === 'batch') {
-    produceBatchCount.value = Math.round((produceYieldQty.value / formulaYield.value) * 100) / 100
-  }
-}
-
-function onBatchCountInput() {
+function syncProduceFromBatch() {
   produceYieldQty.value = Math.round((Number(produceBatchCount.value) || 1) * formulaYield.value)
 }
 
-function onYieldQtyInput() {
+function syncProduceFromYield() {
   produceBatchCount.value = Number(((Number(produceYieldQty.value) || formulaYield.value) / formulaYield.value).toFixed(2))
 }
 
-// Calculate scaled sub-ingredients required based on current produceYieldQty
 const scaledSubIngredients = computed(() => {
   if (!isProducedFromRecipe.value) return []
   const ratio = (Number(produceYieldQty.value) || formulaYield.value) / formulaYield.value
@@ -518,29 +367,23 @@ const totalProduceCost = computed(() => {
 function initForMaterial(mat) {
   if (!mat) return
   const pSize = mat.packSize > 0 ? mat.packSize : 1
-  const uCost = Number(mat.unitCost) || 0
-  const pCost = Number(mat.packCost) || (uCost * pSize)
+  const pCost = Number(mat.packCost) || ((Number(mat.unitCost) || 0) * pSize)
 
-  // Direct purchase defaults
   if (mat.packUnit && mat.packSize > 1) {
-    directUnitMode.value = 'pack'
-    directPackQty.value = 1
-    directBaseQty.value = pSize
+    unitMode.value = 'pack'
+    inputPackQty.value = 1
+    inputBaseQty.value = pSize
   } else {
-    directUnitMode.value = 'base'
-    directBaseQty.value = mat.unit === 'g' || mat.unit === 'ml' ? 1000 : 10
-    directPackQty.value = Number((directBaseQty.value / pSize).toFixed(2))
+    unitMode.value = 'base'
+    inputBaseQty.value = mat.unit === 'g' || mat.unit === 'ml' ? 1000 : 10
+    inputPackQty.value = Number((inputBaseQty.value / pSize).toFixed(2))
   }
 
-  directPackCost.value = pCost
-  directUnitCost.value = uCost
-  directNote.value = ''
-
-  // Produce defaults
+  inputPackCost.value = pCost
+  note.value = ''
   produceUnitMode.value = 'batch'
   produceBatchCount.value = 1
   produceYieldQty.value = mat.yieldQty || 1200
-  produceNote.value = ''
 }
 
 watch(() => store.modals.stockIn.isOpen, (open) => {
@@ -564,43 +407,29 @@ function submit() {
   const mat = currentMat.value
   if (!mat) return
 
-  // Case 1: Produced from sub-ingredients (Mandatory deduction)
   if (isProducedFromRecipe.value) {
     if (!produceYieldQty.value || produceYieldQty.value <= 0) {
-      store.showToast('กรุณาระบุปริมาณผลผลิตที่ได้มากกว่า 0', 'error')
+      store.showToast('กรุณาระบุปริมาณที่ต้องการผลิต', 'error')
       return
     }
-
     if (!canProduce.value) {
-      store.showToast('วัตถุดิบรองไม่พอในสต็อก กรุณาเติมสต็อกวัตถุดิบรองก่อนผลิต', 'error')
+      store.showToast('สต็อกวัตถุดิบรองไม่พอ', 'error')
       return
     }
 
-    const success = store.batchProduce(
-      mat.id,
-      produceYieldQty.value,
-      scaledSubIngredients.value,
-      produceNote.value
-    )
-    if (success) {
-      close()
-    }
+    const ok = store.batchProduce(mat.id, produceYieldQty.value, scaledSubIngredients.value, note.value)
+    if (ok) close()
     return
   }
 
-  // Case 2: Direct Restock
-  if (!directBaseQty.value || directBaseQty.value <= 0) {
-    store.showToast('กรุณาระบุจำนวนที่รับเข้ามากกว่า 0', 'error')
+  if (!inputBaseQty.value || inputBaseQty.value <= 0) {
+    store.showToast('กรุณาระบุจำนวนที่รับเข้า', 'error')
     return
   }
 
-  store.stockIn(
-    mat.id,
-    directBaseQty.value,
-    directUnitCost.value,
-    directNote.value,
-    directPackCost.value
-  )
+  const pSize = mat.packSize > 0 ? mat.packSize : 1
+  const unitCost = (Number(inputPackCost.value) || 0) / pSize
+  store.stockIn(mat.id, inputBaseQty.value, unitCost, note.value, inputPackCost.value)
   close()
 }
 </script>

@@ -36,179 +36,127 @@
       </div>
     </div>
 
-    <!-- Summary KPI Cards: Raw Material Budget & Inventory Valuation -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Summary KPI Cards: Clean, Compact 4-Card Strip -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <!-- Total Valuation Card -->
-      <div class="editorial-card p-5 bg-white border-l-4 border-l-amber-800">
-        <div class="flex items-center justify-between text-xs text-stone-400 mb-1">
-          <span>งบมูลค่าคลังวัตถุดิบรวม</span>
-          <span class="p-1.5 rounded-lg bg-amber-50 text-amber-800">💰</span>
+      <div class="editorial-card p-4 bg-white">
+        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
+          <span>มูลค่าคลังรวม</span>
+          <span>💰</span>
         </div>
-        <div class="text-2xl font-bold font-number text-amber-950">
+        <div class="text-xl font-bold font-number text-amber-950">
           ฿{{ store.totalInventoryValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
         </div>
-        <div class="text-[11px] text-stone-400 mt-1 flex items-center gap-1.5">
-          <span>หลัก: {{ store.mainMaterials.length }}</span>
-          <span>•</span>
-          <span>รอง: {{ store.subMaterials.length }} รายการ</span>
+        <div class="text-[10px] text-stone-400 mt-1">
+          หลัก: {{ store.mainMaterials.length }} • รอง: {{ store.subMaterials.length }} ชนิด
         </div>
       </div>
 
       <!-- Reorder Budget Needed Card -->
-      <div class="editorial-card p-5 bg-white border-l-4 border-l-rose-500">
-        <div class="flex items-center justify-between text-xs text-stone-400 mb-1">
-          <span>งบสั่งซื้อเติมสต็อกที่แนะนำ</span>
-          <span class="p-1.5 rounded-lg bg-rose-50 text-rose-700">📦</span>
+      <div class="editorial-card p-4 bg-white">
+        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
+          <span>งบเติมสต็อกแนะนำ</span>
+          <span>📦</span>
         </div>
-        <div class="text-2xl font-bold font-number text-rose-800">
+        <div class="text-xl font-bold font-number text-rose-800">
           ฿{{ store.reorderBudgetNeeded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
         </div>
-        <div class="text-[11px] text-stone-400 mt-1">
-          สำหรับเติมถึงระดับปลอดภัย 2x Min
+        <div class="text-[10px] text-stone-400 mt-1">
+          เติมให้ถึงระดับ 2x Min
         </div>
       </div>
 
       <!-- Low Stock Items Card -->
-      <div class="editorial-card p-5 bg-white border-l-4 border-l-amber-500">
-        <div class="flex items-center justify-between text-xs text-stone-400 mb-1">
-          <span>วัตถุดิบต่ำกว่าเกณฑ์เตือน</span>
-          <span class="p-1.5 rounded-lg bg-amber-50 text-amber-600">⚠️</span>
+      <div class="editorial-card p-4 bg-white">
+        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
+          <span>สต็อกใกล้หมด</span>
+          <span>⚠️</span>
         </div>
-        <div class="text-2xl font-bold font-number text-amber-800">
+        <div class="text-xl font-bold font-number text-amber-800">
           {{ store.lowStockMaterials.length }} <span class="text-xs font-normal text-stone-400">รายการ</span>
         </div>
-        <div class="text-[11px] text-stone-400 mt-1">
-          ต้องสั่งซื้อเพิ่มก่อนของหมด
+        <div class="text-[10px] text-stone-400 mt-1">
+          ควรสั่งซื้อเพิ่ม
         </div>
       </div>
 
       <!-- Out of Stock Items Card -->
-      <div class="editorial-card p-5 bg-white border-l-4 border-l-stone-400">
-        <div class="flex items-center justify-between text-xs text-stone-400 mb-1">
-          <span>วัตถุดิบหมดสต็อก (0)</span>
-          <span class="p-1.5 rounded-lg bg-stone-100 text-stone-600">🚫</span>
+      <div class="editorial-card p-4 bg-white">
+        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
+          <span>หมดสต็อก</span>
+          <span>🚫</span>
         </div>
-        <div class="text-2xl font-bold font-number text-stone-800">
+        <div class="text-xl font-bold font-number text-stone-800">
           {{ store.outOfStockMaterials.length }} <span class="text-xs font-normal text-stone-400">รายการ</span>
         </div>
-        <div class="text-[11px] text-stone-400 mt-1">
-          ระบบระงับขายเมนูที่เกี่ยวข้อง
+        <div class="text-[10px] text-stone-400 mt-1">
+          ระงับขายเมนูที่เกี่ยวข้อง
         </div>
       </div>
     </div>
 
-    <!-- Category Budget Breakdown Pills -->
-    <div class="editorial-card p-4 bg-white">
-      <div class="flex items-center justify-between mb-3 text-xs">
-        <span class="font-bold text-stone-800">การกระจายงบต้นทุนตามหมวดหมู่วัตถุดิบ</span>
-        <span class="text-stone-400">รวม 100% = ฿{{ store.totalInventoryValuation.toLocaleString(undefined, { maximumFractionDigits: 0 }) }}</span>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div
-          v-for="cat in store.inventoryValuationByCategory"
-          :key="cat.category"
-          class="p-3 rounded-xl bg-stone-50 border border-stone-100 hover:bg-[#FAF9F6] transition-colors"
+    <!-- Filters & Search Toolbar (Single Compact Row) -->
+    <div class="editorial-card p-3 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <!-- Role Tabs (ทั้งหมด / หลัก / รอง) -->
+      <div class="flex items-center gap-1 p-0.5 bg-stone-100 rounded-xl text-xs font-semibold shrink-0">
+        <button
+          @click="selectedRole = 'all'"
+          :class="[
+            'px-3 py-1.5 rounded-lg transition-all',
+            selectedRole === 'all' ? 'bg-white text-stone-900 shadow-2xs' : 'text-stone-500 hover:text-stone-900'
+          ]"
         >
-          <div class="flex items-center justify-between text-[11px] text-stone-500 mb-1">
-            <span class="font-semibold text-stone-800">{{ cat.category }}</span>
-            <span class="font-number">{{ cat.itemCount }} ชนิด</span>
-          </div>
-          <div class="text-sm font-bold font-number text-amber-950">
-            ฿{{ cat.totalValue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }}
-          </div>
-          <div class="w-full bg-stone-200 h-1.5 rounded-full mt-2 overflow-hidden">
-            <div
-              class="bg-amber-800 h-full rounded-full transition-all duration-500"
-              :style="{ width: `${store.totalInventoryValuation > 0 ? (cat.totalValue / store.totalInventoryValuation) * 100 : 0}%` }"
-            ></div>
-          </div>
-        </div>
+          ทั้งหมด ({{ store.activeMaterials.length }})
+        </button>
+        <button
+          @click="selectedRole = 'main'"
+          :class="[
+            'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1',
+            selectedRole === 'main' ? 'bg-emerald-800 text-white shadow-2xs' : 'text-stone-500 hover:text-emerald-800'
+          ]"
+        >
+          <span>🥣 หลัก ({{ store.mainMaterials.length }})</span>
+        </button>
+        <button
+          @click="selectedRole = 'sub'"
+          :class="[
+            'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1',
+            selectedRole === 'sub' ? 'bg-purple-800 text-white shadow-2xs' : 'text-stone-500 hover:text-purple-800'
+          ]"
+        >
+          <span>🥛 รอง ({{ store.subMaterials.length }})</span>
+        </button>
       </div>
-    </div>
 
-    <!-- Filters & Search Toolbar -->
-    <div class="editorial-card p-4 bg-white space-y-3">
-      <!-- Row 1: Role Type (หลัก / รอง) & Search -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <!-- Ingredient Role Tabs (หลัก / รอง) -->
-        <div class="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl text-xs font-semibold">
-          <button
-            @click="selectedRole = 'all'"
-            :class="[
-              'px-3.5 py-1.5 rounded-lg transition-all',
-              selectedRole === 'all'
-                ? 'bg-white text-stone-900 shadow-xs'
-                : 'text-stone-500 hover:text-stone-900'
-            ]"
-          >
-            ทั้งหมด ({{ store.activeMaterials.length }})
-          </button>
-          <button
-            @click="selectedRole = 'main'"
-            :class="[
-              'px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5',
-              selectedRole === 'main'
-                ? 'bg-emerald-800 text-white shadow-xs'
-                : 'text-stone-500 hover:text-emerald-800'
-            ]"
-          >
-            <span>🥣 วัตถุดิบหลัก ({{ store.mainMaterials.length }})</span>
-          </button>
-          <button
-            @click="selectedRole = 'sub'"
-            :class="[
-              'px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5',
-              selectedRole === 'sub'
-                ? 'bg-purple-800 text-white shadow-xs'
-                : 'text-stone-500 hover:text-purple-800'
-            ]"
-          >
-            <span>🥛 วัตถุดิบรอง ({{ store.subMaterials.length }})</span>
-          </button>
-        </div>
+      <!-- Category Filter Dropdown + Search + Hidden Checkbox -->
+      <div class="flex items-center gap-2 flex-1 max-w-xl justify-end">
+        <select
+          v-model="selectedCategory"
+          class="soft-input px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 shrink-0"
+        >
+          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+            {{ cat.label }}
+          </option>
+        </select>
 
-        <!-- Search Input -->
-        <div class="relative flex-1 max-w-sm">
-          <Search class="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+        <div class="relative flex-1 min-w-[140px]">
+          <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="ค้นหาชื่อวัตถุดิบ, รหัส, หน่วย..."
-            class="soft-input w-full pl-9 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium"
+            placeholder="ค้นหาวัตถุดิบ..."
+            class="soft-input w-full pl-8 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium"
           />
         </div>
-      </div>
 
-      <!-- Row 2: Category Filter & Show Deleted Switch -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2 border-t border-stone-100">
-        <!-- Category Filter Pills -->
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs font-medium">
-          <button
-            v-for="cat in categories"
-            :key="cat.id"
-            @click="selectedCategory = cat.id"
-            :class="[
-              'px-3 py-1 rounded-lg whitespace-nowrap transition-all text-xs',
-              selectedCategory === cat.id
-                ? 'bg-amber-900 text-white font-semibold shadow-xs'
-                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-            ]"
-          >
-            {{ cat.label }}
-          </button>
-        </div>
-
-        <!-- Show Deleted / Inactive Switch -->
-        <div class="flex items-center gap-2 shrink-0">
-          <label class="text-xs text-stone-500 cursor-pointer select-none flex items-center gap-2">
-            <input
-              type="checkbox"
-              v-model="showDeleted"
-              class="rounded border-stone-300 text-amber-900 focus:ring-amber-900"
-            />
-            <span>แสดงรายการที่ซ่อน ({{ deletedCount }})</span>
-          </label>
-        </div>
+        <label class="text-[11px] text-stone-400 hover:text-stone-700 cursor-pointer select-none flex items-center gap-1.5 shrink-0 pl-1">
+          <input
+            type="checkbox"
+            v-model="showDeleted"
+            class="rounded border-stone-300 text-stone-900 focus:ring-0 w-3.5 h-3.5"
+          />
+          <span>ที่ซ่อน ({{ deletedCount }})</span>
+        </label>
       </div>
     </div>
 
@@ -289,47 +237,29 @@
 
               <!-- Stock Level -->
               <td class="py-3 px-4">
-                <div class="space-y-1">
-                  <div class="flex items-center gap-1.5 font-bold font-number text-sm">
-                    <span
-                      :class="[
-                        mat.stock <= 0
-                          ? 'text-rose-600'
-                          : mat.stock <= mat.minAlert
-                            ? 'text-amber-600'
-                            : 'text-stone-900'
-                      ]"
-                    >
-                      {{ mat.stock.toLocaleString() }}
-                    </span>
-                    <span class="text-xs font-normal text-stone-400">{{ mat.unit }}</span>
-                  </div>
-                  <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-normal">
-                    ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
-                  </div>
-                  <!-- Progress buffer bar -->
-                  <div class="w-24 bg-stone-100 h-1 rounded-full overflow-hidden">
-                    <div
-                      class="h-full rounded-full transition-all"
-                      :class="[
-                        mat.stock <= 0
-                          ? 'bg-rose-500'
-                          : mat.stock <= mat.minAlert
-                            ? 'bg-amber-500'
-                            : 'bg-emerald-500'
-                      ]"
-                      :style="{ width: `${Math.min(100, (mat.stock / (mat.minAlert * 2 || 1)) * 100)}%` }"
-                    ></div>
-                  </div>
+                <div class="font-bold font-number text-sm">
+                  <span
+                    :class="[
+                      mat.stock <= 0
+                        ? 'text-rose-600'
+                        : mat.stock <= mat.minAlert
+                          ? 'text-amber-600'
+                          : 'text-stone-900'
+                    ]"
+                  >
+                    {{ mat.stock.toLocaleString() }}
+                  </span>
+                  <span class="text-xs font-normal text-stone-400 ml-1">{{ mat.unit }}</span>
+                </div>
+                <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number mt-0.5">
+                  ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
                 </div>
               </td>
 
               <!-- Min Alert -->
               <td class="py-3 px-4 font-number text-stone-600">
-                <div>{{ mat.minAlert.toLocaleString() }} <span class="text-[10px] text-stone-400">{{ mat.unit }}</span></div>
-                <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-normal">
-                  ≈ {{ (mat.minAlert / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
-                </div>
+                <span>{{ mat.minAlert.toLocaleString() }}</span>
+                <span class="text-[10px] text-stone-400 ml-0.5">{{ mat.unit }}</span>
               </td>
 
               <!-- Unit Cost -->
@@ -338,7 +268,7 @@
                   ฿{{ Number(mat.unitCost || 0).toFixed(4) }}
                   <span class="text-[10px] text-stone-400">/{{ mat.unit }}</span>
                 </div>
-                <div v-if="mat.packUnit && mat.packCost" class="text-[10px] text-stone-400 font-normal">
+                <div v-if="mat.packUnit && mat.packCost" class="text-[10px] text-stone-400 mt-0.5">
                   ฿{{ Number(mat.packCost).toFixed(0) }}/{{ mat.packUnit }}
                 </div>
               </td>
@@ -347,9 +277,6 @@
               <td class="py-3 px-4">
                 <div class="font-bold font-number text-amber-950">
                   ฿{{ (Math.max(0, mat.stock) * (mat.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-                </div>
-                <div v-if="mat.stock <= mat.minAlert && !mat.isDeleted" class="text-[10px] text-rose-500 font-number">
-                  งบเติมสต็อก: +฿{{ (Math.max(0, (mat.minAlert * 2) - mat.stock) * mat.unitCost).toFixed(0) }}
                 </div>
               </td>
 
