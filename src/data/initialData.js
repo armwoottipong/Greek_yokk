@@ -90,7 +90,24 @@ export const DEFAULT_PLATFORMS = [
 ];
 
 export const DEFAULT_MATERIALS = [
-  { id: "MAT001", name: "กรีกโยเกิร์ตแท้ (Greek Base)", category: "Base Yogurt", unit: "g", stock: 3500, minAlert: 1000, unitCost: 0.18, emoji: "🥣", isSubIngredient: false, isDeleted: false },
+  {
+    id: "MAT001",
+    name: "กรีกโยเกิร์ตแท้ (Greek Base)",
+    category: "Base Yogurt",
+    unit: "g",
+    stock: 3500,
+    minAlert: 1000,
+    unitCost: 0.2075,
+    emoji: "🥣",
+    isSubIngredient: false,
+    hasSubRecipe: true,
+    yieldQty: 1200,
+    subRecipe: [
+      { materialId: "MAT002", qty: 5000 },
+      { materialId: "MAT003", qty: 300 }
+    ],
+    isDeleted: false
+  },
   { id: "MAT002", name: "นมสดพาสเจอร์ไรส์ (Fresh Milk)", category: "วัตถุดิบรอง", unit: "ml", stock: 15000, minAlert: 4000, unitCost: 0.045, emoji: "🥛", isSubIngredient: true, isDeleted: false },
   { id: "MAT003", name: "หัวเชื้อโยเกิร์ตธรรมชาติ", category: "วัตถุดิบรอง", unit: "g", stock: 2500, minAlert: 500, unitCost: 0.08, emoji: "🥣", isSubIngredient: true, isDeleted: false },
   { id: "MAT004", name: "สตรอว์เบอร์รีสด", category: "Fresh Fruits", unit: "g", stock: 1200, minAlert: 300, unitCost: 0.35, emoji: "🍓", isSubIngredient: false, isDeleted: false },

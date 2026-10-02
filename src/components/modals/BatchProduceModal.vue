@@ -66,7 +66,14 @@
               <span>🥛</span>
               <span>วัตถุดิบรองที่นำมาหมัก/แปรรูป (Sub-ingredients)</span>
             </span>
-            <span class="text-[11px] text-stone-400">จะถูกหักออกจากสต็อกทันที</span>
+            <button
+              type="button"
+              @click="addSubRow"
+              class="text-[11px] font-semibold text-purple-800 hover:text-purple-950 flex items-center gap-1"
+            >
+              <Plus class="w-3.5 h-3.5" />
+              <span>เพิ่มวัตถุดิบรอง</span>
+            </button>
           </div>
 
           <div
@@ -155,7 +162,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { X, Check } from 'lucide-vue-next'
+import { X, Check, Plus } from 'lucide-vue-next'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false }
@@ -170,24 +177,36 @@ const isOpen = computed({
 })
 
 const targetMatId = ref('MAT001')
-const yieldQty = ref(1500)
-const subRows = ref([
-  { materialId: 'MAT002', qty: 5000 }, // นมสด 5,000 ml
-  { materialId: 'MAT003', qty: 500 }   // หัวเชื้อ 500 g
-])
+const yieldQty = ref(1200)
+const subRows = ref([])
+
+function loadRecipeForTarget(matId) {
+  const target = store.matMap[matId]
+  if (target && target.hasSubRecipe && Array.isArray(target.subRecipe) && target.subRecipe.length > 0) {
+    yieldQty.value = Number(target.yieldQty) || 1200
+    subRows.value = target.subRecipe.map(r => ({ materialId: r.materialId, qty: r.qty }))
+  } else {
+    yieldQty.value = 1200
+    const milk = store.subMaterials.find(m => m.id === 'MAT002' || m.name.includes('นม'))
+    const starter = store.subMaterials.find(m => m.id === 'MAT003' || m.name.includes('หัวเชื้อ'))
+    subRows.value = [
+      { materialId: milk ? milk.id : (store.subMaterials[0]?.id || 'MAT002'), qty: 5000 },
+      { materialId: starter ? starter.id : (store.subMaterials[1]?.id || 'MAT003'), qty: 300 }
+    ]
+  }
+}
 
 watch(isOpen, (open) => {
   if (open) {
     const defaultTarget = store.mainMaterials.find(m => m.category === 'Base Yogurt' || m.id === 'MAT001')
-    targetMatId.value = defaultTarget ? defaultTarget.id : 'MAT001'
-    yieldQty.value = 1500
+    targetMatId.value = defaultTarget ? defaultTarget.id : (store.mainMaterials[0]?.id || 'MAT001')
+    loadRecipeForTarget(targetMatId.value)
+  }
+})
 
-    const milk = store.subMaterials.find(m => m.id === 'MAT002' || m.name.includes('นม'))
-    const starter = store.subMaterials.find(m => m.id === 'MAT003' || m.name.includes('หัวเชื้อ'))
-    subRows.value = [
-      { materialId: milk ? milk.id : 'MAT002', qty: 5000 },
-      { materialId: starter ? starter.id : 'MAT003', qty: 500 }
-    ]
+watch(targetMatId, (newId) => {
+  if (newId) {
+    loadRecipeForTarget(newId)
   }
 })
 
@@ -198,6 +217,11 @@ const totalSubCost = computed(() => {
     return sum + ((Number(row.qty) || 0) * unitCost)
   }, 0)
 })
+
+function addSubRow() {
+  const defaultSub = store.subMaterials[0] ? store.subMaterials[0].id : 'MAT002'
+  subRows.value.push({ materialId: defaultSub, qty: 1000 })
+}
 
 function removeSubRow(index) {
   subRows.value.splice(index, 1)
