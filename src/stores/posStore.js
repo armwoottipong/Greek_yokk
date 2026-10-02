@@ -25,11 +25,20 @@ export const usePosStore = defineStore('pos', {
 
       // Master Collections with strict number parsing and default recipe migration
       materials: storedMaterials.map(m => {
+        const defaultRef = DEFAULT_MATERIALS.find(def => def.id === m.id)
+        const packUnit = m.packUnit || defaultRef?.packUnit || (m.unit === 'ml' ? 'ขวด' : m.unit === 'g' ? 'ถุง' : 'แพ็ค')
+        const packSize = Number(m.packSize) || defaultRef?.packSize || 1
+        const unitCost = Number(m.unitCost) !== undefined && Number(m.unitCost) > 0 ? Number(m.unitCost) : (defaultRef?.unitCost || 0)
+        const packCost = Number(m.packCost) || defaultRef?.packCost || (unitCost * packSize)
+
         const item = {
           ...m,
+          packUnit,
+          packSize,
+          packCost,
+          unitCost,
           stock: Number(m.stock) || 0,
           minAlert: Number(m.minAlert) || 0,
-          unitCost: Number(m.unitCost) || 0,
           isDeleted: Boolean(m.isDeleted),
           isSubIngredient: Boolean(m.isSubIngredient)
         }
@@ -416,19 +425,34 @@ export const usePosStore = defineStore('pos', {
     // MATERIAL & INVENTORY CRUD
     // ========================================================
     saveMaterial(matData) {
+      const packSize = Number(matData.packSize) > 0 ? Number(matData.packSize) : 1
+      const packCost = Number(matData.packCost) >= 0 ? Number(matData.packCost) : 0
+      let unitCost = Number(matData.unitCost) || 0
+      if (packCost > 0 && packSize > 0 && (!unitCost || unitCost === 0)) {
+        unitCost = packCost / packSize
+      }
+
+      const cleanData = {
+        ...matData,
+        packUnit: matData.packUnit ? String(matData.packUnit).trim() : 'ชิ้น',
+        packSize,
+        packCost,
+        unitCost: Math.round(unitCost * 10000) / 10000,
+        stock: Number(matData.stock) || 0,
+        minAlert: Number(matData.minAlert) || 0,
+        yieldQty: Number(matData.yieldQty) || 1200
+      }
+
       if (matData.id) {
         const idx = this.materials.findIndex(m => m.id === matData.id)
         if (idx >= 0) {
-          this.materials[idx] = { ...this.materials[idx], ...matData }
+          this.materials[idx] = { ...this.materials[idx], ...cleanData }
         }
       } else {
         const newId = 'MAT' + String(this.materials.length + 1).padStart(3, '0')
         this.materials.push({
-          ...matData,
+          ...cleanData,
           id: newId,
-          stock: Number(matData.stock) || 0,
-          minAlert: Number(matData.minAlert) || 0,
-          unitCost: Number(matData.unitCost) || 0,
           isDeleted: false
         })
       }
@@ -454,16 +478,19 @@ export const usePosStore = defineStore('pos', {
       }
     },
 
-    stockIn(matId, qty, unitCost, note = '') {
+    stockIn(matId, qty, unitCost, note = '', packCost = null) {
       const mat = this.materials.find(m => m.id === matId)
       if (!mat) return
       const addQty = Number(qty) || 0
-      mat.stock += addQty
+      mat.stock = Math.round((Number(mat.stock || 0) + addQty) * 100) / 100
       if (unitCost !== undefined && unitCost !== null && Number(unitCost) > 0) {
-        mat.unitCost = Number(unitCost)
+        mat.unitCost = Math.round(Number(unitCost) * 10000) / 10000
+      }
+      if (packCost !== undefined && packCost !== null && Number(packCost) > 0) {
+        mat.packCost = Number(packCost)
       }
       this.persistLocal()
-      this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty} ${mat.unit} เรียบร้อย`, 'success')
+      this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit} เรียบร้อย`, 'success')
     },
 
     stockAdjust(matId, newActualQty, reason = '', note = '') {

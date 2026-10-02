@@ -263,11 +263,19 @@
                   <span>วัตถุดิบรอง</span>
                 </span>
                 <span
-                  v-else
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60"
-                  title="วัตถุดิบหลัก สำหรับตักเสิร์ฟหน้าร้าน"
+                  v-else-if="mat.hasSubRecipe"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-900 border border-amber-200/60"
+                  title="วัตถุดิบหลัก ผลิตจากวัตถุดิบรอง"
                 >
                   <span>🥣</span>
+                  <span>หลัก (มีสูตรผลิต)</span>
+                </span>
+                <span
+                  v-else
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60"
+                  title="วัตถุดิบหลัก สั่งซื้อตรงหน้าร้าน"
+                >
+                  <span>📦</span>
                   <span>วัตถุดิบหลัก</span>
                 </span>
               </td>
@@ -296,6 +304,9 @@
                     </span>
                     <span class="text-xs font-normal text-stone-400">{{ mat.unit }}</span>
                   </div>
+                  <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-normal">
+                    ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
+                  </div>
                   <!-- Progress buffer bar -->
                   <div class="w-24 bg-stone-100 h-1 rounded-full overflow-hidden">
                     <div
@@ -315,13 +326,21 @@
 
               <!-- Min Alert -->
               <td class="py-3 px-4 font-number text-stone-600">
-                {{ mat.minAlert.toLocaleString() }} <span class="text-[10px] text-stone-400">{{ mat.unit }}</span>
+                <div>{{ mat.minAlert.toLocaleString() }} <span class="text-[10px] text-stone-400">{{ mat.unit }}</span></div>
+                <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-normal">
+                  ≈ {{ (mat.minAlert / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
+                </div>
               </td>
 
               <!-- Unit Cost -->
               <td class="py-3 px-4 font-number text-stone-700">
-                ฿{{ Number(mat.unitCost || 0).toFixed(2) }}
-                <span class="text-[10px] text-stone-400">/{{ mat.unit }}</span>
+                <div>
+                  ฿{{ Number(mat.unitCost || 0).toFixed(4) }}
+                  <span class="text-[10px] text-stone-400">/{{ mat.unit }}</span>
+                </div>
+                <div v-if="mat.packUnit && mat.packCost" class="text-[10px] text-stone-400 font-normal">
+                  ฿{{ Number(mat.packCost).toFixed(0) }}/{{ mat.packUnit }}
+                </div>
               </td>
 
               <!-- Total Item Stock Valuation -->

@@ -32,9 +32,40 @@
               :key="m.id"
               :value="m.id"
             >
-              {{ m.emoji }} {{ m.name }} (ในระบบ: {{ m.stock }} {{ m.unit }})
+              {{ m.emoji }} {{ m.name }} (ในระบบ: {{ m.stock.toLocaleString() }} {{ m.unit }} {{ m.packSize > 1 ? `≈ ${(m.stock / m.packSize).toFixed(1)} ${m.packUnit}` : '' }})
             </option>
           </select>
+        </div>
+
+        <!-- Unit Switch Capsule (if material has packUnit) -->
+        <div v-if="selectedMaterial?.packUnit && selectedMaterial?.packSize > 1" class="space-y-1.5">
+          <label class="block text-xs font-medium text-stone-700">หน่วยที่ใช้นับตรวจนับจริง</label>
+          <div class="flex items-center gap-1.5 p-1 bg-[#F5F4F0] rounded-xl text-xs font-semibold">
+            <button
+              type="button"
+              @click="setUnitMode('pack')"
+              :class="[
+                'flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5',
+                unitMode === 'pack'
+                  ? 'bg-amber-900 text-white shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
+              ]"
+            >
+              <span>📦 นับเป็น{{ selectedMaterial.packUnit }} (1 {{ selectedMaterial.packUnit }} = {{ selectedMaterial.packSize }} {{ selectedMaterial.unit }})</span>
+            </button>
+            <button
+              type="button"
+              @click="setUnitMode('base')"
+              :class="[
+                'flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5',
+                unitMode === 'base'
+                  ? 'bg-white text-stone-900 shadow-xs font-bold'
+                  : 'text-stone-500 hover:text-stone-900'
+              ]"
+            >
+              <span>⚖️ นับเป็น{{ selectedMaterial.unit }}</span>
+            </button>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -42,20 +73,40 @@
             <span class="block text-[11px] text-stone-500 mb-0.5">ยอดในระบบปัจจุบัน:</span>
             <span class="text-sm font-number font-bold text-stone-900">
               {{ currentStock.toLocaleString() }} {{ selectedMaterial?.unit }}
+              <span v-if="selectedMaterial?.packSize > 1" class="text-xs font-normal text-stone-500">
+                (≈ {{ (currentStock / selectedMaterial.packSize).toFixed(1) }} {{ selectedMaterial.packUnit }})
+              </span>
             </span>
           </div>
+
           <div>
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">ยอดนับจริงใหม่ <span class="text-rose-500">*</span></label>
+            <label class="block text-xs font-medium text-stone-700 mb-1.5">
+              ยอดนับจริงใหม่ ({{ unitMode === 'pack' ? selectedMaterial?.packUnit : selectedMaterial?.unit }}) <span class="text-rose-500">*</span>
+            </label>
             <div class="flex items-center gap-2">
               <input
-                v-model.number="actualStock"
+                v-if="unitMode === 'pack'"
+                v-model.number="actualPackStock"
+                @input="onPackStockInput"
                 type="number"
                 min="0"
                 step="any"
                 placeholder="0"
                 class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
               />
-              <span class="text-stone-400 text-xs shrink-0 font-medium w-8">{{ selectedMaterial?.unit }}</span>
+              <input
+                v-else
+                v-model.number="actualStock"
+                @input="onBaseStockInput"
+                type="number"
+                min="0"
+                step="any"
+                placeholder="0"
+                class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
+              />
+              <span class="text-stone-500 text-xs shrink-0 font-medium w-8">
+                {{ unitMode === 'pack' ? selectedMaterial?.packUnit : selectedMaterial?.unit }}
+              </span>
             </div>
           </div>
         </div>
@@ -68,6 +119,9 @@
             :class="difference === 0 ? 'text-stone-600' : difference > 0 ? 'text-emerald-700' : 'text-rose-600'"
           >
             {{ difference > 0 ? `+${difference.toLocaleString()}` : difference.toLocaleString() }} {{ selectedMaterial?.unit }}
+            <span v-if="selectedMaterial?.packSize > 1" class="text-xs font-normal">
+              ({{ difference > 0 ? `+${(difference / selectedMaterial.packSize).toFixed(2)}` : (difference / selectedMaterial.packSize).toFixed(2) }} {{ selectedMaterial.packUnit }})
+            </span>
           </span>
         </div>
 
@@ -126,7 +180,9 @@ import { X, Check } from 'lucide-vue-next'
 const store = usePosStore()
 
 const selectedMatId = ref('')
+const unitMode = ref('base') // 'base' | 'pack'
 const actualStock = ref(0)
+const actualPackStock = ref(0)
 const reason = ref('นับสต็อกจริงรายวัน')
 const note = ref('')
 
@@ -135,29 +191,47 @@ const selectedMaterial = computed(() => {
 })
 
 const currentStock = computed(() => {
-  return selectedMaterial.value ? selectedMaterial.value.stock : 0
+  return selectedMaterial.value ? Number(selectedMaterial.value.stock) || 0 : 0
 })
 
 const difference = computed(() => {
   return (Number(actualStock.value) || 0) - currentStock.value
 })
 
+function setUnitMode(mode) {
+  unitMode.value = mode
+}
+
+function onPackStockInput() {
+  const pSize = selectedMaterial.value?.packSize > 0 ? selectedMaterial.value.packSize : 1
+  actualStock.value = Math.round((Number(actualPackStock.value) || 0) * pSize * 100) / 100
+}
+
+function onBaseStockInput() {
+  const pSize = selectedMaterial.value?.packSize > 0 ? selectedMaterial.value.packSize : 1
+  actualPackStock.value = Number(((Number(actualStock.value) || 0) / pSize).toFixed(2))
+}
+
+function initForMaterial(mat) {
+  if (!mat) return
+  const pSize = mat.packSize > 0 ? mat.packSize : 1
+  actualStock.value = mat.stock
+  actualPackStock.value = Number((mat.stock / pSize).toFixed(2))
+  unitMode.value = mat.packUnit && mat.packSize > 1 ? 'pack' : 'base'
+  reason.value = 'นับสต็อกจริงรายวัน'
+  note.value = ''
+}
+
 watch(() => store.modals.stockAdjust.isOpen, (open) => {
   if (open) {
     const id = store.modals.stockAdjust.materialId || (store.activeMaterials[0]?.id || '')
     selectedMatId.value = id
-    const mat = store.matMap[id]
-    actualStock.value = mat ? mat.stock : 0
-    reason.value = 'นับสต็อกจริงรายวัน'
-    note.value = ''
+    initForMaterial(store.matMap[id])
   }
 })
 
 watch(selectedMatId, (newId) => {
-  const mat = store.matMap[newId]
-  if (mat) {
-    actualStock.value = mat.stock
-  }
+  initForMaterial(store.matMap[newId])
 })
 
 function close() {
