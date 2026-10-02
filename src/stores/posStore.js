@@ -81,6 +81,16 @@ export const usePosStore = defineStore('pos', {
       return state.materials.filter(m => !m.isDeleted)
     },
 
+    // Main ingredients (ตักเสิร์ฟหน้าร้าน / เมนู)
+    mainMaterials: (state) => {
+      return state.materials.filter(m => !m.isDeleted && !m.isSubIngredient)
+    },
+
+    // Sub-ingredients (วัตถุดิบรอง สำหรับผลิต/หมักเบสโยเกิร์ต)
+    subMaterials: (state) => {
+      return state.materials.filter(m => !m.isDeleted && Boolean(m.isSubIngredient))
+    },
+
     // Low stock materials
     lowStockMaterials: (state) => {
       return state.materials.filter(m => !m.isDeleted && m.stock <= m.minAlert)
@@ -446,6 +456,45 @@ export const usePosStore = defineStore('pos', {
       this.persistLocal()
       const diffStr = diff >= 0 ? `+${diff}` : `${diff}`
       this.showToast(`ปรับยอด ${mat.name} เป็น ${newActualQty} ${mat.unit} (${diffStr})`, 'info')
+    },
+
+    batchProduce(targetMatId, yieldQty, subIngredients = [], note = '') {
+      const target = this.materials.find(m => m.id === targetMatId)
+      if (!target) return false
+
+      // Check if sub-ingredients have enough stock
+      let totalCost = 0
+      for (const item of subIngredients) {
+        const subMat = this.materials.find(m => m.id === item.materialId)
+        if (!subMat || subMat.stock < item.qty) {
+          const name = subMat ? subMat.name : item.materialId
+          this.showToast(`สต็อกวัตถุดิบรองไม่พอ: ${name}`, 'error')
+          return false
+        }
+        totalCost += (item.qty * (subMat.unitCost || 0))
+      }
+
+      // Deduct sub-ingredients
+      for (const item of subIngredients) {
+        const subMat = this.materials.find(m => m.id === item.materialId)
+        if (subMat) {
+          subMat.stock = Math.max(0, Math.round((subMat.stock - item.qty) * 100) / 100)
+        }
+      }
+
+      // Calculate new weighted unit cost for finished target
+      const addedQty = Number(yieldQty) || 0
+      const currentValuation = target.stock * (target.unitCost || 0)
+      const newValuation = currentValuation + totalCost
+      const newTotalStock = target.stock + addedQty
+      const newUnitCost = newTotalStock > 0 ? (newValuation / newTotalStock) : target.unitCost
+
+      target.stock = newTotalStock
+      target.unitCost = Math.round(newUnitCost * 1000) / 1000
+
+      this.persistLocal()
+      this.showToast(`แปรรูป/ผลิต ${target.name} +${addedQty} ${target.unit} สำเร็จ (ตัดสต็อกวัตถุดิบรองแล้ว)`, 'success')
+      return true
     },
 
     // ========================================================

@@ -99,6 +99,14 @@
           </div>
         </div>
 
+        <div class="flex items-center justify-between p-3 rounded-xl bg-purple-50/60 border border-purple-100/80">
+          <div>
+            <span class="block text-xs font-semibold text-purple-900">กำหนดเป็นวัตถุดิบรอง (Sub-ingredient)</span>
+            <span class="text-[11px] text-purple-700/80">วัตถุดิบตั้งต้นสำหรับหมัก/ผลิตเบส (เช่น นมสด, หัวเชื้อ) ไม่ได้ตักขายหน้าร้านโดยตรง</span>
+          </div>
+          <ToggleSwitch v-model="form.isSubIngredient" />
+        </div>
+
         <div class="p-3 bg-[#FAF9F6] rounded-xl text-[11px] text-stone-500 space-y-1">
           <div class="flex items-center justify-between">
             <span>มูลค่าวัตถุดิบคงคลังของรายการนี้:</span>
@@ -134,6 +142,7 @@
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { X, Check } from 'lucide-vue-next'
+import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
 const store = usePosStore()
 
@@ -145,7 +154,8 @@ const form = ref({
   stock: 0,
   minAlert: 500,
   unitCost: 0.18,
-  emoji: '🥣'
+  emoji: '🥣',
+  isSubIngredient: false
 })
 
 const isEditing = computed(() => Boolean(store.modals.materialEdit.materialId))
@@ -163,7 +173,8 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
       stock: mat ? mat.stock : 0,
       minAlert: mat ? mat.minAlert : 500,
       unitCost: mat ? mat.unitCost : 0.18,
-      emoji: mat ? mat.emoji : '🥣'
+      emoji: mat ? mat.emoji : '🥣',
+      isSubIngredient: mat ? Boolean(mat.isSubIngredient) : false
     }
   }
 })

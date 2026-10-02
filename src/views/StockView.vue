@@ -5,11 +5,21 @@
       <div>
         <h2 class="text-xl font-bold text-stone-900 tracking-tight">คลังวัตถุดิบและบรรจุภัณฑ์ (Inventory & Stock)</h2>
         <p class="text-xs text-stone-400 mt-0.5">
-          จัดการสต็อก, ตรวจสอบงบต้นทุนรวม, รับเข้าสินค้า และปรับปรุงยอดตามจริง
+          จัดการสต็อกวัตถุดิบหลัก (หน้าร้าน) & วัตถุดิบรอง (ผลิตเบสโยเกิร์ต), รับเข้า และตรวจนับยอดจริง
         </p>
       </div>
 
       <div class="flex items-center gap-2">
+        <!-- Batch Conversion / Produce Button -->
+        <button
+          @click="isBatchProduceOpen = true"
+          class="inline-flex items-center gap-2 px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200/60 rounded-xl text-xs font-semibold transition-colors"
+          title="หมัก/แปรรูปนมสดและหัวเชื้อเป็นกรีกโยเกิร์ต"
+        >
+          <Sparkles class="w-4 h-4 text-purple-600" />
+          <span>ผลิตกรีกโยเกิร์ต (Batch)</span>
+        </button>
+
         <button
           @click="openStockIn()"
           class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors"
@@ -47,8 +57,10 @@
         <div class="text-2xl font-bold font-number text-amber-950">
           ฿{{ store.totalInventoryValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
         </div>
-        <div class="text-[11px] text-stone-400 mt-1">
-          คำนวณจาก {{ store.activeMaterials.length }} รายการที่ใช้งาน
+        <div class="text-[11px] text-stone-400 mt-1 flex items-center gap-1.5">
+          <span>หลัก: {{ store.mainMaterials.length }}</span>
+          <span>•</span>
+          <span>รอง: {{ store.subMaterials.length }} รายการ</span>
         </div>
       </div>
 
@@ -125,45 +137,88 @@
     </div>
 
     <!-- Filters & Search Toolbar -->
-    <div class="editorial-card p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
-      <!-- Search Input -->
-      <div class="relative flex-1 max-w-sm">
-        <Search class="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="ค้นหาชื่อวัตถุดิบ, รหัส, หน่วย..."
-          class="soft-input w-full pl-9 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium"
-        />
-      </div>
+    <div class="editorial-card p-4 bg-white space-y-3">
+      <!-- Row 1: Role Type (หลัก / รอง) & Search -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Ingredient Role Tabs (หลัก / รอง) -->
+        <div class="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl text-xs font-semibold">
+          <button
+            @click="selectedRole = 'all'"
+            :class="[
+              'px-3.5 py-1.5 rounded-lg transition-all',
+              selectedRole === 'all'
+                ? 'bg-white text-stone-900 shadow-xs'
+                : 'text-stone-500 hover:text-stone-900'
+            ]"
+          >
+            ทั้งหมด ({{ store.activeMaterials.length }})
+          </button>
+          <button
+            @click="selectedRole = 'main'"
+            :class="[
+              'px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5',
+              selectedRole === 'main'
+                ? 'bg-emerald-800 text-white shadow-xs'
+                : 'text-stone-500 hover:text-emerald-800'
+            ]"
+          >
+            <span>🥣 วัตถุดิบหลัก ({{ store.mainMaterials.length }})</span>
+          </button>
+          <button
+            @click="selectedRole = 'sub'"
+            :class="[
+              'px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5',
+              selectedRole === 'sub'
+                ? 'bg-purple-800 text-white shadow-xs'
+                : 'text-stone-500 hover:text-purple-800'
+            ]"
+          >
+            <span>🥛 วัตถุดิบรอง ({{ store.subMaterials.length }})</span>
+          </button>
+        </div>
 
-      <!-- Category Filter Pills -->
-      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs font-medium">
-        <button
-          v-for="cat in categories"
-          :key="cat"
-          @click="selectedCategory = cat"
-          :class="[
-            'px-3 py-1.5 rounded-lg whitespace-nowrap transition-all text-xs',
-            selectedCategory === cat
-              ? 'bg-amber-900 text-white font-semibold shadow-xs'
-              : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-          ]"
-        >
-          {{ cat }}
-        </button>
-      </div>
-
-      <!-- Show Deleted / Inactive Switch -->
-      <div class="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100 shrink-0">
-        <label class="text-xs text-stone-500 cursor-pointer select-none flex items-center gap-2">
+        <!-- Search Input -->
+        <div class="relative flex-1 max-w-sm">
+          <Search class="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
           <input
-            type="checkbox"
-            v-model="showDeleted"
-            class="rounded border-stone-300 text-amber-900 focus:ring-amber-900"
+            v-model="searchQuery"
+            type="text"
+            placeholder="ค้นหาชื่อวัตถุดิบ, รหัส, หน่วย..."
+            class="soft-input w-full pl-9 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium"
           />
-          <span>แสดงรายการที่ซ่อน ({{ deletedCount }})</span>
-        </label>
+        </div>
+      </div>
+
+      <!-- Row 2: Category Filter & Show Deleted Switch -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2 border-t border-stone-100">
+        <!-- Category Filter Pills -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs font-medium">
+          <button
+            v-for="cat in categories"
+            :key="cat.id"
+            @click="selectedCategory = cat.id"
+            :class="[
+              'px-3 py-1 rounded-lg whitespace-nowrap transition-all text-xs',
+              selectedCategory === cat.id
+                ? 'bg-amber-900 text-white font-semibold shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            ]"
+          >
+            {{ cat.label }}
+          </button>
+        </div>
+
+        <!-- Show Deleted / Inactive Switch -->
+        <div class="flex items-center gap-2 shrink-0">
+          <label class="text-xs text-stone-500 cursor-pointer select-none flex items-center gap-2">
+            <input
+              type="checkbox"
+              v-model="showDeleted"
+              class="rounded border-stone-300 text-amber-900 focus:ring-amber-900"
+            />
+            <span>แสดงรายการที่ซ่อน ({{ deletedCount }})</span>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -174,6 +229,7 @@
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/50 text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
               <th class="py-3 px-4">วัตถุดิบ / สินค้า</th>
+              <th class="py-3 px-4">ประเภท</th>
               <th class="py-3 px-4">หมวดหมู่</th>
               <th class="py-3 px-4">คงเหลือในคลัง</th>
               <th class="py-3 px-4">จุดเตือนขั้นต่ำ</th>
@@ -204,6 +260,26 @@
                     <span class="text-[10px] text-stone-400 font-mono">{{ mat.id }}</span>
                   </div>
                 </div>
+              </td>
+
+              <!-- Ingredient Role: หลัก / รอง -->
+              <td class="py-3 px-4">
+                <span
+                  v-if="mat.isSubIngredient"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-800 border border-purple-200/60"
+                  title="วัตถุดิบรอง สำหรับหมัก/ผลิตกรีกโยเกิร์ต"
+                >
+                  <span>🥛</span>
+                  <span>วัตถุดิบรอง</span>
+                </span>
+                <span
+                  v-else
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60"
+                  title="วัตถุดิบหลัก สำหรับตักเสิร์ฟหน้าร้าน"
+                >
+                  <span>🥣</span>
+                  <span>วัตถุดิบหลัก</span>
+                </span>
               </td>
 
               <!-- Category -->
@@ -351,7 +427,7 @@
 
             <!-- Empty Row -->
             <tr v-if="filteredMaterials.length === 0">
-              <td colspan="8" class="py-12 text-center text-stone-400">
+              <td colspan="9" class="py-12 text-center text-stone-400">
                 <div class="text-3xl mb-2">🔍</div>
                 <p class="text-xs font-medium">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก</p>
               </td>
@@ -360,6 +436,9 @@
         </table>
       </div>
     </div>
+
+    <!-- Batch Produce Modal -->
+    <BatchProduceModal v-model="isBatchProduceOpen" />
   </div>
 </template>
 
@@ -373,16 +452,28 @@ import {
   Search,
   Edit3,
   EyeOff,
-  RotateCcw
+  RotateCcw,
+  Sparkles
 } from 'lucide-vue-next'
+import BatchProduceModal from '@/components/modals/BatchProduceModal.vue'
 
 const store = usePosStore()
 
 const searchQuery = ref('')
-const selectedCategory = ref('ทั้งหมด')
+const selectedRole = ref('all') // 'all' | 'main' | 'sub'
+const selectedCategory = ref('all')
 const showDeleted = ref(false)
+const isBatchProduceOpen = ref(false)
 
-const categories = ['ทั้งหมด', 'Base Yogurt', 'Fruits', 'Toppings', 'Packaging', 'อื่นๆ']
+const categories = [
+  { id: 'all', label: 'ทุกหมวดหมู่' },
+  { id: 'Base Yogurt', label: '🥣 เบสโยเกิร์ต' },
+  { id: 'วัตถุดิบรอง', label: '🥛 วัตถุดิบรอง' },
+  { id: 'Fresh Fruits', label: '🍓 ผลไม้สด' },
+  { id: 'Sauces', label: '🍯 ซอส & น้ำเชื่อม' },
+  { id: 'Toppings', label: '🥜 ท็อปปิ้ง' },
+  { id: 'Packaging', label: '📦 บรรจุภัณฑ์' }
+]
 
 const deletedCount = computed(() => {
   return store.materials.filter(m => m.isDeleted).length
@@ -393,8 +484,12 @@ const filteredMaterials = computed(() => {
     // Deleted filter
     if (!showDeleted.value && m.isDeleted) return false
 
+    // Ingredient Role filter (หลัก / รอง)
+    if (selectedRole.value === 'main' && m.isSubIngredient) return false
+    if (selectedRole.value === 'sub' && !m.isSubIngredient) return false
+
     // Category filter
-    if (selectedCategory.value !== 'ทั้งหมด' && m.category !== selectedCategory.value) {
+    if (selectedCategory.value !== 'all' && m.category !== selectedCategory.value) {
       return false
     }
 
@@ -404,7 +499,8 @@ const filteredMaterials = computed(() => {
       const matchName = m.name?.toLowerCase().includes(q)
       const matchId = m.id?.toLowerCase().includes(q)
       const matchUnit = m.unit?.toLowerCase().includes(q)
-      if (!matchName && !matchId && !matchUnit) return false
+      const matchCat = m.category?.toLowerCase().includes(q)
+      if (!matchName && !matchId && !matchUnit && !matchCat) return false
     }
 
     return true
