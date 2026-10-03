@@ -22,6 +22,16 @@
         <span>วัตถุดิบใกล้หมด: {{ store.lowStockMaterials.length }} รายการ</span>
       </button>
 
+      <!-- Activity Log Button -->
+      <button
+        @click="store.openActivityLog('all')"
+        class="px-3 py-1.5 rounded-xl border border-stone-200 text-stone-700 hover:text-stone-900 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+        title="ดูประวัติและบันทึกกิจกรรมทั้งหมด"
+      >
+        <History class="w-3.5 h-3.5 text-stone-500" />
+        <span class="hidden sm:inline">ประวัติกิจกรรม</span>
+      </button>
+
       <!-- Clear All Data Button -->
       <button
         @click="confirmClearAll"
@@ -59,7 +69,7 @@
 <script setup>
 import { computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { RotateCcw, RefreshCw as CloudSync, Trash2 } from 'lucide-vue-next'
+import { RotateCcw, RefreshCw as CloudSync, Trash2, History } from 'lucide-vue-next'
 
 const store = usePosStore()
 

@@ -25,7 +25,19 @@
       <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
         <!-- 1. Select Material -->
         <div>
-          <label class="block text-[11px] font-medium text-stone-600 mb-1">เลือกวัตถุดิบ</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-[11px] font-medium text-stone-600">เลือกวัตถุดิบ</label>
+            <button
+              v-if="selectedMatId"
+              type="button"
+              @click="store.openActivityLog('stock', selectedMatId)"
+              class="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900 hover:underline cursor-pointer"
+              title="ดูประวัติการรับเข้าและผลิตของวัตถุดิบนี้"
+            >
+              <History class="w-3.5 h-3.5" />
+              <span>ดูประวัติการรับเข้า/ผลิต</span>
+            </button>
+          </div>
           <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FAF9F6] rounded-xl border border-stone-100">
             ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าคลังก่อน
           </div>
@@ -331,7 +343,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
-import { X, Check, Plus, Minus } from 'lucide-vue-next'
+import { X, Check, Plus, Minus, History } from 'lucide-vue-next'
 
 const store = usePosStore()
 

@@ -10,6 +10,146 @@ import {
   EMOJI_CATALOG
 } from '@/data/initialData'
 
+export function generateDefaultActivityLogs() {
+  const now = Date.now()
+  return [
+    {
+      id: 'LOG-001',
+      timestamp: new Date(now - 15 * 60 * 1000).toISOString(),
+      module: 'stock',
+      action: 'adjust',
+      title: 'ปรับยอดนับจริง (Stock Audit)',
+      description: 'ตรวจนับสต็อก นมสด Meiji: เดิม 5,000 ml เป็น 4,500 ml (-500 ml)',
+      targetId: 'MAT002',
+      targetName: 'นมสด Meiji',
+      targetEmoji: '🥛',
+      delta: -500,
+      unit: 'ml',
+      beforeStock: 5000,
+      afterStock: 4500,
+      reason: 'ของเสีย/หมดอายุ',
+      note: 'นมบูดก่อนกำหนด คัดทิ้งเรียบร้อย',
+      user: 'ผู้จัดการสาขา'
+    },
+    {
+      id: 'LOG-002',
+      timestamp: new Date(now - 45 * 60 * 1000).toISOString(),
+      module: 'stock',
+      action: 'produce',
+      title: 'ผลิตตามสูตร (Batch Produce)',
+      description: 'ผลิต กรีกโยเกิร์ตแท้ +1,200 g (หักนมสด 5,000 ml, หัวเชื้อ 300 g)',
+      targetId: 'MAT001',
+      targetName: 'กรีกโยเกิร์ตแท้',
+      targetEmoji: '🥣',
+      delta: 1200,
+      unit: 'g',
+      beforeStock: 0,
+      afterStock: 1200,
+      reason: '',
+      note: 'รอบผลิตเช้า หมัก 14 ชม. กรองน้ำเวย์ออก',
+      user: 'บาริสต้า'
+    },
+    {
+      id: 'LOG-003',
+      timestamp: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+      module: 'stock',
+      action: 'stock_in',
+      title: 'รับเข้าสต็อก (Stock In)',
+      description: 'รับเข้า นมสด Meiji +10,000 ml (5 ขวด @ ฿54/ขวด)',
+      targetId: 'MAT002',
+      targetName: 'นมสด Meiji',
+      targetEmoji: '🥛',
+      delta: 10000,
+      unit: 'ml',
+      beforeStock: 0,
+      afterStock: 10000,
+      reason: '',
+      note: 'ซื้อตรงจากแม็คโคร ล็อตใหม่ วันหมดอายุ 15/10',
+      user: 'ผู้จัดการสาขา'
+    },
+    {
+      id: 'LOG-004',
+      timestamp: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
+      module: 'pos',
+      action: 'order_complete',
+      title: 'ขายหน้าร้าน (POS Order)',
+      description: 'ออเดอร์ #ORD-261003-101 ขาย Classic Bowl ฿129 (QR PromptPay)',
+      targetId: 'ORD-261003-101',
+      targetName: 'Classic Greek Yogurt Bowl',
+      targetEmoji: '🧾',
+      delta: 129,
+      unit: '฿',
+      reason: '',
+      note: 'หน้าร้าน Take away',
+      user: 'แคชเชียร์'
+    },
+    {
+      id: 'LOG-005',
+      timestamp: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
+      module: 'stock',
+      action: 'sale_deduct',
+      title: 'ตัดสต็อกจากการขาย',
+      description: 'ตัดสต็อก กรีกโยเกิร์ตแท้ -150 g จากออเดอร์ #ORD-261003-101',
+      targetId: 'MAT001',
+      targetName: 'กรีกโยเกิร์ตแท้',
+      targetEmoji: '🥣',
+      delta: -150,
+      unit: 'g',
+      beforeStock: 1200,
+      afterStock: 1050,
+      reason: '',
+      note: 'ตัดสต็อกตามสูตรเมนูอัตโนมัติ',
+      user: 'ระบบ POS'
+    },
+    {
+      id: 'LOG-006',
+      timestamp: new Date(now - 4 * 60 * 60 * 1000).toISOString(),
+      module: 'stock',
+      action: 'adjust',
+      title: 'ปรับยอดนับจริง (Stock Audit)',
+      description: 'ตรวจนับสต็อก สตรอว์เบอร์รี่สด: เดิม 1,000 g เป็น 900 g (-100 g)',
+      targetId: 'MAT004',
+      targetName: 'สตรอว์เบอร์รี่สด',
+      targetEmoji: '🍓',
+      delta: -100,
+      unit: 'g',
+      beforeStock: 1000,
+      afterStock: 900,
+      reason: 'ทำหก/แตกเสียหาย',
+      note: 'ผลช้ำระหว่างตัดแต่งขั้ว',
+      user: 'พนักงานครัว'
+    },
+    {
+      id: 'LOG-007',
+      timestamp: new Date(now - 6 * 60 * 60 * 1000).toISOString(),
+      module: 'menu',
+      action: 'create',
+      title: 'สร้างเมนูใหม่',
+      description: 'เพิ่มเมนู Strawberry Biscoff Bowl ลงในระบบ',
+      targetId: 'MENU-NEW',
+      targetName: 'Strawberry Biscoff Bowl',
+      targetEmoji: '🍓',
+      reason: '',
+      note: 'หมวดหมู่ Acai & Greek Bowls',
+      user: 'ผู้จัดการสาขา'
+    },
+    {
+      id: 'LOG-008',
+      timestamp: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
+      module: 'system',
+      action: 'sync',
+      title: 'ซิงค์ข้อมูล Google Sheets',
+      description: 'ส่งยอดขายและอัปเดตสต็อกคงคลังขึ้น Google Sheets สำเร็จ',
+      targetId: 'SYSTEM',
+      targetName: 'Google Sheets Live',
+      targetEmoji: '☁️',
+      reason: '',
+      note: 'Auto Sync 24-hr schedule',
+      user: 'ระบบ'
+    }
+  ]
+}
+
 export const usePosStore = defineStore('pos', {
   state: () => {
     // Wipe data clean on first load of this update for testing from scratch
@@ -27,6 +167,7 @@ export const usePosStore = defineStore('pos', {
     const rawAddons = localStorage.getItem('GY_ADDONS')
     const rawPlatforms = localStorage.getItem('GY_PLATFORMS')
     const rawOrders = localStorage.getItem('GY_ORDERS')
+    const rawLogs = localStorage.getItem('GY_ACTIVITY_LOGS')
     const storedGasUrl = localStorage.getItem('GY_GAS_API_URL') || ''
 
     const storedMaterials = rawMaterials !== null ? (JSON.parse(rawMaterials) || []) : []
@@ -34,6 +175,18 @@ export const usePosStore = defineStore('pos', {
     const storedAddons = rawAddons !== null ? (JSON.parse(rawAddons) || []) : []
     const storedPlatforms = rawPlatforms !== null ? (JSON.parse(rawPlatforms) || DEFAULT_PLATFORMS) : DEFAULT_PLATFORMS
     const storedOrders = rawOrders !== null ? (JSON.parse(rawOrders) || []) : []
+    
+    let storedActivityLogs = []
+    try {
+      if (rawLogs) {
+        storedActivityLogs = JSON.parse(rawLogs) || []
+      }
+    } catch (e) {
+      storedActivityLogs = []
+    }
+    if (!storedActivityLogs || storedActivityLogs.length === 0) {
+      storedActivityLogs = generateDefaultActivityLogs()
+    }
 
     let storedCategories = null
     try {
@@ -113,6 +266,7 @@ export const usePosStore = defineStore('pos', {
       addons: storedAddons,
       platforms: storedPlatforms,
       orders: storedOrders,
+      activityLogs: storedActivityLogs,
 
       // POS Active State
       currentPlatformId: 'PLAT01',
@@ -127,6 +281,7 @@ export const usePosStore = defineStore('pos', {
         materialEdit: { isOpen: false, materialId: null },
         stockIn: { isOpen: false, materialId: null },
         stockAdjust: { isOpen: false, materialId: null },
+        activityLog: { isOpen: false, module: 'all', targetMaterialId: null },
         customOrder: { isOpen: false, menuId: null },
         receipt: { isOpen: false, order: null },
         lowStockWarning: { isOpen: false, warningItems: [], onConfirm: null },
@@ -438,6 +593,7 @@ export const usePosStore = defineStore('pos', {
       localStorage.setItem('GY_ADDONS', JSON.stringify(this.addons))
       localStorage.setItem('GY_PLATFORMS', JSON.stringify(this.platforms))
       localStorage.setItem('GY_ORDERS', JSON.stringify(this.orders))
+      localStorage.setItem('GY_ACTIVITY_LOGS', JSON.stringify(this.activityLogs || []))
       localStorage.setItem('GY_CATEGORIES', JSON.stringify(this.categories))
       localStorage.setItem('GY_GAS_API_URL', this.gasApiUrl)
     },
@@ -447,6 +603,7 @@ export const usePosStore = defineStore('pos', {
       this.menus = []
       this.addons = []
       this.orders = []
+      this.activityLogs = []
       this.cart = []
       this.orderNote = ''
       this.persistLocal()
@@ -459,10 +616,62 @@ export const usePosStore = defineStore('pos', {
       this.addons = DEFAULT_ADDONS.map(a => ({ ...a }))
       this.platforms = DEFAULT_PLATFORMS.map(p => ({ ...p }))
       this.orders = DEFAULT_ORDERS.map(o => ({ ...o }))
+      this.activityLogs = generateDefaultActivityLogs()
       this.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES))
       this.cart = []
       this.persistLocal()
       this.showToast('โหลดข้อมูลตัวอย่าง (Demo Data) สำเร็จแล้ว', 'info')
+    },
+
+    // ========================================================
+    // ACTIVITY LOGS & AUDIT TRAIL
+    // ========================================================
+    addActivityLog(logData) {
+      if (!this.activityLogs) this.activityLogs = []
+      const newLog = {
+        id: 'LOG-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+        timestamp: new Date().toISOString(),
+        module: logData.module || 'stock', // 'stock' | 'pos' | 'menu' | 'addon' | 'system'
+        action: logData.action || 'info', // 'adjust' | 'stock_in' | 'produce' | 'sale_deduct' | 'quick_adjust' | 'create' | 'edit' | 'delete' | 'order_complete'
+        title: logData.title || 'บันทึกกิจกรรม',
+        description: logData.description || '',
+        targetId: logData.targetId || null,
+        targetName: logData.targetName || '',
+        targetEmoji: logData.targetEmoji || '',
+        delta: logData.delta !== undefined ? logData.delta : null,
+        unit: logData.unit || '',
+        beforeStock: logData.beforeStock !== undefined ? logData.beforeStock : null,
+        afterStock: logData.afterStock !== undefined ? logData.afterStock : null,
+        reason: logData.reason || '',
+        note: logData.note || '',
+        cost: logData.cost || null,
+        user: logData.user || 'ผู้ดูแลระบบ / แคชเชียร์'
+      }
+      this.activityLogs.unshift(newLog)
+      if (this.activityLogs.length > 500) {
+        this.activityLogs = this.activityLogs.slice(0, 500)
+      }
+      this.persistLocal()
+      return newLog
+    },
+
+    openActivityLog(module = 'all', targetMaterialId = null) {
+      this.modals.activityLog = {
+        isOpen: true,
+        module: module || 'all',
+        targetMaterialId: targetMaterialId || null
+      }
+    },
+
+    closeActivityLog() {
+      this.modals.activityLog.isOpen = false
+      this.modals.activityLog.targetMaterialId = null
+    },
+
+    clearActivityLogs() {
+      this.activityLogs = []
+      this.persistLocal()
+      this.showToast('ล้างประวัติกิจกรรมเรียบร้อยแล้ว', 'info')
     },
 
     // ========================================================
@@ -783,15 +992,48 @@ export const usePosStore = defineStore('pos', {
       }
 
       this.persistLocal()
+      this.addActivityLog({
+        module: 'stock',
+        action: 'stock_in',
+        title: 'รับเข้าสต็อก',
+        description: `รับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (ต้นทุนเฉลี่ย ฿${mat.unitCost}/${mat.unit})`,
+        targetId: mat.id,
+        targetName: mat.name,
+        targetEmoji: mat.emoji,
+        delta: addQty,
+        unit: mat.unit,
+        beforeStock: currentStock,
+        afterStock: mat.stock,
+        cost: newUnitCostInput,
+        note: note || '',
+        user: 'เจ้าหน้าที่คลัง'
+      })
       this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (ต้นทุนเฉลี่ย ฿${mat.unitCost}/${mat.unit})`, 'success')
     },
 
     stockAdjust(matId, newActualQty, reason = '', note = '') {
       const mat = this.materials.find(m => m.id === matId)
       if (!mat) return
-      const diff = Number(newActualQty) - mat.stock
+      const oldStock = Number(mat.stock) || 0
+      const diff = Number(newActualQty) - oldStock
       mat.stock = Number(newActualQty)
       this.persistLocal()
+      this.addActivityLog({
+        module: 'stock',
+        action: 'adjust',
+        title: 'ปรับยอดนับจริง (Stock Audit)',
+        description: `ตรวจนับสต็อก ${mat.name}: เดิม ${oldStock.toLocaleString()} เป็น ${Number(newActualQty).toLocaleString()} ${mat.unit} (${diff >= 0 ? '+' : ''}${diff} ${mat.unit})`,
+        targetId: mat.id,
+        targetName: mat.name,
+        targetEmoji: mat.emoji,
+        delta: diff,
+        unit: mat.unit,
+        beforeStock: oldStock,
+        afterStock: Number(newActualQty),
+        reason: reason || 'นับสต็อกจริงรายวัน',
+        note: note || '',
+        user: 'ผู้ตรวจนับสต็อก'
+      })
       const diffStr = diff >= 0 ? `+${diff}` : `${diff}`
       this.showToast(`ปรับยอด ${mat.name} เป็น ${newActualQty} ${mat.unit} (${diffStr})`, 'info')
     },
@@ -844,6 +1086,21 @@ export const usePosStore = defineStore('pos', {
       this.persistLocal()
 
       const summaryText = deductedSummary.join(', ')
+      this.addActivityLog({
+        module: 'stock',
+        action: 'produce',
+        title: 'ผลิตตามสูตร (Batch Produce)',
+        description: `ผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit}`,
+        targetId: target.id,
+        targetName: target.name,
+        targetEmoji: target.emoji,
+        delta: addedQty,
+        unit: target.unit,
+        beforeStock: targetCurrentStock,
+        afterStock: target.stock,
+        note: note ? `${note} [หัก: ${summaryText}]` : `หักสต็อก: ${summaryText}`,
+        user: 'ผู้ผลิต'
+      })
       this.showToast(`เพิ่มสต็อก ${target.name} +${addedQty} ${target.unit} สำเร็จ! [หักสต็อก: ${summaryText}]`, 'success')
       return true
     },
@@ -1086,6 +1343,21 @@ export const usePosStore = defineStore('pos', {
       this.orders.unshift(newOrder)
       this.clearCart()
       this.persistLocal()
+
+      // Record Sale Log
+      this.addActivityLog({
+        module: 'pos',
+        action: 'order_complete',
+        title: `ขายหน้าร้าน (${orderId})`,
+        description: `ออเดอร์ ${orderId} ยอดชำระ ฿${summary.subtotal.toLocaleString()} (${orderItems.length} รายการ - ${plat.name})`,
+        targetId: orderId,
+        targetName: orderItems.map(i => `${i.menuName} x${i.qty}`).join(', '),
+        targetEmoji: '🧾',
+        delta: summary.subtotal,
+        unit: '฿',
+        note: this.orderNote || `${plat.name} (${this.paymentMethod})`,
+        user: 'แคชเชียร์'
+      })
 
       // Open receipt modal
       this.modals.receipt = { isOpen: true, order: newOrder }

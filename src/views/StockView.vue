@@ -11,6 +11,15 @@
 
       <div class="flex items-center gap-2">
         <button
+          @click="store.openActivityLog('stock')"
+          class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+          title="ดูประวัติการเคลื่อนไหวสต็อกและการตรวจนับทั้งหมด"
+        >
+          <History class="w-4 h-4 text-sky-700" />
+          <span>ประวัติสต็อก</span>
+        </button>
+
+        <button
           @click="openStockIn()"
           class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
         >
@@ -166,14 +175,14 @@
         <table class="w-full min-w-[960px] table-fixed text-left text-xs">
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/50 text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
-              <th class="py-3 px-4 w-[22%]">วัตถุดิบ / สินค้า</th>
+              <th class="py-3 px-4 w-[21%]">วัตถุดิบ / สินค้า</th>
               <th class="py-3 px-4 w-[12%]">ประเภท</th>
               <th class="py-3 px-4 w-[10%]">หมวดหมู่</th>
               <th class="py-3 px-4 w-[18%]">คงเหลือในคลัง</th>
               <th class="py-3 px-4 w-[13%]">ต้นทุน/หน่วย</th>
-              <th class="py-3 px-4 w-[13%]">มูลค่าสต็อกคงเหลือ</th>
+              <th class="py-3 px-4 w-[12%]">มูลค่าสต็อกคงเหลือ</th>
               <th class="py-3 px-4 w-[7%] text-center">สถานะ</th>
-              <th class="py-3 px-4 w-[5%] text-right">การจัดการ</th>
+              <th class="py-3 px-4 w-[7%] text-right">การจัดการ</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
@@ -330,9 +339,18 @@
                 </span>
               </td>
 
-              <!-- Actions (Collapsed into ... more dropdown popup) -->
+              <!-- Actions (Quick History Button + ... More Dropdown) -->
               <td class="py-3 px-4 text-right relative">
-                <div class="inline-flex items-center justify-end">
+                <div class="inline-flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    @click.stop="store.openActivityLog('stock', mat.id)"
+                    class="p-1.5 text-stone-400 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                    :title="`ดูประวัติการเคลื่อนไหวของ ${mat.name}`"
+                  >
+                    <History class="w-4 h-4" />
+                  </button>
+
                   <button
                     type="button"
                     @click.stop="toggleActionMenu(mat.id)"
@@ -349,8 +367,18 @@
                   v-if="activeActionMenuId === mat.id"
                   @click.stop
                   :class="idx >= filteredMaterials.length - 2 ? 'bottom-11' : 'top-11'"
-                  class="absolute right-4 z-30 w-44 bg-white rounded-xl shadow-xl border border-stone-200/80 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100"
+                  class="absolute right-4 z-30 w-48 bg-white rounded-xl shadow-xl border border-stone-200/80 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100"
                 >
+                  <button
+                    @click="onActionHistory(mat.id)"
+                    class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <History class="w-3.5 h-3.5 text-sky-600" />
+                    <span>ประวัติการเคลื่อนไหว</span>
+                  </button>
+
+                  <div class="my-1 border-t border-stone-100"></div>
+
                   <button
                     v-if="!mat.isDeleted"
                     @click="onActionStockIn(mat.id)"
@@ -479,7 +507,8 @@ import {
   RotateCcw,
   MoreHorizontal,
   Check,
-  Undo2
+  Undo2,
+  History
 } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -522,6 +551,11 @@ function toggleActionMenu(matId) {
 
 function closeActionMenu() {
   activeActionMenuId.value = null
+}
+
+function onActionHistory(matId) {
+  closeActionMenu()
+  store.openActivityLog('stock', matId)
 }
 
 function onActionStockIn(matId) {
@@ -662,6 +696,23 @@ const changedItemsSummaryText = computed(() => {
 
 function savePendingChanges() {
   const count = changedItemsList.value.length
+  // Record activity log for each changed item
+  changedItemsList.value.forEach(item => {
+    store.addActivityLog({
+      module: 'stock',
+      action: item.diff > 0 ? 'stock_adjust_add' : 'stock_adjust_reduce',
+      actionLabel: item.diff > 0 ? 'ปรับเพิ่มสต็อก (หน้ารายการ)' : 'ปรับลดยอดสต็อก (หน้ารายการ)',
+      materialId: item.id,
+      materialName: item.name,
+      materialUnit: item.unit,
+      delta: item.diff,
+      beforeStock: item.orig,
+      afterStock: item.current,
+      reason: 'ปรับยอดด่วนผ่านปุ่ม + / - หน้ารายการสต็อก',
+      note: `ปรับจาก ${item.orig.toLocaleString()} เป็น ${item.current.toLocaleString()} ${item.unit}`,
+      operator: 'Manager'
+    })
+  })
   store.persistLocal()
   store.showToast(`บันทึกการปรับสต็อกสำเร็จ (${count} รายการ)`, 'success')
   takeStockSnapshot()
