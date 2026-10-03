@@ -23,7 +23,11 @@
       <div class="p-7 space-y-5 overflow-y-auto flex-1 text-xs">
         <div>
           <label class="block text-xs font-medium text-stone-700 mb-1.5">เลือกวัตถุดิบ <span class="text-rose-500">*</span></label>
+          <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FAF9F6] rounded-xl border border-stone-100">
+            ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าคลังก่อน
+          </div>
           <select
+            v-else
             v-model="selectedMatId"
             class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900"
           >

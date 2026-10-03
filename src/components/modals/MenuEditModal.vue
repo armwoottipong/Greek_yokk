@@ -220,27 +220,15 @@
               <span>บรรจุภัณฑ์ & อุปกรณ์ที่ใช้</span>
             </span>
 
-            <div v-if="form.hasPackage" class="flex items-center gap-1.5">
+            <div v-if="form.hasPackage" class="flex items-center gap-1.5 flex-wrap">
               <button
+                v-for="pkg in packagingMaterials.slice(0, 3)"
+                :key="pkg.id"
                 type="button"
-                @click="quickAddPackage('MAT010')"
+                @click="quickAddPackage(pkg.id)"
                 class="px-2.5 py-1 bg-[#FAF9F6] hover:bg-[#EFECE6] text-stone-600 rounded-full text-[11px] font-medium transition-colors border border-stone-100"
               >
-                + ถ้วย A
-              </button>
-              <button
-                type="button"
-                @click="quickAddPackage('MAT012')"
-                class="px-2.5 py-1 bg-[#FAF9F6] hover:bg-[#EFECE6] text-stone-600 rounded-full text-[11px] font-medium transition-colors border border-stone-100"
-              >
-                + ช้อนไม้
-              </button>
-              <button
-                type="button"
-                @click="quickAddPackage('MAT013')"
-                class="px-2.5 py-1 bg-[#FAF9F6] hover:bg-[#EFECE6] text-stone-600 rounded-full text-[11px] font-medium transition-colors border border-stone-100"
-              >
-                + ถุงกระดาษ
+                + {{ pkg.name }}
               </button>
               <button
                 type="button"
@@ -422,19 +410,28 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
         }
       })
     } else {
-      // Default for new menu: Greek Yogurt 100g, Cup, Spoon, Bag
-      baseRecipeRows.value.push({ materialId: 'MAT001', qty: 100 })
-      packageRecipeRows.value.push({ materialId: 'MAT010', qty: 1 })
-      packageRecipeRows.value.push({ materialId: 'MAT012', qty: 1 })
-      packageRecipeRows.value.push({ materialId: 'MAT013', qty: 1 })
+      // For new menu: if materials exist, add defaults if available
+      const defaultBase = store.matMap['MAT001'] || store.activeMaterials.find(m => !isPackagingMaterial(m))
+      if (defaultBase) {
+        baseRecipeRows.value.push({ materialId: defaultBase.id, qty: 100 })
+      }
+      const defaultCup = store.matMap['MAT010'] || packagingMaterials.value[0]
+      if (defaultCup) {
+        packageRecipeRows.value.push({ materialId: defaultCup.id, qty: 1 })
+      }
     }
   }
 })
 
 function addBaseRecipeRow() {
-  const defaultMat = baseMaterials.value[0] || store.activeMaterials[0]
+  const nonPkgs = store.activeMaterials.filter(m => !isPackagingMaterial(m))
+  const defaultMat = nonPkgs[0] || store.activeMaterials[0]
+  if (!defaultMat) {
+    store.showToast('ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าสต็อกก่อน', 'error')
+    return
+  }
   baseRecipeRows.value.push({
-    materialId: defaultMat ? defaultMat.id : 'MAT001',
+    materialId: defaultMat.id,
     qty: 30
   })
 }
@@ -445,8 +442,12 @@ function removeBaseRecipeRow(idx) {
 
 function addPackageRecipeRow() {
   const defaultPkg = packagingMaterials.value[0] || store.activeMaterials[0]
+  if (!defaultPkg) {
+    store.showToast('ยังไม่มีรายการบรรจุภัณฑ์ในระบบ กรุณาเพิ่มบรรจุภัณฑ์ในหน้าสต็อกก่อน', 'error')
+    return
+  }
   packageRecipeRows.value.push({
-    materialId: defaultPkg ? defaultPkg.id : 'MAT010',
+    materialId: defaultPkg.id,
     qty: 1
   })
 }

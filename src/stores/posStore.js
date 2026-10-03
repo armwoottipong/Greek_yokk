@@ -12,13 +12,28 @@ import {
 
 export const usePosStore = defineStore('pos', {
   state: () => {
-    // Load from LocalStorage or defaults
-    const storedMaterials = JSON.parse(localStorage.getItem('GY_MATERIALS')) || DEFAULT_MATERIALS
-    const storedMenus = JSON.parse(localStorage.getItem('GY_MENUS')) || DEFAULT_MENUS
-    const storedAddons = JSON.parse(localStorage.getItem('GY_ADDONS')) || DEFAULT_ADDONS
-    const storedPlatforms = JSON.parse(localStorage.getItem('GY_PLATFORMS')) || DEFAULT_PLATFORMS
-    const storedOrders = JSON.parse(localStorage.getItem('GY_ORDERS')) || DEFAULT_ORDERS
+    // Wipe data clean on first load of this update for testing from scratch
+    const CLEARED_KEY = 'GY_CLEARED_ALL_V1'
+    if (!localStorage.getItem(CLEARED_KEY)) {
+      localStorage.setItem('GY_MATERIALS', JSON.stringify([]))
+      localStorage.setItem('GY_MENUS', JSON.stringify([]))
+      localStorage.setItem('GY_ADDONS', JSON.stringify([]))
+      localStorage.setItem('GY_ORDERS', JSON.stringify([]))
+      localStorage.setItem(CLEARED_KEY, 'true')
+    }
+
+    const rawMaterials = localStorage.getItem('GY_MATERIALS')
+    const rawMenus = localStorage.getItem('GY_MENUS')
+    const rawAddons = localStorage.getItem('GY_ADDONS')
+    const rawPlatforms = localStorage.getItem('GY_PLATFORMS')
+    const rawOrders = localStorage.getItem('GY_ORDERS')
     const storedGasUrl = localStorage.getItem('GY_GAS_API_URL') || ''
+
+    const storedMaterials = rawMaterials !== null ? (JSON.parse(rawMaterials) || []) : []
+    const storedMenus = rawMenus !== null ? (JSON.parse(rawMenus) || []) : []
+    const storedAddons = rawAddons !== null ? (JSON.parse(rawAddons) || []) : []
+    const storedPlatforms = rawPlatforms !== null ? (JSON.parse(rawPlatforms) || DEFAULT_PLATFORMS) : DEFAULT_PLATFORMS
+    const storedOrders = rawOrders !== null ? (JSON.parse(rawOrders) || []) : []
 
     let storedCategories = null
     try {
@@ -355,6 +370,17 @@ export const usePosStore = defineStore('pos', {
       localStorage.setItem('GY_GAS_API_URL', this.gasApiUrl)
     },
 
+    clearAllData() {
+      this.materials = []
+      this.menus = []
+      this.addons = []
+      this.orders = []
+      this.cart = []
+      this.orderNote = ''
+      this.persistLocal()
+      this.showToast('ล้างข้อมูลทั้งหมดออกเรียบร้อยแล้ว เริ่มต้นระบบใหม่แบบว่างเปล่า', 'info')
+    },
+
     resetDemoData() {
       this.materials = DEFAULT_MATERIALS.map(m => ({ ...m }))
       this.menus = DEFAULT_MENUS.map(m => ({ ...m }))
@@ -364,7 +390,7 @@ export const usePosStore = defineStore('pos', {
       this.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES))
       this.cart = []
       this.persistLocal()
-      this.showToast('รีเฟรชข้อมูลตัวอย่าง (Demo Data) สำเร็จแล้ว', 'info')
+      this.showToast('โหลดข้อมูลตัวอย่าง (Demo Data) สำเร็จแล้ว', 'info')
     },
 
     // ========================================================

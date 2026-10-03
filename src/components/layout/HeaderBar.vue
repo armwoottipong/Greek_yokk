@@ -22,14 +22,24 @@
         <span>วัตถุดิบใกล้หมด: {{ store.lowStockMaterials.length }} รายการ</span>
       </button>
 
+      <!-- Clear All Data Button -->
+      <button
+        @click="confirmClearAll"
+        class="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100 text-rose-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+        title="ล้างข้อมูลทั้งหมดออก (เริ่มร้านใหม่)"
+      >
+        <Trash2 class="w-3.5 h-3.5" />
+        <span class="hidden sm:inline">ล้างข้อมูลทั้งหมด</span>
+      </button>
+
       <!-- Refresh Demo Data Button -->
       <button
         @click="confirmResetDemo"
         class="px-3 py-1.5 rounded-xl border border-stone-200 text-stone-600 hover:text-stone-900 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-        title="รีเซ็ตและรีเฟรชข้อมูลตัวอย่าง"
+        title="โหลดข้อมูลตัวอย่าง (Demo Data)"
       >
         <RotateCcw class="w-3.5 h-3.5" />
-        <span class="hidden sm:inline">รีเฟรช Demo</span>
+        <span class="hidden sm:inline">โหลด Demo</span>
       </button>
 
       <!-- Sync Button -->
@@ -49,12 +59,18 @@
 <script setup>
 import { computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { RotateCcw, RefreshCw as CloudSync } from 'lucide-vue-next'
+import { RotateCcw, RefreshCw as CloudSync, Trash2 } from 'lucide-vue-next'
 
 const store = usePosStore()
 
+function confirmClearAll() {
+  if (confirm('⚠️ ต้องการล้างข้อมูลทั้งหมดออกหรือไม่?\n\n- ลบเมนูและสูตรทั้งหมด\n- ลบวัตถุดิบและสต็อกทั้งหมด\n- ลบ Add-on ทั้งหมด\n- ล้างประวัติคำสั่งซื้อทั้งหมด\n\n(คุณสามารถกด "โหลด Demo" เพื่อนำชุดข้อมูลตัวอย่างกลับมาได้ทุกเมื่อ)')) {
+    store.clearAllData()
+  }
+}
+
 function confirmResetDemo() {
-  if (confirm('คำเตือน: คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นชุดตัวอย่างตั้งต้น (Default Demo Data) หรือไม่?\n\n* ข้อมูลออเดอร์ ยอดสต็อก และการตั้งค่าล่าสุดจะถูกแทนที่ด้วยข้อมูลตั้งต้น *')) {
+  if (confirm('คุณต้องการโหลดชุดข้อมูลตัวอย่าง (Demo Data) หรือไม่?\n\n* ข้อมูลออเดอร์ ยอดสต็อก และเมนูจะถูกแทนที่ด้วยชุดข้อมูลตัวอย่างสำหรับร้านกรีกโยเกิร์ต *')) {
     store.resetDemoData()
   }
 }

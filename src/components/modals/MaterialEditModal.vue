@@ -518,10 +518,12 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         isSubIngredient: false,
         hasSubRecipe: false,
         yieldQty: 1000,
-        subRecipe: [
-          { materialId: store.subMaterials[0]?.id || 'MAT002', qty: 5000 },
-          { materialId: store.subMaterials[1]?.id || 'MAT003', qty: 300 }
-        ]
+        subRecipe: store.subMaterials.length > 0
+          ? [
+              { materialId: store.subMaterials[0].id, qty: 5000 },
+              ...(store.subMaterials[1] ? [{ materialId: store.subMaterials[1].id, qty: 300 }] : [])
+            ]
+          : []
       }
     }
   }
@@ -547,7 +549,11 @@ function applyCalculatedCost() {
 }
 
 function addSubRecipeRow() {
-  const defaultSubId = store.subMaterials[0]?.id || availableSubMaterials.value[0]?.id || 'MAT002'
+  const defaultSubId = store.subMaterials[0]?.id || availableSubMaterials.value[0]?.id
+  if (!defaultSubId) {
+    store.showToast('ยังไม่มีรายการวัตถุดิบรองในระบบ กรุณาสร้างวัตถุดิบรองก่อน (เช่น นมสด หรือหัวเชื้อ)', 'error')
+    return
+  }
   form.value.subRecipe.push({
     materialId: defaultSubId,
     qty: 1000

@@ -304,7 +304,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Export Backup -->
         <div class="p-4 rounded-xl border border-stone-100 bg-[#FAF9F6] flex flex-col justify-between space-y-3">
           <div>
@@ -318,7 +318,7 @@
           </div>
           <button
             @click="exportBackup"
-            class="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+            class="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
           >
             ดาวน์โหลด JSON Backup
           </button>
@@ -345,19 +345,38 @@
             />
             <button
               @click="$refs.fileInput.click()"
-              class="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+              class="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
             >
               เลือกไฟล์ JSON กู้คืน
             </button>
           </div>
         </div>
 
-        <!-- Reset Demo Data -->
-        <div class="p-4 rounded-xl border border-rose-100 bg-rose-50/30 flex flex-col justify-between space-y-3">
+        <!-- Clear All Data (Start Fresh) -->
+        <div class="p-4 rounded-xl border border-rose-200 bg-rose-50/40 flex flex-col justify-between space-y-3">
           <div>
             <div class="font-bold text-xs text-rose-900 flex items-center gap-1.5">
-              <RotateCcw class="w-4 h-4 text-rose-600" />
-              <span>คืนค่าตัวอย่าง (Reset Demo)</span>
+              <Trash2 class="w-4 h-4 text-rose-600" />
+              <span>ล้างข้อมูลทั้งหมด (เริ่มใหม่)</span>
+            </div>
+            <p class="text-[11px] text-stone-500 mt-1">
+              ลบเมนู วัตถุดิบ Add-on และออเดอร์ทั้งหมด เพื่อเริ่มร้านใหม่แบบว่างเปล่า 100%
+            </p>
+          </div>
+          <button
+            @click="confirmClearAll"
+            class="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+          >
+            ล้างข้อมูลทั้งหมดออก
+          </button>
+        </div>
+
+        <!-- Reset Demo Data -->
+        <div class="p-4 rounded-xl border border-stone-200 bg-stone-50/60 flex flex-col justify-between space-y-3">
+          <div>
+            <div class="font-bold text-xs text-stone-800 flex items-center gap-1.5">
+              <RotateCcw class="w-4 h-4 text-stone-600" />
+              <span>โหลดตัวอย่าง (Demo Data)</span>
             </div>
             <p class="text-[11px] text-stone-400 mt-1">
               คืนค่าเมนู วัตถุดิบ และออเดอร์ตัวอย่างของร้านกรีกโยเกิร์ต
@@ -365,9 +384,9 @@
           </div>
           <button
             @click="confirmResetDemo"
-            class="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors"
+            class="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
           >
-            รีเซ็ตข้อมูลตัวอย่าง
+            โหลดข้อมูลตัวอย่าง Demo
           </button>
         </div>
       </div>
@@ -603,8 +622,14 @@ function handleImportFile(event) {
   reader.readAsText(file)
 }
 
+function confirmClearAll() {
+  if (confirm('⚠️ ยืนยันการล้างข้อมูลออกทั้งหมด?\n\n- ลบเมนูและสูตรทั้งหมด\n- ลบวัตถุดิบและสต็อกทั้งหมด\n- ลบ Add-on ทั้งหมด\n- ล้างประวัติคำสั่งซื้อทั้งหมด\n\n(คุณสามารถกด "โหลด Demo" เพื่อนำชุดข้อมูลตัวอย่างกลับมาได้ทุกเมื่อ)')) {
+    store.clearAllData()
+  }
+}
+
 function confirmResetDemo() {
-  if (confirm('คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นชุดตัวอย่างตั้งต้น (Default Demo Data) หรือไม่?')) {
+  if (confirm('คุณต้องการโหลดชุดข้อมูลตัวอย่าง (Demo Data) หรือไม่?\n\n* ข้อมูลออเดอร์ ยอดสต็อก และเมนูจะถูกแทนที่ด้วยชุดข้อมูลตัวอย่างสำหรับร้านกรีกโยเกิร์ต *')) {
     store.resetDemoData()
   }
 }

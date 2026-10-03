@@ -26,16 +26,20 @@
         <!-- 1. Select Material -->
         <div>
           <label class="block text-[11px] font-medium text-stone-600 mb-1">เลือกวัตถุดิบ</label>
+          <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FAF9F6] rounded-xl border border-stone-100">
+            ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าคลังก่อน
+          </div>
           <select
+            v-else
             v-model="selectedMatId"
             class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
           >
-            <optgroup label="🥣 วัตถุดิบหลัก">
+            <optgroup label="🥣 วัตถุดิบหลัก" v-if="store.mainMaterials.length > 0">
               <option v-for="m in store.mainMaterials" :key="m.id" :value="m.id">
                 {{ m.emoji }} {{ m.name }} (คงเหลือ: {{ m.stock.toLocaleString() }} {{ m.unit }})
               </option>
             </optgroup>
-            <optgroup label="🥛 วัตถุดิบรอง">
+            <optgroup label="🥛 วัตถุดิบรอง" v-if="store.subMaterials.length > 0">
               <option v-for="m in store.subMaterials" :key="m.id" :value="m.id">
                 {{ m.emoji }} {{ m.name }} (คงเหลือ: {{ m.stock.toLocaleString() }} {{ m.unit }})
               </option>

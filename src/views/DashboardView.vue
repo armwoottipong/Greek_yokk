@@ -116,6 +116,9 @@
         <div class="p-4 rounded-xl bg-[#FAF9F6] border border-stone-100 space-y-3">
           <span class="text-xs font-bold text-stone-800 block">สัดส่วนมูลค่าตามหมวดหมู่</span>
           <div class="space-y-2 text-xs">
+            <div v-if="store.inventoryValuationByCategory.length === 0" class="text-stone-400 py-3 text-center italic">
+              ยังไม่มีข้อมูลวัตถุดิบในคลัง
+            </div>
             <div
               v-for="cat in store.inventoryValuationByCategory"
               :key="cat.category"
