@@ -170,7 +170,6 @@
               <th class="py-3 px-4">ประเภท</th>
               <th class="py-3 px-4">หมวดหมู่</th>
               <th class="py-3 px-4">คงเหลือในคลัง</th>
-              <th class="py-3 px-4">จุดเตือนขั้นต่ำ</th>
               <th class="py-3 px-4">ต้นทุน/หน่วย</th>
               <th class="py-3 px-4">มูลค่าสต็อกคงเหลือ</th>
               <th class="py-3 px-4">สถานะ</th>
@@ -256,11 +255,6 @@
                 </div>
               </td>
 
-              <!-- Min Alert -->
-              <td class="py-3 px-4 font-number text-stone-600">
-                <span>{{ mat.minAlert.toLocaleString() }}</span>
-                <span class="text-[10px] text-stone-400 ml-0.5">{{ mat.unit }}</span>
-              </td>
 
               <!-- Unit Cost (Primary: Pack purchase cost e.g. ฿105/ขวด, Secondary: base unit cost) -->
               <td class="py-3 px-4 font-number text-stone-700">
@@ -363,7 +357,7 @@
 
             <!-- Empty Row -->
             <tr v-if="filteredMaterials.length === 0">
-              <td colspan="9" class="py-12 text-center text-stone-400">
+              <td colspan="8" class="py-12 text-center text-stone-400">
                 <div class="text-3xl mb-2">🔍</div>
                 <p class="text-xs font-medium">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก</p>
               </td>
