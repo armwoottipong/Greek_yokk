@@ -649,24 +649,31 @@ export const usePosStore = defineStore('pos', {
     // ========================================================
     addActivityLog(logData) {
       if (!this.activityLogs) this.activityLogs = []
+      const targetId = logData.targetId || logData.materialId || null
+      const targetName = logData.targetName || logData.materialName || ''
+      const targetEmoji = logData.targetEmoji || (targetId && this.matMap[targetId]?.emoji) || ''
+      const unit = logData.unit || logData.materialUnit || ''
+      const title = logData.title || logData.actionLabel || 'บันทึกกิจกรรม'
+      const user = logData.user || logData.operator || 'ผู้ดูแลระบบ / แคชเชียร์'
+
       const newLog = {
         id: 'LOG-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
         timestamp: new Date().toISOString(),
         module: logData.module || 'stock', // 'stock' | 'pos' | 'menu' | 'addon' | 'system'
-        action: logData.action || 'info', // 'adjust' | 'stock_in' | 'produce' | 'sale_deduct' | 'quick_adjust' | 'create' | 'edit' | 'delete' | 'order_complete'
-        title: logData.title || 'บันทึกกิจกรรม',
-        description: logData.description || '',
-        targetId: logData.targetId || null,
-        targetName: logData.targetName || '',
-        targetEmoji: logData.targetEmoji || '',
+        action: logData.action || 'info', // 'adjust' | 'stock_in' | 'produce' | 'produce_deduct' | 'sale_deduct' | 'quick_adjust' | 'create' | 'edit' | 'delete' | 'order_complete'
+        title,
+        description: logData.description || (logData.note ? `${title}: ${logData.note}` : `${title} ${targetName}`),
+        targetId,
+        targetName,
+        targetEmoji,
         delta: logData.delta !== undefined ? logData.delta : null,
-        unit: logData.unit || '',
+        unit,
         beforeStock: logData.beforeStock !== undefined ? logData.beforeStock : null,
         afterStock: logData.afterStock !== undefined ? logData.afterStock : null,
         reason: logData.reason || '',
         note: logData.note || '',
         cost: logData.cost || null,
-        user: logData.user || 'ผู้ดูแลระบบ / แคชเชียร์'
+        user
       }
       this.activityLogs.unshift(newLog)
       if (this.activityLogs.length > 500) {
@@ -1122,6 +1129,30 @@ export const usePosStore = defineStore('pos', {
         note: note ? `${note} [หัก: ${summaryText}]` : `หักสต็อก: ${summaryText}`,
         user: 'ผู้ผลิต'
       })
+
+      // Log deduction for each sub-ingredient so inspecting their history reflects batch usage
+      for (const item of subIngredients) {
+        const subMat = this.materials.find(m => m.id === item.materialId)
+        if (subMat) {
+          const neededQty = Number(item.qty) || 0
+          this.addActivityLog({
+            module: 'stock',
+            action: 'produce_deduct',
+            title: 'เบิกใช้ผลิตตามสูตร',
+            description: `เบิกใช้ ${subMat.name} -${neededQty.toLocaleString()} ${subMat.unit} (ใช้ผลิต ${target.name})`,
+            targetId: subMat.id,
+            targetName: subMat.name,
+            targetEmoji: subMat.emoji,
+            delta: -neededQty,
+            unit: subMat.unit,
+            beforeStock: (Number(subMat.stock) || 0) + neededQty,
+            afterStock: Number(subMat.stock) || 0,
+            note: `หักสต็อกเพื่อผลิต ${target.name} +${addedQty} ${target.unit}`,
+            user: 'ครัว/ผู้ผลิต'
+          })
+        }
+      }
+
       this.showToast(`เพิ่มสต็อก ${target.name} +${addedQty} ${target.unit} สำเร็จ! [หักสต็อก: ${summaryText}]`, 'success')
       return true
     },
