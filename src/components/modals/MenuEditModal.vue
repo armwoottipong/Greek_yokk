@@ -48,21 +48,28 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-medium text-stone-700 mb-1.5">หมวดหมู่</label>
-            <input
-              v-model="form.category"
-              type="text"
-              placeholder="Classic Bowls"
-              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-            />
+            <div class="relative">
+              <input
+                v-model="form.category"
+                type="text"
+                list="menu-categories-list"
+                placeholder="Classic Bowls"
+                class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
+              />
+              <datalist id="menu-categories-list">
+                <option v-for="cat in store.menuCategories" :key="cat.id" :value="cat.name" />
+              </datalist>
+            </div>
             <div class="flex items-center gap-1.5 mt-1.5 overflow-x-auto no-scrollbar">
               <button
-                v-for="cat in presetCategories"
-                :key="cat"
+                v-for="cat in store.menuCategories"
+                :key="cat.id"
                 type="button"
-                @click="form.category = cat"
-                class="px-2 py-0.5 rounded-md bg-[#FAF9F6] hover:bg-[#ECEAE4] text-[10px] text-stone-500 hover:text-stone-900 transition-colors"
+                @click="form.category = cat.name"
+                class="px-2 py-0.5 rounded-md bg-[#FAF9F6] hover:bg-[#ECEAE4] text-[10px] text-stone-500 hover:text-stone-900 transition-colors flex items-center gap-1 shrink-0"
               >
-                {{ cat }}
+                <span>{{ cat.icon }}</span>
+                <span>{{ cat.name }}</span>
               </button>
             </div>
           </div>
@@ -337,8 +344,6 @@ import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 import { X, Plus, Trash2, Check } from 'lucide-vue-next'
 
 const store = usePosStore()
-
-const presetCategories = ['Classic Bowls', 'Fruit Bowls', 'Signatures', 'Set & Drinks']
 
 const form = ref({
   id: '',

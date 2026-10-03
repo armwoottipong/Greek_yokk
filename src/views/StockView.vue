@@ -395,15 +395,24 @@ const selectedRole = ref('all') // 'all' | 'main' | 'sub'
 const selectedCategory = ref('all')
 const showDeleted = ref(false)
 
-const categories = [
-  { id: 'all', label: 'ทุกหมวดหมู่' },
-  { id: 'Base Yogurt', label: '🥣 เบสโยเกิร์ต' },
-  { id: 'วัตถุดิบรอง', label: '🥛 วัตถุดิบรอง' },
-  { id: 'Fresh Fruits', label: '🍓 ผลไม้สด' },
-  { id: 'Sauces', label: '🍯 ซอส & น้ำเชื่อม' },
-  { id: 'Toppings', label: '🥜 ท็อปปิ้ง' },
-  { id: 'Packaging', label: '📦 บรรจุภัณฑ์' }
-]
+const categories = computed(() => {
+  const list = [{ id: 'all', label: 'ทุกหมวดหมู่' }]
+  store.materialCategories.forEach(c => {
+    list.push({
+      id: c.name,
+      label: `${c.icon || '📦'} ${c.label || c.name}`
+    })
+  })
+  store.materials.forEach(m => {
+    if (m.category && !list.some(item => item.id === m.category)) {
+      list.push({
+        id: m.category,
+        label: `📦 ${m.category}`
+      })
+    }
+  })
+  return list
+})
 
 const deletedCount = computed(() => {
   return store.materials.filter(m => m.isDeleted).length

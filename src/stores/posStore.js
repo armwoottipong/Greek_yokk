@@ -6,6 +6,7 @@ import {
   DEFAULT_PLATFORMS,
   DEFAULT_ORDERS,
   DEFAULT_PRESET_EMOJIS,
+  DEFAULT_CATEGORIES,
   EMOJI_CATALOG
 } from '@/data/initialData'
 
@@ -18,6 +19,35 @@ export const usePosStore = defineStore('pos', {
     const storedPlatforms = JSON.parse(localStorage.getItem('GY_PLATFORMS')) || DEFAULT_PLATFORMS
     const storedOrders = JSON.parse(localStorage.getItem('GY_ORDERS')) || DEFAULT_ORDERS
     const storedGasUrl = localStorage.getItem('GY_GAS_API_URL') || ''
+
+    let storedCategories = null
+    try {
+      storedCategories = JSON.parse(localStorage.getItem('GY_CATEGORIES'))
+    } catch (e) {
+      storedCategories = null
+    }
+
+    const initialCategories = storedCategories || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES))
+    if (!initialCategories.menu) initialCategories.menu = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.menu))
+    if (!initialCategories.material) initialCategories.material = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.material))
+    if (!initialCategories.addon) initialCategories.addon = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.addon))
+
+    // Ensure any categories in stored menus, materials, addons are recognized
+    storedMenus.forEach(m => {
+      if (m.category && !initialCategories.menu.some(c => c.name === m.category)) {
+        initialCategories.menu.push({ id: `cat-menu-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, name: m.category, icon: '🥣' })
+      }
+    })
+    storedMaterials.forEach(m => {
+      if (m.category && !initialCategories.material.some(c => c.name === m.category)) {
+        initialCategories.material.push({ id: `cat-mat-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, name: m.category, label: m.category, icon: '📦' })
+      }
+    })
+    storedAddons.forEach(a => {
+      if (a.category && !initialCategories.addon.some(c => c.name === a.category)) {
+        initialCategories.addon.push({ id: `cat-addon-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, name: a.category, icon: '✨' })
+      }
+    })
 
     return {
       currentTab: 'dashboard', // 'dashboard' | 'pos' | 'menu' | 'addon' | 'stock' | 'settings'
@@ -84,6 +114,9 @@ export const usePosStore = defineStore('pos', {
       // Toast notifications
       toasts: [],
 
+      // Categories Management
+      categories: initialCategories,
+
       // Emoji Catalog
       presetEmojis: DEFAULT_PRESET_EMOJIS,
       emojiCatalog: EMOJI_CATALOG
@@ -91,6 +124,25 @@ export const usePosStore = defineStore('pos', {
   },
 
   getters: {
+    // Category getters
+    menuCategories: (state) => state.categories?.menu || [],
+    materialCategories: (state) => state.categories?.material || [],
+    addonCategories: (state) => state.categories?.addon || [],
+
+    categoryUsageCounts: (state) => {
+      const counts = { menu: {}, material: {}, addon: {} }
+      state.menus.forEach(m => {
+        if (m.category) counts.menu[m.category] = (counts.menu[m.category] || 0) + 1
+      })
+      state.materials.filter(m => !m.isDeleted).forEach(m => {
+        if (m.category) counts.material[m.category] = (counts.material[m.category] || 0) + 1
+      })
+      state.addons.forEach(a => {
+        if (a.category) counts.addon[a.category] = (counts.addon[a.category] || 0) + 1
+      })
+      return counts
+    },
+
     // Current selected platform object
     currentPlatform: (state) => {
       return state.platforms.find(p => p.id === state.currentPlatformId) || state.platforms[0]
@@ -299,6 +351,7 @@ export const usePosStore = defineStore('pos', {
       localStorage.setItem('GY_ADDONS', JSON.stringify(this.addons))
       localStorage.setItem('GY_PLATFORMS', JSON.stringify(this.platforms))
       localStorage.setItem('GY_ORDERS', JSON.stringify(this.orders))
+      localStorage.setItem('GY_CATEGORIES', JSON.stringify(this.categories))
       localStorage.setItem('GY_GAS_API_URL', this.gasApiUrl)
     },
 
@@ -308,9 +361,124 @@ export const usePosStore = defineStore('pos', {
       this.addons = DEFAULT_ADDONS.map(a => ({ ...a }))
       this.platforms = DEFAULT_PLATFORMS.map(p => ({ ...p }))
       this.orders = DEFAULT_ORDERS.map(o => ({ ...o }))
+      this.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES))
       this.cart = []
       this.persistLocal()
       this.showToast('รีเฟรชข้อมูลตัวอย่าง (Demo Data) สำเร็จแล้ว', 'info')
+    },
+
+    // ========================================================
+    // CATEGORY MANAGEMENT
+    // ========================================================
+    openEmojiPicker(callback) {
+      this.modals.emojiPicker = {
+        isOpen: true,
+        targetCallback: callback
+      }
+    },
+
+    saveCategory(type, categoryData) {
+      if (!this.categories || !this.categories[type]) {
+        return { success: false, error: 'Invalid category type' }
+      }
+      const name = (categoryData.name || '').trim()
+      if (!name) {
+        this.showToast('กรุณากรอกชื่อหมวดหมู่', 'error')
+        return { success: false, error: 'Empty name' }
+      }
+
+      const existingIndex = this.categories[type].findIndex(c => c.id === categoryData.id)
+      if (existingIndex >= 0) {
+        const oldCat = this.categories[type][existingIndex]
+        const oldName = oldCat.name
+
+        // Check duplicate name
+        const duplicate = this.categories[type].some(
+          (c, idx) => idx !== existingIndex && c.name.toLowerCase() === name.toLowerCase()
+        )
+        if (duplicate) {
+          this.showToast(`มีหมวดหมู่ชื่อ "${name}" อยู่แล้ว`, 'error')
+          return { success: false, error: 'Duplicate name' }
+        }
+
+        this.categories[type][existingIndex] = {
+          ...oldCat,
+          ...categoryData,
+          name,
+          label: categoryData.label !== undefined ? categoryData.label : oldCat.label
+        }
+
+        // Cascade rename to existing items
+        if (oldName !== name) {
+          if (type === 'menu') {
+            this.menus.forEach(m => {
+              if (m.category === oldName) m.category = name
+            })
+          } else if (type === 'material') {
+            this.materials.forEach(m => {
+              if (m.category === oldName) m.category = name
+            })
+          } else if (type === 'addon') {
+            this.addons.forEach(a => {
+              if (a.category === oldName) a.category = name
+            })
+          }
+        }
+
+        this.persistLocal()
+        this.showToast(`บันทึกการแก้ไขหมวดหมู่ "${name}" สำเร็จ`, 'success')
+        return { success: true }
+      } else {
+        // Add new category
+        const duplicate = this.categories[type].some(
+          c => c.name.toLowerCase() === name.toLowerCase()
+        )
+        if (duplicate) {
+          this.showToast(`มีหมวดหมู่ชื่อ "${name}" อยู่แล้ว`, 'error')
+          return { success: false, error: 'Duplicate name' }
+        }
+
+        const newId = `cat-${type}-${Date.now()}`
+        this.categories[type].push({
+          id: newId,
+          name,
+          label: categoryData.label || name,
+          icon: categoryData.icon || (type === 'menu' ? '🥣' : type === 'material' ? '📦' : '✨')
+        })
+
+        this.persistLocal()
+        this.showToast(`เพิ่มหมวดหมู่ "${name}" สำเร็จ`, 'success')
+        return { success: true }
+      }
+    },
+
+    deleteCategory(type, categoryId) {
+      if (!this.categories || !this.categories[type]) {
+        return { success: false, error: 'Invalid category type' }
+      }
+      const cat = this.categories[type].find(c => c.id === categoryId)
+      if (!cat) return { success: false, error: 'Category not found' }
+
+      // Check if any items use this category
+      let inUseCount = 0
+      if (type === 'menu') {
+        inUseCount = this.menus.filter(m => m.category === cat.name).length
+      } else if (type === 'material') {
+        inUseCount = this.materials.filter(m => !m.isDeleted && m.category === cat.name).length
+      } else if (type === 'addon') {
+        inUseCount = this.addons.filter(a => a.category === cat.name).length
+      }
+
+      if (inUseCount > 0) {
+        const itemTypeLabel = type === 'menu' ? 'เมนู' : type === 'material' ? 'วัตถุดิบ' : 'Add-on'
+        this.showToast(`ไม่สามารถลบหมวดหมู่ "${cat.name}" ได้ เนื่องจากมี ${inUseCount} ${itemTypeLabel} ใช้งานอยู่`, 'error')
+        return { success: false, inUseCount }
+      }
+
+      this.categories[type] = this.categories[type].filter(c => c.id !== categoryId)
+      this.persistLocal()
+      this.showToast(`ลบหมวดหมู่ "${cat.name}" เรียบร้อยแล้ว`, 'info')
+      return { success: true }
     },
 
     saveGasUrl(url) {

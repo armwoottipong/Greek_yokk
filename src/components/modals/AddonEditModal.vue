@@ -50,10 +50,19 @@
             v-model="form.category"
             class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
           >
-            <option value="ผลไม้สด">🍓 ผลไม้สด</option>
-            <option value="ซอส & น้ำผึ้ง">🍯 ซอส & น้ำผึ้ง</option>
-            <option value="ธัญพืช & กรอบ">🥜 ธัญพืช & กรอบ</option>
-            <option value="ท็อปปิ้งพิเศษ">✨ ท็อปปิ้งพิเศษ</option>
+            <option
+              v-for="cat in store.addonCategories"
+              :key="cat.id"
+              :value="cat.name"
+            >
+              {{ cat.icon || '✨' }} {{ cat.name }}
+            </option>
+            <option
+              v-if="form.category && !store.addonCategories.some(c => c.name === form.category)"
+              :value="form.category"
+            >
+              ✨ {{ form.category }}
+            </option>
           </select>
         </div>
 

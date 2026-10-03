@@ -82,6 +82,29 @@ export const EMOJI_CATALOG = [
   { emoji: "🥢", category: "บรรจุภัณฑ์", keywords: "ตะเกียบ chopsticks" }
 ];
 
+export const DEFAULT_CATEGORIES = {
+  menu: [
+    { id: "cat-menu-1", name: "Classic Bowls", icon: "🥣" },
+    { id: "cat-menu-2", name: "Signatures", icon: "🍓" },
+    { id: "cat-menu-3", name: "Fruit Bowls", icon: "🥭" },
+    { id: "cat-menu-4", name: "Set & Drinks", icon: "🥤" }
+  ],
+  material: [
+    { id: "cat-mat-1", name: "Base Yogurt", label: "เบสกรีกโยเกิร์ต", icon: "🥣" },
+    { id: "cat-mat-2", name: "วัตถุดิบรอง", label: "วัตถุดิบรอง", icon: "🥛" },
+    { id: "cat-mat-3", name: "Fresh Fruits", label: "ผลไม้สด", icon: "🍓" },
+    { id: "cat-mat-4", name: "Sauces", label: "ซอส & น้ำผึ้ง", icon: "🍯" },
+    { id: "cat-mat-5", name: "Toppings", label: "ท็อปปิ้ง", icon: "🥜" },
+    { id: "cat-mat-6", name: "Packaging", label: "บรรจุภัณฑ์", icon: "📦" }
+  ],
+  addon: [
+    { id: "cat-addon-1", name: "ผลไม้สด", icon: "🍓" },
+    { id: "cat-addon-2", name: "ซอส & น้ำผึ้ง", icon: "🍯" },
+    { id: "cat-addon-3", name: "ธัญพืช & กรอบ", icon: "🥜" },
+    { id: "cat-addon-4", name: "ท็อปปิ้งพิเศษ", icon: "✨" }
+  ]
+};
+
 export const DEFAULT_PLATFORMS = [
   { id: "PLAT01", name: "หน้าร้าน (Storefront)", gpPercent: 0, badgeColor: "#48BB78", isActive: true },
   { id: "PLAT02", name: "GrabFood", gpPercent: 30, badgeColor: "#38A169", isActive: true },

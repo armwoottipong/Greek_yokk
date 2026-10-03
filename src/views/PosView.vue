@@ -249,6 +249,7 @@ const paymentMethods = ['QR PromptPay', 'เงินสด', 'Platform Delivery
 
 const categories = computed(() => {
   const set = new Set(['ทั้งหมด'])
+  store.menuCategories.forEach(c => set.add(c.name))
   store.menus.forEach(m => { if (m.category) set.add(m.category) })
   return Array.from(set)
 })

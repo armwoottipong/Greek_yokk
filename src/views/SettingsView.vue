@@ -104,7 +104,195 @@
       </div>
     </div>
 
-    <!-- Section 3: Data Management & Backup -->
+    <!-- Section 3: Category Management (จัดการหมวดหมู่ระบบ) -->
+    <div class="editorial-card p-6 bg-white space-y-5">
+      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-xl bg-indigo-50 text-indigo-700">
+            <Tags class="w-5 h-5" />
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-stone-900">จัดการหมวดหมู่ระบบ (Category Management)</h3>
+            <p class="text-xs text-stone-400">เพิ่ม ลบ หรือแก้ไขชื่อหมวดหมู่สำหรับเมนู วัตถุดิบ และ Add-on ให้เป็นระเบียบ</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Type Switcher (Tabs) -->
+      <div class="flex items-center gap-1.5 p-1 bg-stone-100/80 rounded-xl w-fit">
+        <button
+          @click="activeCategoryTab = 'menu'"
+          :class="activeCategoryTab === 'menu' ? 'bg-white text-stone-900 shadow-xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
+          class="px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <span>🥣 เมนู / สินค้า</span>
+          <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-stone-100 text-stone-600 font-number">
+            {{ store.menuCategories.length }}
+          </span>
+        </button>
+        <button
+          @click="activeCategoryTab = 'material'"
+          :class="activeCategoryTab === 'material' ? 'bg-white text-stone-900 shadow-xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
+          class="px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <span>📦 วัตถุดิบ & บรรจุภัณฑ์</span>
+          <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-stone-100 text-stone-600 font-number">
+            {{ store.materialCategories.length }}
+          </span>
+        </button>
+        <button
+          @click="activeCategoryTab = 'addon'"
+          :class="activeCategoryTab === 'addon' ? 'bg-white text-stone-900 shadow-xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
+          class="px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <span>✨ ท็อปปิ้งเสริม (Add-on)</span>
+          <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-stone-100 text-stone-600 font-number">
+            {{ store.addonCategories.length }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Add New Category Inline Input -->
+      <div class="p-3.5 rounded-2xl bg-[#FAF9F6] border border-stone-200/60 flex flex-wrap items-center gap-2.5">
+        <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+          <!-- Emoji button -->
+          <button
+            type="button"
+            @click="openEmojiForNewCategory"
+            class="w-9 h-9 rounded-xl bg-white border border-stone-200 hover:border-stone-400 flex items-center justify-center text-lg hover:bg-stone-50 transition-colors shrink-0 shadow-2xs cursor-pointer"
+            title="คลิกเพื่อเลือกไอคอน"
+          >
+            {{ newCatForm.icon }}
+          </button>
+          <input
+            v-model="newCatForm.name"
+            type="text"
+            :placeholder="getPlaceholder(activeCategoryTab)"
+            @keyup.enter="addNewCategory"
+            class="soft-input flex-1 px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
+          />
+          <input
+            v-if="activeCategoryTab === 'material'"
+            v-model="newCatForm.label"
+            type="text"
+            placeholder="ชื่อภาษาไทย (ถ้ามี)"
+            @keyup.enter="addNewCategory"
+            class="soft-input w-36 px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
+          />
+        </div>
+        <button
+          @click="addNewCategory"
+          class="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+        >
+          <Plus class="w-3.5 h-3.5" />
+          <span>เพิ่มหมวดหมู่</span>
+        </button>
+      </div>
+
+      <!-- Category List Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div
+          v-for="cat in currentCategoryList"
+          :key="cat.id"
+          class="p-3 rounded-xl border border-stone-200/70 bg-white hover:border-stone-300 transition-all flex items-center justify-between gap-2 shadow-2xs"
+        >
+          <!-- Edit mode -->
+          <div v-if="editingCatId === cat.id" class="flex items-center gap-2 flex-1 min-w-0">
+            <button
+              type="button"
+              @click="openEmojiForEditingCategory"
+              class="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-base shrink-0 transition-colors cursor-pointer"
+              title="เปลี่ยนไอคอน"
+            >
+              {{ editCatForm.icon }}
+            </button>
+            <div class="flex-1 min-w-0 space-y-1">
+              <input
+                v-model="editCatForm.name"
+                type="text"
+                placeholder="ชื่อหมวดหมู่"
+                class="soft-input w-full px-2.5 py-1 text-xs font-medium text-stone-900"
+                @keyup.enter="saveEditingCategory"
+                @keyup.esc="cancelEditingCategory"
+                autofocus
+              />
+              <input
+                v-if="activeCategoryTab === 'material'"
+                v-model="editCatForm.label"
+                type="text"
+                placeholder="ชื่อภาษาไทย"
+                class="soft-input w-full px-2.5 py-1 text-[11px] font-medium text-stone-600"
+                @keyup.enter="saveEditingCategory"
+                @keyup.esc="cancelEditingCategory"
+              />
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button
+                @click="saveEditingCategory"
+                class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                title="บันทึก"
+              >
+                <Check class="w-4 h-4" />
+              </button>
+              <button
+                @click="cancelEditingCategory"
+                class="p-1.5 text-stone-400 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                title="ยกเลิก"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Normal display mode -->
+          <template v-else>
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <span class="w-8 h-8 rounded-lg bg-[#F5F4F0] flex items-center justify-center text-base shrink-0 select-none">
+                {{ cat.icon || '🏷️' }}
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="font-bold text-xs text-stone-800 truncate">
+                  {{ cat.name }}
+                </div>
+                <div v-if="cat.label && cat.label !== cat.name" class="text-[10px] text-stone-400 truncate">
+                  {{ cat.label }}
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <!-- Item count badge -->
+              <span
+                class="text-[11px] px-2 py-0.5 rounded-full font-number font-medium"
+                :class="getItemCount(activeCategoryTab, cat.name) > 0 ? 'bg-amber-50 text-amber-900 border border-amber-200/50' : 'bg-stone-100 text-stone-400'"
+              >
+                {{ getItemCount(activeCategoryTab, cat.name) }} {{ getItemUnitLabel(activeCategoryTab) }}
+              </span>
+
+              <!-- Edit button -->
+              <button
+                @click="startEditingCategory(cat)"
+                class="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                title="แก้ไขหมวดหมู่"
+              >
+                <Edit3 class="w-3.5 h-3.5" />
+              </button>
+
+              <!-- Delete button -->
+              <button
+                @click="handleDeleteCategory(activeCategoryTab, cat)"
+                class="p-1.5 text-stone-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                title="ลบหมวดหมู่"
+              >
+                <Trash2 class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Data Management & Backup -->
     <div class="editorial-card p-6 bg-white space-y-4">
       <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
         <div class="p-2 rounded-xl bg-rose-50 text-rose-800">
@@ -199,7 +387,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import {
   Cloud,
@@ -208,13 +396,146 @@ import {
   RefreshCw,
   Download,
   Upload,
-  RotateCcw
+  RotateCcw,
+  Tags,
+  Plus,
+  Edit3,
+  Trash2,
+  Check,
+  X
 } from 'lucide-vue-next'
 
 const store = usePosStore()
 const gasUrlInput = ref(store.gasApiUrl)
 const fileInput = ref(null)
 
+// ==========================================
+// CATEGORY MANAGEMENT LOGIC
+// ==========================================
+const activeCategoryTab = ref('menu') // 'menu' | 'material' | 'addon'
+
+const currentCategoryList = computed(() => {
+  if (activeCategoryTab.value === 'menu') return store.menuCategories
+  if (activeCategoryTab.value === 'material') return store.materialCategories
+  if (activeCategoryTab.value === 'addon') return store.addonCategories
+  return []
+})
+
+const newCatForm = ref({
+  name: '',
+  label: '',
+  icon: '🥣'
+})
+
+watch(activeCategoryTab, (tab) => {
+  newCatForm.value.name = ''
+  newCatForm.value.label = ''
+  newCatForm.value.icon = tab === 'menu' ? '🥣' : tab === 'material' ? '📦' : '✨'
+  cancelEditingCategory()
+})
+
+const editingCatId = ref(null)
+const editCatForm = ref({
+  id: '',
+  name: '',
+  label: '',
+  icon: ''
+})
+
+function startEditingCategory(cat) {
+  editingCatId.value = cat.id
+  editCatForm.value = {
+    id: cat.id,
+    name: cat.name,
+    label: cat.label || '',
+    icon: cat.icon || '🏷️'
+  }
+}
+
+function cancelEditingCategory() {
+  editingCatId.value = null
+  editCatForm.value = { id: '', name: '', label: '', icon: '' }
+}
+
+function saveEditingCategory() {
+  if (!editCatForm.value.name.trim()) {
+    store.showToast('กรุณากรอกชื่อหมวดหมู่', 'error')
+    return
+  }
+  const res = store.saveCategory(activeCategoryTab.value, {
+    id: editCatForm.value.id,
+    name: editCatForm.value.name.trim(),
+    label: editCatForm.value.label.trim() || undefined,
+    icon: editCatForm.value.icon
+  })
+  if (res.success) {
+    cancelEditingCategory()
+  }
+}
+
+function openEmojiForNewCategory() {
+  store.openEmojiPicker((emoji) => {
+    newCatForm.value.icon = emoji
+  })
+}
+
+function openEmojiForEditingCategory() {
+  store.openEmojiPicker((emoji) => {
+    editCatForm.value.icon = emoji
+  })
+}
+
+function addNewCategory() {
+  if (!newCatForm.value.name.trim()) {
+    store.showToast('กรุณากรอกชื่อหมวดหมู่', 'error')
+    return
+  }
+  const res = store.saveCategory(activeCategoryTab.value, {
+    name: newCatForm.value.name.trim(),
+    label: newCatForm.value.label.trim() || undefined,
+    icon: newCatForm.value.icon
+  })
+  if (res.success) {
+    newCatForm.value.name = ''
+    newCatForm.value.label = ''
+  }
+}
+
+function handleDeleteCategory(tab, cat) {
+  const count = getItemCount(tab, cat.name)
+  if (count > 0) {
+    const itemLabel = tab === 'menu' ? 'เมนู' : tab === 'material' ? 'วัตถุดิบ' : 'Add-on'
+    alert(`ไม่สามารถลบหมวดหมู่ "${cat.name}" ได้เนื่องจากมี ${count} ${itemLabel} ใช้งานอยู่\nกรุณาเปลี่ยนหมวดหมู่ของรายการเหล่านั้นก่อนทำการลบ`)
+    return
+  }
+
+  if (confirm(`คุณต้องการลบหมวดหมู่ "${cat.name}" หรือไม่?`)) {
+    store.deleteCategory(tab, cat.id)
+  }
+}
+
+function getItemCount(tab, catName) {
+  const counts = store.categoryUsageCounts[tab] || {}
+  return counts[catName] || 0
+}
+
+function getItemUnitLabel(tab) {
+  if (tab === 'menu') return 'เมนู'
+  if (tab === 'material') return 'รายการ'
+  if (tab === 'addon') return 'Add-on'
+  return 'รายการ'
+}
+
+function getPlaceholder(tab) {
+  if (tab === 'menu') return 'เช่น สมูทตี้โบวล์, Parfait, เครื่องดื่ม...'
+  if (tab === 'material') return 'เช่น ผลไม้แช่แข็ง, ไซรัป, กล่องเทคอะเวย์...'
+  if (tab === 'addon') return 'เช่น ซุปเปอร์ฟู้ด, เจลลี่, ซอสพิเศษ...'
+  return 'ชื่อหมวดหมู่ใหม่'
+}
+
+// ==========================================
+// SYSTEM SETTINGS & BACKUP
+// ==========================================
 function saveGasUrl() {
   store.saveGasUrl(gasUrlInput.value)
 }
@@ -232,6 +553,7 @@ function exportBackup() {
     addons: store.addons,
     platforms: store.platforms,
     orders: store.orders,
+    categories: store.categories,
     gasApiUrl: store.gasApiUrl
   }
 
@@ -260,6 +582,7 @@ function handleImportFile(event) {
           store.materials = data.materials
           store.menus = data.menus
           store.addons = data.addons
+          if (data.categories) store.categories = data.categories
           if (data.platforms) store.platforms = data.platforms
           if (data.orders) store.orders = data.orders
           if (data.gasApiUrl) {

@@ -41,18 +41,25 @@
               class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
             />
           </div>
-          <div class="w-36 shrink-0">
+          <div class="w-44 shrink-0">
             <label class="block text-[11px] font-medium text-stone-600 mb-1">หมวดหมู่</label>
             <select
               v-model="form.category"
               class="soft-input w-full px-2.5 py-2 rounded-xl text-xs font-medium text-stone-900"
             >
-              <option value="Base Yogurt">🥣 เบสกรีกโยเกิร์ต</option>
-              <option value="วัตถุดิบรอง">🥛 วัตถุดิบรอง</option>
-              <option value="Fresh Fruits">🍓 ผลไม้สด</option>
-              <option value="Sauces">🍯 ซอส & น้ำผึ้ง</option>
-              <option value="Toppings">🥜 ท็อปปิ้ง</option>
-              <option value="Packaging">📦 บรรจุภัณฑ์</option>
+              <option
+                v-for="cat in store.materialCategories"
+                :key="cat.id"
+                :value="cat.name"
+              >
+                {{ cat.icon }} {{ cat.label || cat.name }}
+              </option>
+              <option
+                v-if="form.category && !store.materialCategories.some(c => c.name === form.category)"
+                :value="form.category"
+              >
+                📦 {{ form.category }}
+              </option>
             </select>
           </div>
         </div>

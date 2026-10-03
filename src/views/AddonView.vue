@@ -18,10 +18,20 @@
           class="soft-input px-3 py-2 rounded-xl text-xs text-stone-700 font-medium"
         >
           <option value="ทั้งหมด">ทุกหมวดหมู่ ({{ store.addons.length }})</option>
-          <option value="ผลไม้สด">ผลไม้สด</option>
-          <option value="ซอส & น้ำผึ้ง">ซอส & น้ำผึ้ง</option>
-          <option value="ธัญพืช & กรอบ">ธัญพืช & กรอบ</option>
-          <option value="ท็อปปิ้งพิเศษ">ท็อปปิ้งพิเศษ</option>
+          <option
+            v-for="cat in store.addonCategories"
+            :key="cat.id"
+            :value="cat.name"
+          >
+            {{ cat.icon || '✨' }} {{ cat.name }}
+          </option>
+          <option
+            v-for="catName in otherAddonCategories"
+            :key="catName"
+            :value="catName"
+          >
+            ✨ {{ catName }}
+          </option>
         </select>
       </div>
 
@@ -124,6 +134,17 @@ const store = usePosStore()
 
 const searchQuery = ref('')
 const selectedCategory = ref('ทั้งหมด')
+
+const otherAddonCategories = computed(() => {
+  const storeCatNames = store.addonCategories.map(c => c.name)
+  const others = new Set()
+  store.addons.forEach(a => {
+    if (a.category && !storeCatNames.includes(a.category)) {
+      others.add(a.category)
+    }
+  })
+  return Array.from(others)
+})
 
 const filteredAddons = computed(() => {
   return store.addons.filter(a => {
