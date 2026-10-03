@@ -293,104 +293,31 @@
           </div>
         </div>
 
-        <!-- Date & Expiration Card (Unified for both purchase and batch production) -->
-        <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-stone-200/70 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-semibold text-stone-700 flex items-center gap-1.5">
-              <span>📅</span>
-              <span>{{ isProducedFromRecipe ? 'วันที่ผลิต & วันหมดอายุ' : 'วันที่รับเข้า & วันหมดอายุ' }}</span>
-            </span>
-            <span
-              v-if="expiryDate"
-              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
-              :class="expiryStatusPreview.badgeClass"
-            >
-              <span>{{ expiryStatusPreview.icon }}</span>
-              <span>{{ expiryStatusPreview.text }}</span>
-            </span>
-            <span v-else class="text-[10px] text-stone-400">
-              {{ currentMat?.shelfLifeDays ? 'คำนวณอัตโนมัติ' : 'ไม่ระบุ (บรรจุภัณฑ์/ทั่วไป)' }}
-            </span>
-          </div>
-
-          <!-- Two date inputs: Receive/Produce date and Expiry date -->
-          <div class="grid grid-cols-2 gap-2.5">
-            <div>
-              <label class="block text-[10px] font-medium text-stone-500 mb-1">
-                {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
-              </label>
-              <input
-                v-model="receiveDate"
-                @change="onReceiveDateChange"
-                type="date"
-                class="w-full bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 text-xs font-number font-medium text-stone-900 focus:outline-none focus:border-stone-400 cursor-pointer"
-              />
-            </div>
-            <div>
-              <label class="block text-[10px] font-medium text-stone-500 mb-1">
-                วันหมดอายุ (Expiry Date)
-              </label>
-              <input
-                v-model="expiryDate"
-                type="date"
-                class="w-full bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 text-xs font-number font-medium text-stone-900 focus:outline-none focus:border-stone-400 cursor-pointer"
-              />
-            </div>
-          </div>
-
-          <!-- Quick shelf life preset pills -->
+        <!-- วันที่รับเข้า/ผลิต & วันหมดอายุ (Form กระชับ เข้าใจง่าย) -->
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <div class="flex items-center justify-between text-[10px] text-stone-400 mb-1">
-              <span>ปุ่มลัดคำนวณวันหมดอายุ:</span>
-              <span v-if="currentMat?.shelfLifeDays" class="text-amber-900 font-semibold font-number">
-                ค่าเริ่มต้น: {{ currentMat.shelfLifeDays }} วัน
+            <label class="block text-[11px] font-medium text-stone-600 mb-1">
+              {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
+            </label>
+            <input
+              v-model="receiveDate"
+              @change="onReceiveDateChange"
+              type="date"
+              class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
+            />
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] font-medium text-stone-600">วันหมดอายุ</label>
+              <span v-if="expiryPreviewText" class="text-[10px] font-number" :class="expiryPreviewClass">
+                {{ expiryPreviewText }}
               </span>
             </div>
-            <div class="flex flex-wrap items-center gap-1">
-              <button
-                type="button"
-                @click="setExpiryPreset(3)"
-                class="px-2 py-1 rounded-md text-[10px] font-medium bg-white hover:bg-stone-100 text-stone-700 border border-stone-200/70 transition-colors cursor-pointer"
-              >
-                +3 วัน
-              </button>
-              <button
-                type="button"
-                @click="setExpiryPreset(7)"
-                class="px-2 py-1 rounded-md text-[10px] font-medium bg-white hover:bg-stone-100 text-stone-700 border border-stone-200/70 transition-colors cursor-pointer"
-              >
-                +7 วัน
-              </button>
-              <button
-                type="button"
-                @click="setExpiryPreset(10)"
-                class="px-2 py-1 rounded-md text-[10px] font-medium bg-white hover:bg-stone-100 text-stone-700 border border-stone-200/70 transition-colors cursor-pointer"
-              >
-                +10 วัน
-              </button>
-              <button
-                type="button"
-                @click="setExpiryPreset(14)"
-                class="px-2 py-1 rounded-md text-[10px] font-medium bg-white hover:bg-stone-100 text-stone-700 border border-stone-200/70 transition-colors cursor-pointer"
-              >
-                +14 วัน
-              </button>
-              <button
-                type="button"
-                @click="setExpiryPreset(30)"
-                class="px-2 py-1 rounded-md text-[10px] font-medium bg-white hover:bg-stone-100 text-stone-700 border border-stone-200/70 transition-colors cursor-pointer"
-              >
-                +30 วัน
-              </button>
-              <button
-                v-if="expiryDate"
-                type="button"
-                @click="setExpiryPreset(null)"
-                class="px-2 py-1 rounded-md text-[10px] font-medium text-stone-400 hover:text-stone-700 transition-colors cursor-pointer ml-auto"
-              >
-                ล้างวันหมดอายุ
-              </button>
-            </div>
+            <input
+              v-model="expiryDate"
+              type="date"
+              class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
+            />
           </div>
         </div>
 
@@ -473,75 +400,28 @@ const isProducedFromRecipe = computed(() => {
   return Boolean(currentMat.value?.hasSubRecipe && currentMat.value?.subRecipe && currentMat.value.subRecipe.length > 0)
 })
 
-const expiryStatusPreview = computed(() => {
-  if (!expiryDate.value) {
-    return {
-      status: 'none',
-      diff: null,
-      text: 'ไม่ระบุวันหมดอายุ',
-      badgeClass: 'text-stone-400 bg-stone-100',
-      icon: '⚪'
-    }
-  }
+const expiryPreviewText = computed(() => {
+  if (!expiryDate.value) return ''
   const diff = getExpiryDiffDays(expiryDate.value)
-  if (diff === null) return { status: 'none', text: '-', badgeClass: '', icon: '' }
+  if (diff === null) return ''
+  if (diff < 0) return `(หมดอายุแล้ว ${Math.abs(diff)} วัน)`
+  if (diff === 0) return `(หมดอายุวันนี้)`
+  return `(อีก ${diff} วัน)`
+})
 
-  if (diff < 0) {
-    return {
-      status: 'expired',
-      diff,
-      text: `หมดอายุแล้ว (${Math.abs(diff)} วันก่อน)`,
-      badgeClass: 'bg-rose-100 text-rose-700 border border-rose-300 font-bold',
-      icon: '🔴'
-    }
-  }
-  if (diff === 0) {
-    return {
-      status: 'today',
-      diff: 0,
-      text: 'หมดอายุวันนี้!',
-      badgeClass: 'bg-rose-100 text-rose-800 font-bold border border-rose-400',
-      icon: '⚠️'
-    }
-  }
-  if (diff <= 2) {
-    return {
-      status: 'critical',
-      diff,
-      text: `ใกล้หมดอายุ (เหลือ ${diff} วัน)`,
-      badgeClass: 'bg-amber-100 text-amber-900 font-semibold border border-amber-300',
-      icon: '🟡'
-    }
-  }
-  if (diff <= 5) {
-    return {
-      status: 'warning',
-      diff,
-      text: `เหลืออีก ${diff} วัน`,
-      badgeClass: 'bg-amber-50 text-amber-800 border border-amber-200',
-      icon: '🟡'
-    }
-  }
-  return {
-    status: 'fresh',
-    diff,
-    text: `สดใหม่ (เหลือ ${diff} วัน)`,
-    badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium',
-    icon: '🟢'
-  }
+const expiryPreviewClass = computed(() => {
+  if (!expiryDate.value) return 'text-stone-400'
+  const diff = getExpiryDiffDays(expiryDate.value)
+  if (diff === null) return 'text-stone-400'
+  if (diff < 0) return 'text-rose-600 font-semibold'
+  if (diff === 0) return 'text-rose-700 font-bold'
+  if (diff <= 2) return 'text-amber-700 font-semibold'
+  return 'text-emerald-700 font-medium'
 })
 
 function onReceiveDateChange() {
   if (currentMat.value?.shelfLifeDays) {
     expiryDate.value = addDays(receiveDate.value, currentMat.value.shelfLifeDays)
-  }
-}
-
-function setExpiryPreset(days) {
-  if (days === null) {
-    expiryDate.value = ''
-  } else {
-    expiryDate.value = addDays(receiveDate.value || getTodayString(), days)
   }
 }
 
