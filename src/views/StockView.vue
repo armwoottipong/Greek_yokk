@@ -243,23 +243,24 @@
                 </span>
               </td>
 
-              <!-- Stock Level: Produced items have Quick Produce Stepper, Direct items have Stock-In button -->
+              <!-- Stock Level: Balanced Layout with Centered Quantity & Pure Icon Buttons -->
               <td class="py-3 px-4">
-                <!-- Case A: In-House Produced Item (hasSubRecipe e.g. Greek Yogurt) -->
-                <div v-if="mat.hasSubRecipe" class="flex items-center gap-1.5">
+                <div class="flex items-center gap-2">
+                  <!-- Left Slot: Minus button for produced items, or invisible spacer for purchased items -->
                   <button
-                    v-if="!mat.isDeleted"
+                    v-if="mat.hasSubRecipe && !mat.isDeleted"
                     type="button"
                     @click="quickAdjustStock(mat, -1)"
                     :disabled="!canReduceQuick(mat)"
-                    class="w-6 h-6 rounded-lg bg-stone-100 hover:bg-stone-200 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                    class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
                     :title="canReduceQuick(mat) ? 'ยกเลิกการผลิต 1 รอบ (คืนวัตถุดิบรอง)' : 'วัตถุดิบที่ผลิตเสร็จไว้แล้ว ไม่สามารถลดยอดได้'"
                   >
-                    <Minus class="w-3 h-3" />
+                    <Minus class="w-3.5 h-3.5" />
                   </button>
-                  <div v-else class="w-6 h-6 shrink-0"></div>
+                  <div v-else class="w-7 h-7 shrink-0"></div>
 
-                  <div class="w-20 text-center shrink-0 tabular-nums">
+                  <!-- Middle Slot: Quantity (Fixed width, centered, tabular-nums) -->
+                  <div class="w-24 text-center shrink-0 tabular-nums">
                     <div class="font-bold font-number text-sm flex items-center justify-center gap-1 tabular-nums">
                       <span
                         :class="[
@@ -275,58 +276,38 @@
                       </span>
                       <span class="text-xs font-normal text-stone-400 shrink-0">{{ mat.unit }}</span>
                     </div>
-                    <div class="text-[9px] text-amber-800/80 font-medium truncate">
+                    <div v-if="mat.hasSubRecipe" class="text-[10px] text-amber-800/80 font-medium truncate">
                       รอบละ {{ Number(mat.yieldQty || 540).toLocaleString() }} {{ mat.unit }}
+                    </div>
+                    <div v-else-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number tabular-nums truncate">
+                      ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
+                    </div>
+                    <div v-else class="text-[10px] text-stone-300 font-number">
+                      -
                     </div>
                   </div>
 
+                  <!-- Right Slot: Plus button for produced items, or Stock-In button for purchased items -->
                   <button
-                    v-if="!mat.isDeleted"
+                    v-if="mat.hasSubRecipe && !mat.isDeleted"
                     type="button"
                     @click="quickAdjustStock(mat, 1)"
                     :disabled="!canProduceQuick(mat)"
-                    class="h-6 px-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold text-[10px] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-0.5 transition-colors cursor-pointer shrink-0"
+                    class="w-7 h-7 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors cursor-pointer shrink-0"
                     :title="canProduceQuick(mat) ? `ผลิตเพิ่ม 1 รอบ (+${mat.yieldQty || 540} ${mat.unit}) พร้อมหักสต็อกวัตถุดิบรอง` : 'วัตถุดิบรองไม่พอผลิตเพิ่ม'"
                   >
-                    <Plus class="w-3 h-3" />
-                    <span>ผลิต</span>
+                    <Plus class="w-3.5 h-3.5" />
                   </button>
-                  <div v-else class="w-6 h-6 shrink-0"></div>
-                </div>
-
-                <!-- Case B: Purchased Material (No sub-recipe e.g. Milk, Fruits, Cups) -->
-                <div v-else class="flex items-center justify-between gap-1.5 max-w-[190px]">
-                  <div class="text-left shrink-0 tabular-nums">
-                    <div class="font-bold font-number text-sm flex items-center gap-1 tabular-nums">
-                      <span
-                        :class="[
-                          mat.stock <= 0
-                            ? 'text-rose-600'
-                            : mat.stock <= mat.minAlert
-                              ? 'text-amber-600'
-                              : 'text-stone-900'
-                        ]"
-                        class="tabular-nums"
-                      >
-                        {{ mat.stock.toLocaleString() }}
-                      </span>
-                      <span class="text-xs font-normal text-stone-400 shrink-0">{{ mat.unit }}</span>
-                    </div>
-                    <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number tabular-nums truncate">
-                      ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
-                    </div>
-                  </div>
-
                   <button
-                    v-if="!mat.isDeleted"
+                    v-else-if="!mat.isDeleted"
                     type="button"
                     @click="openStockIn(mat.id)"
-                    class="px-2 py-1 rounded-lg bg-stone-100 hover:bg-emerald-50 text-stone-600 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-1 border border-stone-200/60 hover:border-emerald-200 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                    class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-emerald-50 text-stone-600 hover:text-emerald-700 border border-stone-200/60 hover:border-emerald-200 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
                     title="รับเข้าสต็อก (บันทึกจำนวนซื้อเข้าและราคาต้นทุน)"
                   >
-                    <ArrowDownToLine class="w-3 h-3 text-emerald-600" />
-                    <span>รับเข้า</span>
+                    <ArrowDownToLine class="w-3.5 h-3.5 text-emerald-600" />
                   </button>
+                  <div v-else class="w-7 h-7 shrink-0"></div>
                 </div>
               </td>
 
