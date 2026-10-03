@@ -243,16 +243,17 @@
                 </span>
               </td>
 
-              <!-- Stock Level with Quick +/- Stepper -->
+              <!-- Stock Level: Produced items have Quick Produce Stepper, Direct items have Stock-In button -->
               <td class="py-3 px-4">
-                <div class="flex items-center gap-2">
+                <!-- Case A: In-House Produced Item (hasSubRecipe e.g. Greek Yogurt) -->
+                <div v-if="mat.hasSubRecipe" class="flex items-center gap-1.5">
                   <button
                     v-if="!mat.isDeleted"
                     type="button"
                     @click="quickAdjustStock(mat, -1)"
                     :disabled="!canReduceQuick(mat)"
-                    class="w-6 h-6 rounded-lg bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
-                    :title="mat.hasSubRecipe ? (canReduceQuick(mat) ? 'ยกเลิกการผลิต 1 รอบ (คืนวัตถุดิบรองเข้าสต็อก)' : 'วัตถุดิบที่ผลิตไว้แล้ว ไม่สามารถลดยอดได้') : `ลด 1 ${mat.packUnit || mat.unit}`"
+                    class="w-6 h-6 rounded-lg bg-stone-100 hover:bg-stone-200 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                    :title="canReduceQuick(mat) ? 'ยกเลิกการผลิต 1 รอบ (คืนวัตถุดิบรอง)' : 'วัตถุดิบที่ผลิตเสร็จไว้แล้ว ไม่สามารถลดยอดได้'"
                   >
                     <Minus class="w-3 h-3" />
                   </button>
@@ -260,6 +261,43 @@
 
                   <div class="w-20 text-center shrink-0 tabular-nums">
                     <div class="font-bold font-number text-sm flex items-center justify-center gap-1 tabular-nums">
+                      <span
+                        :class="[
+                          mat.stock <= 0
+                            ? 'text-rose-600'
+                            : mat.stock <= mat.minAlert
+                              ? 'text-amber-600'
+                              : 'text-stone-900'
+                        ]"
+                        class="tabular-nums"
+                      >
+                        {{ mat.stock.toLocaleString() }}
+                      </span>
+                      <span class="text-xs font-normal text-stone-400 shrink-0">{{ mat.unit }}</span>
+                    </div>
+                    <div class="text-[9px] text-amber-800/80 font-medium truncate">
+                      รอบละ {{ Number(mat.yieldQty || 540).toLocaleString() }} {{ mat.unit }}
+                    </div>
+                  </div>
+
+                  <button
+                    v-if="!mat.isDeleted"
+                    type="button"
+                    @click="quickAdjustStock(mat, 1)"
+                    :disabled="!canProduceQuick(mat)"
+                    class="h-6 px-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold text-[10px] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-0.5 transition-colors cursor-pointer shrink-0"
+                    :title="canProduceQuick(mat) ? `ผลิตเพิ่ม 1 รอบ (+${mat.yieldQty || 540} ${mat.unit}) พร้อมหักสต็อกวัตถุดิบรอง` : 'วัตถุดิบรองไม่พอผลิตเพิ่ม'"
+                  >
+                    <Plus class="w-3 h-3" />
+                    <span>ผลิต</span>
+                  </button>
+                  <div v-else class="w-6 h-6 shrink-0"></div>
+                </div>
+
+                <!-- Case B: Purchased Material (No sub-recipe e.g. Milk, Fruits, Cups) -->
+                <div v-else class="flex items-center justify-between gap-1.5 max-w-[190px]">
+                  <div class="text-left shrink-0 tabular-nums">
+                    <div class="font-bold font-number text-sm flex items-center gap-1 tabular-nums">
                       <span
                         :class="[
                           mat.stock <= 0
@@ -282,14 +320,13 @@
                   <button
                     v-if="!mat.isDeleted"
                     type="button"
-                    @click="quickAdjustStock(mat, 1)"
-                    :disabled="mat.hasSubRecipe && !canProduceQuick(mat)"
-                    class="w-6 h-6 rounded-lg bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
-                    :title="mat.hasSubRecipe ? (canProduceQuick(mat) ? 'ผลิตเพิ่ม 1 รอบ (หักวัตถุดิบรอง)' : 'วัตถุดิบรองไม่พอผลิตเพิ่ม') : `เพิ่ม 1 ${mat.packUnit || mat.unit}`"
+                    @click="openStockIn(mat.id)"
+                    class="px-2 py-1 rounded-lg bg-stone-100 hover:bg-emerald-50 text-stone-600 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-1 border border-stone-200/60 hover:border-emerald-200 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                    title="รับเข้าสต็อก (บันทึกจำนวนซื้อเข้าและราคาต้นทุน)"
                   >
-                    <Plus class="w-3 h-3" />
+                    <ArrowDownToLine class="w-3 h-3 text-emerald-600" />
+                    <span>รับเข้า</span>
                   </button>
-                  <div v-else class="w-6 h-6 shrink-0"></div>
                 </div>
               </td>
 
@@ -606,58 +643,48 @@ function canReduceQuick(mat) {
     // วัตถุดิบที่ผลิตมาแล้ว ไม่สามารถลดได้ (ลดได้เฉพาะรอบที่เพิ่งกดผลิตเพิ่มในรอบนี้)
     return (Number(mat.stock) || 0) >= baseline + yieldAmount
   }
-  return (Number(mat.stock) || 0) > 0
+  return false
 }
 
 function quickAdjustStock(mat, delta) {
-  if (mat.hasSubRecipe) {
-    const yieldAmount = Number(mat.yieldQty) || 540
-    if (delta > 0) {
-      // Check sub-ingredients
-      if (!canProduceQuick(mat)) {
-        store.showToast(`วัตถุดิบรองไม่พอสำหรับผลิต ${mat.name} อีก 1 รอบ`, 'error')
-        return
-      }
-      // Increment target stock
-      mat.stock = Math.round((Number(mat.stock || 0) + yieldAmount) * 100) / 100
-      // Deduct sub-ingredients in realtime
-      if (mat.subRecipe && mat.subRecipe.length > 0) {
-        for (const row of mat.subRecipe) {
-          const subMat = store.materials.find(m => m.id === row.materialId)
-          if (subMat) {
-            const needed = Number(row.qty) || 0
-            subMat.stock = Math.max(0, Math.round((Number(subMat.stock || 0) - needed) * 100) / 100)
-          }
-        }
-      }
-    } else {
-      // Decrease 1 round: Cannot reduce already produced stock
-      const baseline = stockSnapshot.value[mat.id] !== undefined ? Number(stockSnapshot.value[mat.id]) || 0 : Number(mat.stock) || 0
-      if (!canReduceQuick(mat)) {
-        store.showToast(`ไม่สามารถลด ${mat.name} ได้ เนื่องจากเป็นวัตถุดิบที่ผลิตเสร็จไว้แล้ว`, 'warning')
-        return
-      }
-      // Decrement produced stock by 1 batch yield (locked at baseline)
-      mat.stock = Math.max(baseline, Math.round((Number(mat.stock || 0) - yieldAmount) * 100) / 100)
-      // Restore sub-ingredients back to stock in realtime
-      if (mat.subRecipe && mat.subRecipe.length > 0) {
-        for (const row of mat.subRecipe) {
-          const subMat = store.materials.find(m => m.id === row.materialId)
-          if (subMat) {
-            const returnedQty = Number(row.qty) || 0
-            subMat.stock = Math.round((Number(subMat.stock || 0) + returnedQty) * 100) / 100
-          }
+  if (!mat || !mat.hasSubRecipe) return
+  const yieldAmount = Number(mat.yieldQty) || 540
+  if (delta > 0) {
+    // Check sub-ingredients
+    if (!canProduceQuick(mat)) {
+      store.showToast(`วัตถุดิบรองไม่พอสำหรับผลิต ${mat.name} อีก 1 รอบ`, 'error')
+      return
+    }
+    // Increment target stock
+    mat.stock = Math.round((Number(mat.stock || 0) + yieldAmount) * 100) / 100
+    // Deduct sub-ingredients in realtime
+    if (mat.subRecipe && mat.subRecipe.length > 0) {
+      for (const row of mat.subRecipe) {
+        const subMat = store.materials.find(m => m.id === row.materialId)
+        if (subMat) {
+          const needed = Number(row.qty) || 0
+          subMat.stock = Math.max(0, Math.round((Number(subMat.stock || 0) - needed) * 100) / 100)
         }
       }
     }
   } else {
-    // Standard material
-    const pSize = Number(mat.packSize) > 0 ? Number(mat.packSize) : 1
-    if (delta > 0) {
-      mat.stock = Math.round((Number(mat.stock || 0) + pSize) * 100) / 100
-    } else {
-      if (mat.stock <= 0) return
-      mat.stock = Math.max(0, Math.round((Number(mat.stock || 0) - pSize) * 100) / 100)
+    // Decrease 1 round: Cannot reduce already produced stock
+    const baseline = stockSnapshot.value[mat.id] !== undefined ? Number(stockSnapshot.value[mat.id]) || 0 : Number(mat.stock) || 0
+    if (!canReduceQuick(mat)) {
+      store.showToast(`ไม่สามารถลด ${mat.name} ได้ เนื่องจากเป็นวัตถุดิบที่ผลิตเสร็จไว้แล้ว`, 'warning')
+      return
+    }
+    // Decrement produced stock by 1 batch yield (locked at baseline)
+    mat.stock = Math.max(baseline, Math.round((Number(mat.stock || 0) - yieldAmount) * 100) / 100)
+    // Restore sub-ingredients back to stock in realtime
+    if (mat.subRecipe && mat.subRecipe.length > 0) {
+      for (const row of mat.subRecipe) {
+        const subMat = store.materials.find(m => m.id === row.materialId)
+        if (subMat) {
+          const returnedQty = Number(row.qty) || 0
+          subMat.stock = Math.round((Number(subMat.stock || 0) + returnedQty) * 100) / 100
+        }
+      }
     }
   }
 }
@@ -700,21 +727,21 @@ function savePendingChanges() {
   changedItemsList.value.forEach(item => {
     store.addActivityLog({
       module: 'stock',
-      action: item.diff > 0 ? 'stock_adjust_add' : 'stock_adjust_reduce',
-      actionLabel: item.diff > 0 ? 'ปรับเพิ่มสต็อก (หน้ารายการ)' : 'ปรับลดยอดสต็อก (หน้ารายการ)',
+      action: item.diff > 0 ? 'produce' : 'stock_adjust_reduce',
+      actionLabel: item.diff > 0 ? 'ผลิตตามสูตร (หน้ารายการ)' : 'ยกเลิกการผลิต (หน้ารายการ)',
       materialId: item.id,
       materialName: item.name,
       materialUnit: item.unit,
       delta: item.diff,
       beforeStock: item.orig,
       afterStock: item.current,
-      reason: 'ปรับยอดด่วนผ่านปุ่ม + / - หน้ารายการสต็อก',
+      reason: 'ผลิตตามสูตรผ่านปุ่มด่วนหน้ารายการสต็อก',
       note: `ปรับจาก ${item.orig.toLocaleString()} เป็น ${item.current.toLocaleString()} ${item.unit}`,
-      operator: 'Manager'
+      operator: 'Kitchen'
     })
   })
   store.persistLocal()
-  store.showToast(`บันทึกการปรับสต็อกสำเร็จ (${count} รายการ)`, 'success')
+  store.showToast(`บันทึกการผลิตสต็อกสำเร็จ (${count} รายการ)`, 'success')
   takeStockSnapshot()
 }
 
