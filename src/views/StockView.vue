@@ -262,14 +262,14 @@
                 <span class="text-[10px] text-stone-400 ml-0.5">{{ mat.unit }}</span>
               </td>
 
-              <!-- Unit Cost -->
+              <!-- Unit Cost (Primary: Pack purchase cost e.g. ฿105/ขวด, Secondary: base unit cost) -->
               <td class="py-3 px-4 font-number text-stone-700">
-                <div>
-                  ฿{{ Number(mat.unitCost || 0).toFixed(4) }}
-                  <span class="text-[10px] text-stone-400">/{{ mat.unit }}</span>
+                <div class="font-bold text-stone-900 text-xs">
+                  ฿{{ getDisplayPackCost(mat).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) }}
+                  <span class="font-medium text-stone-500 text-[11px]">/{{ mat.packUnit || mat.unit }}</span>
                 </div>
-                <div v-if="mat.packUnit && mat.packCost" class="text-[10px] text-stone-400 mt-0.5">
-                  ฿{{ Number(mat.packCost).toFixed(0) }}/{{ mat.packUnit }}
+                <div v-if="(mat.packSize && mat.packSize > 1) || mat.hasSubRecipe" class="text-[10px] text-stone-400 mt-0.5">
+                  (≈ ฿{{ Number(mat.unitCost || 0).toFixed(4) }}/{{ mat.unit }})
                 </div>
               </td>
 
@@ -476,5 +476,13 @@ function softDelete(mat) {
 
 function restore(mat) {
   store.restoreMaterial(mat.id)
+}
+
+function getDisplayPackCost(mat) {
+  const pCost = Number(mat.packCost)
+  if (pCost && pCost > 0) return pCost
+  const uCost = Number(mat.unitCost) || 0
+  const pSize = Number(mat.packSize) || 1
+  return Math.round(uCost * pSize * 100) / 100
 }
 </script>
