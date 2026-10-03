@@ -95,6 +95,18 @@ export const usePosStore = defineStore('pos', {
             { materialId: 'MAT003', qty: 300 }
           ]
         }
+
+        // Sanitize: Raw sub-materials (like Milk MAT002) must NEVER have a sub-recipe!
+        if (item.id === 'MAT002' || item.isSubIngredient || (item.category && item.category.includes('รอง'))) {
+          item.hasSubRecipe = false
+          item.subRecipe = []
+          item.isSubIngredient = true
+          if (item.packUnit === 'รอบ') {
+            item.packUnit = item.unit === 'ml' ? 'ขวด' : (item.unit === 'g' ? 'ถุง' : 'แพ็ค')
+            item.packSize = defaultRef?.packSize || 1200
+            item.packCost = defaultRef?.packCost || 54
+          }
+        }
         return item
       }),
       menus: storedMenus,
@@ -695,6 +707,12 @@ export const usePosStore = defineStore('pos', {
         stock: Number(matData.stock) || 0,
         minAlert: Number(matData.minAlert) || 0,
         yieldQty: Number(matData.yieldQty) || 1200
+      }
+
+      if (cleanData.isSubIngredient || cleanData.id === 'MAT002') {
+        cleanData.hasSubRecipe = false
+        cleanData.subRecipe = []
+        cleanData.isSubIngredient = true
       }
 
       if (matData.id) {

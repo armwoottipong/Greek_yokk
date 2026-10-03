@@ -32,8 +32,9 @@
         </div>
 
         <div class="flex items-center gap-3 shrink-0">
-          <!-- Switch Button: ผลิตจากวัตถุดิบอื่น (Header toggle, default = OFF) -->
+          <!-- Switch Button: ผลิตจากวัตถุดิบอื่น (Header toggle, only for main materials) -->
           <label 
+            v-if="!form.isSubIngredient"
             class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border cursor-pointer select-none transition-all"
             :class="form.hasSubRecipe ? 'bg-amber-50/70 border-amber-300 text-amber-950' : 'bg-stone-50 border-stone-200/80 text-stone-700 hover:border-stone-300'"
             title="เปิดหากเป็นวัตถุดิบที่ต้องปรุง/ผลิตจากวัตถุดิบอื่น"
@@ -82,7 +83,7 @@
           <div class="flex items-center gap-1 p-0.5 bg-stone-200/60 rounded-lg text-[10px] font-semibold shrink-0">
             <button
               type="button"
-              @click="form.isSubIngredient = false"
+              @click="setRole(false)"
               :class="!form.isSubIngredient ? 'bg-amber-900 text-white shadow-2xs font-bold' : 'text-stone-600 hover:text-stone-900'"
               class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer"
             >
@@ -90,7 +91,7 @@
             </button>
             <button
               type="button"
-              @click="form.isSubIngredient = true"
+              @click="setRole(true)"
               :class="form.isSubIngredient ? 'bg-purple-800 text-white shadow-2xs font-bold' : 'text-stone-600 hover:text-stone-900'"
               class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer"
             >
@@ -813,15 +814,27 @@ function stepMinAlert(delta) {
   form.value.minAlert = Math.round(next * pSize * 100) / 100
 }
 
+function setRole(isSub) {
+  form.value.isSubIngredient = isSub
+  if (isSub) {
+    form.value.hasSubRecipe = false
+    form.value.subRecipe = []
+    if (form.value.packUnit === 'รอบ') {
+      form.value.packUnit = form.value.unit === 'ml' ? 'ขวด' : (form.value.unit === 'g' ? 'ถุง' : 'แพ็ค')
+      form.value.packSize = 1000
+    }
+  }
+}
+
 // Sub-Recipe helpers
 function addSubRecipeRow() {
-  const defaultSubId = store.subMaterials[0]?.id || availableSubMaterials.value[0]?.id
-  if (!defaultSubId) {
+  const defaultSub = availableSubMaterials.value[0]
+  if (!defaultSub) {
     store.showToast('ยังไม่มีรายการวัตถุดิบรองในระบบ กรุณาสร้างวัตถุดิบรองก่อน (เช่น นมสด หรือหัวเชื้อ)', 'error')
     return
   }
   form.value.subRecipe.push({
-    materialId: defaultSubId,
+    materialId: defaultSub.id,
     qty: 1000
   })
 }
@@ -870,8 +883,11 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
 
     if (mat) {
       initialStock.value = Number(mat.stock) || 0
-      const pUnit = mat.packUnit || (mat.hasSubRecipe ? 'รอบ' : (mat.unit === 'ml' ? 'ขวด' : mat.unit === 'g' ? 'ถุง' : 'แพ็ค'))
-      const pSize = Number(mat.packSize) || (mat.hasSubRecipe ? (Number(mat.yieldQty) || 540) : 1)
+      const isSub = Boolean(mat.isSubIngredient) || mat.id === 'MAT002' || (mat.category && (mat.category.includes('รอง') || mat.category.includes('sub')))
+      const hasRecipe = !isSub && Boolean(mat.hasSubRecipe)
+
+      const pUnit = mat.packUnit || (hasRecipe ? 'รอบ' : (mat.unit === 'ml' ? 'ขวด' : mat.unit === 'g' ? 'ถุง' : 'แพ็ค'))
+      const pSize = Number(mat.packSize) || (hasRecipe ? (Number(mat.yieldQty) || 540) : 1)
       const uCost = Number(mat.unitCost) || 0
       const pCost = Number(mat.packCost) || (uCost * pSize)
 
@@ -887,15 +903,12 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         stock: Number(mat.stock) || 0,
         minAlert: Number(mat.minAlert) || 0,
         emoji: mat.emoji || '🥣',
-        isSubIngredient: Boolean(mat.isSubIngredient),
-        hasSubRecipe: Boolean(mat.hasSubRecipe),
+        isSubIngredient: isSub,
+        hasSubRecipe: hasRecipe,
         yieldQty: mat.yieldQty ? Number(mat.yieldQty) : 540,
-        subRecipe: mat.subRecipe && Array.isArray(mat.subRecipe) && mat.subRecipe.length > 0
+        subRecipe: hasRecipe && mat.subRecipe && Array.isArray(mat.subRecipe) && mat.subRecipe.length > 0
           ? JSON.parse(JSON.stringify(mat.subRecipe))
-          : [
-              { materialId: store.subMaterials[0]?.id || 'MAT002', qty: 1000 },
-              ...(store.subMaterials[1] ? [{ materialId: store.subMaterials[1].id, qty: 100 }] : [])
-            ]
+          : []
       }
     } else {
       // New Material: Clean neutral defaults, hasSubRecipe is OFF
@@ -916,12 +929,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         isSubIngredient: false,
         hasSubRecipe: false,
         yieldQty: 540,
-        subRecipe: store.subMaterials.length > 0
-          ? [
-              { materialId: store.subMaterials[0].id, qty: 1000 },
-              ...(store.subMaterials[1] ? [{ materialId: store.subMaterials[1].id, qty: 100 }] : [])
-            ]
-          : []
+        subRecipe: []
       }
     }
 
