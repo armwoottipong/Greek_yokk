@@ -684,11 +684,9 @@ export const usePosStore = defineStore('pos', {
     },
 
     openActivityLog(module = 'all', targetMaterialId = null) {
-      this.modals.activityLog = {
-        isOpen: true,
-        module: module || 'all',
-        targetMaterialId: targetMaterialId || null
-      }
+      this.modals.activityLog.module = module || 'all'
+      this.modals.activityLog.targetMaterialId = targetMaterialId || null
+      this.modals.activityLog.isOpen = true
     },
 
     closeActivityLog() {
