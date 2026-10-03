@@ -241,9 +241,9 @@
                     v-if="!mat.isDeleted"
                     type="button"
                     @click="quickAdjustStock(mat, -1)"
-                    :disabled="mat.stock <= 0"
+                    :disabled="!canReduceQuick(mat)"
                     class="w-6 h-6 rounded-lg bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
-                    :title="mat.hasSubRecipe ? 'ลด 1 รอบ' : `ลด 1 ${mat.packUnit || mat.unit}`"
+                    :title="mat.hasSubRecipe ? (canReduceQuick(mat) ? 'ลด 1 รอบ (คืนวัตถุดิบรองเข้าสต็อก)' : `สต็อกคงเหลือ (${mat.stock} ${mat.unit}) มีไม่ถึง 1 รอบการผลิต (${mat.yieldQty || 540} ${mat.unit})`) : `ลด 1 ${mat.packUnit || mat.unit}`"
                   >
                     <Minus class="w-3 h-3" />
                   </button>
@@ -553,14 +553,24 @@ function onActionRestore(mat) {
 // Quick Stepper & Real-time Sub-Ingredient Stock Deduction
 // -------------------------------------------------------------
 function canProduceQuick(mat) {
+  if (!mat || mat.isDeleted) return false
   if (!mat.hasSubRecipe || !mat.subRecipe || mat.subRecipe.length === 0) return true
   for (const row of mat.subRecipe) {
-    const subMat = store.matMap[row.materialId]
+    const subMat = store.materials.find(m => m.id === row.materialId)
     const currentStock = subMat ? Number(subMat.stock) || 0 : 0
     const needed = Number(row.qty) || 0
     if (currentStock < needed) return false
   }
   return true
+}
+
+function canReduceQuick(mat) {
+  if (!mat || mat.isDeleted) return false
+  if (mat.hasSubRecipe) {
+    const yieldAmount = Number(mat.yieldQty) || 540
+    return (Number(mat.stock) || 0) >= yieldAmount
+  }
+  return (Number(mat.stock) || 0) > 0
 }
 
 function quickAdjustStock(mat, delta) {
@@ -583,10 +593,23 @@ function quickAdjustStock(mat, delta) {
         }
       }
     } else {
-      // Decrease 1 round
-      if (mat.stock <= 0) return
-      const removeAmount = Math.min(Number(mat.stock || 0), yieldAmount)
-      mat.stock = Math.max(0, Math.round((Number(mat.stock || 0) - removeAmount) * 100) / 100)
+      // Decrease 1 round: Cannot reduce beyond existing stock
+      if (!canReduceQuick(mat)) {
+        store.showToast(`ไม่สามารถลด ${mat.name} ได้ เนื่องจากสต็อกคงเหลือ (${mat.stock} ${mat.unit}) มีไม่ถึง 1 รอบการผลิต (${yieldAmount} ${mat.unit})`, 'error')
+        return
+      }
+      // Decrement produced stock by 1 batch yield
+      mat.stock = Math.max(0, Math.round((Number(mat.stock || 0) - yieldAmount) * 100) / 100)
+      // Restore sub-ingredients back to stock in realtime
+      if (mat.subRecipe && mat.subRecipe.length > 0) {
+        for (const row of mat.subRecipe) {
+          const subMat = store.materials.find(m => m.id === row.materialId)
+          if (subMat) {
+            const returnedQty = Number(row.qty) || 0
+            subMat.stock = Math.round((Number(subMat.stock || 0) + returnedQty) * 100) / 100
+          }
+        }
+      }
     }
   } else {
     // Standard material
