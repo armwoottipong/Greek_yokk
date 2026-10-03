@@ -650,15 +650,36 @@ export const usePosStore = defineStore('pos', {
       const mat = this.materials.find(m => m.id === matId)
       if (!mat) return
       const addQty = Number(qty) || 0
-      mat.stock = Math.round((Number(mat.stock || 0) + addQty) * 100) / 100
-      if (unitCost !== undefined && unitCost !== null && Number(unitCost) > 0) {
-        mat.unitCost = Math.round(Number(unitCost) * 10000) / 10000
-      }
+      if (addQty <= 0) return
+
+      const currentStock = Math.max(0, Number(mat.stock) || 0)
+      const currentUnitCost = Number(mat.unitCost) || 0
+      const newUnitCostInput = (unitCost !== undefined && unitCost !== null && Number(unitCost) > 0)
+        ? Number(unitCost)
+        : currentUnitCost
+
+      // Moving Weighted Average Cost calculation:
+      // totalValuation = (currentStock * currentUnitCost) + (incomingQty * incomingUnitCost)
+      const currentValuation = currentStock * currentUnitCost
+      const incomingValuation = addQty * newUnitCostInput
+      const newTotalStock = currentStock + addQty
+      const weightedUnitCost = newTotalStock > 0
+        ? (currentValuation + incomingValuation) / newTotalStock
+        : newUnitCostInput
+
+      mat.stock = Math.round(newTotalStock * 100) / 100
+      mat.unitCost = Math.round(weightedUnitCost * 10000) / 10000
+
+      // Update pack cost to reflect latest pack purchase or weighted pack cost
+      const packSize = Number(mat.packSize) > 0 ? Number(mat.packSize) : 1
       if (packCost !== undefined && packCost !== null && Number(packCost) > 0) {
         mat.packCost = Number(packCost)
+      } else {
+        mat.packCost = Math.round(mat.unitCost * packSize * 100) / 100
       }
+
       this.persistLocal()
-      this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit} เรียบร้อย`, 'success')
+      this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (ต้นทุนเฉลี่ย ฿${mat.unitCost}/${mat.unit})`, 'success')
     },
 
     stockAdjust(matId, newActualQty, reason = '', note = '') {
@@ -844,6 +865,7 @@ export const usePosStore = defineStore('pos', {
           basePrice
         })
       }
+      this.modals.customOrder = { isOpen: false, menuId: null }
       this.showToast(`เพิ่ม "${menu.name}" ลงในรายการแล้ว`, 'success')
     },
 

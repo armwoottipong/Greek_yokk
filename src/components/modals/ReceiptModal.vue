@@ -57,7 +57,7 @@
             <div v-if="item.selectedAddons && item.selectedAddons.length > 0" class="pl-3 text-[10px] text-stone-500 space-y-0.5">
               <div v-for="addon in item.selectedAddons" :key="addon.id" class="flex justify-between">
                 <span>+ {{ addon.name }}</span>
-                <span>฿{{ addon.price }}</span>
+                <span class="font-number text-stone-400">+฿{{ addon.price }} (รวมในยอดแล้ว)</span>
               </div>
             </div>
           </div>
@@ -70,7 +70,7 @@
             <span class="text-sm font-number">฿{{ order.subtotal }}</span>
           </div>
           <div v-if="order.gpAmount > 0" class="flex justify-between text-[10px] text-stone-400 pt-1">
-            <span>หักค่าธรรมเนียม GP ({{ store.currentPlatform.gpPercent }}%):</span>
+            <span>หักค่าธรรมเนียม GP ({{ orderGpPercent }}%):</span>
             <span class="font-number">-฿{{ order.gpAmount }}</span>
           </div>
           <div v-if="order.gpAmount > 0" class="flex justify-between text-[10px] text-emerald-800 font-semibold">
@@ -114,6 +114,13 @@ import { X, Printer } from 'lucide-vue-next'
 const store = usePosStore()
 
 const order = computed(() => store.modals.receipt.order)
+
+const orderGpPercent = computed(() => {
+  if (!order.value || !order.value.gpAmount || !order.value.subtotal) return 0
+  const plat = store.platforms.find(p => p.id === order.value.platformId)
+  if (plat && plat.gpPercent !== undefined) return plat.gpPercent
+  return Math.round((order.value.gpAmount / order.value.subtotal) * 100)
+})
 
 const formattedDate = computed(() => {
   if (!order.value?.createdAt) return ''

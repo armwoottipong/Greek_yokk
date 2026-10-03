@@ -54,9 +54,9 @@
                 <div class="flex items-center gap-2 min-w-0">
                   <span class="text-lg">{{ addon.emoji }}</span>
                   <div class="min-w-0">
-                    <div class="text-xs truncate font-medium">{{ addon.name }}</div>
                     <div v-if="isAddonOutOfStock(addon)" class="text-[10px] text-rose-600 font-semibold">[ของหมดสต็อก]</div>
-                    <div v-else class="text-[10px] text-stone-400">ใช้ {{ addon.amountUsed }} {{ getMatUnit(addon.materialId) }}</div>
+                    <div v-else-if="addon.materialId" class="text-[10px] text-stone-400">ใช้ {{ addon.amountUsed }} {{ getMatUnit(addon.materialId) }}</div>
+                    <div v-else class="text-[10px] text-stone-400">ท็อปปิ้งสำเร็จรูป</div>
                   </div>
                 </div>
 

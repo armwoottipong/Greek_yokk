@@ -130,7 +130,7 @@
               <span class="text-xl">{{ item.menu.emoji }}</span>
               <div class="min-w-0">
                 <div class="font-bold text-stone-900 truncate">{{ item.menu.name }}</div>
-                <div class="text-[10px] text-stone-400 font-number">฿{{ item.basePrice }} / ชาม</div>
+                <div class="text-[10px] text-stone-400 font-number">฿{{ getItemBasePrice(item) }} / ชาม</div>
               </div>
             </div>
             <span class="font-number font-bold text-xs text-stone-900">
@@ -276,9 +276,14 @@ function getAddonPrice(addon) {
   return (addon.prices && addon.prices[platId] !== undefined) ? Number(addon.prices[platId]) : 0
 }
 
+function getItemBasePrice(item) {
+  return getMenuPrice(item.menu)
+}
+
 function getItemTotalPrice(item) {
+  const base = getItemBasePrice(item)
   const addonTotal = (item.selectedAddons || []).reduce((sum, a) => sum + getAddonPrice(a), 0)
-  return (item.basePrice + addonTotal) * item.qty
+  return (base + addonTotal) * item.qty
 }
 
 function isMenuOutOfStock(menu) {

@@ -172,22 +172,17 @@
                 v-model="row.materialId"
                 class="soft-input flex-1 px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
               >
-                <optgroup label="🥣 เบสกรีกโยเกิร์ต">
+                <optgroup
+                  v-for="(mats, catName) in recipeMaterialsByCategory"
+                  :key="catName"
+                  :label="catName"
+                >
                   <option
-                    v-for="m in baseMaterials"
+                    v-for="m in mats"
                     :key="m.id"
                     :value="m.id"
                   >
-                    {{ m.emoji }} {{ m.name }}
-                  </option>
-                </optgroup>
-                <optgroup label="🍓 ผลไม้ ซอส & ท็อปปิ้ง">
-                  <option
-                    v-for="m in fruitToppingMaterials"
-                    :key="m.id"
-                    :value="m.id"
-                  >
-                    {{ m.emoji }} {{ m.name }}
+                    {{ m.emoji }} {{ m.name }} ({{ m.unit }})
                   </option>
                 </optgroup>
               </select>
@@ -361,12 +356,15 @@ const packageRecipeRows = ref([])
 
 const isEditing = computed(() => Boolean(store.modals.menuEdit.menuId))
 
-const baseMaterials = computed(() => {
-  return store.activeMaterials.filter(m => m.category === 'Base Yogurt')
-})
-
-const fruitToppingMaterials = computed(() => {
-  return store.activeMaterials.filter(m => m.category === 'Fresh Fruits' || m.category === 'Toppings' || m.category === 'Sauces')
+const recipeMaterialsByCategory = computed(() => {
+  const nonPkgs = store.activeMaterials.filter(m => !isPackagingMaterial(m))
+  const groups = {}
+  nonPkgs.forEach(m => {
+    const cat = m.category || 'วัตถุดิบอื่นๆ'
+    if (!groups[cat]) groups[cat] = []
+    groups[cat].push(m)
+  })
+  return groups
 })
 
 const packagingMaterials = computed(() => {
@@ -458,6 +456,10 @@ function removePackageRecipeRow(idx) {
 }
 
 function quickAddPackage(matId) {
+  if (!store.matMap[matId]) {
+    store.showToast('ไม่พบบรรจุภัณฑ์นี้ในระบบ', 'error')
+    return
+  }
   const existing = packageRecipeRows.value.find(r => r.materialId === matId)
   if (existing) {
     existing.qty += 1

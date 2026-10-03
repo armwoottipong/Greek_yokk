@@ -263,6 +263,32 @@
           />
         </div>
 
+        <!-- Role Selector when not produced -->
+        <div v-if="!form.hasSubRecipe" class="flex items-center justify-between p-2.5 rounded-xl bg-stone-50 border border-stone-200/60">
+          <div>
+            <span class="font-medium text-stone-800 text-[11px] block">บทบาทวัตถุดิบ (Ingredient Role)</span>
+            <span class="text-[10px] text-stone-400">วัตถุดิบหลักสำหรับตักขาย หรือวัตถุดิบรองสำหรับใช้ในสูตรผลิต</span>
+          </div>
+          <div class="flex items-center gap-1 p-0.5 bg-stone-200/60 rounded-lg text-[10px] font-semibold">
+            <button
+              type="button"
+              @click="form.isSubIngredient = false"
+              :class="!form.isSubIngredient ? 'bg-white text-stone-900 shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'"
+              class="px-2.5 py-1 rounded transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <span>🥣 วัตถุดิบหลัก</span>
+            </button>
+            <button
+              type="button"
+              @click="form.isSubIngredient = true"
+              :class="form.isSubIngredient ? 'bg-purple-800 text-white shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'"
+              class="px-2.5 py-1 rounded transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <span>🥛 วัตถุดิบรอง</span>
+            </button>
+          </div>
+        </div>
+
         <!-- 5. Sub-Recipe Section (Clean, flat rows) -->
         <div v-if="form.hasSubRecipe" class="space-y-3 pt-2 border-t border-stone-100">
           <div class="flex items-center justify-between">
@@ -475,22 +501,23 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
             ]
       }
     } else {
-      // New Material: Default is Main Material
+      // New Material: Clean neutral defaults
+      const defaultCategory = store.materialCategories[0]?.name || 'Base Yogurt'
       form.value = {
         id: '',
         name: '',
-        category: 'Base Yogurt',
+        category: defaultCategory,
         unit: 'g',
-        packUnit: 'ขวด',
-        packSize: 1200,
-        packCost: 54,
-        unitCost: 0.045,
+        packUnit: 'ถุง',
+        packSize: 1000,
+        packCost: 0,
+        unitCost: 0,
         stock: 0,
-        minAlert: 500,
+        minAlert: 200,
         emoji: '🥣',
         isSubIngredient: false,
         hasSubRecipe: false,
-        yieldQty: 1200,
+        yieldQty: 1000,
         subRecipe: [
           { materialId: store.subMaterials[0]?.id || 'MAT002', qty: 5000 },
           { materialId: store.subMaterials[1]?.id || 'MAT003', qty: 300 }
@@ -552,7 +579,12 @@ function submit() {
   }
 
   const hasRecipe = Boolean(form.value.hasSubRecipe)
-  const isSub = !hasRecipe && form.value.category === 'วัตถุดิบรอง'
+  const catName = (form.value.category || '').toLowerCase()
+  const isSub = !hasRecipe && (
+    Boolean(form.value.isSubIngredient) ||
+    catName.includes('รอง') ||
+    catName.includes('sub')
+  )
   const pSize = Number(form.value.packSize) > 0 ? Number(form.value.packSize) : 1
   const pCost = Number(form.value.packCost) >= 0 ? Number(form.value.packCost) : 0
   const uCost = Number(form.value.unitCost) >= 0 ? Number(form.value.unitCost) : (pCost / pSize)

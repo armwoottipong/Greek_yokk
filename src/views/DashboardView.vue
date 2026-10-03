@@ -192,20 +192,22 @@
               <th class="py-3 px-4 text-right">ยอดชำระ</th>
               <th class="py-3 px-4 text-right">GP หัก</th>
               <th class="py-3 px-4 text-right">กำไรสุทธิ</th>
+              <th class="py-3 px-4 text-center">ใบเสร็จ</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
             <tr v-if="store.filteredOrders.length === 0">
-              <td colspan="7" class="py-8 text-center text-stone-400 italic">
+              <td colspan="8" class="py-8 text-center text-stone-400 italic">
                 ยังไม่มีข้อมูลคำสั่งซื้อในรอบเวลานี้
               </td>
             </tr>
             <tr
               v-for="order in store.filteredOrders.slice(0, 8)"
               :key="order.orderId"
-              class="hover:bg-stone-50/80 transition-colors"
+              @click="viewReceipt(order)"
+              class="hover:bg-stone-50/80 transition-colors cursor-pointer group"
             >
-              <td class="py-3.5 px-4 font-mono font-semibold text-stone-900">{{ order.orderId }}</td>
+              <td class="py-3.5 px-4 font-mono font-semibold text-stone-900 group-hover:text-amber-900">{{ order.orderId }}</td>
               <td class="py-3.5 px-4 text-stone-400">{{ formatTime(order.createdAt) }}</td>
               <td class="py-3.5 px-4">
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-100 text-stone-800">
@@ -225,6 +227,16 @@
               </td>
               <td class="py-3.5 px-4 text-right font-number font-bold text-emerald-800">
                 ฿{{ order.grossProfit }}
+              </td>
+              <td class="py-3.5 px-4 text-center" @click.stop>
+                <button
+                  type="button"
+                  @click="viewReceipt(order)"
+                  class="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium text-[11px] inline-flex items-center gap-1 transition-colors"
+                  title="ดูใบเสร็จ"
+                >
+                  🧾 <span>บิล</span>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -253,5 +265,12 @@ function formatTime(isoStr) {
   if (!isoStr) return ''
   const d = new Date(isoStr)
   return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+}
+
+function viewReceipt(order) {
+  store.modals.receipt = {
+    isOpen: true,
+    order
+  }
 }
 </script>

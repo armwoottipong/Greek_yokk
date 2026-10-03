@@ -24,8 +24,8 @@
 
       <!-- Refresh Demo Data Button -->
       <button
-        @click="store.resetDemoData()"
-        class="px-3 py-1.5 rounded-xl border border-stone-200 text-stone-600 hover:text-stone-900 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 transition-colors"
+        @click="confirmResetDemo"
+        class="px-3 py-1.5 rounded-xl border border-stone-200 text-stone-600 hover:text-stone-900 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
         title="รีเซ็ตและรีเฟรชข้อมูลตัวอย่าง"
       >
         <RotateCcw class="w-3.5 h-3.5" />
@@ -37,7 +37,7 @@
         v-if="store.gasApiUrl"
         @click="store.syncWithGas()"
         :disabled="store.isSyncing"
-        class="px-3.5 py-1.5 rounded-xl bg-amber-900/10 hover:bg-amber-900/20 text-amber-900 text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+        class="px-3.5 py-1.5 rounded-xl bg-amber-900/10 hover:bg-amber-900/20 text-amber-900 text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
       >
         <CloudSync class="w-3.5 h-3.5" :class="{ 'animate-spin': store.isSyncing }" />
         <span class="hidden sm:inline">{{ store.isSyncing ? 'กำลังซิงค์...' : 'Sync Sheets' }}</span>
@@ -52,6 +52,12 @@ import { usePosStore } from '@/stores/posStore'
 import { RotateCcw, RefreshCw as CloudSync } from 'lucide-vue-next'
 
 const store = usePosStore()
+
+function confirmResetDemo() {
+  if (confirm('คำเตือน: คุณต้องการรีเซ็ตข้อมูลทั้งหมดกลับเป็นชุดตัวอย่างตั้งต้น (Default Demo Data) หรือไม่?\n\n* ข้อมูลออเดอร์ ยอดสต็อก และการตั้งค่าล่าสุดจะถูกแทนที่ด้วยข้อมูลตั้งต้น *')) {
+    store.resetDemoData()
+  }
+}
 
 const pageTitle = computed(() => {
   switch (store.currentTab) {
