@@ -391,28 +391,17 @@
                 </span>
               </td>
 
-              <!-- Actions (Quick History Button + ... More Dropdown) -->
+              <!-- Actions (More Dropdown) -->
               <td class="py-3 px-4 text-right relative">
-                <div class="inline-flex items-center justify-end gap-1">
-                  <button
-                    type="button"
-                    @click.stop="store.openActivityLog('stock', mat.id)"
-                    class="p-1.5 text-stone-400 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer shrink-0"
-                    :title="`ดูประวัติการเคลื่อนไหวของ ${mat.name}`"
-                  >
-                    <History class="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    @click.stop="toggleActionMenu(mat.id)"
-                    class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer shrink-0"
-                    :class="activeActionMenuId === mat.id ? 'bg-stone-100 text-stone-900' : ''"
-                    title="การจัดการเพิ่มเติม"
-                  >
-                    <MoreHorizontal class="w-4 h-4" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  @click.stop="toggleActionMenu(mat.id)"
+                  class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer shrink-0"
+                  :class="activeActionMenuId === mat.id ? 'bg-stone-100 text-stone-900' : ''"
+                  title="การจัดการเพิ่มเติม"
+                >
+                  <MoreHorizontal class="w-4 h-4" />
+                </button>
 
                 <!-- Dropdown Popup Menu -->
                 <div
