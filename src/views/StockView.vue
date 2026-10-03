@@ -175,13 +175,13 @@
         <table class="w-full min-w-[960px] table-fixed text-left text-xs">
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/50 text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
-              <th class="py-3 px-4 w-[21%]">วัตถุดิบ / สินค้า</th>
-              <th class="py-3 px-4 w-[12%]">ประเภท</th>
+              <th class="py-3 px-4 w-[20%]">วัตถุดิบ / สินค้า</th>
+              <th class="py-3 px-4 w-[11%]">ประเภท</th>
               <th class="py-3 px-4 w-[10%]">หมวดหมู่</th>
               <th class="py-3 px-4 w-[18%]">คงเหลือในคลัง</th>
               <th class="py-3 px-4 w-[13%]">ต้นทุน/หน่วย</th>
-              <th class="py-3 px-4 w-[12%]">มูลค่าสต็อกคงเหลือ</th>
-              <th class="py-3 px-4 w-[7%] text-center">สถานะ</th>
+              <th class="py-3 px-4 w-[11%]">มูลค่าสต็อกคงเหลือ</th>
+              <th class="py-3 px-4 w-[10%] text-center">สถานะ</th>
               <th class="py-3 px-4 w-[7%] text-right">การจัดการ</th>
             </tr>
           </thead>
@@ -329,32 +329,46 @@
                 </div>
               </td>
 
-              <!-- Status Badge -->
+              <!-- Status Badge (Stock Level & Expiry) -->
               <td class="py-3 px-4 text-center">
-                <span
-                  v-if="mat.isDeleted"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-200 text-stone-700 shrink-0"
-                >
-                  ซ่อนอยู่
-                </span>
-                <span
-                  v-else-if="mat.stock <= 0"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 shrink-0"
-                >
-                  หมดสต็อก
-                </span>
-                <span
-                  v-else-if="mat.stock <= mat.minAlert"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 shrink-0"
-                >
-                  ใกล้หมด
-                </span>
-                <span
-                  v-else
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
-                >
-                  ปกติ
-                </span>
+                <div class="flex flex-col items-center justify-center gap-1">
+                  <!-- Stock Level Badge -->
+                  <span
+                    v-if="mat.isDeleted"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-200 text-stone-700 shrink-0"
+                  >
+                    ซ่อนอยู่
+                  </span>
+                  <span
+                    v-else-if="mat.stock <= 0"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 shrink-0"
+                  >
+                    หมดสต็อก
+                  </span>
+                  <span
+                    v-else-if="mat.stock <= mat.minAlert"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 shrink-0"
+                  >
+                    ใกล้หมด
+                  </span>
+                  <span
+                    v-else
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
+                  >
+                    ปกติ
+                  </span>
+
+                  <!-- Expiry Date Badge (if material has expiry date) -->
+                  <span
+                    v-if="!mat.isDeleted && mat.expiryDate"
+                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium shrink-0 cursor-default"
+                    :class="getExpiryStatus(mat).badgeClass"
+                    :title="`วันหมดอายุ: ${formatThaiDate(mat.expiryDate, true)} (รับเข้า/ผลิต: ${formatThaiDate(mat.lastStockInDate, true)})`"
+                  >
+                    <span class="text-[8px]">{{ getExpiryStatus(mat).icon }}</span>
+                    <span>{{ getExpiryStatus(mat).shortText }}</span>
+                  </span>
+                </div>
               </td>
 
               <!-- Actions (Quick History Button + ... More Dropdown) -->
@@ -513,7 +527,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { usePosStore } from '@/stores/posStore'
+import { usePosStore, getExpiryStatus, formatThaiDate, getTodayString, addDays } from '@/stores/posStore'
 import {
   Plus,
   Minus,
@@ -706,19 +720,36 @@ function savePendingChanges() {
   const count = changedItemsList.value.length
   // Record activity log for each changed item
   changedItemsList.value.forEach(item => {
+    const mat = store.materials.find(m => m.id === item.id)
+    let dateNote = ''
+    if (mat && item.diff > 0) {
+      const todayStr = getTodayString()
+      mat.lastStockInDate = todayStr
+      if (mat.shelfLifeDays) {
+        mat.expiryDate = addDays(todayStr, mat.shelfLifeDays)
+        dateNote = ` [ผลิต: ${formatThaiDate(todayStr)}, หมดอายุ: ${formatThaiDate(mat.expiryDate)}]`
+      }
+    }
+
     store.addActivityLog({
       module: 'stock',
       action: item.diff > 0 ? 'produce' : 'stock_adjust_reduce',
-      actionLabel: item.diff > 0 ? 'ผลิตตามสูตร (หน้ารายการ)' : 'ยกเลิกการผลิต (หน้ารายการ)',
-      materialId: item.id,
-      materialName: item.name,
-      materialUnit: item.unit,
+      title: item.diff > 0 ? 'ผลิตตามสูตร (Batch Produce)' : 'ยกเลิกการผลิต (หน้ารายการ)',
+      description: item.diff > 0
+        ? `ผลิต ${item.name} +${item.diff.toLocaleString()} ${item.unit}`
+        : `ลดยอด ${item.name} ${item.diff.toLocaleString()} ${item.unit}`,
+      targetId: item.id,
+      targetName: item.name,
+      targetEmoji: item.emoji,
       delta: item.diff,
+      unit: item.unit,
       beforeStock: item.orig,
       afterStock: item.current,
+      receiveDate: mat?.lastStockInDate || undefined,
+      expiryDate: mat?.expiryDate || undefined,
       reason: 'ผลิตตามสูตรผ่านปุ่มด่วนหน้ารายการสต็อก',
-      note: `ปรับจาก ${item.orig.toLocaleString()} เป็น ${item.current.toLocaleString()} ${item.unit}`,
-      operator: 'Kitchen'
+      note: `ปรับจาก ${item.orig.toLocaleString()} เป็น ${item.current.toLocaleString()} ${item.unit}${dateNote}`,
+      user: 'ครัว/ผู้ผลิต'
     })
   })
   store.persistLocal()

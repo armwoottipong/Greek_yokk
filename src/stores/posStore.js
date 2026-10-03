@@ -10,6 +10,150 @@ import {
   EMOJI_CATALOG
 } from '@/data/initialData'
 
+// ========================================================
+// DATE & EXPIRATION HELPER UTILITIES
+// ========================================================
+export function getTodayString() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function addDays(dateStr, days) {
+  if (!dateStr || days === null || days === undefined || days === '') return ''
+  const parts = String(dateStr).split('-')
+  if (parts.length !== 3) return ''
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
+  if (isNaN(d.getTime())) return ''
+  d.setDate(d.getDate() + Number(days))
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function getExpiryDiffDays(expiryDateStr) {
+  if (!expiryDateStr) return null
+  const parts = String(expiryDateStr).split('-')
+  if (parts.length !== 3) return null
+  const exp = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
+  if (isNaN(exp.getTime())) return null
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffTime = exp.getTime() - today.getTime()
+  return Math.round(diffTime / (1000 * 60 * 60 * 24))
+}
+
+export function formatThaiDate(dateStr, includeYear = false) {
+  if (!dateStr) return '-'
+  try {
+    const parts = String(dateStr).split('-')
+    if (parts.length !== 3) return dateStr
+    const y = parts[0]
+    const m = parts[1]
+    const d = parts[2]
+    const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+    const mIdx = parseInt(m, 10) - 1
+    const dayNum = parseInt(d, 10)
+    const monthName = months[mIdx] || m
+    if (includeYear) {
+      const thaiYear = parseInt(y, 10) + 543
+      return `${dayNum} ${monthName} ${thaiYear}`
+    }
+    return `${dayNum} ${monthName}`
+  } catch (e) {
+    return dateStr
+  }
+}
+
+export function getExpiryStatus(mat) {
+  if (!mat || !mat.expiryDate) {
+    return {
+      status: 'none',
+      diff: null,
+      label: 'ไม่ระบุวันหมดอายุ',
+      text: '-',
+      shortText: '-',
+      badgeClass: 'text-stone-400 bg-stone-50 border border-stone-200/50',
+      icon: '⚪'
+    }
+  }
+
+  const diff = getExpiryDiffDays(mat.expiryDate)
+  if (diff === null) {
+    return {
+      status: 'none',
+      diff: null,
+      label: 'ไม่ระบุวันหมดอายุ',
+      text: '-',
+      shortText: '-',
+      badgeClass: 'text-stone-400 bg-stone-50 border border-stone-200/50',
+      icon: '⚪'
+    }
+  }
+
+  if (diff < 0) {
+    const daysAgo = Math.abs(diff)
+    return {
+      status: 'expired',
+      diff,
+      label: `หมดอายุแล้ว (${daysAgo} วันก่อน)`,
+      text: `หมดอายุ (${daysAgo} วันก่อน)`,
+      shortText: 'หมดอายุแล้ว',
+      badgeClass: 'bg-rose-100 text-rose-700 font-bold border border-rose-300',
+      icon: '🔴'
+    }
+  }
+
+  if (diff === 0) {
+    return {
+      status: 'today',
+      diff: 0,
+      label: 'หมดอายุวันนี้!',
+      text: 'หมดอายุวันนี้',
+      shortText: 'วันนี้',
+      badgeClass: 'bg-rose-100 text-rose-800 font-bold border border-rose-400',
+      icon: '⚠️'
+    }
+  }
+
+  if (diff <= 2) {
+    return {
+      status: 'critical',
+      diff,
+      label: `ใกล้หมดอายุ (เหลือ ${diff} วัน)`,
+      text: `เหลือ ${diff} วัน`,
+      shortText: `${diff} วัน`,
+      badgeClass: 'bg-amber-100 text-amber-900 font-semibold border border-amber-300',
+      icon: '🟡'
+    }
+  }
+
+  if (diff <= 5) {
+    return {
+      status: 'warning',
+      diff,
+      label: `เหลืออีก ${diff} วัน`,
+      text: `เหลือ ${diff} วัน`,
+      shortText: `${diff} วัน`,
+      badgeClass: 'bg-amber-50 text-amber-800 font-medium border border-amber-200',
+      icon: '🟡'
+    }
+  }
+
+  return {
+    status: 'fresh',
+    diff,
+    label: `สดใหม่ (เหลือ ${diff} วัน)`,
+    text: `เหลือ ${diff} วัน`,
+    shortText: `${diff} วัน`,
+    badgeClass: 'bg-emerald-50 text-emerald-700 font-medium border border-emerald-200',
+    icon: '🟢'
+  }
+}
+
 export function generateDefaultActivityLogs() {
   const now = Date.now()
   return [
@@ -243,6 +387,15 @@ export const usePosStore = defineStore('pos', {
         const packSize = Number(m.packSize) || defaultRef?.packSize || 1
         const unitCost = Number(m.unitCost) !== undefined && Number(m.unitCost) > 0 ? Number(m.unitCost) : (defaultRef?.unitCost || 0)
         const packCost = Number(m.packCost) || defaultRef?.packCost || (unitCost * packSize)
+        const shelfLifeDays = m.shelfLifeDays !== undefined ? m.shelfLifeDays : (defaultRef?.shelfLifeDays !== undefined ? defaultRef.shelfLifeDays : null)
+        let lastStockInDate = m.lastStockInDate || null
+        let expiryDate = m.expiryDate || null
+        if (!lastStockInDate && shelfLifeDays) {
+          lastStockInDate = getTodayString()
+        }
+        if (!expiryDate && shelfLifeDays && lastStockInDate) {
+          expiryDate = addDays(lastStockInDate, shelfLifeDays)
+        }
 
         const item = {
           ...m,
@@ -250,6 +403,9 @@ export const usePosStore = defineStore('pos', {
           packSize,
           packCost,
           unitCost,
+          shelfLifeDays,
+          lastStockInDate,
+          expiryDate,
           stock: Number(m.stock) || 0,
           minAlert: Number(m.minAlert) || 0,
           isDeleted: Boolean(m.isDeleted),
@@ -385,6 +541,27 @@ export const usePosStore = defineStore('pos', {
     // Out of stock materials
     outOfStockMaterials: (state) => {
       return state.materials.filter(m => !m.isDeleted && m.stock <= 0)
+    },
+
+    // Expiration status getter (returns function to evaluate any material)
+    getExpiryStatus: () => (mat) => getExpiryStatus(mat),
+
+    // Expiring materials (expires in 0-2 days)
+    expiringMaterials: (state) => {
+      return state.materials.filter(m => {
+        if (m.isDeleted || !m.expiryDate) return false
+        const diff = getExpiryDiffDays(m.expiryDate)
+        return diff !== null && diff >= 0 && diff <= 2
+      })
+    },
+
+    // Expired materials (diff < 0)
+    expiredMaterials: (state) => {
+      return state.materials.filter(m => {
+        if (m.isDeleted || !m.expiryDate) return false
+        const diff = getExpiryDiffDays(m.expiryDate)
+        return diff !== null && diff < 0
+      })
     },
 
     // ========================================================
@@ -939,6 +1116,9 @@ export const usePosStore = defineStore('pos', {
         packSize,
         packCost,
         unitCost: Math.round(unitCost * 10000) / 10000,
+        shelfLifeDays: matData.shelfLifeDays !== undefined ? matData.shelfLifeDays : null,
+        lastStockInDate: matData.lastStockInDate || undefined,
+        expiryDate: matData.expiryDate || undefined,
         stock: Number(matData.stock) || 0,
         minAlert: Number(matData.minAlert) || 0,
         yieldQty: Number(matData.yieldQty) || 1200
@@ -985,7 +1165,7 @@ export const usePosStore = defineStore('pos', {
       }
     },
 
-    stockIn(matId, qty, unitCost, note = '', packCost = null) {
+    stockIn(matId, qty, unitCost, note = '', packCost = null, dates = {}) {
       const mat = this.materials.find(m => m.id === matId)
       if (!mat) return
       const addQty = Number(qty) || 0
@@ -1017,7 +1197,20 @@ export const usePosStore = defineStore('pos', {
         mat.packCost = Math.round(mat.unitCost * packSize * 100) / 100
       }
 
+      // Update Receive & Expiry Dates
+      const receiveDate = dates?.receiveDate || getTodayString()
+      const expiryDate = dates?.expiryDate || null
+      mat.lastStockInDate = receiveDate
+      if (expiryDate) {
+        mat.expiryDate = expiryDate
+      }
+
       this.persistLocal()
+
+      const dateNote = expiryDate
+        ? `[รับเข้า: ${formatThaiDate(receiveDate)}, หมดอายุ: ${formatThaiDate(expiryDate)}]`
+        : `[รับเข้า: ${formatThaiDate(receiveDate)}]`
+
       this.addActivityLog({
         module: 'stock',
         action: 'stock_in',
@@ -1031,7 +1224,9 @@ export const usePosStore = defineStore('pos', {
         beforeStock: currentStock,
         afterStock: mat.stock,
         cost: newUnitCostInput,
-        note: note || '',
+        receiveDate,
+        expiryDate: expiryDate || undefined,
+        note: note ? `${note} ${dateNote}` : dateNote,
         user: 'เจ้าหน้าที่คลัง'
       })
       this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (ต้นทุนเฉลี่ย ฿${mat.unitCost}/${mat.unit})`, 'success')
@@ -1064,7 +1259,7 @@ export const usePosStore = defineStore('pos', {
       this.showToast(`ปรับยอด ${mat.name} เป็น ${newActualQty} ${mat.unit} (${diffStr})`, 'info')
     },
 
-    batchProduce(targetMatId, yieldQty, subIngredients = [], note = '') {
+    batchProduce(targetMatId, yieldQty, subIngredients = [], note = '', dates = {}) {
       const target = this.materials.find(m => m.id === targetMatId)
       if (!target) return false
 
@@ -1109,7 +1304,19 @@ export const usePosStore = defineStore('pos', {
       target.stock = Math.round(newTotalStock * 100) / 100
       target.unitCost = Math.round(newUnitCost * 10000) / 10000
 
+      // Update Production Date & Expiry Date
+      const produceDate = dates?.receiveDate || getTodayString()
+      const expiryDate = dates?.expiryDate || (target.shelfLifeDays ? addDays(produceDate, target.shelfLifeDays) : null)
+      target.lastStockInDate = produceDate
+      if (expiryDate) {
+        target.expiryDate = expiryDate
+      }
+
       this.persistLocal()
+
+      const dateNote = expiryDate
+        ? `[ผลิต: ${formatThaiDate(produceDate)}, หมดอายุ: ${formatThaiDate(expiryDate)}]`
+        : `[ผลิต: ${formatThaiDate(produceDate)}]`
 
       const summaryText = deductedSummary.join(', ')
       this.addActivityLog({
@@ -1124,7 +1331,9 @@ export const usePosStore = defineStore('pos', {
         unit: target.unit,
         beforeStock: targetCurrentStock,
         afterStock: target.stock,
-        note: note ? `${note} [หัก: ${summaryText}]` : `หักสต็อก: ${summaryText}`,
+        receiveDate: produceDate,
+        expiryDate: expiryDate || undefined,
+        note: note ? `${note} ${dateNote} [หัก: ${summaryText}]` : `${dateNote} [หักสต็อก: ${summaryText}]`,
         user: 'ผู้ผลิต'
       })
 

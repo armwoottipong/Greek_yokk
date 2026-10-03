@@ -365,8 +365,22 @@
                 <span class="text-stone-600 ml-1">{{ log.description || log.note || '' }}</span>
               </p>
 
-              <!-- Reason & Note tags -->
-              <div v-if="log.reason || log.note" class="flex flex-wrap items-center gap-1.5 mt-1.5 text-[10px]">
+              <!-- Reason, Dates & Note tags -->
+              <div v-if="log.reason || log.receiveDate || log.expiryDate || log.note" class="flex flex-wrap items-center gap-1.5 mt-1.5 text-[10px]">
+                <span
+                  v-if="log.receiveDate"
+                  class="px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 font-medium font-number"
+                  :title="`วันที่รับเข้าหรือผลิต: ${log.receiveDate}`"
+                >
+                  📅 {{ formatThaiDate(log.receiveDate) }}
+                </span>
+                <span
+                  v-if="log.expiryDate"
+                  class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/60 font-medium font-number"
+                  :title="`วันหมดอายุ: ${log.expiryDate}`"
+                >
+                  ⏳ หมดอายุ: {{ formatThaiDate(log.expiryDate) }}
+                </span>
                 <span
                   v-if="log.reason"
                   class="px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 font-medium"
@@ -443,7 +457,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { usePosStore } from '@/stores/posStore'
+import { usePosStore, formatThaiDate } from '@/stores/posStore'
 import {
   X,
   Search,

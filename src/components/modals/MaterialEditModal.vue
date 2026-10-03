@@ -504,6 +504,106 @@
           </div>
         </div>
 
+        <!-- Shelf-Life & Expiration Settings (อายุการเก็บรักษาเริ่มต้น) -->
+        <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-stone-200/70 space-y-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="text-[11px] font-semibold text-stone-700 flex items-center gap-1.5">
+                <span>⏳</span>
+                <span>อายุการเก็บรักษาเริ่มต้น (Shelf-life)</span>
+              </label>
+              <p class="text-[10px] text-stone-400">
+                ใช้คำนวณวันหมดอายุอัตโนมัติเมื่อรับเข้าสต็อกหรือผลิตรอบใหม่ (เว้นว่างได้สำหรับบรรจุภัณฑ์)
+              </p>
+            </div>
+            <span
+              v-if="form.shelfLifeDays"
+              class="px-2 py-0.5 rounded-md font-number font-semibold text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200/60"
+            >
+              {{ form.shelfLifeDays }} วัน
+            </span>
+            <span
+              v-else
+              class="px-2 py-0.5 rounded-md font-semibold text-[10px] bg-stone-100 text-stone-500"
+            >
+              ไม่ระบุ
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div class="flex-1 flex items-center bg-white border border-stone-200 px-3 py-1.5 rounded-lg focus-within:border-stone-400">
+              <input
+                v-model.number="form.shelfLifeDays"
+                type="number"
+                min="1"
+                placeholder="ระบุจำนวนวัน (เช่น 7)"
+                class="w-full text-xs font-number font-semibold text-stone-900 bg-transparent focus:outline-none placeholder:text-stone-300"
+              />
+              <span class="text-xs font-medium text-stone-500 ml-1.5 shrink-0">วัน</span>
+            </div>
+
+            <!-- Quick Preset Shelf-Life Buttons -->
+            <div class="flex items-center gap-1 overflow-x-auto text-[10px] font-medium shrink-0">
+              <button
+                type="button"
+                @click="form.shelfLifeDays = null"
+                :class="!form.shelfLifeDays ? 'bg-stone-800 text-white font-bold' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
+                class="px-2 py-1.5 rounded-lg transition-all cursor-pointer"
+              >
+                ไม่ระบุ
+              </button>
+              <button
+                type="button"
+                @click="form.shelfLifeDays = 3"
+                :class="form.shelfLifeDays === 3 ? 'bg-amber-800 text-white font-bold' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
+                class="px-2 py-1.5 rounded-lg transition-all cursor-pointer font-number"
+              >
+                3 วัน
+              </button>
+              <button
+                type="button"
+                @click="form.shelfLifeDays = 7"
+                :class="form.shelfLifeDays === 7 ? 'bg-amber-800 text-white font-bold' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
+                class="px-2 py-1.5 rounded-lg transition-all cursor-pointer font-number"
+              >
+                7 วัน
+              </button>
+              <button
+                type="button"
+                @click="form.shelfLifeDays = 10"
+                :class="form.shelfLifeDays === 10 ? 'bg-amber-800 text-white font-bold' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
+                class="px-2 py-1.5 rounded-lg transition-all cursor-pointer font-number"
+              >
+                10 วัน
+              </button>
+              <button
+                type="button"
+                @click="form.shelfLifeDays = 14"
+                :class="form.shelfLifeDays === 14 ? 'bg-amber-800 text-white font-bold' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
+                class="px-2 py-1.5 rounded-lg transition-all cursor-pointer font-number"
+              >
+                14 วัน
+              </button>
+              <button
+                type="button"
+                @click="form.shelfLifeDays = 30"
+                :class="form.shelfLifeDays === 30 ? 'bg-amber-800 text-white font-bold' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
+                class="px-2 py-1.5 rounded-lg transition-all cursor-pointer font-number"
+              >
+                30 วัน
+              </button>
+              <button
+                type="button"
+                @click="form.shelfLifeDays = 365"
+                :class="form.shelfLifeDays === 365 ? 'bg-amber-800 text-white font-bold' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
+                class="px-2 py-1.5 rounded-lg transition-all cursor-pointer font-number"
+              >
+                1 ปี
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- 3. Clean Modal Footer -->
@@ -561,7 +661,8 @@ const form = ref({
   isSubIngredient: false,
   hasSubRecipe: false, // Default is OFF
   yieldQty: 540,
-  subRecipe: []
+  subRecipe: [],
+  shelfLifeDays: null
 })
 
 const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => form.value)
@@ -913,7 +1014,8 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         yieldQty: mat.yieldQty ? Number(mat.yieldQty) : 540,
         subRecipe: hasRecipe && mat.subRecipe && Array.isArray(mat.subRecipe) && mat.subRecipe.length > 0
           ? JSON.parse(JSON.stringify(mat.subRecipe))
-          : []
+          : [],
+        shelfLifeDays: mat.shelfLifeDays !== undefined ? mat.shelfLifeDays : null
       }
     } else {
       // New Material: Clean neutral defaults, hasSubRecipe is OFF
@@ -934,7 +1036,8 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         isSubIngredient: false,
         hasSubRecipe: false,
         yieldQty: 540,
-        subRecipe: []
+        subRecipe: [],
+        shelfLifeDays: null
       }
     }
 
@@ -1011,6 +1114,7 @@ async function submit() {
     isSubIngredient: isSub,
     hasSubRecipe: hasRecipe,
     yieldQty: hasRecipe ? pSize : undefined,
+    shelfLifeDays: form.value.shelfLifeDays ? Number(form.value.shelfLifeDays) : null,
     subRecipe: hasRecipe
       ? form.value.subRecipe
           .filter(r => r.materialId && r.qty > 0)
