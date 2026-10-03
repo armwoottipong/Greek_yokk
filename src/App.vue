@@ -27,6 +27,7 @@
       <ReceiptModal />
       <LowStockWarningModal />
       <EmojiPickerPopover />
+      <ConfirmModal />
       <ToastContainer />
     </Teleport>
   </div>
@@ -58,6 +59,7 @@ import CustomOrderModal from '@/components/modals/CustomOrderModal.vue'
 import ReceiptModal from '@/components/modals/ReceiptModal.vue'
 import LowStockWarningModal from '@/components/modals/LowStockWarningModal.vue'
 import EmojiPickerPopover from '@/components/modals/EmojiPickerPopover.vue'
+import ConfirmModal from '@/components/modals/ConfirmModal.vue'
 
 const store = usePosStore()
 

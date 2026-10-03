@@ -2,7 +2,7 @@
   <div
     v-if="store.modals.menuEdit.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="close"
+    @click.self="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Calm Header -->
@@ -13,7 +13,7 @@
           </h3>
           <p class="text-[11px] text-stone-500 mt-0.5">กำหนดราคาขายแต่ละแพลตฟอร์ม สูตรวัตถุดิบ และบรรจุภัณฑ์ที่ตัดสต็อก</p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors">
+        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer">
           <X class="w-5 h-5" />
         </button>
       </div>
@@ -302,15 +302,15 @@
       <div class="px-7 py-4 bg-stone-50/70 border-t border-stone-100 flex items-center justify-end gap-3 shrink-0">
         <button
           type="button"
-          @click="close"
-          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 rounded-xl transition-colors"
+          @click="requestClose(close)"
+          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 rounded-xl transition-colors cursor-pointer"
         >
           ยกเลิก
         </button>
         <button
           type="button"
           @click="submit"
-          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-sm transition-all flex items-center gap-2"
+          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer"
         >
           <Check class="w-4 h-4" />
           <span>บันทึกข้อมูลเมนู</span>
@@ -321,8 +321,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
+import { useModalForm } from '@/composables/useModalForm'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 import { X, Plus, Trash2, Check } from 'lucide-vue-next'
 
@@ -341,6 +342,12 @@ const form = ref({
 
 const baseRecipeRows = ref([])
 const packageRecipeRows = ref([])
+
+const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => ({
+  form: form.value,
+  baseRecipeRows: baseRecipeRows.value,
+  packageRecipeRows: packageRecipeRows.value
+}))
 
 const isEditing = computed(() => Boolean(store.modals.menuEdit.menuId))
 
@@ -420,6 +427,10 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
         packageRecipeRows.value.push({ materialId: defaultCup.id, qty: 1 })
       }
     }
+
+    nextTick(() => {
+      saveSnapshot()
+    })
   }
 })
 
@@ -484,11 +495,14 @@ function close() {
   store.modals.menuEdit.menuId = null
 }
 
-function submit() {
+async function submit() {
   if (!form.value.name.trim()) {
     store.showToast('กรุณากรอกชื่อเมนู', 'error')
     return
   }
+
+  const ok = await confirmSave(form.value.name.trim())
+  if (!ok) return
 
   // Combine recipes
   const combinedRecipe = []

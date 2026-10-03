@@ -2,7 +2,7 @@
   <div
     v-if="store.modals.stockIn.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="close"
+    @click.self="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Calm Clean Header -->
@@ -16,7 +16,7 @@
             {{ isProducedFromRecipe ? 'ผลิตตามสูตร (หักวัตถุดิบรองอัตโนมัติ)' : 'รับซื้อวัตถุดิบเข้าคลัง' }}
           </p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors">
+        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer">
           <X class="w-4 h-4" />
         </button>
       </div>
@@ -264,8 +264,8 @@
       <div class="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-end gap-2.5 shrink-0">
         <button
           type="button"
-          @click="close"
-          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+          @click="requestClose(close)"
+          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
         >
           ยกเลิก
         </button>
@@ -273,7 +273,7 @@
           type="button"
           @click="submit"
           :disabled="isProducedFromRecipe && (!canProduce || produceYieldQty <= 0)"
-          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs disabled:opacity-40 transition-all flex items-center gap-1.5"
+          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs disabled:opacity-40 transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Check class="w-3.5 h-3.5" />
           <span>{{ isProducedFromRecipe ? 'ผลิตและหักสต็อก' : 'บันทึกรับเข้า' }}</span>
@@ -284,8 +284,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
+import { useModalForm } from '@/composables/useModalForm'
 import { X, Check } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -301,6 +302,18 @@ const note = ref('')
 const produceUnitMode = ref('batch') // 'batch' | 'base'
 const produceBatchCount = ref(1)
 const produceYieldQty = ref(1200)
+
+const { saveSnapshot, requestClose } = useModalForm(() => ({
+  selectedMatId: selectedMatId.value,
+  unitMode: unitMode.value,
+  inputPackQty: inputPackQty.value,
+  inputBaseQty: inputBaseQty.value,
+  inputPackCost: inputPackCost.value,
+  note: note.value,
+  produceUnitMode: produceUnitMode.value,
+  produceBatchCount: produceBatchCount.value,
+  produceYieldQty: produceYieldQty.value
+}))
 
 const currentMat = computed(() => {
   return store.matMap[selectedMatId.value]
@@ -395,6 +408,9 @@ watch(() => store.modals.stockIn.isOpen, (open) => {
     const id = store.modals.stockIn.materialId || (store.activeMaterials[0]?.id || '')
     selectedMatId.value = id
     initForMaterial(store.matMap[id])
+    nextTick(() => {
+      saveSnapshot()
+    })
   }
 })
 
@@ -407,9 +423,12 @@ function close() {
   store.modals.stockIn.materialId = null
 }
 
-function submit() {
+async function submit() {
   const mat = currentMat.value
-  if (!mat) return
+  if (!mat) {
+    store.showToast('กรุณาเลือกวัตถุดิบ', 'error')
+    return
+  }
 
   if (isProducedFromRecipe.value) {
     if (!produceYieldQty.value || produceYieldQty.value <= 0) {
@@ -421,6 +440,14 @@ function submit() {
       return
     }
 
+    const confirmed = await store.confirmDialog({
+      title: 'ยืนยันการผลิตตามสูตร',
+      message: `ผลิต "${mat.name}" จำนวน +${produceYieldQty.value.toLocaleString()} ${mat.unit}\nระบบจะตัดสต็อกวัตถุดิบรองตามสูตรอัตโนมัติ ยืนยันหรือไม่?`,
+      confirmText: 'ยืนยันผลิต',
+      type: 'warning'
+    })
+    if (!confirmed) return
+
     const ok = store.batchProduce(mat.id, produceYieldQty.value, scaledSubIngredients.value, note.value)
     if (ok) close()
     return
@@ -430,6 +457,14 @@ function submit() {
     store.showToast('กรุณาระบุจำนวนที่รับเข้า', 'error')
     return
   }
+
+  const confirmed = await store.confirmDialog({
+    title: 'ยืนยันการรับเข้าสต็อก',
+    message: `รับเข้า "${mat.name}" จำนวน +${inputBaseQty.value.toLocaleString()} ${mat.unit}\n(ยอดรวม ฿${calculatedDirectTotal.value.toFixed(2)}) ยืนยันหรือไม่?`,
+    confirmText: 'ยืนยันรับเข้า',
+    type: 'save'
+  })
+  if (!confirmed) return
 
   const pSize = mat.packSize > 0 ? mat.packSize : 1
   const unitCost = (Number(inputPackCost.value) || 0) / pSize

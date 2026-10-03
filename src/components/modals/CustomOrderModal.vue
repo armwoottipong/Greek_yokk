@@ -2,7 +2,7 @@
   <div
     v-if="store.modals.customOrder.isOpen && selectedMenu"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="close"
+    @click.self="requestClose"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Header -->
@@ -14,7 +14,7 @@
             <p class="text-xs text-stone-400 mt-0.5">{{ selectedMenu.description }}</p>
           </div>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100">
+        <button @click="requestClose" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer">
           <X class="w-5 h-5" />
         </button>
       </div>
@@ -193,6 +193,20 @@ const totalBowlPrice = computed(() => {
 function close() {
   store.modals.customOrder.isOpen = false
   store.modals.customOrder.menuId = null
+}
+
+async function requestClose() {
+  if (selectedAddons.value.length > 0) {
+    const ok = await store.confirmDialog({
+      title: 'ยกเลิกการเลือกท็อปปิ้ง?',
+      message: 'คุณได้เลือกท็อปปิ้งไว้ ต้องการปิดโดยไม่เพิ่มลงในรายการสั่งซื้อหรือไม่?',
+      confirmText: 'ปิดหน้าต่าง',
+      cancelText: 'เลือกต่อ',
+      type: 'warning'
+    })
+    if (!ok) return
+  }
+  close()
 }
 
 function addToCart() {

@@ -2,7 +2,7 @@
   <div
     v-if="store.modals.addonEdit.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="close"
+    @click.self="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
       <!-- Header -->
@@ -13,7 +13,7 @@
           </h3>
           <p class="text-[11px] text-stone-400 mt-0.5">กำหนดราคาตามแพลตฟอร์มและการผูกตัดวัตถุดิบในคลัง</p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg">
+        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer">
           <X class="w-4 h-4" />
         </button>
       </div>
@@ -135,15 +135,15 @@
       <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-stone-100">
         <button
           type="button"
-          @click="close"
-          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+          @click="requestClose(close)"
+          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
         >
           ยกเลิก
         </button>
         <button
           type="button"
           @click="submit"
-          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Check class="w-3.5 h-3.5" />
           <span>บันทึก Add-on</span>
@@ -154,8 +154,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
+import { useModalForm } from '@/composables/useModalForm'
 import { X, Check } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -169,6 +170,8 @@ const form = ref({
   materialId: '',
   amountUsed: 25
 })
+
+const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => form.value)
 
 const isEditing = computed(() => Boolean(store.modals.addonEdit.addonId))
 
@@ -197,6 +200,10 @@ watch(() => store.modals.addonEdit.isOpen, (open) => {
         form.value.prices[p.id] = ''
       }
     })
+
+    nextTick(() => {
+      saveSnapshot()
+    })
   }
 })
 
@@ -214,11 +221,14 @@ function close() {
   store.modals.addonEdit.addonId = null
 }
 
-function submit() {
+async function submit() {
   if (!form.value.name.trim()) {
     store.showToast('กรุณากรอกชื่อ Add-on', 'error')
     return
   }
+
+  const ok = await confirmSave(form.value.name.trim())
+  if (!ok) return
 
   store.saveAddon({
     id: form.value.id || undefined,

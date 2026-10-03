@@ -118,7 +118,17 @@ export const usePosStore = defineStore('pos', {
         customOrder: { isOpen: false, menuId: null },
         receipt: { isOpen: false, order: null },
         lowStockWarning: { isOpen: false, warningItems: [], onConfirm: null },
-        emojiPicker: { isOpen: false, targetCallback: null }
+        emojiPicker: { isOpen: false, targetCallback: null },
+        confirm: {
+          isOpen: false,
+          title: '',
+          message: '',
+          confirmText: 'ยืนยัน',
+          cancelText: 'ยกเลิก',
+          type: 'warning', // 'warning' | 'danger' | 'save' | 'info'
+          onConfirm: null,
+          onCancel: null
+        }
       },
 
       // Google Sheets live sync
@@ -339,9 +349,59 @@ export const usePosStore = defineStore('pos', {
   },
 
   actions: {
-    // Tab switching
-    switchTab(tab) {
+    // Tab switching with unsaved changes safeguard
+    async switchTab(tab) {
+      if (this.currentTab === tab) return
+
+      const hasActiveEdit = Boolean(
+        this.modals.menuEdit.isOpen ||
+        this.modals.materialEdit.isOpen ||
+        this.modals.addonEdit.isOpen ||
+        this.modals.stockIn.isOpen ||
+        this.modals.stockAdjust.isOpen
+      )
+
+      if (hasActiveEdit) {
+        const ok = await this.confirmDialog({
+          title: 'มีหน้าต่างแก้ไขเปิดอยู่',
+          message: 'คุณกำลังเปิดหน้าต่างแก้ไขข้อมูลอยู่ หากสลับหน้าระบบจะปิดหน้าต่างแก้ไขลง\nต้องการสลับหน้าต่างหรือไม่?',
+          confirmText: 'สลับหน้าต่าง',
+          cancelText: 'อยู่หน้านี้ต่อ',
+          type: 'warning'
+        })
+        if (!ok) return
+
+        // Close all active edit modals
+        this.modals.menuEdit.isOpen = false
+        this.modals.materialEdit.isOpen = false
+        this.modals.addonEdit.isOpen = false
+        this.modals.stockIn.isOpen = false
+        this.modals.stockAdjust.isOpen = false
+      }
+
       this.currentTab = tab
+    },
+
+    // Promise-based Confirm Dialog (Greek Yogg Design System)
+    confirmDialog({ title, message, confirmText = 'ยืนยัน', cancelText = 'ยกเลิก', type = 'warning' }) {
+      return new Promise((resolve) => {
+        this.modals.confirm = {
+          isOpen: true,
+          title,
+          message,
+          confirmText,
+          cancelText,
+          type,
+          onConfirm: () => {
+            this.modals.confirm.isOpen = false
+            resolve(true)
+          },
+          onCancel: () => {
+            this.modals.confirm.isOpen = false
+            resolve(false)
+          }
+        }
+      })
     },
 
     setPlatform(platId) {

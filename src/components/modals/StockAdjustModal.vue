@@ -2,7 +2,7 @@
   <div
     v-if="store.modals.stockAdjust.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="close"
+    @click.self="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Calm Header -->
@@ -14,7 +14,7 @@
           </h3>
           <p class="text-[11px] text-stone-500 mt-0.5">เทียบยอดนับจริงกับระบบและบันทึกเหตุผลผลต่าง</p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors">
+        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer">
           <X class="w-5 h-5" />
         </button>
       </div>
@@ -158,15 +158,15 @@
       <div class="px-7 py-4 border-t border-stone-100 bg-white flex items-center justify-end gap-3 shrink-0">
         <button
           type="button"
-          @click="close"
-          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+          @click="requestClose(close)"
+          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
         >
           ยกเลิก
         </button>
         <button
           type="button"
           @click="submit"
-          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-2"
+          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
         >
           <Check class="w-4 h-4" />
           <span>บันทึกปรับยอด</span>
@@ -177,8 +177,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
+import { useModalForm } from '@/composables/useModalForm'
 import { X, Check } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -189,6 +190,13 @@ const actualStock = ref(0)
 const actualPackStock = ref(0)
 const reason = ref('นับสต็อกจริงรายวัน')
 const note = ref('')
+
+const { saveSnapshot, requestClose } = useModalForm(() => ({
+  selectedMatId: selectedMatId.value,
+  actualStock: actualStock.value,
+  reason: reason.value,
+  note: note.value
+}))
 
 const selectedMaterial = computed(() => {
   return store.matMap[selectedMatId.value]
@@ -231,6 +239,9 @@ watch(() => store.modals.stockAdjust.isOpen, (open) => {
     const id = store.modals.stockAdjust.materialId || (store.activeMaterials[0]?.id || '')
     selectedMatId.value = id
     initForMaterial(store.matMap[id])
+    nextTick(() => {
+      saveSnapshot()
+    })
   }
 })
 
@@ -243,8 +254,8 @@ function close() {
   store.modals.stockAdjust.materialId = null
 }
 
-function submit() {
-  if (!selectedMatId.value) {
+async function submit() {
+  if (!selectedMatId.value || !selectedMaterial.value) {
     store.showToast('กรุณาเลือกวัตถุดิบ', 'error')
     return
   }
@@ -252,6 +263,16 @@ function submit() {
     store.showToast('ยอดนับจริงต้องไม่ติดลบ', 'error')
     return
   }
+
+  const diff = difference.value
+  const diffSign = diff > 0 ? `+${diff}` : `${diff}`
+  const confirmed = await store.confirmDialog({
+    title: 'ยืนยันการปรับยอดสต็อกจริง',
+    message: `ปรับสต็อก "${selectedMaterial.value.name}"\nจากเดิม ${currentStock.value} เป็น ${actualStock.value} ${selectedMaterial.value.unit} (ผลต่าง ${diffSign} ${selectedMaterial.value.unit})\n\nยืนยันการปรับยอดหรือไม่?`,
+    confirmText: 'ยืนยันปรับยอด',
+    type: 'warning'
+  })
+  if (!confirmed) return
 
   store.stockAdjust(selectedMatId.value, actualStock.value, reason.value, note.value)
   close()

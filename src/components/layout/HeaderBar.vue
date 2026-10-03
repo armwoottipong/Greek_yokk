@@ -63,14 +63,28 @@ import { RotateCcw, RefreshCw as CloudSync, Trash2 } from 'lucide-vue-next'
 
 const store = usePosStore()
 
-function confirmClearAll() {
-  if (confirm('⚠️ ต้องการล้างข้อมูลทั้งหมดออกหรือไม่?\n\n- ลบเมนูและสูตรทั้งหมด\n- ลบวัตถุดิบและสต็อกทั้งหมด\n- ลบ Add-on ทั้งหมด\n- ล้างประวัติคำสั่งซื้อทั้งหมด\n\n(คุณสามารถกด "โหลด Demo" เพื่อนำชุดข้อมูลตัวอย่างกลับมาได้ทุกเมื่อ)')) {
+async function confirmClearAll() {
+  const ok = await store.confirmDialog({
+    title: 'ยืนยันล้างข้อมูลทั้งหมดออก?',
+    message: 'เมนู, วัตถุดิบ, สต็อก, Add-on และประวัติคำสั่งซื้อทั้งหมดจะถูกล้าง\n\n(คุณสามารถกด "โหลด Demo" เพื่อนำชุดข้อมูลตัวอย่างกลับมาได้ทุกเมื่อ)',
+    confirmText: 'ล้างข้อมูลทั้งหมด',
+    cancelText: 'ยกเลิก',
+    type: 'danger'
+  })
+  if (ok) {
     store.clearAllData()
   }
 }
 
-function confirmResetDemo() {
-  if (confirm('คุณต้องการโหลดชุดข้อมูลตัวอย่าง (Demo Data) หรือไม่?\n\n* ข้อมูลออเดอร์ ยอดสต็อก และเมนูจะถูกแทนที่ด้วยชุดข้อมูลตัวอย่างสำหรับร้านกรีกโยเกิร์ต *')) {
+async function confirmResetDemo() {
+  const ok = await store.confirmDialog({
+    title: 'โหลดชุดข้อมูลตัวอย่าง Demo?',
+    message: 'ข้อมูลออเดอร์, ยอดสต็อก และเมนูจะถูกแทนที่ด้วยชุดข้อมูลตัวอย่างสำหรับร้านกรีกโยเกิร์ต\n\nต้องการดำเนินการต่อหรือไม่?',
+    confirmText: 'โหลดข้อมูล Demo',
+    cancelText: 'ยกเลิก',
+    type: 'warning'
+  })
+  if (ok) {
     store.resetDemoData()
   }
 }

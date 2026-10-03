@@ -2,7 +2,7 @@
   <div
     v-if="store.modals.materialEdit.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="close"
+    @click.self="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Calm Clean Header -->
@@ -13,7 +13,7 @@
           </h3>
           <p class="text-[11px] text-stone-400 mt-0.5">ระบุข้อมูลต้นทุน หรือตั้งสูตรการผลิต</p>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors">
+        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer">
           <X class="w-4 h-4" />
         </button>
       </div>
@@ -385,15 +385,15 @@
       <div class="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-end gap-2.5 shrink-0">
         <button
           type="button"
-          @click="close"
-          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
+          @click="requestClose(close)"
+          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
         >
           ยกเลิก
         </button>
         <button
           type="button"
           @click="submit"
-          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Check class="w-3.5 h-3.5" />
           <span>บันทึก</span>
@@ -404,8 +404,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
+import { useModalForm } from '@/composables/useModalForm'
 import { X, Check, Plus } from 'lucide-vue-next'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 
@@ -428,6 +429,8 @@ const form = ref({
   yieldQty: 1200,
   subRecipe: []
 })
+
+const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => form.value)
 
 const isEditing = computed(() => Boolean(store.modals.materialEdit.materialId))
 
@@ -526,6 +529,10 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
           : []
       }
     }
+
+    nextTick(() => {
+      saveSnapshot()
+    })
   }
 })
 
@@ -578,11 +585,14 @@ function close() {
   store.modals.materialEdit.materialId = null
 }
 
-function submit() {
+async function submit() {
   if (!form.value.name.trim()) {
     store.showToast('กรุณากรอกชื่อวัตถุดิบ', 'error')
     return
   }
+
+  const ok = await confirmSave(form.value.name.trim())
+  if (!ok) return
 
   const hasRecipe = Boolean(form.value.hasSubRecipe)
   const catName = (form.value.category || '').toLowerCase()
