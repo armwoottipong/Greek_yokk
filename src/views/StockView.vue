@@ -12,7 +12,7 @@
       <div class="flex items-center gap-2">
         <button
           @click="openStockIn()"
-          class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors"
+          class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
         >
           <ArrowDownToLine class="w-4 h-4 text-emerald-600" />
           <span>รับเข้าสต็อก</span>
@@ -20,7 +20,7 @@
 
         <button
           @click="openStockAdjust()"
-          class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors"
+          class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
         >
           <SlidersHorizontal class="w-4 h-4 text-amber-600" />
           <span>ปรับยอดนับจริง</span>
@@ -28,7 +28,7 @@
 
         <button
           @click="openCreateMaterial"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-900 hover:bg-amber-950 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-900 hover:bg-amber-950 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           <Plus class="w-4 h-4" />
           <span>เพิ่มวัตถุดิบใหม่</span>
@@ -102,7 +102,7 @@
         <button
           @click="selectedRole = 'all'"
           :class="[
-            'px-3 py-1.5 rounded-lg transition-all',
+            'px-3 py-1.5 rounded-lg transition-all cursor-pointer',
             selectedRole === 'all' ? 'bg-white text-stone-900 shadow-2xs' : 'text-stone-500 hover:text-stone-900'
           ]"
         >
@@ -111,7 +111,7 @@
         <button
           @click="selectedRole = 'main'"
           :class="[
-            'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1',
+            'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
             selectedRole === 'main' ? 'bg-emerald-800 text-white shadow-2xs' : 'text-stone-500 hover:text-emerald-800'
           ]"
         >
@@ -120,7 +120,7 @@
         <button
           @click="selectedRole = 'sub'"
           :class="[
-            'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1',
+            'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
             selectedRole === 'sub' ? 'bg-purple-800 text-white shadow-2xs' : 'text-stone-500 hover:text-purple-800'
           ]"
         >
@@ -132,7 +132,7 @@
       <div class="flex items-center gap-2 flex-1 max-w-xl justify-end">
         <select
           v-model="selectedCategory"
-          class="soft-input px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 shrink-0"
+          class="soft-input px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 shrink-0 cursor-pointer"
         >
           <option v-for="cat in categories" :key="cat.id" :value="cat.id">
             {{ cat.label }}
@@ -161,7 +161,7 @@
     </div>
 
     <!-- Material Inventory Table -->
-    <div class="editorial-card bg-white overflow-hidden">
+    <div class="editorial-card bg-white pb-12">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
           <thead>
@@ -178,7 +178,7 @@
           </thead>
           <tbody class="divide-y divide-stone-100">
             <tr
-              v-for="mat in filteredMaterials"
+              v-for="(mat, idx) in filteredMaterials"
               :key="mat.id"
               :class="[
                 'hover:bg-[#FAF9F6] transition-colors',
@@ -234,27 +234,52 @@
                 </span>
               </td>
 
-              <!-- Stock Level -->
+              <!-- Stock Level with Quick +/- Stepper -->
               <td class="py-3 px-4">
-                <div class="font-bold font-number text-sm">
-                  <span
-                    :class="[
-                      mat.stock <= 0
-                        ? 'text-rose-600'
-                        : mat.stock <= mat.minAlert
-                          ? 'text-amber-600'
-                          : 'text-stone-900'
-                    ]"
+                <div class="flex items-center gap-2">
+                  <button
+                    v-if="!mat.isDeleted"
+                    type="button"
+                    @click="quickAdjustStock(mat, -1)"
+                    :disabled="mat.stock <= 0"
+                    class="w-6 h-6 rounded-lg bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                    :title="mat.hasSubRecipe ? 'ลด 1 รอบ' : `ลด 1 ${mat.packUnit || mat.unit}`"
                   >
-                    {{ mat.stock.toLocaleString() }}
-                  </span>
-                  <span class="text-xs font-normal text-stone-400 ml-1">{{ mat.unit }}</span>
-                </div>
-                <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number mt-0.5">
-                  ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
+                    <Minus class="w-3 h-3" />
+                  </button>
+
+                  <div class="min-w-[85px]">
+                    <div class="font-bold font-number text-sm flex items-center gap-1">
+                      <span
+                        :class="[
+                          mat.stock <= 0
+                            ? 'text-rose-600'
+                            : mat.stock <= mat.minAlert
+                              ? 'text-amber-600'
+                              : 'text-stone-900'
+                        ]"
+                      >
+                        {{ mat.stock.toLocaleString() }}
+                      </span>
+                      <span class="text-xs font-normal text-stone-400">{{ mat.unit }}</span>
+                    </div>
+                    <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number">
+                      ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
+                    </div>
+                  </div>
+
+                  <button
+                    v-if="!mat.isDeleted"
+                    type="button"
+                    @click="quickAdjustStock(mat, 1)"
+                    :disabled="mat.hasSubRecipe && !canProduceQuick(mat)"
+                    class="w-6 h-6 rounded-lg bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                    :title="mat.hasSubRecipe ? (canProduceQuick(mat) ? 'ผลิตเพิ่ม 1 รอบ (หักวัตถุดิบรอง)' : 'วัตถุดิบรองไม่พอผลิตเพิ่ม') : `เพิ่ม 1 ${mat.packUnit || mat.unit}`"
+                  >
+                    <Plus class="w-3 h-3" />
+                  </button>
                 </div>
               </td>
-
 
               <!-- Unit Cost (Primary: Pack purchase cost e.g. ฿105/ขวด, Secondary: base unit cost) -->
               <td class="py-3 px-4 font-number text-stone-700">
@@ -302,54 +327,70 @@
                 </span>
               </td>
 
-              <!-- Actions -->
-              <td class="py-3 px-4 text-right">
-                <div class="inline-flex items-center gap-1">
-                  <!-- Stock In quick button -->
+              <!-- Actions (Collapsed into ... more dropdown popup) -->
+              <td class="py-3 px-4 text-right relative">
+                <div class="inline-flex items-center justify-end">
+                  <button
+                    type="button"
+                    @click.stop="toggleActionMenu(mat.id)"
+                    class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                    :class="activeActionMenuId === mat.id ? 'bg-stone-100 text-stone-900' : ''"
+                    title="การจัดการเพิ่มเติม"
+                  >
+                    <MoreHorizontal class="w-4 h-4" />
+                  </button>
+                </div>
+
+                <!-- Dropdown Popup Menu -->
+                <div
+                  v-if="activeActionMenuId === mat.id"
+                  @click.stop
+                  :class="idx >= filteredMaterials.length - 2 ? 'bottom-11' : 'top-11'"
+                  class="absolute right-4 z-30 w-44 bg-white rounded-xl shadow-xl border border-stone-200/80 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100"
+                >
                   <button
                     v-if="!mat.isDeleted"
-                    @click="openStockIn(mat.id)"
-                    title="รับเข้าสต็อก"
-                    class="p-1.5 text-stone-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                    @click="onActionStockIn(mat.id)"
+                    class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
                   >
-                    <ArrowDownToLine class="w-4 h-4" />
+                    <ArrowDownToLine class="w-3.5 h-3.5 text-emerald-600" />
+                    <span>รับเข้าสต็อก</span>
                   </button>
 
-                  <!-- Stock Adjust quick button -->
                   <button
                     v-if="!mat.isDeleted"
-                    @click="openStockAdjust(mat.id)"
-                    title="ปรับยอดสต็อกจริง"
-                    class="p-1.5 text-stone-400 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors"
+                    @click="onActionStockAdjust(mat.id)"
+                    class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
                   >
-                    <SlidersHorizontal class="w-4 h-4" />
+                    <SlidersHorizontal class="w-3.5 h-3.5 text-amber-600" />
+                    <span>ปรับยอดนับจริง</span>
                   </button>
 
-                  <!-- Edit button -->
                   <button
-                    @click="openEditMaterial(mat.id)"
-                    title="แก้ไขข้อมูลวัตถุดิบ"
-                    class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors"
+                    @click="onActionEdit(mat.id)"
+                    class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
                   >
-                    <Edit3 class="w-4 h-4" />
+                    <Edit3 class="w-3.5 h-3.5 text-stone-600" />
+                    <span>แก้ไขข้อมูล / สูตร</span>
                   </button>
 
-                  <!-- Soft Delete / Restore button -->
+                  <div class="my-1 border-t border-stone-100"></div>
+
                   <button
                     v-if="!mat.isDeleted"
-                    @click="softDelete(mat)"
-                    title="ซ่อนรายการนี้"
-                    class="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                    @click="onActionSoftDelete(mat)"
+                    class="w-full px-3 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
                   >
-                    <EyeOff class="w-4 h-4" />
+                    <EyeOff class="w-3.5 h-3.5" />
+                    <span>ซ่อนรายการนี้</span>
                   </button>
                   <button
                     v-else
-                    @click="restore(mat)"
-                    title="กู้คืนรายการนี้"
-                    class="p-1.5 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                    @click="onActionRestore(mat)"
+                    class="w-full px-3 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 transition-colors cursor-pointer"
                   >
-                    <RotateCcw class="w-4 h-4" />
+                    <RotateCcw class="w-3.5 h-3.5" />
+                    <span>กู้คืนรายการนี้</span>
                   </button>
                 </div>
               </td>
@@ -366,20 +407,76 @@
         </table>
       </div>
     </div>
+
+    <!-- Floating Bottom Save Bar (Pops up from bottom when changes are made) -->
+    <transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="transform translate-y-24 opacity-0"
+      enter-to-class="transform translate-y-0 opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="transform translate-y-0 opacity-100"
+      leave-to-class="transform translate-y-24 opacity-0"
+    >
+      <div
+        v-if="hasPendingChanges"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-4 border border-stone-800 max-w-xl w-[92vw] justify-between"
+      >
+        <div class="flex items-center gap-3 min-w-0 pr-2">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg shrink-0">
+            📦
+          </div>
+          <div class="min-w-0">
+            <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>ปรับสต็อก / ผลิตสำเร็จรูป</span>
+              <span class="px-1.5 py-0.5 rounded-md bg-amber-500/30 text-amber-300 font-number text-[11px]">
+                {{ changedItemsList.length }} รายการ
+              </span>
+            </h4>
+            <p class="text-[11px] text-stone-400 truncate mt-0.5 font-number">
+              {{ changedItemsSummaryText }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            @click="revertPendingChanges"
+            class="px-3 py-2 rounded-xl text-xs font-medium text-stone-300 hover:text-white hover:bg-stone-800 transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <Undo2 class="w-3.5 h-3.5" />
+            <span>ยกเลิก</span>
+          </button>
+
+          <button
+            type="button"
+            @click="savePendingChanges"
+            class="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <Check class="w-3.5 h-3.5" />
+            <span>บันทึกสต็อก</span>
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import {
   Plus,
+  Minus,
   ArrowDownToLine,
   SlidersHorizontal,
   Search,
   Edit3,
   EyeOff,
-  RotateCcw
+  RotateCcw,
+  MoreHorizontal,
+  Check,
+  Undo2
 } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -389,6 +486,168 @@ const selectedRole = ref('all') // 'all' | 'main' | 'sub'
 const selectedCategory = ref('all')
 const showDeleted = ref(false)
 
+// Action menu dropdown state
+const activeActionMenuId = ref(null)
+
+// Snapshot of stocks to detect pending changes
+const stockSnapshot = ref({})
+
+function takeStockSnapshot() {
+  const map = {}
+  store.materials.forEach(m => {
+    map[m.id] = Number(m.stock) || 0
+  })
+  stockSnapshot.value = map
+}
+
+onMounted(() => {
+  takeStockSnapshot()
+  window.addEventListener('click', closeActionMenu)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeActionMenu)
+})
+
+function toggleActionMenu(matId) {
+  if (activeActionMenuId.value === matId) {
+    activeActionMenuId.value = null
+  } else {
+    activeActionMenuId.value = matId
+  }
+}
+
+function closeActionMenu() {
+  activeActionMenuId.value = null
+}
+
+function onActionStockIn(matId) {
+  closeActionMenu()
+  openStockIn(matId)
+}
+
+function onActionStockAdjust(matId) {
+  closeActionMenu()
+  openStockAdjust(matId)
+}
+
+function onActionEdit(matId) {
+  closeActionMenu()
+  openEditMaterial(matId)
+}
+
+function onActionSoftDelete(mat) {
+  closeActionMenu()
+  softDelete(mat)
+}
+
+function onActionRestore(mat) {
+  closeActionMenu()
+  restore(mat)
+}
+
+// -------------------------------------------------------------
+// Quick Stepper & Real-time Sub-Ingredient Stock Deduction
+// -------------------------------------------------------------
+function canProduceQuick(mat) {
+  if (!mat.hasSubRecipe || !mat.subRecipe || mat.subRecipe.length === 0) return true
+  for (const row of mat.subRecipe) {
+    const subMat = store.matMap[row.materialId]
+    const currentStock = subMat ? Number(subMat.stock) || 0 : 0
+    const needed = Number(row.qty) || 0
+    if (currentStock < needed) return false
+  }
+  return true
+}
+
+function quickAdjustStock(mat, delta) {
+  if (mat.hasSubRecipe) {
+    const yieldAmount = Number(mat.yieldQty) || 540
+    if (delta > 0) {
+      // Check sub-ingredients
+      if (!canProduceQuick(mat)) {
+        store.showToast(`วัตถุดิบรองไม่พอสำหรับผลิต ${mat.name} อีก 1 รอบ`, 'error')
+        return
+      }
+      // Increment target stock
+      mat.stock = Math.round((Number(mat.stock || 0) + yieldAmount) * 100) / 100
+      // Deduct sub-ingredients in realtime
+      for (const row of mat.subRecipe) {
+        const subMat = store.materials.find(m => m.id === row.materialId)
+        if (subMat) {
+          const needed = Number(row.qty) || 0
+          subMat.stock = Math.max(0, Math.round((Number(subMat.stock || 0) - needed) * 100) / 100)
+        }
+      }
+    } else {
+      // Decrease 1 round
+      if (mat.stock <= 0) return
+      const removeAmount = Math.min(Number(mat.stock || 0), yieldAmount)
+      mat.stock = Math.max(0, Math.round((Number(mat.stock || 0) - removeAmount) * 100) / 100)
+    }
+  } else {
+    // Standard material
+    const pSize = Number(mat.packSize) > 0 ? Number(mat.packSize) : 1
+    if (delta > 0) {
+      mat.stock = Math.round((Number(mat.stock || 0) + pSize) * 100) / 100
+    } else {
+      if (mat.stock <= 0) return
+      mat.stock = Math.max(0, Math.round((Number(mat.stock || 0) - pSize) * 100) / 100)
+    }
+  }
+}
+
+// -------------------------------------------------------------
+// Floating Bottom Save Bar Logic
+// -------------------------------------------------------------
+const changedItemsList = computed(() => {
+  const list = []
+  store.materials.forEach(m => {
+    const orig = stockSnapshot.value[m.id] !== undefined ? stockSnapshot.value[m.id] : m.stock
+    const current = Number(m.stock) || 0
+    if (orig !== current) {
+      const diff = Math.round((current - orig) * 100) / 100
+      list.push({
+        id: m.id,
+        name: m.name,
+        emoji: m.emoji,
+        unit: m.unit,
+        diff,
+        orig,
+        current
+      })
+    }
+  })
+  return list
+})
+
+const hasPendingChanges = computed(() => changedItemsList.value.length > 0)
+
+const changedItemsSummaryText = computed(() => {
+  return changedItemsList.value
+    .map(i => `${i.name} ${i.diff > 0 ? '+' : ''}${i.diff.toLocaleString()} ${i.unit}`)
+    .join(', ')
+})
+
+function savePendingChanges() {
+  const count = changedItemsList.value.length
+  store.persistLocal()
+  store.showToast(`บันทึกการปรับสต็อกสำเร็จ (${count} รายการ)`, 'success')
+  takeStockSnapshot()
+}
+
+function revertPendingChanges() {
+  store.materials.forEach(m => {
+    if (stockSnapshot.value[m.id] !== undefined) {
+      m.stock = stockSnapshot.value[m.id]
+    }
+  })
+  store.showToast('ยกเลิกการปรับเปลี่ยนสต็อกแล้ว', 'info')
+}
+
+// -------------------------------------------------------------
+// Filters & Other Helpers
+// -------------------------------------------------------------
 const categories = computed(() => {
   const list = [{ id: 'all', label: 'ทุกหมวดหมู่' }]
   store.materialCategories.forEach(c => {
