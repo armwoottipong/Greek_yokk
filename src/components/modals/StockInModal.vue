@@ -80,28 +80,50 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-2">
-              <input
-                v-if="unitMode === 'pack'"
-                v-model.number="inputPackQty"
-                @input="syncFromPackQty"
-                type="number"
-                min="0.1"
-                step="any"
-                placeholder="0"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-stone-900"
-              />
-              <input
-                v-else
-                v-model.number="inputBaseQty"
-                @input="syncFromBaseQty"
-                type="number"
-                min="0.1"
-                step="any"
-                placeholder="0"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-stone-900"
-              />
-              <span class="text-stone-500 font-medium shrink-0 w-12 text-center">
+            <div class="flex items-center gap-1.5">
+              <button
+                type="button"
+                @click="stepDirectQty(-1)"
+                :disabled="unitMode === 'pack' ? inputPackQty <= 1 : inputBaseQty <= (currentMat?.packSize || 1)"
+                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                title="ลด 1"
+              >
+                <Minus class="w-3.5 h-3.5" />
+              </button>
+
+              <div class="relative flex-1">
+                <input
+                  v-if="unitMode === 'pack'"
+                  v-model.number="inputPackQty"
+                  @input="syncFromPackQty"
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  placeholder="0"
+                  class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-stone-900"
+                />
+                <input
+                  v-else
+                  v-model.number="inputBaseQty"
+                  @input="syncFromBaseQty"
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  placeholder="0"
+                  class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-stone-900"
+                />
+              </div>
+
+              <button
+                type="button"
+                @click="stepDirectQty(1)"
+                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                title="เพิ่ม 1"
+              >
+                <Plus class="w-3.5 h-3.5" />
+              </button>
+
+              <span class="text-stone-500 font-medium shrink-0 w-12 text-center text-xs">
                 {{ unitMode === 'pack' ? currentMat?.packUnit : currentMat?.unit }}
               </span>
             </div>
@@ -181,26 +203,48 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-2">
-              <input
-                v-if="produceUnitMode === 'batch'"
-                v-model.number="produceBatchCount"
-                @input="syncProduceFromBatch"
-                type="number"
-                min="0.1"
-                step="any"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-amber-950"
-              />
-              <input
-                v-else
-                v-model.number="produceYieldQty"
-                @input="syncProduceFromYield"
-                type="number"
-                min="1"
-                step="any"
-                class="soft-input w-full px-3 py-2 rounded-xl text-xs font-number font-bold text-amber-950"
-              />
-              <span class="text-stone-500 font-medium shrink-0 w-12 text-center">
+            <div class="flex items-center gap-1.5">
+              <button
+                type="button"
+                @click="stepProduceQty(-1)"
+                :disabled="produceUnitMode === 'batch' ? produceBatchCount <= 1 : produceYieldQty <= formulaYield"
+                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                title="ลด 1 รอบ"
+              >
+                <Minus class="w-3.5 h-3.5" />
+              </button>
+
+              <div class="relative flex-1">
+                <input
+                  v-if="produceUnitMode === 'batch'"
+                  v-model.number="produceBatchCount"
+                  @input="syncProduceFromBatch"
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-amber-950"
+                />
+                <input
+                  v-else
+                  v-model.number="produceYieldQty"
+                  @input="syncProduceFromYield"
+                  type="number"
+                  min="1"
+                  step="any"
+                  class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-amber-950"
+                />
+              </div>
+
+              <button
+                type="button"
+                @click="stepProduceQty(1)"
+                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                title="เพิ่ม 1 รอบ"
+              >
+                <Plus class="w-3.5 h-3.5" />
+              </button>
+
+              <span class="text-stone-500 font-medium shrink-0 w-12 text-center text-xs">
                 {{ produceUnitMode === 'batch' ? 'รอบ' : currentMat?.unit }}
               </span>
             </div>
@@ -287,7 +331,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
-import { X, Check } from 'lucide-vue-next'
+import { X, Check, Plus, Minus } from 'lucide-vue-next'
 
 const store = usePosStore()
 
@@ -352,6 +396,36 @@ function syncProduceFromBatch() {
 
 function syncProduceFromYield() {
   produceBatchCount.value = Number(((Number(produceYieldQty.value) || formulaYield.value) / formulaYield.value).toFixed(2))
+}
+
+function stepDirectQty(delta) {
+  if (unitMode.value === 'pack') {
+    const cur = Number(inputPackQty.value) || 0
+    const next = Math.max(1, Math.round((cur + delta) * 10) / 10)
+    inputPackQty.value = next
+    syncFromPackQty()
+  } else {
+    const step = currentMat.value?.packSize > 1 ? Number(currentMat.value.packSize) : (currentMat.value?.unit === 'g' || currentMat.value?.unit === 'ml' ? 100 : 1)
+    const cur = Number(inputBaseQty.value) || 0
+    const next = Math.max(1, Math.round((cur + (delta * step)) * 100) / 100)
+    inputBaseQty.value = next
+    syncFromBaseQty()
+  }
+}
+
+function stepProduceQty(delta) {
+  if (produceUnitMode.value === 'batch') {
+    const cur = Number(produceBatchCount.value) || 0
+    const next = Math.max(1, Math.round((cur + delta) * 10) / 10)
+    produceBatchCount.value = next
+    syncProduceFromBatch()
+  } else {
+    const step = formulaYield.value || 100
+    const cur = Number(produceYieldQty.value) || 0
+    const next = Math.max(step, Math.round((cur + (delta * step)) * 100) / 100)
+    produceYieldQty.value = next
+    syncProduceFromYield()
+  }
 }
 
 const scaledSubIngredients = computed(() => {

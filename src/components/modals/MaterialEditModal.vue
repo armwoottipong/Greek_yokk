@@ -425,9 +425,9 @@
               <button
                 type="button"
                 @click="stepStock(-1)"
-                :disabled="packStockCount <= 0"
+                :disabled="form.hasSubRecipe ? (form.stock <= initialStock) : (packStockCount <= 0)"
                 class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center font-bold text-stone-700 transition-colors cursor-pointer shrink-0"
-                :title="form.hasSubRecipe ? 'ลด 1 รอบ' : 'ลดสต็อก 1 แพ็ค'"
+                :title="form.hasSubRecipe ? (form.stock > initialStock ? 'ยกเลิกการผลิต 1 รอบ' : 'วัตถุดิบที่ผลิตไว้แล้ว ไม่สามารถลดยอดได้') : 'ลดสต็อก 1 แพ็ค'"
               >
                 <Minus class="w-3.5 h-3.5" />
               </button>
@@ -772,8 +772,13 @@ async function stepStock(delta) {
     form.value.stock = Math.round(next * pSize * 100) / 100
   } else {
     // Delta < 0
+    if (form.value.hasSubRecipe && form.value.stock <= initialStock.value) {
+      store.showToast('วัตถุดิบที่ผลิตเสร็จไว้แล้ว ไม่สามารถลดยอดได้', 'warning')
+      return
+    }
     const current = form.value.stock / pSize
-    const next = Math.max(0, Math.round((current + delta) * 10) / 10)
+    const minPacks = form.value.hasSubRecipe ? (initialStock.value / pSize) : 0
+    const next = Math.max(minPacks, Math.round((current + delta) * 10) / 10)
     form.value.stock = Math.round(next * pSize * 100) / 100
 
     // Reset warning flag if stock level rises back above min alert

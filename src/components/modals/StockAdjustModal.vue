@@ -87,28 +87,50 @@
             <label class="block text-xs font-medium text-stone-700 mb-1.5">
               ยอดนับจริงใหม่ ({{ unitMode === 'pack' ? selectedMaterial?.packUnit : selectedMaterial?.unit }}) <span class="text-rose-500">*</span>
             </label>
-            <div class="flex items-center gap-2">
-              <input
-                v-if="unitMode === 'pack'"
-                v-model.number="actualPackStock"
-                @input="onPackStockInput"
-                type="number"
-                min="0"
-                step="any"
-                placeholder="0"
-                class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
-              />
-              <input
-                v-else
-                v-model.number="actualStock"
-                @input="onBaseStockInput"
-                type="number"
-                min="0"
-                step="any"
-                placeholder="0"
-                class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-number font-semibold text-stone-900"
-              />
-              <span class="text-stone-500 text-xs shrink-0 font-medium w-8">
+            <div class="flex items-center gap-1.5">
+              <button
+                type="button"
+                @click="stepAdjustStock(-1)"
+                :disabled="unitMode === 'pack' ? actualPackStock <= 0 : actualStock <= 0"
+                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                title="ลด 1"
+              >
+                <Minus class="w-4 h-4" />
+              </button>
+
+              <div class="relative flex-1">
+                <input
+                  v-if="unitMode === 'pack'"
+                  v-model.number="actualPackStock"
+                  @input="onPackStockInput"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="0"
+                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-center text-xs font-number font-semibold text-stone-900"
+                />
+                <input
+                  v-else
+                  v-model.number="actualStock"
+                  @input="onBaseStockInput"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="0"
+                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-center text-xs font-number font-semibold text-stone-900"
+                />
+              </div>
+
+              <button
+                type="button"
+                @click="stepAdjustStock(1)"
+                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
+                title="เพิ่ม 1"
+              >
+                <Plus class="w-4 h-4" />
+              </button>
+
+              <span class="text-stone-500 text-xs shrink-0 font-medium w-8 text-center">
                 {{ unitMode === 'pack' ? selectedMaterial?.packUnit : selectedMaterial?.unit }}
               </span>
             </div>
@@ -180,7 +202,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
-import { X, Check } from 'lucide-vue-next'
+import { X, Check, Plus, Minus } from 'lucide-vue-next'
 
 const store = usePosStore()
 
@@ -222,6 +244,21 @@ function onPackStockInput() {
 function onBaseStockInput() {
   const pSize = selectedMaterial.value?.packSize > 0 ? selectedMaterial.value.packSize : 1
   actualPackStock.value = Number(((Number(actualStock.value) || 0) / pSize).toFixed(2))
+}
+
+function stepAdjustStock(delta) {
+  if (unitMode.value === 'pack') {
+    const cur = Number(actualPackStock.value) || 0
+    const next = Math.max(0, Math.round((cur + delta) * 10) / 10)
+    actualPackStock.value = next
+    onPackStockInput()
+  } else {
+    const step = selectedMaterial.value?.packSize > 1 ? Number(selectedMaterial.value.packSize) : (selectedMaterial.value?.unit === 'g' || selectedMaterial.value?.unit === 'ml' ? 100 : 1)
+    const cur = Number(actualStock.value) || 0
+    const next = Math.max(0, Math.round((cur + (delta * step)) * 100) / 100)
+    actualStock.value = next
+    onBaseStockInput()
+  }
 }
 
 function initForMaterial(mat) {
