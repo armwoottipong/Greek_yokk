@@ -25,7 +25,7 @@
           </div>
           <p class="text-[11px] text-stone-400 mt-0.5 truncate">
             {{ form.hasSubRecipe 
-              ? 'ตั้งสูตรส่วนผสม คำนวณต้นทุนรวมและเฉลี่ยต่อหน่วยให้อัตโนมัติ' 
+              ? 'ตั้งสูตรส่วนผสม คำนวณต้นทุนรวมและตัดสต็อกวัตถุดิบรองอัตโนมัติ' 
               : 'ระบุหน่วยนับ ข้อมูลแพ็คสั่งซื้อ และสต็อกปัจจุบัน' 
             }}
           </p>
@@ -252,13 +252,24 @@
           </div>
         </div>
 
-        <!-- Sub-Recipe Builder Section: Produced Material (Single unified cost calculation) -->
+        <!-- Sub-Recipe Builder Section: Produced Material (With Real-time Sub-Ingredient Stock Tracking) -->
         <div v-if="form.hasSubRecipe" class="rounded-2xl border border-amber-200/80 bg-amber-50/30 p-4 space-y-3.5">
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1.5 font-semibold text-amber-950 text-xs">
-              <span>🥣</span>
-              <span>สูตรการผลิต (Sub-Recipe Ingredients)</span>
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-amber-950 text-xs flex items-center gap-1.5">
+                <span>🥣</span>
+                <span>สูตรการผลิต (Sub-Recipe)</span>
+              </span>
+              <!-- Max Possible Batches Badge -->
+              <span 
+                v-if="form.subRecipe && form.subRecipe.length > 0"
+                class="px-2 py-0.5 rounded-full font-number font-bold text-[10px]"
+                :class="maxPossibleProductionRounds > 0 ? 'bg-amber-200/80 text-amber-900' : 'bg-rose-100 text-rose-700'"
+              >
+                ผลิตได้สูงสุด: {{ maxPossibleProductionRounds }} รอบ ({{ (maxPossibleProductionRounds * (form.yieldQty || 0)).toLocaleString() }} {{ form.unit }})
+              </span>
             </div>
+
             <button
               type="button"
               @click="addSubRecipeRow"
@@ -269,11 +280,11 @@
             </button>
           </div>
 
-          <!-- ปริมาณผลผลิตต่อรอบ -->
+          <!-- ปริมาณผลผลิตต่อ 1 รอบ -->
           <div class="flex items-center justify-between p-3 rounded-xl bg-white border border-stone-200/60">
             <div>
-              <span class="text-xs font-semibold text-stone-800 block">ปริมาณผลผลิตที่ได้ต่อ 1 รอบการทำ</span>
-              <span class="text-[10px] text-stone-400">สูตรนี้ทำ 1 รอบ จะได้ปริมาณเนื้อวัตถุดิบพร้อมใช้เท่าใด</span>
+              <span class="text-xs font-semibold text-stone-800 block">ปริมาณที่ผลิตได้ 1 รอบ</span>
+              <span class="text-[10px] text-stone-400">ระบุปริมาณผลผลิตสำเร็จรูปต่อ 1 หม้อ/รอบการทำ</span>
             </div>
             <div class="flex items-center soft-input px-3 py-1.5 rounded-lg bg-stone-50">
               <input
@@ -287,52 +298,81 @@
             </div>
           </div>
 
-          <!-- รายการส่วนผสมในสูตร -->
-          <div class="space-y-1.5">
+          <!-- รายการส่วนผสมในสูตร (พร้อมข้อมูลเปรียบเทียบ Real-time ของวัตถุดิบรอง) -->
+          <div class="space-y-2">
             <div
               v-for="(row, idx) in form.subRecipe"
               :key="idx"
-              class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-stone-200/60 hover:border-amber-300 transition-colors"
+              class="bg-white p-3 rounded-xl border border-stone-200/60 hover:border-amber-300 transition-colors space-y-2"
             >
-              <select
-                v-model="row.materialId"
-                class="flex-1 bg-transparent border-0 text-xs font-medium text-stone-900 focus:outline-none min-w-[120px] cursor-pointer"
-              >
-                <option
-                  v-for="sub in availableSubMaterials"
-                  :key="sub.id"
-                  :value="sub.id"
+              <!-- Primary Row: Material Select, Qty per round, Cost, Delete -->
+              <div class="flex items-center gap-2">
+                <select
+                  v-model="row.materialId"
+                  class="flex-1 bg-transparent border-0 text-xs font-medium text-stone-900 focus:outline-none min-w-[120px] cursor-pointer"
                 >
-                  {{ sub.emoji }} {{ sub.name }} ({{ sub.unit }})
-                </option>
-              </select>
+                  <option
+                    v-for="sub in availableSubMaterials"
+                    :key="sub.id"
+                    :value="sub.id"
+                  >
+                    {{ sub.emoji }} {{ sub.name }} ({{ sub.unit }})
+                  </option>
+                </select>
 
-              <div class="flex items-center gap-1 bg-stone-50 px-2 py-1 rounded-lg border border-stone-200/60">
-                <input
-                  v-model.number="row.qty"
-                  type="number"
-                  min="0.01"
-                  step="any"
-                  placeholder="0"
-                  class="w-18 text-right font-number font-semibold text-xs text-stone-900 bg-transparent focus:outline-none"
-                />
-                <span class="text-[10px] text-stone-500 w-6">
-                  {{ getSubMat(row.materialId)?.unit || 'g' }}
+                <div class="flex items-center gap-1 bg-stone-50 px-2 py-1 rounded-lg border border-stone-200/60">
+                  <span class="text-[10px] text-stone-400">ใช้</span>
+                  <input
+                    v-model.number="row.qty"
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    placeholder="0"
+                    class="w-18 text-right font-number font-semibold text-xs text-stone-900 bg-transparent focus:outline-none"
+                  />
+                  <span class="text-[10px] text-stone-500 w-6">
+                    {{ getSubMat(row.materialId)?.unit || 'g' }}
+                  </span>
+                </div>
+
+                <span class="text-xs font-number font-medium text-stone-600 w-16 text-right">
+                  ฿{{ ((row.qty || 0) * (getSubMat(row.materialId)?.unitCost || 0)).toFixed(1) }}
                 </span>
+
+                <button
+                  type="button"
+                  @click="removeSubRecipeRow(idx)"
+                  class="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
+                  title="ลบส่วนผสมนี้"
+                >
+                  <X class="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              <span class="text-xs font-number font-medium text-stone-600 w-16 text-right">
-                ฿{{ ((row.qty || 0) * (getSubMat(row.materialId)?.unitCost || 0)).toFixed(1) }}
-              </span>
-
-              <button
-                type="button"
-                @click="removeSubRecipeRow(idx)"
-                class="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
-                title="ลบส่วนผสมนี้"
+              <!-- Real-time Sub-Ingredient Stock Comparison Strip -->
+              <div 
+                v-if="compMap[row.materialId]" 
+                class="pt-1.5 border-t border-stone-100 flex items-center justify-between text-[10px]"
               >
-                <X class="w-3.5 h-3.5" />
-              </button>
+                <div class="flex items-center gap-1.5 text-stone-500 font-number flex-wrap">
+                  <span>ในคลัง: <strong class="text-stone-700">{{ compMap[row.materialId].currentStock.toLocaleString() }} {{ compMap[row.materialId].unit }}</strong></span>
+                  <span class="text-stone-300">•</span>
+                  <span>หักผลิต: <strong class="text-rose-600 font-semibold">-{{ compMap[row.materialId].usedQty.toLocaleString() }} {{ compMap[row.materialId].unit }}</strong></span>
+                  <span class="text-stone-300">•</span>
+                  <span>หลังผลิต: <strong :class="compMap[row.materialId].status === 'out_of_stock' ? 'text-rose-600 font-bold' : (compMap[row.materialId].status === 'low_stock' ? 'text-amber-600 font-bold' : 'text-emerald-700 font-semibold')">{{ compMap[row.materialId].remaining.toLocaleString() }} {{ compMap[row.materialId].unit }}</strong></span>
+                </div>
+
+                <span
+                  class="px-1.5 py-0.5 rounded text-[9px] font-semibold shrink-0"
+                  :class="compMap[row.materialId].status === 'out_of_stock'
+                    ? 'bg-rose-100 text-rose-700'
+                    : (compMap[row.materialId].status === 'low_stock'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-emerald-50 text-emerald-700')"
+                >
+                  {{ compMap[row.materialId].status === 'out_of_stock' ? '❌ สต็อกไม่พอ' : (compMap[row.materialId].status === 'low_stock' ? '⚠️ ใกล้หมด' : '✓ พอผลิต') }}
+                </span>
+              </div>
             </div>
 
             <div v-if="!form.subRecipe || form.subRecipe.length === 0" class="text-center py-4 text-xs text-stone-400">
@@ -345,7 +385,7 @@
             <div class="space-y-0.5">
               <span class="text-[10px] font-semibold text-stone-500 uppercase tracking-wide flex items-center gap-1">
                 <span>💡</span>
-                <span>ต้นทุนวัตถุดิบรวม</span>
+                <span>ต้นทุนวัตถุดิบรวมต่อรอบ</span>
               </span>
               <p class="text-[11px] text-stone-500 font-number">
                 ฿{{ calculatedSubCost.toFixed(2) }} ÷ {{ (Number(form.yieldQty) || 1).toLocaleString() }} {{ form.unit }}
@@ -361,7 +401,7 @@
           </div>
         </div>
 
-        <!-- Stock Stepper & Min Alert (Controls referencing primary pack units) (Requirement 2) -->
+        <!-- Stock Stepper & Min Alert (Controls referencing primary pack units / rounds) (Requirement 2) -->
         <div class="grid grid-cols-2 gap-3">
           <!-- สต็อกปัจจุบัน -->
           <div class="p-3 rounded-xl bg-[#FAF9F6] border border-stone-200/70 space-y-1.5">
@@ -379,7 +419,7 @@
                 @click="stepStock(-1)"
                 :disabled="packStockCount <= 0"
                 class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center font-bold text-stone-700 transition-colors cursor-pointer shrink-0"
-                title="ลดสต็อก 1 แพ็ค"
+                :title="form.hasSubRecipe ? 'ลด 1 รอบ' : 'ลดสต็อก 1 แพ็ค'"
               >
                 <Minus class="w-3.5 h-3.5" />
               </button>
@@ -392,17 +432,23 @@
                   step="any"
                   class="w-full text-center font-number font-bold text-xs text-stone-900 bg-transparent focus:outline-none"
                 />
-                <span class="text-[10px] font-medium text-stone-500 ml-1 shrink-0">{{ form.packUnit || 'แพ็ค' }}</span>
+                <span class="text-[10px] font-medium text-stone-500 ml-1 shrink-0">
+                  {{ form.hasSubRecipe ? 'รอบ' : (form.packUnit || 'แพ็ค') }}
+                </span>
               </div>
               <button
                 type="button"
                 @click="stepStock(1)"
-                class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 flex items-center justify-center font-bold text-stone-700 transition-colors cursor-pointer shrink-0"
-                title="เพิ่มสต็อก 1 แพ็ค"
+                :disabled="form.hasSubRecipe && !canAddRound"
+                class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center font-bold text-stone-700 transition-colors cursor-pointer shrink-0"
+                :title="form.hasSubRecipe ? (canAddRound ? 'เพิ่ม 1 รอบผลิต (หักวัตถุดิบรอง)' : 'วัตถุดิบรองไม่พอผลิตเพิ่ม') : 'เพิ่มสต็อก 1 แพ็ค'"
               >
                 <Plus class="w-3.5 h-3.5" />
               </button>
             </div>
+            <p v-if="form.hasSubRecipe && !canAddRound" class="text-[9px] text-rose-600 font-medium">
+              * วัตถุดิบรองในคลังหมด ไม่พอผลิตเพิ่ม
+            </p>
           </div>
 
           <!-- แจ้งเตือนเมื่อต่ำกว่า -->
@@ -434,7 +480,9 @@
                   step="any"
                   class="w-full text-center font-number font-bold text-xs text-stone-900 bg-transparent focus:outline-none"
                 />
-                <span class="text-[10px] font-medium text-stone-500 ml-1 shrink-0">{{ form.packUnit || 'แพ็ค' }}</span>
+                <span class="text-[10px] font-medium text-stone-500 ml-1 shrink-0">
+                  {{ form.hasSubRecipe ? 'รอบ' : (form.packUnit || 'แพ็ค') }}
+                </span>
               </div>
               <button
                 type="button"
@@ -480,12 +528,14 @@ import { X, Check, Plus, Minus } from 'lucide-vue-next'
 
 const store = usePosStore()
 
-// Unit Options restricted strictly to 3 choices as requested: มล. (ml), กรัม (g), ชิ้น (pcs)
+// Unit Options restricted strictly to 3 choices: มล. (ml), กรัม (g), ชิ้น (pcs)
 const unitOptions = [
   { value: 'g', label: 'กรัม (g)', icon: '⚖️' },
   { value: 'ml', label: 'มล. (ml)', icon: '🥛' },
   { value: 'ชิ้น', label: 'ชิ้น (pcs)', icon: '📦' }
 ]
+
+const initialStock = ref(0) // Tracks existing stock on open to deduct only incremental rounds
 
 const form = ref({
   id: '',
@@ -500,8 +550,8 @@ const form = ref({
   minAlert: 200,
   emoji: '🥣',
   isSubIngredient: false,
-  hasSubRecipe: false, // Default is OFF (ปิด) as requested!
-  yieldQty: 1000,
+  hasSubRecipe: false, // Default is OFF
+  yieldQty: 540,
   subRecipe: []
 })
 
@@ -517,7 +567,7 @@ function getSubMat(matId) {
   return store.matMap[matId]
 }
 
-// Single Unified Unit Cost Calculation (Requirement 1)
+// Single Unified Unit Cost Calculation
 const calculatedSubCost = computed(() => {
   if (!form.value.subRecipe || form.value.subRecipe.length === 0) return 0
   return form.value.subRecipe.reduce((sum, row) => {
@@ -560,15 +610,102 @@ function setSingleUnitPack() {
   form.value.packCost = calculatedUnitCost.value || 0
 }
 
-// Stepper Logic for Stock & Min Alert referencing Pack Units (Requirement 2)
+// -------------------------------------------------------------
+// Real-time Sub-Ingredient Stock Comparison & Production Limit Logic
+// -------------------------------------------------------------
+const roundYield = computed(() => {
+  return Number(form.value.yieldQty) > 0 ? Number(form.value.yieldQty) : 1
+})
+
+const currentRounds = computed(() => {
+  return (Number(form.value.stock) || 0) / roundYield.value
+})
+
+const initialRounds = computed(() => {
+  return initialStock.value / roundYield.value
+})
+
+const incrementalRounds = computed(() => {
+  return Math.max(0, currentRounds.value - initialRounds.value)
+})
+
+const recipeComparison = computed(() => {
+  if (!form.value.hasSubRecipe) return []
+  const inc = incrementalRounds.value
+
+  return (form.value.subRecipe || []).map(row => {
+    const sub = store.matMap[row.materialId]
+    const currentStock = sub ? Number(sub.stock) || 0 : 0
+    const minAlert = sub ? Number(sub.minAlert) || 0 : 0
+    const qtyPerRound = Number(row.qty) || 0
+    const usedQty = Math.round(inc * qtyPerRound * 100) / 100
+    const remaining = Math.round((currentStock - usedQty) * 100) / 100
+    const canAffordNextRound = qtyPerRound > 0 ? (remaining >= qtyPerRound) : true
+
+    let status = 'sufficient'
+    if (remaining < 0) {
+      status = 'out_of_stock'
+    } else if (remaining <= minAlert) {
+      status = 'low_stock'
+    }
+
+    return {
+      materialId: row.materialId,
+      name: sub?.name || 'วัตถุดิบ',
+      emoji: sub?.emoji || '🥛',
+      unit: sub?.unit || 'g',
+      currentStock,
+      minAlert,
+      qtyPerRound,
+      usedQty,
+      remaining,
+      status,
+      canAffordNextRound
+    }
+  })
+})
+
+const compMap = computed(() => {
+  return Object.fromEntries(recipeComparison.value.map(c => [c.materialId, c]))
+})
+
+// Can add another round? Checked against all sub-ingredients
+const canAddRound = computed(() => {
+  if (!form.value.hasSubRecipe) return true
+  if (!form.value.subRecipe || form.value.subRecipe.length === 0) return true
+  return recipeComparison.value.every(i => i.canAffordNextRound)
+})
+
+// Max possible total rounds that can be produced based on available sub-ingredients
+const maxPossibleProductionRounds = computed(() => {
+  if (!form.value.hasSubRecipe || !form.value.subRecipe || form.value.subRecipe.length === 0) return 999
+  let minAdditionalRounds = 999999
+
+  for (const row of form.value.subRecipe) {
+    const sub = store.matMap[row.materialId]
+    const currentStock = sub ? Number(sub.stock) || 0 : 0
+    const qtyPerRound = Number(row.qty) || 0
+    if (qtyPerRound > 0) {
+      const canProduce = Math.floor(currentStock / qtyPerRound)
+      if (canProduce < minAdditionalRounds) minAdditionalRounds = canProduce
+    }
+  }
+
+  const additional = minAdditionalRounds === 999999 ? 0 : minAdditionalRounds
+  return Math.round((initialRounds.value + additional) * 10) / 10
+})
+
+// -------------------------------------------------------------
+// Stepper Logic for Stock & Min Alert
+// -------------------------------------------------------------
 const packStockCount = computed(() => {
-  const pSize = Number(form.value.packSize) || 1
+  const pSize = form.value.hasSubRecipe ? roundYield.value : (Number(form.value.packSize) || 1)
   if (pSize <= 0) return 0
   return Number((form.value.stock / pSize).toFixed(2))
 })
 
 const displayStockPacks = computed(() => {
-  const pSize = Number(form.value.packSize) || 1
+  const pSize = form.value.hasSubRecipe ? roundYield.value : (Number(form.value.packSize) || 1)
   if (pSize <= 0) return 0
   const count = form.value.stock / pSize
   return Number.isInteger(count) ? count : Number(count.toFixed(2))
@@ -576,29 +713,68 @@ const displayStockPacks = computed(() => {
 
 function onStockPacksInput(val) {
   const num = parseFloat(val)
-  const pSize = Number(form.value.packSize) || 1
+  const pSize = form.value.hasSubRecipe ? roundYield.value : (Number(form.value.packSize) || 1)
   if (isNaN(num) || num < 0) {
     form.value.stock = 0
   } else {
-    form.value.stock = Math.round(num * pSize * 100) / 100
+    if (form.value.hasSubRecipe && num > maxPossibleProductionRounds.value) {
+      store.showToast(`วัตถุดิบรองในคลังพอผลิตได้สูงสุดเพียง ${maxPossibleProductionRounds.value} รอบ`, 'error')
+      form.value.stock = Math.round(maxPossibleProductionRounds.value * pSize * 100) / 100
+    } else {
+      form.value.stock = Math.round(num * pSize * 100) / 100
+    }
   }
 }
 
-function stepStock(delta) {
-  const pSize = Number(form.value.packSize) || 1
-  const current = form.value.stock / pSize
-  const next = Math.max(0, Math.round((current + delta) * 10) / 10)
-  form.value.stock = Math.round(next * pSize * 100) / 100
+async function stepStock(delta) {
+  const pSize = form.value.hasSubRecipe ? roundYield.value : (Number(form.value.packSize) || 1)
+
+  if (delta > 0) {
+    if (form.value.hasSubRecipe) {
+      // Check 1: Is any sub-ingredient out of stock?
+      if (!canAddRound.value) {
+        store.showToast('วัตถุดิบรองในคลังหมด ไม่สามารถเพิ่มรอบผลิตได้', 'error')
+        return
+      }
+
+      // Check 2: Will any sub-ingredient drop below minAlert?
+      const lowItems = recipeComparison.value.filter(item => {
+        const nextRemaining = item.remaining - item.qtyPerRound
+        return nextRemaining <= item.minAlert
+      })
+
+      if (lowItems.length > 0) {
+        const warningLines = lowItems.map(i => `• ${i.name}: จะเหลือ ${(i.remaining - i.qtyPerRound).toLocaleString()} ${i.unit} (จุดเตือน ${i.minAlert.toLocaleString()} ${i.unit})`).join('\n')
+        const ok = await store.confirmDialog({
+          title: 'วัตถุดิบรองใกล้หมดสต็อก',
+          message: `การผลิตเพิ่มอีก 1 รอบ จะทำให้วัตถุดิบรองในคลังลดลงต่ำกว่าจุดเตือนขั้นต่ำ:\n\n${warningLines}\n\nต้องการยืนยันเพิ่มรอบผลิตต่อหรือไม่?`,
+          confirmText: 'ยืนยันเพิ่มรอบผลิต',
+          cancelText: 'ยกเลิก',
+          type: 'warning'
+        })
+        if (!ok) return
+      }
+    }
+
+    const current = form.value.stock / pSize
+    const next = Math.round((current + delta) * 10) / 10
+    form.value.stock = Math.round(next * pSize * 100) / 100
+  } else {
+    // Delta < 0
+    const current = form.value.stock / pSize
+    const next = Math.max(0, Math.round((current + delta) * 10) / 10)
+    form.value.stock = Math.round(next * pSize * 100) / 100
+  }
 }
 
 const packMinAlertCount = computed(() => {
-  const pSize = Number(form.value.packSize) || 1
+  const pSize = form.value.hasSubRecipe ? roundYield.value : (Number(form.value.packSize) || 1)
   if (pSize <= 0) return 0
   return Number((form.value.minAlert / pSize).toFixed(2))
 })
 
 const displayMinAlertPacks = computed(() => {
-  const pSize = Number(form.value.packSize) || 1
+  const pSize = form.value.hasSubRecipe ? roundYield.value : (Number(form.value.packSize) || 1)
   if (pSize <= 0) return 0
   const count = form.value.minAlert / pSize
   return Number.isInteger(count) ? count : Number(count.toFixed(2))
@@ -606,7 +782,7 @@ const displayMinAlertPacks = computed(() => {
 
 function onMinAlertPacksInput(val) {
   const num = parseFloat(val)
-  const pSize = Number(form.value.packSize) || 1
+  const pSize = form.value.hasSubRecipe ? roundYield.value : (Number(form.value.packSize) || 1)
   if (isNaN(num) || num < 0) {
     form.value.minAlert = 0
   } else {
@@ -615,7 +791,7 @@ function onMinAlertPacksInput(val) {
 }
 
 function stepMinAlert(delta) {
-  const pSize = Number(form.value.packSize) || 1
+  const pSize = form.value.hasSubRecipe ? roundYield.value : (Number(form.value.packSize) || 1)
   const current = form.value.minAlert / pSize
   const next = Math.max(0, Math.round((current + delta) * 10) / 10)
   form.value.minAlert = Math.round(next * pSize * 100) / 100
@@ -647,17 +823,24 @@ function openEmojiPicker() {
   }
 }
 
-// Watch subrecipe toggle changes to adapt packUnit
+// Watch subrecipe toggle changes to adapt packUnit & packaging
 watch(() => form.value.hasSubRecipe, (newVal) => {
   if (newVal) {
-    if (!form.value.packUnit || form.value.packUnit === 'ถุง' || form.value.packUnit === 'ขวด' || form.value.packUnit === 'แพ็ค') {
-      form.value.packUnit = 'รอบ'
-    }
+    form.value.packUnit = 'รอบ'
+    form.value.packSize = Number(form.value.yieldQty) || 540
     form.value.isSubIngredient = false
   } else {
     if (form.value.packUnit === 'รอบ') {
       form.value.packUnit = form.value.unit === 'ml' ? 'ขวด' : (form.value.unit === 'g' ? 'ถุง' : 'แพ็ค')
+      form.value.packSize = 1000
     }
+  }
+})
+
+// Keep packSize synced with yieldQty when in subRecipe mode
+watch(() => form.value.yieldQty, (newYield) => {
+  if (form.value.hasSubRecipe && Number(newYield) > 0) {
+    form.value.packSize = Number(newYield)
   }
 })
 
@@ -668,8 +851,9 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
     const mat = id ? store.materials.find(m => m.id === id) : null
 
     if (mat) {
-      const pUnit = mat.packUnit || (mat.unit === 'ml' ? 'ขวด' : mat.unit === 'g' ? 'ถุง' : 'แพ็ค')
-      const pSize = Number(mat.packSize) || 1
+      initialStock.value = Number(mat.stock) || 0
+      const pUnit = mat.packUnit || (mat.hasSubRecipe ? 'รอบ' : (mat.unit === 'ml' ? 'ขวด' : mat.unit === 'g' ? 'ถุง' : 'แพ็ค'))
+      const pSize = Number(mat.packSize) || (mat.hasSubRecipe ? (Number(mat.yieldQty) || 540) : 1)
       const uCost = Number(mat.unitCost) || 0
       const pCost = Number(mat.packCost) || (uCost * pSize)
 
@@ -687,16 +871,17 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         emoji: mat.emoji || '🥣',
         isSubIngredient: Boolean(mat.isSubIngredient),
         hasSubRecipe: Boolean(mat.hasSubRecipe),
-        yieldQty: mat.yieldQty ? Number(mat.yieldQty) : 1000,
+        yieldQty: mat.yieldQty ? Number(mat.yieldQty) : 540,
         subRecipe: mat.subRecipe && Array.isArray(mat.subRecipe) && mat.subRecipe.length > 0
           ? JSON.parse(JSON.stringify(mat.subRecipe))
           : [
-              { materialId: store.subMaterials[0]?.id || 'MAT002', qty: 5000 },
-              ...(store.subMaterials[1] ? [{ materialId: store.subMaterials[1].id, qty: 300 }] : [])
+              { materialId: store.subMaterials[0]?.id || 'MAT002', qty: 1000 },
+              ...(store.subMaterials[1] ? [{ materialId: store.subMaterials[1].id, qty: 100 }] : [])
             ]
       }
     } else {
       // New Material: Clean neutral defaults, hasSubRecipe is OFF
+      initialStock.value = 0
       const defaultCategory = store.materialCategories[0]?.name || 'Base Yogurt'
       form.value = {
         id: '',
@@ -712,7 +897,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         emoji: '🥣',
         isSubIngredient: false,
         hasSubRecipe: false,
-        yieldQty: 1000,
+        yieldQty: 540,
         subRecipe: store.subMaterials.length > 0
           ? [
               { materialId: store.subMaterials[0].id, qty: 1000 },
@@ -755,10 +940,25 @@ async function submit() {
   let uCost = calculatedUnitCost.value
 
   if (hasRecipe) {
-    pSize = Number(form.value.yieldQty) > 0 ? Number(form.value.yieldQty) : 1000
+    pSize = Number(form.value.yieldQty) > 0 ? Number(form.value.yieldQty) : 540
     pCost = calculatedSubCost.value
-    if (!form.value.packUnit || form.value.packUnit === 'ถุง' || form.value.packUnit === 'ขวด' || form.value.packUnit === 'แพ็ค') {
-      form.value.packUnit = 'รอบ'
+    form.value.packUnit = 'รอบ'
+
+    // Deduct sub-ingredients based on incremental rounds produced
+    const incRounds = incrementalRounds.value
+    if (incRounds > 0 && form.value.subRecipe && form.value.subRecipe.length > 0) {
+      const deductedLogs = []
+      for (const row of form.value.subRecipe) {
+        const sub = store.materials.find(m => m.id === row.materialId)
+        if (sub) {
+          const needed = Math.round(incRounds * (Number(row.qty) || 0) * 100) / 100
+          sub.stock = Math.max(0, Math.round((Number(sub.stock || 0) - needed) * 100) / 100)
+          deductedLogs.push(`${sub.name} -${needed.toLocaleString()} ${sub.unit}`)
+        }
+      }
+      if (deductedLogs.length > 0) {
+        store.showToast(`หักสต็อกวัตถุดิบรอง (${incRounds} รอบ): ${deductedLogs.join(', ')}`, 'info')
+      }
     }
   } else {
     pSize = Number(form.value.packSize) > 0 ? Number(form.value.packSize) : 1
