@@ -263,7 +263,7 @@
                   <span class="font-medium text-stone-500 text-[11px]">/{{ mat.packUnit || mat.unit }}</span>
                 </div>
                 <div v-if="(mat.packSize && mat.packSize > 1) || mat.hasSubRecipe" class="text-[10px] text-stone-400 mt-0.5">
-                  (≈ ฿{{ Number(mat.unitCost || 0).toFixed(4) }}/{{ mat.unit }})
+                  (≈ ฿{{ Number(mat.unitCost || 0).toFixed(2) }}/{{ mat.unit }})
                 </div>
               </td>
 

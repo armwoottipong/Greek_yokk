@@ -143,7 +143,7 @@
           </div>
         </div>
 
-        <!-- Unit Selection (Strictly 3 choices: ml, g, ชิ้น) (Requirement 1) -->
+        <!-- Unit Selection (Strictly 3 choices: ml, g, ชิ้น) -->
         <div class="space-y-1.5">
           <label class="block text-[11px] font-medium text-stone-700">
             หน่วยใช้ (ชั่ง / ตักขาย / ใส่ในสูตร) <span class="text-rose-500">*</span>
@@ -165,7 +165,7 @@
           </div>
         </div>
 
-        <!-- Cost & Packaging: Standard Purchased Material (Single unified calculation) (Requirement 1) -->
+        <!-- Cost & Packaging: Standard Purchased Material -->
         <div v-if="!form.hasSubRecipe" class="rounded-2xl border border-stone-200/80 bg-[#FAF9F6] p-4 space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-1.5 font-semibold text-stone-800 text-xs">
@@ -231,7 +231,7 @@
             </div>
           </div>
 
-          <!-- Single Unified Cost Result Card (ไม่ต้องคำนวณซ้ำซ้อน) -->
+          <!-- Single Unified Cost Result Card (2 Decimals Clean) -->
           <div class="p-3 rounded-xl bg-white border border-stone-200/60 flex items-center justify-between">
             <div class="space-y-0.5">
               <span class="text-[10px] font-semibold text-stone-500 uppercase tracking-wide flex items-center gap-1">
@@ -239,12 +239,12 @@
                 <span>ต้นทุนเฉลี่ยต่อหน่วยใช้งาน</span>
               </span>
               <p class="text-[11px] text-stone-400 font-number">
-                ฿{{ (Number(form.packCost) || 0).toLocaleString() }} ÷ {{ (Number(form.packSize) || 1).toLocaleString() }} {{ form.unit }}
+                ฿{{ (Number(form.packCost) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} ÷ {{ (Number(form.packSize) || 1).toLocaleString() }} {{ form.unit }}
               </p>
             </div>
             <div class="text-right">
               <div class="text-sm font-bold font-number text-emerald-800">
-                ฿{{ calculatedUnitCost.toFixed(4) }}
+                ฿{{ calculatedUnitCost.toFixed(2) }}
                 <span class="text-[11px] font-normal text-stone-500 font-sans">/ {{ form.unit }}</span>
               </div>
               <span class="text-[10px] text-emerald-600/80 font-medium">นำไปตัดสต็อก & คิดกำไรอัตโนมัติ</span>
@@ -252,21 +252,21 @@
           </div>
         </div>
 
-        <!-- Sub-Recipe Builder Section: Produced Material (With Real-time Sub-Ingredient Stock Tracking) -->
-        <div v-if="form.hasSubRecipe" class="rounded-2xl border border-amber-200/80 bg-amber-50/30 p-4 space-y-3.5">
+        <!-- Sub-Recipe Builder Section: Produced Material (Clean Airy UI & 2 Decimals) -->
+        <div v-if="form.hasSubRecipe" class="rounded-2xl border border-amber-200/80 bg-[#FCFBF8] p-4 space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="font-semibold text-amber-950 text-xs flex items-center gap-1.5">
+              <span class="font-semibold text-stone-800 text-xs flex items-center gap-1.5">
                 <span>🥣</span>
                 <span>สูตรการผลิต (Sub-Recipe)</span>
               </span>
-              <!-- Max Possible Batches Badge -->
+              <!-- Max Batches Badge -->
               <span 
                 v-if="form.subRecipe && form.subRecipe.length > 0"
-                class="px-2 py-0.5 rounded-full font-number font-bold text-[10px]"
-                :class="maxPossibleProductionRounds > 0 ? 'bg-amber-200/80 text-amber-900' : 'bg-rose-100 text-rose-700'"
+                class="px-2 py-0.5 rounded-md font-number font-semibold text-[10px]"
+                :class="maxPossibleProductionRounds > 0 ? 'bg-amber-100 text-amber-900' : 'bg-rose-100 text-rose-700'"
               >
-                ผลิตได้สูงสุด: {{ maxPossibleProductionRounds }} รอบ ({{ (maxPossibleProductionRounds * (form.yieldQty || 0)).toLocaleString() }} {{ form.unit }})
+                ผลิตได้สูงสุด: {{ maxPossibleProductionRounds }} รอบ
               </span>
             </div>
 
@@ -281,35 +281,35 @@
           </div>
 
           <!-- ปริมาณผลผลิตต่อ 1 รอบ -->
-          <div class="flex items-center justify-between p-3 rounded-xl bg-white border border-stone-200/60">
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-stone-200/60">
             <div>
-              <span class="text-xs font-semibold text-stone-800 block">ปริมาณที่ผลิตได้ 1 รอบ</span>
-              <span class="text-[10px] text-stone-400">ระบุปริมาณผลผลิตสำเร็จรูปต่อ 1 หม้อ/รอบการทำ</span>
+              <span class="text-xs font-semibold text-stone-800 block">ผลผลิตต่อ 1 รอบ</span>
+              <span class="text-[10px] text-stone-400">ปริมาณเนื้อวัตถุดิบที่ได้ต่อ 1 หม้อ/รอบ</span>
             </div>
-            <div class="flex items-center soft-input px-3 py-1.5 rounded-lg bg-stone-50">
+            <div class="flex items-center soft-input px-3 py-1 rounded-lg bg-stone-50">
               <input
                 v-model.number="form.yieldQty"
                 type="number"
                 min="1"
                 step="any"
-                class="w-24 text-right font-number font-bold text-xs text-amber-950 bg-transparent focus:outline-none"
+                class="w-20 text-right font-number font-bold text-xs text-amber-950 bg-transparent focus:outline-none"
               />
               <span class="text-xs font-semibold text-stone-600 ml-1.5 shrink-0">{{ form.unit }}</span>
             </div>
           </div>
 
-          <!-- รายการส่วนผสมในสูตร (พร้อมข้อมูลเปรียบเทียบ Real-time ของวัตถุดิบรอง) -->
+          <!-- รายการส่วนผสมในสูตร (Clean, Minimal & Airy rows) -->
           <div class="space-y-2">
             <div
               v-for="(row, idx) in form.subRecipe"
               :key="idx"
-              class="bg-white p-3 rounded-xl border border-stone-200/60 hover:border-amber-300 transition-colors space-y-2"
+              class="bg-white p-2.5 rounded-xl border border-stone-200/60 hover:border-amber-300 transition-colors space-y-1.5"
             >
-              <!-- Primary Row: Material Select, Qty per round, Cost, Delete -->
+              <!-- Primary Line: Material, Qty, Cost, Delete -->
               <div class="flex items-center gap-2">
                 <select
                   v-model="row.materialId"
-                  class="flex-1 bg-transparent border-0 text-xs font-medium text-stone-900 focus:outline-none min-w-[120px] cursor-pointer"
+                  class="flex-1 bg-stone-50/70 border border-stone-200/70 px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-900 focus:outline-none cursor-pointer"
                 >
                   <option
                     v-for="sub in availableSubMaterials"
@@ -320,7 +320,7 @@
                   </option>
                 </select>
 
-                <div class="flex items-center gap-1 bg-stone-50 px-2 py-1 rounded-lg border border-stone-200/60">
+                <div class="flex items-center gap-1 bg-stone-50/70 px-2 py-1 rounded-lg border border-stone-200/70">
                   <span class="text-[10px] text-stone-400">ใช้</span>
                   <input
                     v-model.number="row.qty"
@@ -328,49 +328,56 @@
                     min="0.01"
                     step="any"
                     placeholder="0"
-                    class="w-18 text-right font-number font-semibold text-xs text-stone-900 bg-transparent focus:outline-none"
+                    class="w-16 text-right font-number font-semibold text-xs text-stone-900 bg-transparent focus:outline-none"
                   />
                   <span class="text-[10px] text-stone-500 w-6">
                     {{ getSubMat(row.materialId)?.unit || 'g' }}
                   </span>
                 </div>
 
-                <span class="text-xs font-number font-medium text-stone-600 w-16 text-right">
-                  ฿{{ ((row.qty || 0) * (getSubMat(row.materialId)?.unitCost || 0)).toFixed(1) }}
+                <span class="text-xs font-number font-semibold text-stone-700 w-14 text-right">
+                  ฿{{ ((row.qty || 0) * (getSubMat(row.materialId)?.unitCost || 0)).toFixed(2) }}
                 </span>
 
                 <button
                   type="button"
                   @click="removeSubRecipeRow(idx)"
-                  class="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
+                  class="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
                   title="ลบส่วนผสมนี้"
                 >
                   <X class="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <!-- Real-time Sub-Ingredient Stock Comparison Strip -->
+              <!-- Sleek Meta Status Line (Clean, No Visual Clutter) -->
               <div 
                 v-if="compMap[row.materialId]" 
-                class="pt-1.5 border-t border-stone-100 flex items-center justify-between text-[10px]"
+                class="flex items-center justify-between text-[11px] text-stone-500 pt-0.5"
               >
-                <div class="flex items-center gap-1.5 text-stone-500 font-number flex-wrap">
-                  <span>ในคลัง: <strong class="text-stone-700">{{ compMap[row.materialId].currentStock.toLocaleString() }} {{ compMap[row.materialId].unit }}</strong></span>
-                  <span class="text-stone-300">•</span>
-                  <span>หักผลิต: <strong class="text-rose-600 font-semibold">-{{ compMap[row.materialId].usedQty.toLocaleString() }} {{ compMap[row.materialId].unit }}</strong></span>
-                  <span class="text-stone-300">•</span>
-                  <span>หลังผลิต: <strong :class="compMap[row.materialId].status === 'out_of_stock' ? 'text-rose-600 font-bold' : (compMap[row.materialId].status === 'low_stock' ? 'text-amber-600 font-bold' : 'text-emerald-700 font-semibold')">{{ compMap[row.materialId].remaining.toLocaleString() }} {{ compMap[row.materialId].unit }}</strong></span>
+                <div class="flex items-center gap-1.5 font-number">
+                  <span class="text-stone-400">คลังมี:</span>
+                  <span class="font-medium text-stone-700">{{ compMap[row.materialId].currentStock.toLocaleString() }} {{ compMap[row.materialId].unit }}</span>
+                  <template v-if="compMap[row.materialId].usedQty > 0">
+                    <span class="text-stone-300">→</span>
+                    <span class="text-stone-400">หลังทำ:</span>
+                    <span 
+                      class="font-semibold"
+                      :class="compMap[row.materialId].status === 'out_of_stock' ? 'text-rose-600' : (compMap[row.materialId].status === 'low_stock' ? 'text-amber-600' : 'text-stone-800')"
+                    >
+                      {{ compMap[row.materialId].remaining.toLocaleString() }} {{ compMap[row.materialId].unit }}
+                    </span>
+                  </template>
                 </div>
 
+                <!-- Only show badge when low or out of stock -->
                 <span
-                  class="px-1.5 py-0.5 rounded text-[9px] font-semibold shrink-0"
+                  v-if="compMap[row.materialId].status !== 'sufficient'"
+                  class="px-2 py-0.5 rounded-md text-[10px] font-semibold shrink-0"
                   :class="compMap[row.materialId].status === 'out_of_stock'
-                    ? 'bg-rose-100 text-rose-700'
-                    : (compMap[row.materialId].status === 'low_stock'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-emerald-50 text-emerald-700')"
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                    : 'bg-amber-50 text-amber-800 border border-amber-200/60'"
                 >
-                  {{ compMap[row.materialId].status === 'out_of_stock' ? '❌ สต็อกไม่พอ' : (compMap[row.materialId].status === 'low_stock' ? '⚠️ ใกล้หมด' : '✓ พอผลิต') }}
+                  {{ compMap[row.materialId].status === 'out_of_stock' ? '❌ ไม่พอผลิต' : '⚠️ ใกล้หมด' }}
                 </span>
               </div>
             </div>
@@ -380,28 +387,28 @@
             </div>
           </div>
 
-          <!-- Single Unified Recipe Cost Result Card (คำนวณอัตโนมัติ ไม่ต้องกดปุ่มซ้ำซ้อน) -->
+          <!-- Single Unified Recipe Cost Result Card (2 Decimals Clean) -->
           <div class="p-3 rounded-xl bg-white border border-stone-200/60 flex items-center justify-between">
             <div class="space-y-0.5">
               <span class="text-[10px] font-semibold text-stone-500 uppercase tracking-wide flex items-center gap-1">
                 <span>💡</span>
                 <span>ต้นทุนวัตถุดิบรวมต่อรอบ</span>
               </span>
-              <p class="text-[11px] text-stone-500 font-number">
+              <p class="text-[11px] text-stone-400 font-number">
                 ฿{{ calculatedSubCost.toFixed(2) }} ÷ {{ (Number(form.yieldQty) || 1).toLocaleString() }} {{ form.unit }}
               </p>
             </div>
             <div class="text-right">
               <div class="text-sm font-bold font-number text-emerald-800">
-                ฿{{ calculatedUnitCost.toFixed(4) }}
+                ฿{{ calculatedUnitCost.toFixed(2) }}
                 <span class="text-[11px] font-normal text-stone-500 font-sans">/ {{ form.unit }}</span>
               </div>
-              <span class="text-[10px] text-emerald-600/80 font-medium">คำนวณจากสูตรให้อัตโนมัติ</span>
+              <span class="text-[10px] text-emerald-600/80 font-medium">คำนวณจากสูตรอัตโนมัติ</span>
             </div>
           </div>
         </div>
 
-        <!-- Stock Stepper & Min Alert (Controls referencing primary pack units / rounds) (Requirement 2) -->
+        <!-- Stock Stepper & Min Alert (Controls referencing primary pack units / rounds) -->
         <div class="grid grid-cols-2 gap-3">
           <!-- สต็อกปัจจุบัน -->
           <div class="p-3 rounded-xl bg-[#FAF9F6] border border-stone-200/70 space-y-1.5">
@@ -536,6 +543,7 @@ const unitOptions = [
 ]
 
 const initialStock = ref(0) // Tracks existing stock on open to deduct only incremental rounds
+const hasConfirmedLowStock = ref(false) // Tracks if user already confirmed low-stock warning once (เตือน 1 รอบพอ)
 
 const form = ref({
   id: '',
@@ -567,7 +575,7 @@ function getSubMat(matId) {
   return store.matMap[matId]
 }
 
-// Single Unified Unit Cost Calculation
+// Single Unified Unit Cost Calculation (2 decimals)
 const calculatedSubCost = computed(() => {
   if (!form.value.subRecipe || form.value.subRecipe.length === 0) return 0
   return form.value.subRecipe.reduce((sum, row) => {
@@ -580,11 +588,11 @@ const calculatedSubCost = computed(() => {
 const calculatedUnitCost = computed(() => {
   if (form.value.hasSubRecipe) {
     const yieldQ = Number(form.value.yieldQty) || 1
-    return yieldQ > 0 ? Number((calculatedSubCost.value / yieldQ).toFixed(4)) : 0
+    return yieldQ > 0 ? Number((calculatedSubCost.value / yieldQ).toFixed(2)) : 0
   }
   const size = Number(form.value.packSize) || 1
   const cost = Number(form.value.packCost) || 0
-  return size > 0 ? Number((cost / size).toFixed(4)) : 0
+  return size > 0 ? Number((cost / size).toFixed(2)) : 0
 })
 
 // Set Unit Handler
@@ -738,21 +746,23 @@ async function stepStock(delta) {
       }
 
       // Check 2: Will any sub-ingredient drop below minAlert?
+      // User requested: "เตือนวัตถุดิบใกล้หมด 1 รอบพอ ตอนกด + ไม่ต้องแสดงทุกรอบ"
       const lowItems = recipeComparison.value.filter(item => {
         const nextRemaining = item.remaining - item.qtyPerRound
         return nextRemaining <= item.minAlert
       })
 
-      if (lowItems.length > 0) {
+      if (lowItems.length > 0 && !hasConfirmedLowStock.value) {
         const warningLines = lowItems.map(i => `• ${i.name}: จะเหลือ ${(i.remaining - i.qtyPerRound).toLocaleString()} ${i.unit} (จุดเตือน ${i.minAlert.toLocaleString()} ${i.unit})`).join('\n')
         const ok = await store.confirmDialog({
           title: 'วัตถุดิบรองใกล้หมดสต็อก',
-          message: `การผลิตเพิ่มอีก 1 รอบ จะทำให้วัตถุดิบรองในคลังลดลงต่ำกว่าจุดเตือนขั้นต่ำ:\n\n${warningLines}\n\nต้องการยืนยันเพิ่มรอบผลิตต่อหรือไม่?`,
-          confirmText: 'ยืนยันเพิ่มรอบผลิต',
+          message: `การผลิตเพิ่มจะทำให้วัตถุดิบรองในคลังลดลงต่ำกว่าจุดเตือนขั้นต่ำ:\n\n${warningLines}\n\nต้องการยืนยันเพิ่มรอบผลิตต่อหรือไม่?`,
+          confirmText: 'ยืนยันผลิตต่อ',
           cancelText: 'ยกเลิก',
           type: 'warning'
         })
         if (!ok) return
+        hasConfirmedLowStock.value = true // Warn once only per session!
       }
     }
 
@@ -764,6 +774,12 @@ async function stepStock(delta) {
     const current = form.value.stock / pSize
     const next = Math.max(0, Math.round((current + delta) * 10) / 10)
     form.value.stock = Math.round(next * pSize * 100) / 100
+
+    // Reset warning flag if stock level rises back above min alert
+    const stillLow = recipeComparison.value.some(item => item.remaining <= item.minAlert)
+    if (!stillLow) {
+      hasConfirmedLowStock.value = false
+    }
   }
 }
 
@@ -849,6 +865,8 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
   if (open) {
     const id = store.modals.materialEdit.materialId
     const mat = id ? store.materials.find(m => m.id === id) : null
+
+    hasConfirmedLowStock.value = false // Reset warning flag for new session
 
     if (mat) {
       initialStock.value = Number(mat.stock) || 0
@@ -975,7 +993,7 @@ async function submit() {
     packCost: pCost,
     stock: Number(form.value.stock) || 0,
     minAlert: Number(form.value.minAlert) || 0,
-    unitCost: Math.round(uCost * 10000) / 10000,
+    unitCost: Math.round(uCost * 100) / 100, // 2 decimals clean
     emoji: form.value.emoji || '🥣',
     isSubIngredient: isSub,
     hasSubRecipe: hasRecipe,
