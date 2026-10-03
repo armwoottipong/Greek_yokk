@@ -46,6 +46,26 @@ export function getExpiryDiffDays(expiryDateStr) {
   return Math.round(diffTime / (1000 * 60 * 60 * 24))
 }
 
+export function formatDisplayDate(dateStr) {
+  if (!dateStr) return '-'
+  try {
+    const parts = String(dateStr).split('-')
+    if (parts.length !== 3) return dateStr
+    const y = parts[0]
+    const m = parts[1]
+    const d = parts[2]
+    return `${d}/${m}/${y}`
+  } catch (e) {
+    return dateStr
+  }
+}
+
+export function isExpired(mat) {
+  if (!mat || !mat.expiryDate) return false
+  const diff = getExpiryDiffDays(mat.expiryDate)
+  return diff !== null && diff < 0
+}
+
 export function formatThaiDate(dateStr, includeYear = false) {
   if (!dateStr) return '-'
   try {
@@ -95,12 +115,11 @@ export function getExpiryStatus(mat) {
   }
 
   if (diff < 0) {
-    const daysAgo = Math.abs(diff)
     return {
       status: 'expired',
       diff,
-      label: `หมดอายุแล้ว (${daysAgo} วันก่อน)`,
-      text: `หมดอายุ (${daysAgo} วันก่อน)`,
+      label: 'หมดอายุแล้ว',
+      text: 'หมดอายุแล้ว',
       shortText: 'หมดอายุแล้ว',
       badgeClass: 'bg-rose-100 text-rose-700 font-bold border border-rose-300',
       icon: '🔴'
@@ -119,36 +138,12 @@ export function getExpiryStatus(mat) {
     }
   }
 
-  if (diff <= 2) {
-    return {
-      status: 'critical',
-      diff,
-      label: `ใกล้หมดอายุ (เหลือ ${diff} วัน)`,
-      text: `เหลือ ${diff} วัน`,
-      shortText: `${diff} วัน`,
-      badgeClass: 'bg-amber-100 text-amber-900 font-semibold border border-amber-300',
-      icon: '🟡'
-    }
-  }
-
-  if (diff <= 5) {
-    return {
-      status: 'warning',
-      diff,
-      label: `เหลืออีก ${diff} วัน`,
-      text: `เหลือ ${diff} วัน`,
-      shortText: `${diff} วัน`,
-      badgeClass: 'bg-amber-50 text-amber-800 font-medium border border-amber-200',
-      icon: '🟡'
-    }
-  }
-
   return {
     status: 'fresh',
     diff,
-    label: `สดใหม่ (เหลือ ${diff} วัน)`,
-    text: `เหลือ ${diff} วัน`,
-    shortText: `${diff} วัน`,
+    label: 'ปกติ',
+    text: 'ปกติ',
+    shortText: 'ปกติ',
     badgeClass: 'bg-emerald-50 text-emerald-700 font-medium border border-emerald-200',
     icon: '🟢'
   }
@@ -1201,9 +1196,7 @@ export const usePosStore = defineStore('pos', {
       const receiveDate = dates?.receiveDate || getTodayString()
       const expiryDate = dates?.expiryDate || null
       mat.lastStockInDate = receiveDate
-      if (expiryDate) {
-        mat.expiryDate = expiryDate
-      }
+      mat.expiryDate = expiryDate
 
       this.persistLocal()
 
@@ -1306,11 +1299,9 @@ export const usePosStore = defineStore('pos', {
 
       // Update Production Date & Expiry Date
       const produceDate = dates?.receiveDate || getTodayString()
-      const expiryDate = dates?.expiryDate || (target.shelfLifeDays ? addDays(produceDate, target.shelfLifeDays) : null)
+      const expiryDate = dates?.expiryDate !== undefined ? (dates.expiryDate || null) : (target.shelfLifeDays ? addDays(produceDate, target.shelfLifeDays) : null)
       target.lastStockInDate = produceDate
-      if (expiryDate) {
-        target.expiryDate = expiryDate
-      }
+      target.expiryDate = expiryDate
 
       this.persistLocal()
 

@@ -308,10 +308,16 @@
           </div>
           <div>
             <div class="flex items-center justify-between mb-1">
-              <label class="text-[11px] font-medium text-stone-600">วันหมดอายุ</label>
-              <span v-if="expiryPreviewText" class="text-[10px] font-number" :class="expiryPreviewClass">
-                {{ expiryPreviewText }}
-              </span>
+              <label class="text-[11px] font-medium text-stone-600">วันหมดอายุ (ถ้ามี)</label>
+              <button
+                v-if="expiryDate"
+                type="button"
+                @click="expiryDate = ''"
+                class="text-[10px] text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
+                title="ล้างวันหมดอายุ (ไม่ระบุวันหมดอายุ)"
+              >
+                ล้าง
+              </button>
             </div>
             <input
               v-model="expiryDate"
@@ -358,7 +364,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { usePosStore, getTodayString, addDays, getExpiryDiffDays, formatThaiDate } from '@/stores/posStore'
+import { usePosStore, getTodayString, addDays, formatThaiDate } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { X, Check, Plus, Minus, History } from 'lucide-vue-next'
 
@@ -398,25 +404,6 @@ const currentMat = computed(() => {
 
 const isProducedFromRecipe = computed(() => {
   return Boolean(currentMat.value?.hasSubRecipe && currentMat.value?.subRecipe && currentMat.value.subRecipe.length > 0)
-})
-
-const expiryPreviewText = computed(() => {
-  if (!expiryDate.value) return ''
-  const diff = getExpiryDiffDays(expiryDate.value)
-  if (diff === null) return ''
-  if (diff < 0) return `(หมดอายุแล้ว ${Math.abs(diff)} วัน)`
-  if (diff === 0) return `(หมดอายุวันนี้)`
-  return `(อีก ${diff} วัน)`
-})
-
-const expiryPreviewClass = computed(() => {
-  if (!expiryDate.value) return 'text-stone-400'
-  const diff = getExpiryDiffDays(expiryDate.value)
-  if (diff === null) return 'text-stone-400'
-  if (diff < 0) return 'text-rose-600 font-semibold'
-  if (diff === 0) return 'text-rose-700 font-bold'
-  if (diff <= 2) return 'text-amber-700 font-semibold'
-  return 'text-emerald-700 font-medium'
 })
 
 function onReceiveDateChange() {

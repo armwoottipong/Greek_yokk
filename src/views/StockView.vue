@@ -203,7 +203,35 @@
                       <span class="truncate">{{ mat.name }}</span>
                       <span v-if="mat.isDeleted" class="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 font-normal shrink-0">ซ่อนอยู่</span>
                     </div>
-                    <span class="text-[10px] text-stone-400 font-mono block truncate">{{ mat.id }}</span>
+                    <div class="text-[11px] text-stone-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 font-number">
+                      <!-- วันที่รับ -->
+                      <span v-if="mat.lastStockInDate" class="inline-flex items-center gap-1">
+                        <span class="text-stone-400 font-sans">วันที่รับ:</span>
+                        <span class="text-stone-700 font-medium">{{ formatDisplayDate(mat.lastStockInDate) }}</span>
+                      </span>
+
+                      <!-- ตัวคั่นจุดกลม หากมีทั้งสองค่า -->
+                      <span v-if="mat.lastStockInDate && mat.expiryDate" class="text-stone-300">•</span>
+
+                      <!-- วันที่หมดอายุ -->
+                      <span
+                        v-if="mat.expiryDate"
+                        class="inline-flex items-center gap-1"
+                        :class="isExpired(mat) ? 'text-rose-600 font-bold' : 'text-stone-700 font-medium'"
+                      >
+                        <span class="font-sans" :class="isExpired(mat) ? 'text-rose-600 font-semibold' : 'text-stone-400'">วันหมดอายุ:</span>
+                        <span>{{ formatDisplayDate(mat.expiryDate) }}</span>
+                        <span
+                          v-if="isExpired(mat)"
+                          class="text-[9px] px-1 py-0.2 bg-rose-100 text-rose-700 rounded font-sans font-bold ml-0.5"
+                        >
+                          หมดอายุ
+                        </span>
+                      </span>
+
+                      <!-- กรณีไม่มีการบันทึกวันที่ทั้งสอง -->
+                      <span v-if="!mat.lastStockInDate && !mat.expiryDate" class="text-stone-300">-</span>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -329,46 +357,38 @@
                 </div>
               </td>
 
-              <!-- Status Badge (Stock Level & Expiry) -->
+              <!-- Status Badge (Clean single badge, no countdown clutter) -->
               <td class="py-3 px-4 text-center">
-                <div class="flex flex-col items-center justify-center gap-1">
-                  <!-- Stock Level Badge -->
-                  <span
-                    v-if="mat.isDeleted"
-                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-200 text-stone-700 shrink-0"
-                  >
-                    ซ่อนอยู่
-                  </span>
-                  <span
-                    v-else-if="mat.stock <= 0"
-                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 shrink-0"
-                  >
-                    หมดสต็อก
-                  </span>
-                  <span
-                    v-else-if="mat.stock <= mat.minAlert"
-                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 shrink-0"
-                  >
-                    ใกล้หมด
-                  </span>
-                  <span
-                    v-else
-                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
-                  >
-                    ปกติ
-                  </span>
-
-                  <!-- Expiry Date Badge (if material has expiry date) -->
-                  <span
-                    v-if="!mat.isDeleted && mat.expiryDate"
-                    class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium shrink-0 cursor-default"
-                    :class="getExpiryStatus(mat).badgeClass"
-                    :title="`วันหมดอายุ: ${formatThaiDate(mat.expiryDate, true)} (รับเข้า/ผลิต: ${formatThaiDate(mat.lastStockInDate, true)})`"
-                  >
-                    <span class="text-[8px]">{{ getExpiryStatus(mat).icon }}</span>
-                    <span>{{ getExpiryStatus(mat).shortText }}</span>
-                  </span>
-                </div>
+                <span
+                  v-if="mat.isDeleted"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-200 text-stone-700 shrink-0"
+                >
+                  ซ่อนอยู่
+                </span>
+                <span
+                  v-else-if="isExpired(mat)"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300 shrink-0"
+                >
+                  หมดอายุแล้ว
+                </span>
+                <span
+                  v-else-if="mat.stock <= 0"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 shrink-0"
+                >
+                  หมดสต็อก
+                </span>
+                <span
+                  v-else-if="mat.stock <= mat.minAlert"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 shrink-0"
+                >
+                  ใกล้หมด
+                </span>
+                <span
+                  v-else
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
+                >
+                  ปกติ
+                </span>
               </td>
 
               <!-- Actions (Quick History Button + ... More Dropdown) -->
@@ -527,7 +547,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { usePosStore, getExpiryStatus, formatThaiDate, getTodayString, addDays } from '@/stores/posStore'
+import { usePosStore, getExpiryStatus, formatThaiDate, formatDisplayDate, isExpired, getTodayString, addDays } from '@/stores/posStore'
 import {
   Plus,
   Minus,
