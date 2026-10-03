@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 
 import Sidebar from '@/components/layout/Sidebar.vue'
@@ -80,6 +80,34 @@ const currentViewComponent = computed(() => {
     case 'dashboard':
     default:
       return DashboardView
+  }
+})
+
+let handleHashChange = null
+
+onMounted(() => {
+  if (store.currentTab) {
+    try {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', `#${store.currentTab}`)
+      }
+    } catch (e) {}
+  }
+
+  handleHashChange = () => {
+    const hash = window.location.hash ? window.location.hash.replace('#', '').toLowerCase() : ''
+    const validTabs = ['dashboard', 'pos', 'menu', 'addon', 'stock', 'settings']
+    if (validTabs.includes(hash) && store.currentTab !== hash) {
+      store.switchTab(hash)
+    }
+  }
+
+  window.addEventListener('hashchange', handleHashChange)
+})
+
+onUnmounted(() => {
+  if (handleHashChange) {
+    window.removeEventListener('hashchange', handleHashChange)
   }
 })
 </script>

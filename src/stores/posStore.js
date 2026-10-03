@@ -217,8 +217,23 @@ export const usePosStore = defineStore('pos', {
       }
     })
 
+    // Persist active view/tab so page refresh stays on the same page
+    const validTabs = ['dashboard', 'pos', 'menu', 'addon', 'stock', 'settings']
+    let initialTab = 'dashboard'
+    try {
+      const hashTab = window.location.hash ? window.location.hash.replace('#', '').toLowerCase() : ''
+      const storedTab = localStorage.getItem('GY_CURRENT_TAB')
+      if (validTabs.includes(hashTab)) {
+        initialTab = hashTab
+      } else if (validTabs.includes(storedTab)) {
+        initialTab = storedTab
+      }
+    } catch (e) {
+      initialTab = 'dashboard'
+    }
+
     return {
-      currentTab: 'dashboard', // 'dashboard' | 'pos' | 'menu' | 'addon' | 'stock' | 'settings'
+      currentTab: initialTab, // 'dashboard' | 'pos' | 'menu' | 'addon' | 'stock' | 'settings'
       dashboardPeriod: 'today', // 'today' | 'week' | 'month' | 'all'
 
       // Master Collections with strict number parsing and default recipe migration
@@ -547,6 +562,12 @@ export const usePosStore = defineStore('pos', {
       }
 
       this.currentTab = tab
+      try {
+        localStorage.setItem('GY_CURRENT_TAB', tab)
+        if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', `#${tab}`)
+        }
+      } catch (e) {}
     },
 
     // Promise-based Confirm Dialog (Greek Yogg Design System)
