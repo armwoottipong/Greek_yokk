@@ -163,17 +163,17 @@
     <!-- Material Inventory Table -->
     <div class="editorial-card bg-white pb-12">
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs">
+        <table class="w-full min-w-[960px] table-fixed text-left text-xs">
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/50 text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
-              <th class="py-3 px-4">วัตถุดิบ / สินค้า</th>
-              <th class="py-3 px-4">ประเภท</th>
-              <th class="py-3 px-4">หมวดหมู่</th>
-              <th class="py-3 px-4">คงเหลือในคลัง</th>
-              <th class="py-3 px-4">ต้นทุน/หน่วย</th>
-              <th class="py-3 px-4">มูลค่าสต็อกคงเหลือ</th>
-              <th class="py-3 px-4">สถานะ</th>
-              <th class="py-3 px-4 text-right">การจัดการ</th>
+              <th class="py-3 px-4 w-[22%]">วัตถุดิบ / สินค้า</th>
+              <th class="py-3 px-4 w-[12%]">ประเภท</th>
+              <th class="py-3 px-4 w-[10%]">หมวดหมู่</th>
+              <th class="py-3 px-4 w-[18%]">คงเหลือในคลัง</th>
+              <th class="py-3 px-4 w-[13%]">ต้นทุน/หน่วย</th>
+              <th class="py-3 px-4 w-[13%]">มูลค่าสต็อกคงเหลือ</th>
+              <th class="py-3 px-4 w-[7%] text-center">สถานะ</th>
+              <th class="py-3 px-4 w-[5%] text-right">การจัดการ</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
@@ -187,14 +187,14 @@
             >
               <!-- Material Info -->
               <td class="py-3 px-4">
-                <div class="flex items-center gap-2.5">
+                <div class="flex items-center gap-2.5 min-w-0">
                   <span class="text-xl shrink-0">{{ mat.emoji }}</span>
-                  <div>
-                    <div class="font-bold text-stone-900 flex items-center gap-1.5">
-                      <span>{{ mat.name }}</span>
-                      <span v-if="mat.isDeleted" class="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 font-normal">ซ่อนอยู่</span>
+                  <div class="min-w-0 flex-1 truncate">
+                    <div class="font-bold text-stone-900 flex items-center gap-1.5 truncate">
+                      <span class="truncate">{{ mat.name }}</span>
+                      <span v-if="mat.isDeleted" class="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 font-normal shrink-0">ซ่อนอยู่</span>
                     </div>
-                    <span class="text-[10px] text-stone-400 font-mono">{{ mat.id }}</span>
+                    <span class="text-[10px] text-stone-400 font-mono block truncate">{{ mat.id }}</span>
                   </div>
                 </div>
               </td>
@@ -203,33 +203,33 @@
               <td class="py-3 px-4">
                 <span
                   v-if="mat.isSubIngredient"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-800 border border-purple-200/60"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-800 border border-purple-200/60 truncate"
                   title="วัตถุดิบรอง สำหรับหมัก/ผลิตกรีกโยเกิร์ต"
                 >
-                  <span>🥛</span>
-                  <span>วัตถุดิบรอง</span>
+                  <span class="shrink-0">🥛</span>
+                  <span class="truncate">วัตถุดิบรอง</span>
                 </span>
                 <span
                   v-else-if="mat.hasSubRecipe"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-900 border border-amber-200/60"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-900 border border-amber-200/60 truncate"
                   title="วัตถุดิบหลัก ผลิตจากวัตถุดิบรอง"
                 >
-                  <span>🥣</span>
-                  <span>หลัก (มีสูตรผลิต)</span>
+                  <span class="shrink-0">🥣</span>
+                  <span class="truncate">หลัก (มีสูตรผลิต)</span>
                 </span>
                 <span
                   v-else
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60 truncate"
                   title="วัตถุดิบหลัก สั่งซื้อตรงหน้าร้าน"
                 >
-                  <span>📦</span>
-                  <span>วัตถุดิบหลัก</span>
+                  <span class="shrink-0">📦</span>
+                  <span class="truncate">วัตถุดิบหลัก</span>
                 </span>
               </td>
 
               <!-- Category -->
               <td class="py-3 px-4">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-stone-100 text-stone-700">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-stone-100 text-stone-700 truncate max-w-full">
                   {{ mat.category || 'อื่นๆ' }}
                 </span>
               </td>
@@ -247,9 +247,10 @@
                   >
                     <Minus class="w-3 h-3" />
                   </button>
+                  <div v-else class="w-6 h-6 shrink-0"></div>
 
-                  <div class="min-w-[85px]">
-                    <div class="font-bold font-number text-sm flex items-center gap-1">
+                  <div class="w-20 text-center shrink-0 tabular-nums">
+                    <div class="font-bold font-number text-sm flex items-center justify-center gap-1 tabular-nums">
                       <span
                         :class="[
                           mat.stock <= 0
@@ -258,12 +259,13 @@
                               ? 'text-amber-600'
                               : 'text-stone-900'
                         ]"
+                        class="tabular-nums"
                       >
                         {{ mat.stock.toLocaleString() }}
                       </span>
-                      <span class="text-xs font-normal text-stone-400">{{ mat.unit }}</span>
+                      <span class="text-xs font-normal text-stone-400 shrink-0">{{ mat.unit }}</span>
                     </div>
-                    <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number">
+                    <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number tabular-nums truncate">
                       ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
                     </div>
                   </div>
@@ -278,50 +280,51 @@
                   >
                     <Plus class="w-3 h-3" />
                   </button>
+                  <div v-else class="w-6 h-6 shrink-0"></div>
                 </div>
               </td>
 
               <!-- Unit Cost (Primary: Pack purchase cost e.g. ฿105/ขวด, Secondary: base unit cost) -->
-              <td class="py-3 px-4 font-number text-stone-700">
-                <div class="font-bold text-stone-900 text-xs">
+              <td class="py-3 px-4 font-number text-stone-700 tabular-nums">
+                <div class="font-bold text-stone-900 text-xs tabular-nums truncate">
                   ฿{{ getDisplayPackCost(mat).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) }}
                   <span class="font-medium text-stone-500 text-[11px]">/{{ mat.packUnit || mat.unit }}</span>
                 </div>
-                <div v-if="(mat.packSize && mat.packSize > 1) || mat.hasSubRecipe" class="text-[10px] text-stone-400 mt-0.5">
+                <div v-if="(mat.packSize && mat.packSize > 1) || mat.hasSubRecipe" class="text-[10px] text-stone-400 mt-0.5 tabular-nums truncate">
                   (≈ ฿{{ Number(mat.unitCost || 0).toFixed(2) }}/{{ mat.unit }})
                 </div>
               </td>
 
               <!-- Total Item Stock Valuation -->
-              <td class="py-3 px-4">
-                <div class="font-bold font-number text-amber-950">
+              <td class="py-3 px-4 tabular-nums">
+                <div class="font-bold font-number text-amber-950 tabular-nums truncate">
                   ฿{{ (Math.max(0, mat.stock) * (mat.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                 </div>
               </td>
 
               <!-- Status Badge -->
-              <td class="py-3 px-4">
+              <td class="py-3 px-4 text-center">
                 <span
                   v-if="mat.isDeleted"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-200 text-stone-700"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-200 text-stone-700 shrink-0"
                 >
                   ซ่อนอยู่
                 </span>
                 <span
                   v-else-if="mat.stock <= 0"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 shrink-0"
                 >
                   หมดสต็อก
                 </span>
                 <span
                   v-else-if="mat.stock <= mat.minAlert"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 shrink-0"
                 >
                   ใกล้หมด
                 </span>
                 <span
                   v-else
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
                 >
                   ปกติ
                 </span>
@@ -333,7 +336,7 @@
                   <button
                     type="button"
                     @click.stop="toggleActionMenu(mat.id)"
-                    class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                    class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer shrink-0"
                     :class="activeActionMenuId === mat.id ? 'bg-stone-100 text-stone-900' : ''"
                     title="การจัดการเพิ่มเติม"
                   >
