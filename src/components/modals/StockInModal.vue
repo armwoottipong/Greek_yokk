@@ -367,7 +367,7 @@
           class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs disabled:opacity-40 transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Check class="w-3.5 h-3.5" />
-          <span>{{ isProducedFromRecipe ? 'ผลิตและหักสต็อก' : 'บันทึกรับเข้า' }}</span>
+          <span>{{ isProducedFromRecipe ? 'บันทึกการผลิต (แบบร่าง)' : 'บันทึกรับเข้า (แบบร่าง)' }}</span>
         </button>
       </div>
     </div>
@@ -589,16 +589,7 @@ async function submit() {
       return
     }
 
-    const expiryText = expiryDate.value ? `\n(หมดอายุ: ${formatThaiDate(expiryDate.value)})` : ''
-    const confirmed = await store.confirmDialog({
-      title: 'ยืนยันการผลิตตามสูตร',
-      message: `ผลิต "${mat.name}" จำนวน +${produceYieldQty.value.toLocaleString()} ${mat.unit}${expiryText}\nระบบจะตัดสต็อกวัตถุดิบรองตามสูตรอัตโนมัติ ยืนยันหรือไม่?`,
-      confirmText: 'ยืนยันผลิต',
-      type: 'warning'
-    })
-    if (!confirmed) return
-
-    const ok = store.batchProduce(mat.id, produceYieldQty.value, scaledSubIngredients.value, note.value, datePayload)
+    const ok = store.batchProduce(mat.id, produceYieldQty.value, scaledSubIngredients.value, note.value, datePayload, true)
     if (ok) close()
     return
   }
@@ -608,18 +599,9 @@ async function submit() {
     return
   }
 
-  const expiryText = expiryDate.value ? `\n(หมดอายุ: ${formatThaiDate(expiryDate.value)})` : ''
-  const confirmed = await store.confirmDialog({
-    title: 'ยืนยันการรับเข้าสต็อก',
-    message: `รับเข้า "${mat.name}" จำนวน +${inputBaseQty.value.toLocaleString()} ${mat.unit}${expiryText}\n(ยอดรวม ฿${calculatedDirectTotal.value.toFixed(2)}) ยืนยันหรือไม่?`,
-    confirmText: 'ยืนยันรับเข้า',
-    type: 'save'
-  })
-  if (!confirmed) return
-
   const pSize = mat.packSize > 0 ? mat.packSize : 1
   const unitCost = (Number(inputPackCost.value) || 0) / pSize
-  store.stockIn(mat.id, inputBaseQty.value, unitCost, note.value, inputPackCost.value, datePayload)
+  store.stockIn(mat.id, inputBaseQty.value, unitCost, note.value, inputPackCost.value, datePayload, true)
   close()
 }
 </script>

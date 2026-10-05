@@ -321,6 +321,18 @@
                       </span>
                       <span class="text-xs font-normal text-stone-400 shrink-0">{{ mat.unit }}</span>
                     </div>
+
+                    <!-- Draft indicator pill -->
+                    <div v-if="getDraftDiff(mat) !== 0" class="my-0.5 flex justify-center">
+                      <span
+                        class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold"
+                        :class="getDraftDiff(mat) > 0 ? 'bg-amber-100 text-amber-900 border border-amber-300/80' : 'bg-rose-100 text-rose-800 border border-rose-300/80'"
+                        title="มีการเปลี่ยนแปลงในแบบร่าง รอยืนยันขั้นตอนสุดท้าย"
+                      >
+                        ร่าง: {{ getDraftDiff(mat) > 0 ? `+${getDraftDiff(mat).toLocaleString()}` : getDraftDiff(mat).toLocaleString() }}
+                      </span>
+                    </div>
+
                     <div v-if="mat.hasSubRecipe" class="text-[10px] text-amber-800/80 font-medium truncate">
                       รอบละ {{ Number(mat.yieldQty || 540).toLocaleString() }} {{ mat.unit }}
                     </div>
@@ -619,7 +631,7 @@
       </div>
     </div>
 
-    <!-- Floating Bottom Save Bar (Pops up from bottom when changes are made) -->
+    <!-- Floating Bottom Save Bar (Pops up from bottom when changes/drafts are made) -->
     <transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="transform translate-y-24 opacity-0"
@@ -629,44 +641,107 @@
       leave-to-class="transform translate-y-24 opacity-0"
     >
       <div
-        v-if="hasPendingChanges"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900 text-white rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-4 border border-stone-800 max-w-xl w-[92vw] justify-between"
+        v-if="store.hasStockDrafts"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center max-w-2xl w-[94vw]"
       >
-        <div class="flex items-center gap-3 min-w-0 pr-2">
-          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg shrink-0">
-            📦
-          </div>
-          <div class="min-w-0">
-            <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
-              <span>ปรับสต็อก / ผลิตสำเร็จรูป</span>
-              <span class="px-1.5 py-0.5 rounded-md bg-amber-500/30 text-amber-300 font-number text-[11px]">
-                {{ changedItemsList.length }} รายการ
+        <!-- Expanded Draft Details Drawer (pops up above the bar) -->
+        <transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="transform translate-y-4 opacity-0 scale-95"
+          enter-to-class="transform translate-y-0 opacity-100 scale-100"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="transform translate-y-0 opacity-100 scale-100"
+          leave-to-class="transform translate-y-4 opacity-0 scale-95"
+        >
+          <div
+            v-if="showDraftDetails"
+            class="w-full mb-2 bg-stone-900/95 backdrop-blur-md text-white rounded-2xl border border-stone-700/80 shadow-2xl p-4 max-h-60 overflow-y-auto"
+          >
+            <div class="flex items-center justify-between pb-2 border-b border-stone-800 text-xs">
+              <span class="font-bold flex items-center gap-1.5 text-amber-400">
+                <span>📋</span> รายการแบบร่างที่รอยืนยัน ({{ store.stockDraftSummary.count }} รายการ)
               </span>
-            </h4>
-            <p class="text-[11px] text-stone-400 truncate mt-0.5 font-number">
-              {{ changedItemsSummaryText }}
-            </p>
+              <span class="text-[11px] text-stone-400">ยังไม่บันทึกจริงจนกว่าจะกดปุ่มบันทึก</span>
+            </div>
+            <div class="divide-y divide-stone-800/60 mt-2">
+              <div
+                v-for="item in store.stockDraftSummary.items"
+                :key="item.id"
+                class="py-2 flex items-center justify-between text-xs"
+              >
+                <div class="flex items-center gap-2 min-w-0 pr-2">
+                  <span class="text-base shrink-0">{{ item.emoji || '📦' }}</span>
+                  <div class="min-w-0">
+                    <div class="font-semibold text-stone-200 truncate">{{ item.name }}</div>
+                    <div class="text-[10px] text-stone-400 truncate">{{ item.description }}</div>
+                  </div>
+                </div>
+                <div class="shrink-0 font-number font-bold text-xs text-right">
+                  <span
+                    :class="[
+                      item.delta > 0 ? 'text-emerald-400' : item.delta < 0 ? 'text-rose-400' : 'text-stone-300'
+                    ]"
+                  >
+                    {{ item.delta > 0 ? `+${item.delta.toLocaleString()}` : item.delta ? item.delta.toLocaleString() : 'สลับล็อต' }}
+                  </span>
+                  <span v-if="item.unit" class="text-[10px] text-stone-400 ml-1">{{ item.unit }}</span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </transition>
 
-        <div class="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            @click="revertPendingChanges"
-            class="px-3 py-2 rounded-xl text-xs font-medium text-stone-300 hover:text-white hover:bg-stone-800 transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <Undo2 class="w-3.5 h-3.5" />
-            <span>ยกเลิก</span>
-          </button>
+        <!-- Main Bar -->
+        <div class="w-full bg-stone-900 text-white rounded-2xl shadow-2xl px-4 sm:px-5 py-3 flex items-center gap-3 border border-stone-800 justify-between">
+          <div class="flex items-center gap-2.5 min-w-0 pr-2">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg shrink-0">
+              📝
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h4 class="text-xs font-bold text-white flex items-center gap-1.5 truncate">
+                  <span>แบบร่างรอการบันทึก</span>
+                  <span class="px-1.5 py-0.2 rounded-md bg-amber-500/30 text-amber-300 font-number text-[11px] font-bold">
+                    {{ store.stockDraftSummary.count }} รายการ
+                  </span>
+                </h4>
+                <button
+                  type="button"
+                  @click="showDraftDetails = !showDraftDetails"
+                  class="text-[10px] text-amber-400 hover:text-amber-300 underline cursor-pointer flex items-center gap-0.5 shrink-0"
+                >
+                  <span>{{ showDraftDetails ? 'ซ่อน' : 'ดูรายละเอียด' }}</span>
+                  <ChevronUp v-if="showDraftDetails" class="w-3 h-3" />
+                  <ChevronDown v-else class="w-3 h-3" />
+                </button>
+              </div>
+              <p class="text-[11px] text-stone-400 truncate mt-0.5 font-number">
+                {{ store.stockDraftSummary.text }}
+              </p>
+            </div>
+          </div>
 
-          <button
-            type="button"
-            @click="savePendingChanges"
-            class="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-md transition-all cursor-pointer flex items-center gap-1.5"
-          >
-            <Check class="w-3.5 h-3.5" />
-            <span>บันทึกสต็อก</span>
-          </button>
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              @click="revertPendingChanges"
+              class="px-3 py-2 rounded-xl text-xs font-medium text-stone-300 hover:text-white hover:bg-stone-800 transition-colors cursor-pointer flex items-center gap-1.5"
+              title="ยกเลิกแบบร่างทั้งหมด คืนค่าสต็อกเดิม"
+            >
+              <Undo2 class="w-3.5 h-3.5" />
+              <span>ยกเลิก</span>
+            </button>
+
+            <button
+              type="button"
+              @click="savePendingChanges"
+              class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              title="บันทึกขั้นตอนสุดท้ายอย่างเป็นทางการ"
+            >
+              <Check class="w-4 h-4 stroke-[2.5]" />
+              <span>บันทึกขั้นตอนสุดท้าย</span>
+            </button>
+          </div>
         </div>
       </div>
     </transition>
@@ -757,19 +832,24 @@ function onActionWaste(matId) {
 // Action menu dropdown state
 const activeActionMenuId = ref(null)
 
-// Snapshot of stocks to detect pending changes
-const stockSnapshot = ref({})
+// Draft helpers & diff calculation
+function getDraftDiff(mat) {
+  if (!store.stockDraftSnapshot) return 0
+  const snap = store.stockDraftSnapshot.find(s => s.id === mat.id)
+  if (!snap) return 0
+  return Math.round(((Number(mat.stock) || 0) - (Number(snap.stock) || 0)) * 100) / 100
+}
 
-function takeStockSnapshot() {
-  const map = {}
-  store.materials.forEach(m => {
-    map[m.id] = Number(m.stock) || 0
-  })
-  stockSnapshot.value = map
+function getBaselineStock(matId) {
+  if (!store.stockDraftSnapshot) return null
+  const snap = store.stockDraftSnapshot.find(s => s.id === matId)
+  return snap ? (Number(snap.stock) || 0) : null
 }
 
 onMounted(() => {
-  takeStockSnapshot()
+  if (!store.stockDraftSnapshot) {
+    store.initStockDraftSnapshot()
+  }
   window.addEventListener('click', closeActionMenu)
 })
 
@@ -837,7 +917,8 @@ function canProduceQuick(mat) {
 function canReduceQuick(mat) {
   if (!mat || mat.isDeleted) return false
   if (mat.hasSubRecipe) {
-    const baseline = stockSnapshot.value[mat.id] !== undefined ? Number(stockSnapshot.value[mat.id]) || 0 : Number(mat.stock) || 0
+    const base = getBaselineStock(mat.id)
+    const baseline = base !== null ? base : (Number(mat.stock) || 0)
     const yieldAmount = Number(mat.yieldQty) || 540
     // วัตถุดิบที่ผลิตมาแล้ว ไม่สามารถลดได้ (ลดได้เฉพาะรอบที่เพิ่งกดผลิตเพิ่มในรอบนี้)
     return (Number(mat.stock) || 0) >= baseline + yieldAmount
@@ -847,6 +928,9 @@ function canReduceQuick(mat) {
 
 function quickAdjustStock(mat, delta) {
   if (!mat || !mat.hasSubRecipe) return
+  if (!store.stockDraftSnapshot) {
+    store.initStockDraftSnapshot()
+  }
   const yieldAmount = Number(mat.yieldQty) || 540
   if (delta > 0) {
     // Check sub-ingredients
@@ -868,7 +952,8 @@ function quickAdjustStock(mat, delta) {
     }
   } else {
     // Decrease 1 round: Cannot reduce already produced stock
-    const baseline = stockSnapshot.value[mat.id] !== undefined ? Number(stockSnapshot.value[mat.id]) || 0 : Number(mat.stock) || 0
+    const base = getBaselineStock(mat.id)
+    const baseline = base !== null ? base : (Number(mat.stock) || 0)
     if (!canReduceQuick(mat)) {
       store.showToast(`ไม่สามารถลด ${mat.name} ได้ เนื่องจากเป็นวัตถุดิบที่ผลิตเสร็จไว้แล้ว`, 'warning')
       return
@@ -889,85 +974,18 @@ function quickAdjustStock(mat, delta) {
 }
 
 // -------------------------------------------------------------
-// Floating Bottom Save Bar Logic
+// Floating Bottom Save Bar Logic (Real Final Save at Main Stock Popup)
 // -------------------------------------------------------------
-const changedItemsList = computed(() => {
-  const list = []
-  store.materials.forEach(m => {
-    const orig = stockSnapshot.value[m.id] !== undefined ? stockSnapshot.value[m.id] : m.stock
-    const current = Number(m.stock) || 0
-    if (orig !== current) {
-      const diff = Math.round((current - orig) * 100) / 100
-      list.push({
-        id: m.id,
-        name: m.name,
-        emoji: m.emoji,
-        unit: m.unit,
-        diff,
-        orig,
-        current
-      })
-    }
-  })
-  return list
-})
-
-const hasPendingChanges = computed(() => changedItemsList.value.length > 0)
-
-const changedItemsSummaryText = computed(() => {
-  return changedItemsList.value
-    .map(i => `${i.name} ${i.diff > 0 ? '+' : ''}${i.diff.toLocaleString()} ${i.unit}`)
-    .join(', ')
-})
+const showDraftDetails = ref(false)
 
 function savePendingChanges() {
-  const count = changedItemsList.value.length
-  // Record activity log for each changed item
-  changedItemsList.value.forEach(item => {
-    const mat = store.materials.find(m => m.id === item.id)
-    let dateNote = ''
-    if (mat && item.diff > 0) {
-      const todayStr = getTodayString()
-      mat.lastStockInDate = todayStr
-      if (mat.shelfLifeDays) {
-        mat.expiryDate = addDays(todayStr, mat.shelfLifeDays)
-        dateNote = ` [ผลิต: ${formatThaiDate(todayStr)}, หมดอายุ: ${formatThaiDate(mat.expiryDate)}]`
-      }
-    }
-
-    store.addActivityLog({
-      module: 'stock',
-      action: item.diff > 0 ? 'produce' : 'stock_adjust_reduce',
-      title: item.diff > 0 ? 'ผลิตตามสูตร (Batch Produce)' : 'ยกเลิกการผลิต (หน้ารายการ)',
-      description: item.diff > 0
-        ? `ผลิต ${item.name} +${item.diff.toLocaleString()} ${item.unit}`
-        : `ลดยอด ${item.name} ${item.diff.toLocaleString()} ${item.unit}`,
-      targetId: item.id,
-      targetName: item.name,
-      targetEmoji: item.emoji,
-      delta: item.diff,
-      unit: item.unit,
-      beforeStock: item.orig,
-      afterStock: item.current,
-      receiveDate: mat?.lastStockInDate || undefined,
-      expiryDate: mat?.expiryDate || undefined,
-      reason: 'ผลิตตามสูตรผ่านปุ่มด่วนหน้ารายการสต็อก',
-      note: `ปรับจาก ${item.orig.toLocaleString()} เป็น ${item.current.toLocaleString()} ${item.unit}${dateNote}`,
-      user: 'ครัว/ผู้ผลิต'
-    })
-  })
-  store.persistLocal()
-  store.showToast(`บันทึกการผลิตสต็อกสำเร็จ (${count} รายการ)`, 'success')
-  takeStockSnapshot()
+  store.commitStockDrafts()
+  showDraftDetails.value = false
 }
 
 function revertPendingChanges() {
-  store.materials.forEach(m => {
-    if (stockSnapshot.value[m.id] !== undefined) {
-      m.stock = stockSnapshot.value[m.id]
-    }
-  })
-  store.showToast('ยกเลิกการปรับเปลี่ยนสต็อกแล้ว', 'info')
+  store.discardStockDrafts()
+  showDraftDetails.value = false
 }
 
 // -------------------------------------------------------------

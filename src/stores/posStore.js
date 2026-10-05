@@ -575,11 +575,76 @@ export const usePosStore = defineStore('pos', {
 
       // Emoji Catalog
       presetEmojis: DEFAULT_PRESET_EMOJIS,
-      emojiCatalog: EMOJI_CATALOG
+      emojiCatalog: EMOJI_CATALOG,
+
+      // Stock Staged / Draft System (All stock actions are Draft until confirmed at main stock popup)
+      stockDraftSnapshot: null,
+      stockDraftActions: []
     }
   },
 
   getters: {
+    hasStockDrafts: (state) => {
+      if (state.stockDraftActions && state.stockDraftActions.length > 0) return true
+      if (!state.stockDraftSnapshot) return false
+      return state.materials.some(m => {
+        const snap = state.stockDraftSnapshot.find(s => s.id === m.id)
+        return snap ? Number(snap.stock) !== Number(m.stock) : true
+      })
+    },
+
+    stockDraftSummary: (state) => {
+      const changedMap = new Map()
+
+      // From draft actions
+      if (Array.isArray(state.stockDraftActions)) {
+        state.stockDraftActions.forEach(act => {
+          if (act.materialId) {
+            changedMap.set(act.materialId, {
+              id: act.id,
+              materialId: act.materialId,
+              name: act.materialName,
+              emoji: act.materialEmoji,
+              unit: act.unit,
+              actionType: act.type,
+              title: act.title,
+              description: act.description,
+              delta: act.delta
+            })
+          }
+        })
+      }
+
+      // From direct stock difference (e.g. quick steppers)
+      if (state.stockDraftSnapshot) {
+        state.materials.forEach(m => {
+          const snap = state.stockDraftSnapshot.find(s => s.id === m.id)
+          const snapStock = snap ? (Number(snap.stock) || 0) : 0
+          const curStock = Number(m.stock) || 0
+          if (snapStock !== curStock && !changedMap.has(m.id)) {
+            const diff = Math.round((curStock - snapStock) * 100) / 100
+            changedMap.set(m.id, {
+              id: `stepper-${m.id}`,
+              materialId: m.id,
+              name: m.name,
+              emoji: m.emoji,
+              unit: m.unit,
+              actionType: diff > 0 ? 'produce' : 'adjust',
+              title: diff > 0 ? 'ผลิตตามสูตร (แบบร่าง)' : 'ปรับสต็อก (แบบร่าง)',
+              description: `${m.name} ${diff > 0 ? '+' : ''}${diff} ${m.unit}`,
+              delta: diff
+            })
+          }
+        })
+      }
+
+      const items = Array.from(changedMap.values())
+      return {
+        count: items.length,
+        items,
+        text: items.map(i => `${i.name} ${i.delta > 0 ? '+' : ''}${i.delta || ''} ${i.unit || ''}`.trim()).join(', ')
+      }
+    },
     // Category getters
     menuCategories: (state) => state.categories?.menu || [],
     materialCategories: (state) => state.categories?.material || [],
@@ -924,6 +989,109 @@ export const usePosStore = defineStore('pos', {
       localStorage.setItem('GY_ACTIVITY_LOGS', JSON.stringify(this.activityLogs || []))
       localStorage.setItem('GY_CATEGORIES', JSON.stringify(this.categories))
       localStorage.setItem('GY_GAS_API_URL', this.gasApiUrl)
+    },
+
+    // ========================================================
+    // STOCK DRAFT / STAGED ACTIONS (Real Final Save at Main Stock Popup)
+    // ========================================================
+    initStockDraftSnapshot() {
+      this.stockDraftSnapshot = JSON.parse(JSON.stringify(this.materials))
+      this.stockDraftActions = []
+    },
+
+    addStockDraftAction(action) {
+      if (!this.stockDraftSnapshot) {
+        this.initStockDraftSnapshot()
+      }
+      this.stockDraftActions.push({
+        id: `draft-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        timestamp: new Date().toISOString(),
+        ...action
+      })
+    },
+
+    commitStockDrafts() {
+      const loggedMatIds = new Set()
+
+      // 1. Process all pending activity logs from explicit draft actions
+      if (Array.isArray(this.stockDraftActions)) {
+        this.stockDraftActions.forEach(act => {
+          if (act.materialId) {
+            loggedMatIds.add(act.materialId)
+          }
+          if (act.log) {
+            this.addActivityLog(act.log)
+          }
+          if (Array.isArray(act.subLogs)) {
+            act.subLogs.forEach(sl => {
+              this.addActivityLog(sl)
+              if (sl.targetId) loggedMatIds.add(sl.targetId)
+            })
+          }
+        })
+      }
+
+      // 2. Check any remaining materials that differ from snapshot (e.g. quick stepper on stock page)
+      if (this.stockDraftSnapshot) {
+        this.materials.forEach(m => {
+          const snap = this.stockDraftSnapshot.find(s => s.id === m.id)
+          const snapStock = snap ? (Number(snap.stock) || 0) : 0
+          const currentStock = Number(m.stock) || 0
+          if (snap && snapStock !== currentStock && !loggedMatIds.has(m.id)) {
+            const diff = Math.round((currentStock - snapStock) * 100) / 100
+            let dateNote = ''
+            if (diff > 0) {
+              const todayStr = getTodayString()
+              m.lastStockInDate = todayStr
+              if (m.shelfLifeDays) {
+                m.expiryDate = addDays(todayStr, m.shelfLifeDays)
+                dateNote = ` [ผลิต: ${formatThaiDate(todayStr)}, หมดอายุ: ${formatThaiDate(m.expiryDate)}]`
+              }
+            }
+            this.addActivityLog({
+              module: 'stock',
+              action: diff > 0 ? 'produce' : 'stock_adjust_reduce',
+              title: diff > 0 ? 'ผลิตตามสูตร (Batch Produce)' : 'ปรับสต็อกลดลง',
+              description: diff > 0
+                ? `ผลิต ${m.name} +${diff.toLocaleString()} ${m.unit}`
+                : `ลดยอด ${m.name} ${diff.toLocaleString()} ${m.unit}`,
+              targetId: m.id,
+              targetName: m.name,
+              targetEmoji: m.emoji,
+              delta: diff,
+              unit: m.unit,
+              beforeStock: snapStock,
+              afterStock: currentStock,
+              receiveDate: m.lastStockInDate || undefined,
+              expiryDate: m.expiryDate || undefined,
+              reason: 'ปรับยอดหน้ารายการสต็อก (ขั้นตอนสุดท้าย)',
+              note: `ปรับจาก ${snapStock.toLocaleString()} เป็น ${currentStock.toLocaleString()} ${m.unit}${dateNote}`,
+              user: 'ผู้จัดการคลัง'
+            })
+          }
+        })
+      }
+
+      // 3. Persist to localStorage
+      this.persistLocal()
+
+      const count = (this.stockDraftActions && this.stockDraftActions.length) || 1
+
+      // 4. Update snapshot to the newly committed materials
+      this.stockDraftSnapshot = JSON.parse(JSON.stringify(this.materials))
+      this.stockDraftActions = []
+
+      this.showToast(`บันทึกข้อมูลคลังขั้นตอนสุดท้ายสำเร็จ (${count} รายการ)`, 'success')
+      return { success: true, count }
+    },
+
+    discardStockDrafts() {
+      if (this.stockDraftSnapshot) {
+        this.materials = JSON.parse(JSON.stringify(this.stockDraftSnapshot))
+      }
+      this.stockDraftActions = []
+      this.stockDraftSnapshot = JSON.parse(JSON.stringify(this.materials))
+      this.showToast('ยกเลิกแบบร่างทั้งหมดแล้ว คืนค่าสต็อกเดิมเรียบร้อย', 'info')
     },
 
     clearAllData() {
@@ -1297,11 +1465,15 @@ export const usePosStore = defineStore('pos', {
       }
     },
 
-    stockIn(matId, qty, unitCost, note = '', packCost = null, dates = {}) {
+    stockIn(matId, qty, unitCost, note = '', packCost = null, dates = {}, asDraft = true) {
       const mat = this.materials.find(m => m.id === matId)
       if (!mat) return
       const addQty = Number(qty) || 0
       if (addQty <= 0) return
+
+      if (asDraft && !this.stockDraftSnapshot) {
+        this.initStockDraftSnapshot()
+      }
 
       const currentStock = Math.max(0, Number(mat.stock) || 0)
       const currentUnitCost = Number(mat.unitCost) || 0
@@ -1310,7 +1482,6 @@ export const usePosStore = defineStore('pos', {
         : currentUnitCost
 
       // Moving Weighted Average Cost calculation:
-      // totalValuation = (currentStock * currentUnitCost) + (incomingQty * incomingUnitCost)
       const currentValuation = currentStock * currentUnitCost
       const incomingValuation = addQty * newUnitCostInput
       const newTotalStock = currentStock + addQty
@@ -1356,13 +1527,11 @@ export const usePosStore = defineStore('pos', {
       mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
       mat.unitCost = Math.round(weightedUnitCost * 10000) / 10000
 
-      this.persistLocal()
-
       const dateNote = expiryDate
         ? `[รับเข้า: ${formatThaiDate(receiveDate)}, หมดอายุ: ${formatThaiDate(expiryDate)}]`
         : `[รับเข้า: ${formatThaiDate(receiveDate)}]`
 
-      this.addActivityLog({
+      const logPayload = {
         module: 'stock',
         action: 'stock_in',
         title: 'รับเข้าสต็อก',
@@ -1379,13 +1548,36 @@ export const usePosStore = defineStore('pos', {
         expiryDate: expiryDate || undefined,
         note: note ? `${note} ${dateNote}` : dateNote,
         user: 'เจ้าหน้าที่คลัง'
-      })
-      this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (ต้นทุนเฉลี่ย ฿${mat.unitCost}/${mat.unit})`, 'success')
+      }
+
+      if (asDraft) {
+        this.addStockDraftAction({
+          type: 'stock_in',
+          materialId: mat.id,
+          materialName: mat.name,
+          materialEmoji: mat.emoji,
+          title: 'รับเข้าสต็อก (แบบร่าง)',
+          description: `รับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit}`,
+          delta: addQty,
+          unit: mat.unit,
+          log: logPayload
+        })
+        this.showToast(`เพิ่มแบบร่างรับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+      } else {
+        this.persistLocal()
+        this.addActivityLog(logPayload)
+        this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit}`, 'success')
+      }
     },
 
-    stockAdjust(matId, newActualQty, reason = '', note = '') {
+    stockAdjust(matId, newActualQty, reason = '', note = '', asDraft = true) {
       const mat = this.materials.find(m => m.id === matId)
       if (!mat) return
+
+      if (asDraft && !this.stockDraftSnapshot) {
+        this.initStockDraftSnapshot()
+      }
+
       const oldStock = Number(mat.stock) || 0
       const diff = Number(newActualQty) - oldStock
       mat.stock = Number(newActualQty)
@@ -1410,12 +1602,12 @@ export const usePosStore = defineStore('pos', {
         })
       }
 
-      this.persistLocal()
-      this.addActivityLog({
+      const diffStr = diff >= 0 ? `+${diff}` : `${diff}`
+      const logPayload = {
         module: 'stock',
         action: 'adjust',
         title: 'ปรับยอดนับจริง (Stock Audit)',
-        description: `ตรวจนับสต็อก ${mat.name}: เดิม ${oldStock.toLocaleString()} เป็น ${Number(newActualQty).toLocaleString()} ${mat.unit} (${diff >= 0 ? '+' : ''}${diff} ${mat.unit})`,
+        description: `ตรวจนับสต็อก ${mat.name}: เดิม ${oldStock.toLocaleString()} เป็น ${Number(newActualQty).toLocaleString()} ${mat.unit} (${diffStr} ${mat.unit})`,
         targetId: mat.id,
         targetName: mat.name,
         targetEmoji: mat.emoji,
@@ -1426,14 +1618,35 @@ export const usePosStore = defineStore('pos', {
         reason: reason || 'นับสต็อกจริงรายวัน',
         note: note || '',
         user: 'ผู้ตรวจนับสต็อก'
-      })
-      const diffStr = diff >= 0 ? `+${diff}` : `${diff}`
-      this.showToast(`ปรับยอด ${mat.name} เป็น ${newActualQty} ${mat.unit} (${diffStr})`, 'info')
+      }
+
+      if (asDraft) {
+        this.addStockDraftAction({
+          type: 'adjust',
+          materialId: mat.id,
+          materialName: mat.name,
+          materialEmoji: mat.emoji,
+          title: 'ปรับยอดนับจริง (แบบร่าง)',
+          description: `ปรับสต็อก ${mat.name}: ${oldStock} -> ${newActualQty} ${mat.unit} (${diffStr})`,
+          delta: diff,
+          unit: mat.unit,
+          log: logPayload
+        })
+        this.showToast(`เพิ่มแบบร่างปรับยอด ${mat.name} (${diffStr}) (รอยืนยันที่แถบด้านล่าง)`, 'info')
+      } else {
+        this.persistLocal()
+        this.addActivityLog(logPayload)
+        this.showToast(`ปรับยอด ${mat.name} เป็น ${newActualQty} ${mat.unit} (${diffStr})`, 'info')
+      }
     },
 
-    batchProduce(targetMatId, yieldQty, subIngredients = [], note = '', dates = {}) {
+    batchProduce(targetMatId, yieldQty, subIngredients = [], note = '', dates = {}, asDraft = true) {
       const target = this.materials.find(m => m.id === targetMatId)
       if (!target) return false
+
+      if (asDraft && !this.stockDraftSnapshot) {
+        this.initStockDraftSnapshot()
+      }
 
       const targetCurrentStock = Number(target.stock) || 0
       const targetCurrentCost = Number(target.unitCost) || 0
@@ -1456,12 +1669,29 @@ export const usePosStore = defineStore('pos', {
 
       // Deduct sub-ingredients from lots
       const deductedSummary = []
+      const subLogs = []
       for (const item of subIngredients) {
         const subMat = this.materials.find(m => m.id === item.materialId)
         if (subMat) {
           const neededQty = Number(item.qty) || 0
+          const beforeSubStock = Number(subMat.stock) || 0
           this.deductMaterialStock(subMat, neededQty)
-          deductedSummary.push(`${subMat.name} -${neededQty} ${subMat.unit} (เหลือ ${subMat.stock.toLocaleString()} ${subMat.unit})`)
+          deductedSummary.push(`${subMat.name} -${neededQty} ${subMat.unit}`)
+          subLogs.push({
+            module: 'stock',
+            action: 'produce_deduct',
+            title: 'เบิกใช้ผลิตตามสูตร',
+            description: `เบิกใช้ ${subMat.name} -${neededQty.toLocaleString()} ${subMat.unit} (ใช้ผลิต ${target.name})`,
+            targetId: subMat.id,
+            targetName: subMat.name,
+            targetEmoji: subMat.emoji,
+            delta: -neededQty,
+            unit: subMat.unit,
+            beforeStock: beforeSubStock,
+            afterStock: Number(subMat.stock) || 0,
+            note: `หักสต็อกเพื่อผลิต ${target.name} +${addedQty} ${target.unit}`,
+            user: 'ครัว/ผู้ผลิต'
+          })
         }
       }
 
@@ -1497,14 +1727,12 @@ export const usePosStore = defineStore('pos', {
       })
       target.stock = Math.round(target.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
 
-      this.persistLocal()
-
       const dateNote = expiryDate
         ? `[ผลิต: ${formatThaiDate(produceDate)}, หมดอายุ: ${formatThaiDate(expiryDate)}]`
         : `[ผลิต: ${formatThaiDate(produceDate)}]`
 
       const summaryText = deductedSummary.join(', ')
-      this.addActivityLog({
+      const mainLog = {
         module: 'stock',
         action: 'produce',
         title: 'ผลิตตามสูตร (Batch Produce)',
@@ -1520,41 +1748,42 @@ export const usePosStore = defineStore('pos', {
         expiryDate: expiryDate || undefined,
         note: note ? `${note} ${dateNote} [หัก: ${summaryText}]` : `${dateNote} [หักสต็อก: ${summaryText}]`,
         user: 'ผู้ผลิต'
-      })
-
-      // Log deduction for each sub-ingredient
-      for (const item of subIngredients) {
-        const subMat = this.materials.find(m => m.id === item.materialId)
-        if (subMat) {
-          const neededQty = Number(item.qty) || 0
-          this.addActivityLog({
-            module: 'stock',
-            action: 'produce_deduct',
-            title: 'เบิกใช้ผลิตตามสูตร',
-            description: `เบิกใช้ ${subMat.name} -${neededQty.toLocaleString()} ${subMat.unit} (ใช้ผลิต ${target.name})`,
-            targetId: subMat.id,
-            targetName: subMat.name,
-            targetEmoji: subMat.emoji,
-            delta: -neededQty,
-            unit: subMat.unit,
-            beforeStock: (Number(subMat.stock) || 0) + neededQty,
-            afterStock: Number(subMat.stock) || 0,
-            note: `หักสต็อกเพื่อผลิต ${target.name} +${addedQty} ${target.unit}`,
-            user: 'ครัว/ผู้ผลิต'
-          })
-        }
       }
 
-      this.showToast(`เพิ่มสต็อก ${target.name} +${addedQty} ${target.unit} สำเร็จ! [หักสต็อก: ${summaryText}]`, 'success')
+      if (asDraft) {
+        this.addStockDraftAction({
+          type: 'batch_produce',
+          materialId: target.id,
+          materialName: target.name,
+          materialEmoji: target.emoji,
+          title: 'ผลิตตามสูตร (แบบร่าง)',
+          description: `ผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} [หัก: ${summaryText}]`,
+          delta: addedQty,
+          unit: target.unit,
+          log: mainLog,
+          subLogs
+        })
+        this.showToast(`เพิ่มแบบร่างผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+      } else {
+        this.persistLocal()
+        this.addActivityLog(mainLog)
+        subLogs.forEach(sl => this.addActivityLog(sl))
+        this.showToast(`เพิ่มสต็อก ${target.name} +${addedQty} ${target.unit} สำเร็จ! [หักสต็อก: ${summaryText}]`, 'success')
+      }
       return true
     },
 
     // ========================================================
     // LOT MANAGEMENT & WASTE (SPOILAGE) WRITE-OFF
     // ========================================================
-    switchActiveLot(materialId, lotId) {
+    switchActiveLot(materialId, lotId, asDraft = true) {
       const mat = this.materials.find(m => m.id === materialId)
       if (!mat || !mat.lots) return
+
+      if (asDraft && !this.stockDraftSnapshot) {
+        this.initStockDraftSnapshot()
+      }
+
       mat.lots.forEach(l => {
         l.isInUse = (l.id === lotId)
       })
@@ -1563,11 +1792,26 @@ export const usePosStore = defineStore('pos', {
         if (targetLot.receiveDate) mat.lastStockInDate = targetLot.receiveDate
         if (targetLot.expiryDate) mat.expiryDate = targetLot.expiryDate
       }
-      this.persistLocal()
-      this.showToast(`สลับใช้งานเป็นล็อตวันที่ ${formatThaiDate(targetLot?.receiveDate)} เรียบร้อยแล้ว`, 'success')
+
+      if (asDraft) {
+        this.addStockDraftAction({
+          type: 'switch_lot',
+          materialId: mat.id,
+          materialName: mat.name,
+          materialEmoji: mat.emoji,
+          title: 'สลับล็อตใช้งาน (แบบร่าง)',
+          description: `สลับล็อต ${mat.name} เป็นล็อตวันที่ ${formatThaiDate(targetLot?.receiveDate)}`,
+          delta: 0,
+          unit: mat.unit
+        })
+        this.showToast(`เพิ่มแบบร่างสลับล็อต ${mat.name} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+      } else {
+        this.persistLocal()
+        this.showToast(`สลับใช้งานเป็นล็อตวันที่ ${formatThaiDate(targetLot?.receiveDate)} เรียบร้อยแล้ว`, 'success')
+      }
     },
 
-    recordLotWaste({ materialId, lotId, wasteQty, reason = 'ของเสีย/หมดอายุ', note = '' }) {
+    recordLotWaste({ materialId, lotId, wasteQty, reason = 'ของเสีย/หมดอายุ', note = '' }, asDraft = true) {
       const mat = this.materials.find(m => m.id === materialId)
       if (!mat || !mat.lots) return false
       const lot = mat.lots.find(l => l.id === lotId)
@@ -1577,6 +1821,10 @@ export const usePosStore = defineStore('pos', {
       if (qtyToWaste <= 0) {
         this.showToast('กรุณาระบุจำนวนของเสียที่ถูกต้อง', 'error')
         return false
+      }
+
+      if (asDraft && !this.stockDraftSnapshot) {
+        this.initStockDraftSnapshot()
       }
 
       const beforeStock = mat.stock
@@ -1595,10 +1843,7 @@ export const usePosStore = defineStore('pos', {
       const unitCost = Number(lot.unitCost) || Number(mat.unitCost) || 0
       const totalLossValue = Math.round((qtyToWaste * unitCost) * 100) / 100
 
-      this.persistLocal()
-
-      // Log waste transaction
-      this.addActivityLog({
+      const logPayload = {
         module: 'stock',
         action: 'waste',
         title: 'บันทึกตัดทิ้งของเสีย (Waste Spoilage)',
@@ -1614,9 +1859,26 @@ export const usePosStore = defineStore('pos', {
         note: note ? `ล็อต ${formatThaiDate(lot.receiveDate)}: ${note}` : `ล็อต ${formatThaiDate(lot.receiveDate)}`,
         cost: totalLossValue,
         user: 'เจ้าหน้าที่คลัง'
-      })
+      }
 
-      this.showToast(`บันทึกของเสีย ${mat.name} (-${qtyToWaste} ${mat.unit}) เสียหาย ฿${totalLossValue.toLocaleString()}`, 'info')
+      if (asDraft) {
+        this.addStockDraftAction({
+          type: 'waste',
+          materialId: mat.id,
+          materialName: mat.name,
+          materialEmoji: mat.emoji,
+          title: 'ตัดทิ้งของเสีย (แบบร่าง)',
+          description: `ตัดทิ้งของเสีย ${mat.name} -${qtyToWaste} ${mat.unit} (${reason})`,
+          delta: -qtyToWaste,
+          unit: mat.unit,
+          log: logPayload
+        })
+        this.showToast(`เพิ่มแบบร่างตัดของเสีย ${mat.name} -${qtyToWaste} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+      } else {
+        this.persistLocal()
+        this.addActivityLog(logPayload)
+        this.showToast(`บันทึกของเสีย ${mat.name} (-${qtyToWaste} ${mat.unit}) เสียหาย ฿${totalLossValue.toLocaleString()}`, 'info')
+      }
       return true
     },
 

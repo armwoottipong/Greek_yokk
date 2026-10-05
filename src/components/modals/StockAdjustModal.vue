@@ -203,7 +203,7 @@
           class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
         >
           <Check class="w-4 h-4" />
-          <span>บันทึกปรับยอด</span>
+          <span>บันทึกปรับยอด (แบบร่าง)</span>
         </button>
       </div>
     </div>
@@ -313,17 +313,7 @@ async function submit() {
     return
   }
 
-  const diff = difference.value
-  const diffSign = diff > 0 ? `+${diff}` : `${diff}`
-  const confirmed = await store.confirmDialog({
-    title: 'ยืนยันการปรับยอดสต็อกจริง',
-    message: `ปรับสต็อก "${selectedMaterial.value.name}"\nจากเดิม ${currentStock.value} เป็น ${actualStock.value} ${selectedMaterial.value.unit} (ผลต่าง ${diffSign} ${selectedMaterial.value.unit})\n\nยืนยันการปรับยอดหรือไม่?`,
-    confirmText: 'ยืนยันปรับยอด',
-    type: 'warning'
-  })
-  if (!confirmed) return
-
-  store.stockAdjust(selectedMatId.value, actualStock.value, reason.value, note.value)
+  store.stockAdjust(selectedMatId.value, actualStock.value, reason.value, note.value, true)
   close()
 }
 </script>
