@@ -610,24 +610,58 @@
                   </button>
                 </td>
 
-                <!-- 8. Actions (Compact Icon Buttons: Adjust & Waste) -->
-                <td class="py-3 px-4 text-center">
-                  <div class="flex items-center justify-center gap-1.5">
+                <!-- Actions (More Dropdown for Lot) -->
+                <td class="py-3 px-4 text-center relative">
+                  <button
+                    type="button"
+                    @click.stop="toggleActionMenu(lot.id)"
+                    class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-200/60 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
+                    :class="activeActionMenuId === lot.id ? 'bg-stone-200/70 text-stone-900' : ''"
+                    title="การจัดการล็อตนี้"
+                  >
+                    <MoreHorizontal class="w-4 h-4" />
+                  </button>
+
+                  <!-- Dropdown Popup Menu for Lot -->
+                  <div
+                    v-if="activeActionMenuId === lot.id"
+                    @click.stop
+                    :class="idx >= filteredMaterials.length - 2 ? 'bottom-11' : 'top-11'"
+                    class="absolute right-2 z-30 w-48 bg-white rounded-xl shadow-xl border border-stone-200/80 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100"
+                  >
                     <button
-                      type="button"
-                      @click="openStockAdjust(mat.id, lot.id)"
-                      class="p-1.5 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
-                      title="ปรับยอดเฉพาะล็อตนี้"
+                      v-if="!lot.isInUse && lot.qty > 0"
+                      @click="onActionSwitchLot(mat.id, lot.id)"
+                      class="w-full px-3 py-2 text-stone-700 hover:bg-emerald-50 hover:text-emerald-800 flex items-center gap-2 transition-colors cursor-pointer"
                     >
-                      <SlidersHorizontal class="w-3.5 h-3.5" />
+                      <Zap class="w-3.5 h-3.5 text-amber-500" />
+                      <span>สลับเป็นล็อตใช้งาน</span>
                     </button>
+
                     <button
-                      type="button"
-                      @click="store.openWasteModal(mat.id, lot.id)"
-                      class="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
-                      title="บันทึกตัดของเสียจากล็อตนี้"
+                      @click="onActionStockAdjustLot(mat.id, lot.id)"
+                      class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
                     >
-                      <Trash2 class="w-3.5 h-3.5" />
+                      <SlidersHorizontal class="w-3.5 h-3.5 text-amber-600" />
+                      <span>ปรับยอดเฉพาะล็อตนี้</span>
+                    </button>
+
+                    <button
+                      @click="onActionWasteLot(mat.id, lot.id)"
+                      class="w-full px-3 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <Trash2 class="w-3.5 h-3.5 text-rose-500" />
+                      <span>บันทึกของเสียล็อตนี้</span>
+                    </button>
+
+                    <div class="my-1 border-t border-stone-100"></div>
+
+                    <button
+                      @click="onActionHistory(mat.id)"
+                      class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <History class="w-3.5 h-3.5 text-sky-600" />
+                      <span>ประวัติการเคลื่อนไหว</span>
                     </button>
                   </div>
                 </td>
@@ -913,6 +947,21 @@ function onActionSoftDelete(mat) {
 function onActionRestore(mat) {
   closeActionMenu()
   restore(mat)
+}
+
+function onActionStockAdjustLot(matId, lotId) {
+  closeActionMenu()
+  openStockAdjust(matId, lotId)
+}
+
+function onActionWasteLot(matId, lotId) {
+  closeActionMenu()
+  store.openWasteModal(matId, lotId)
+}
+
+function onActionSwitchLot(matId, lotId) {
+  closeActionMenu()
+  store.switchActiveLot(matId, lotId)
 }
 
 // -------------------------------------------------------------
