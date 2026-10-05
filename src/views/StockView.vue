@@ -205,14 +205,14 @@
                       <span class="truncate">{{ mat.name }}</span>
                       <span v-if="mat.isDeleted" class="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 font-normal shrink-0">ซ่อนอยู่</span>
                       <button
-                        v-if="store.getMaterialTrackingMode(mat) !== 'none'"
+                        v-if="hasMultipleLots(mat)"
                         type="button"
                         @click="toggleExpand(mat.id)"
                         class="px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-all inline-flex items-center gap-0.5 shrink-0 cursor-pointer"
                         :class="isExpanded(mat.id) ? 'bg-amber-900 text-white shadow-2xs' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'"
                         title="คลิกเพื่อคลี่/พับดูประวัติแต่ละล็อต"
                       >
-                        <span>{{ mat.lots?.filter(l => l.qty > 0).length || 0 }} ล็อต</span>
+                        <span>{{ getActiveLotsCount(mat) }} ล็อต</span>
                         <ChevronUp v-if="isExpanded(mat.id)" class="w-3 h-3" />
                         <ChevronDown v-else class="w-3 h-3" />
                       </button>
@@ -495,145 +495,139 @@
               </td>
             </tr>
 
-            <!-- Expanded Sub-lots Row -->
-            <tr v-if="isExpanded(mat.id) && store.getMaterialTrackingMode(mat) !== 'none'" class="bg-[#FAF8F5] border-b border-stone-200">
-              <td colspan="8" class="p-4 sm:p-5">
-                <div class="space-y-3">
-                  <div class="flex items-center justify-between flex-wrap gap-2">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs font-bold text-stone-800 flex items-center gap-1.5">
-                        <span>📦</span>
-                        <span>รายการล็อตย่อยของ {{ mat.name }}</span>
-                      </span>
-                      <span class="px-2 py-0.5 rounded-md bg-stone-200/80 text-[10px] font-semibold text-stone-700 font-number">
-                        รวม {{ mat.stock.toLocaleString() }} {{ mat.unit }}
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <button
-                        type="button"
-                        @click="openStockIn(mat.id)"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-stone-200 hover:border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <Plus class="w-3.5 h-3.5" />
-                        <span>รับเข้าล็อตใหม่</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Lot Cards Grid -->
-                  <div v-if="getDisplayLots(mat).length === 0" class="p-4 text-center text-stone-400 text-xs italic bg-white rounded-xl border border-stone-200/60">
-                    ยังไม่มีล็อตคงเหลือในระบบ (สามารถกดรับเข้าล็อตใหม่ด้านบนได้)
-                  </div>
-
-                  <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <div
-                      v-for="(lot, lIdx) in getDisplayLots(mat)"
-                      :key="lot.id"
-                      class="p-3.5 rounded-xl bg-white border transition-all space-y-2 relative"
-                      :class="lot.isInUse ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs' : 'border-stone-200 hover:border-stone-300'"
-                    >
-                      <!-- Lot Card Header -->
-                      <div class="flex items-center justify-between gap-1">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                          <span class="text-xs font-bold text-stone-900 truncate">
-                            🏷️ ล็อต {{ lIdx + 1 }}
-                          </span>
-                          <span v-if="lot.note" class="text-[10px] text-stone-400 truncate max-w-[100px]" :title="lot.note">
-                            ({{ lot.note }})
-                          </span>
-                        </div>
-                        <span
-                          v-if="lot.isInUse"
-                          class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0"
-                        >
-                          🟢 กำลังใช้งาน
+            <!-- Expanded Sub-lots Rows (Rendered as rows with matching table columns) -->
+            <template v-if="isExpanded(mat.id) && hasMultipleLots(mat)">
+              <tr
+                v-for="(lot, lIdx) in getDisplayLots(mat)"
+                :key="lot.id"
+                class="bg-[#FAF9F6] hover:bg-[#F5F3EF] transition-colors border-t border-stone-200/60 text-xs"
+                :class="lot.isInUse ? 'bg-emerald-50/25' : ''"
+              >
+                <!-- 1. Sub-lot Name, Notes & Dates -->
+                <td class="py-2.5 px-4 pl-7 sm:pl-9">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-stone-300 font-mono text-xs leading-none shrink-0 select-none">↳</span>
+                    <div class="min-w-0 flex-1 truncate">
+                      <div class="font-bold text-stone-800 flex items-center gap-1.5 truncate text-[11px]">
+                        <span>ล็อตที่ {{ lIdx + 1 }}</span>
+                        <span v-if="lot.note" class="text-[10px] text-stone-400 font-normal truncate" :title="lot.note">({{ lot.note }})</span>
+                      </div>
+                      <div class="text-[10px] text-stone-500 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5 font-number">
+                        <!-- วันที่รับ -->
+                        <span v-if="lot.receiveDate" class="inline-flex items-center gap-1">
+                          <span class="text-stone-400 font-sans">รับ:</span>
+                          <span class="text-stone-700 font-medium">{{ formatDisplayDate(lot.receiveDate) }}</span>
+                          <span v-if="getLotAge(lot)" class="text-stone-400">({{ getLotAge(lot).shortText }})</span>
                         </span>
+
+                        <span v-if="lot.receiveDate && lot.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'" class="text-stone-300">•</span>
+
+                        <!-- วันที่หมดอายุ -->
                         <span
-                          v-else
-                          class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-100 text-stone-500 shrink-0"
+                          v-if="lot.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'"
+                          class="inline-flex items-center gap-1"
+                          :class="isLotExpired(lot) ? 'text-rose-600 font-bold' : ''"
                         >
-                          ⚪ รอใช้งาน
+                          <span class="font-sans" :class="isLotExpired(lot) ? 'text-rose-600 font-semibold' : 'text-stone-400'">หมดอายุ:</span>
+                          <span>{{ formatDisplayDate(lot.expiryDate) }}</span>
+                          <span v-if="isLotExpired(lot)" class="text-[9px] px-1 py-0.2 bg-rose-100 text-rose-700 rounded font-sans font-bold">หมดอายุ</span>
                         </span>
                       </div>
-
-                      <!-- Lot Dates Info -->
-                      <div class="space-y-1 text-[11px] font-number text-stone-600 bg-stone-50/70 p-2 rounded-lg">
-                        <div class="flex items-center justify-between">
-                          <span class="text-stone-400 font-sans">วันที่รับ/ผลิต:</span>
-                          <span class="font-medium text-stone-800">
-                            {{ formatThaiDate(lot.receiveDate) }}
-                            <span v-if="getLotAge(lot)" class="text-[10px] text-stone-400 font-sans ml-1">
-                              ({{ getLotAge(lot).shortText }})
-                            </span>
-                          </span>
-                        </div>
-
-                        <div v-if="lot.expiryDate" class="flex items-center justify-between">
-                          <span class="text-stone-400 font-sans">วันหมดอายุ:</span>
-                          <span
-                            class="font-medium"
-                            :class="isLotExpired(lot) ? 'text-rose-600 font-bold' : 'text-stone-800'"
-                          >
-                            {{ formatThaiDate(lot.expiryDate) }}
-                            <span v-if="isLotExpired(lot)" class="text-[9px] px-1 py-0.2 bg-rose-100 text-rose-700 rounded font-sans ml-0.5 font-bold">
-                              หมดอายุ
-                            </span>
-                          </span>
-                        </div>
-                      </div>
-
-                      <!-- Lot Quantity & Cost -->
-                      <div class="flex items-center justify-between pt-1">
-                        <div>
-                          <span class="text-[10px] text-stone-400 block font-sans">คงเหลือล็อตนี้</span>
-                          <div class="font-bold font-number text-stone-900 text-sm">
-                            {{ lot.qty.toLocaleString() }} <span class="text-xs font-normal text-stone-500">{{ mat.unit }}</span>
-                            <span v-if="mat.packSize > 1" class="text-[10px] text-stone-400 font-number ml-1 font-normal">
-                              (≈ {{ (lot.qty / mat.packSize).toFixed(1) }} {{ mat.packUnit }})
-                            </span>
-                          </div>
-                        </div>
-                        <div class="text-right">
-                          <span class="text-[10px] text-stone-400 block font-sans">มูลค่าล็อตนี้</span>
-                          <span class="font-bold font-number text-amber-950 text-xs">
-                            ฿{{ Math.round(lot.qty * (lot.unitCost || mat.unitCost || 0)).toLocaleString() }}
-                          </span>
-                        </div>
-                      </div>
-
-                      <!-- Action Buttons: Switch active lot & Waste -->
-                      <div class="pt-2 border-t border-stone-100 flex items-center justify-between gap-1.5">
-                        <button
-                          v-if="!lot.isInUse"
-                          type="button"
-                          @click="store.switchActiveLot(mat.id, lot.id)"
-                          class="flex-1 py-1.5 px-2 rounded-lg bg-stone-100 hover:bg-emerald-50 text-stone-700 hover:text-emerald-800 text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          title="สลับให้ POS และการผลิตตัดจากล็อตนี้ก่อน"
-                        >
-                          <Zap class="w-3 h-3 text-amber-500" />
-                          <span>สลับมาใช้ล็อตนี้</span>
-                        </button>
-                        <div v-else class="text-[11px] text-emerald-800 font-semibold px-1 flex items-center gap-1">
-                          <Check class="w-3.5 h-3.5 text-emerald-600" />
-                          <span>POS ตัดจากล็อตนี้</span>
-                        </div>
-
-                        <button
-                          type="button"
-                          @click="store.openWasteModal(mat.id, lot.id)"
-                          class="py-1.5 px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer shrink-0"
-                          title="ปัดทิ้งเป็นของเสียจากล็อตนี้"
-                        >
-                          <Trash2 class="w-3 h-3" />
-                          <span>ตัดของเสีย</span>
-                        </button>
-                      </div>
                     </div>
                   </div>
-                </div>
-              </td>
-            </tr>
+                </td>
+
+                <!-- 2. Status Badge: In-Use vs Standby -->
+                <td class="py-2.5 px-4">
+                  <span
+                    v-if="lot.isInUse"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"
+                  >
+                    <span>🟢 กำลังใช้งาน</span>
+                  </span>
+                  <span
+                    v-else
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-100 text-stone-500"
+                  >
+                    <span>⚪ รอใช้งาน</span>
+                  </span>
+                </td>
+
+                <!-- 3. Category / Sub-lot label -->
+                <td class="py-2.5 px-4">
+                  <span class="text-[10px] text-stone-400 font-sans">
+                    ล็อตย่อย
+                  </span>
+                </td>
+
+                <!-- 4. Lot Quantity (Centered matching main row) -->
+                <td class="py-2.5 px-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 shrink-0"></div>
+                    <div class="w-24 text-center shrink-0 tabular-nums">
+                      <div class="font-bold font-number text-xs flex items-center justify-center gap-1 text-stone-800">
+                        <span>{{ lot.qty.toLocaleString() }}</span>
+                        <span class="text-[10px] font-normal text-stone-400">{{ mat.unit }}</span>
+                      </div>
+                      <div v-if="mat.packUnit && mat.packSize > 1" class="text-[9px] text-stone-400 font-number tabular-nums">
+                        ≈ {{ (lot.qty / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
+                      </div>
+                    </div>
+                    <div class="w-7 h-7 shrink-0"></div>
+                  </div>
+                </td>
+
+                <!-- 5. Lot Unit Cost -->
+                <td class="py-2.5 px-4 font-number text-stone-700 text-xs tabular-nums">
+                  <div class="font-bold text-stone-800 text-xs tabular-nums">
+                    ฿{{ (lot.packCost || Math.round((lot.unitCost || mat.unitCost || 0) * (mat.packSize || 1) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) }}
+                    <span class="font-normal text-stone-400 text-[10px]">/{{ mat.packUnit || mat.unit }}</span>
+                  </div>
+                  <div v-if="mat.packSize > 1" class="text-[9px] text-stone-400 tabular-nums">
+                    (≈ ฿{{ Number(lot.unitCost || mat.unitCost || 0).toFixed(2) }}/{{ mat.unit }})
+                  </div>
+                </td>
+
+                <!-- 6. Total Valuation of this lot -->
+                <td class="py-2.5 px-4 tabular-nums font-number text-xs font-bold text-amber-950">
+                  ฿{{ Math.round(lot.qty * (lot.unitCost || mat.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                </td>
+
+                <!-- 7. Switch Lot Button / Active Tag -->
+                <td class="py-2.5 px-4 text-center">
+                  <button
+                    v-if="!lot.isInUse"
+                    type="button"
+                    @click="store.switchActiveLot(mat.id, lot.id)"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-stone-200 hover:border-emerald-300 text-stone-700 hover:text-emerald-800 hover:bg-emerald-50 text-[10px] font-semibold transition-colors cursor-pointer shadow-2xs"
+                    title="สลับให้ระบบ POS และการขายดึงจากล็อตนี้ก่อน"
+                  >
+                    <Zap class="w-3 h-3 text-amber-500" />
+                    <span>สลับมาใช้</span>
+                  </button>
+                  <span
+                    v-else
+                    class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 font-sans"
+                  >
+                    <Check class="w-3.5 h-3.5 text-emerald-600" />
+                    <span>ล็อตใช้งาน</span>
+                  </span>
+                </td>
+
+                <!-- 8. Actions (Waste button) -->
+                <td class="py-2.5 px-4 text-right">
+                  <button
+                    type="button"
+                    @click="store.openWasteModal(mat.id, lot.id)"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-semibold transition-colors cursor-pointer border border-rose-200/50"
+                    title="ตัดของเสียจากล็อตนี้"
+                  >
+                    <Trash2 class="w-3 h-3" />
+                    <span>ตัดของเสีย</span>
+                  </button>
+                </td>
+              </tr>
+            </template>
           </template>
 
             <!-- Empty Row -->
@@ -753,6 +747,17 @@ function toggleExpand(matId) {
 
 function isExpanded(matId) {
   return expandedMaterialIds.value.has(matId)
+}
+
+function getActiveLotsCount(mat) {
+  if (!mat || !mat.lots) return 0
+  return mat.lots.filter(l => Number(l.qty) > 0).length
+}
+
+function hasMultipleLots(mat) {
+  if (!mat || !mat.lots) return false
+  if (store.getMaterialTrackingMode(mat) === 'none') return false
+  return getActiveLotsCount(mat) > 1
 }
 
 function getDisplayLots(mat) {
