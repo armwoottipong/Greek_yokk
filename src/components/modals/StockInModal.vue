@@ -381,7 +381,7 @@
           class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs disabled:opacity-40 transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Check class="w-3.5 h-3.5" />
-          <span>{{ isProducedFromRecipe ? 'บันทึกการผลิต (แบบร่าง)' : 'บันทึกรับเข้า (แบบร่าง)' }}</span>
+          <span>{{ isProducedFromRecipe ? 'ยืนยันการผลิต' : 'บันทึกรับเข้าสต็อก' }}</span>
         </button>
       </div>
     </div>
@@ -632,7 +632,7 @@ async function submit() {
       }
     }
 
-    const ok = store.batchProduce(mat.id, produceYieldQty.value, scaledSubIngredients.value, note.value, datePayload, true)
+    const ok = store.batchProduce(mat.id, produceYieldQty.value, scaledSubIngredients.value, note.value, datePayload, false)
     if (ok) close()
     return
   }
@@ -644,7 +644,7 @@ async function submit() {
 
   const pSize = mat.packSize > 0 ? mat.packSize : 1
   const unitCost = (Number(inputPackCost.value) || 0) / pSize
-  store.stockIn(mat.id, inputBaseQty.value, unitCost, note.value, inputPackCost.value, datePayload, true)
+  store.stockIn(mat.id, inputBaseQty.value, unitCost, note.value, inputPackCost.value, datePayload, false)
   close()
 }
 </script>

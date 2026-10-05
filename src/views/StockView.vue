@@ -333,8 +333,19 @@
                       </span>
                     </div>
 
-                    <div v-if="mat.hasSubRecipe" class="text-[10px] text-amber-800/80 font-medium truncate">
-                      รอบละ {{ Number(mat.yieldQty || 540).toLocaleString() }} {{ mat.unit }}
+                    <div v-if="mat.hasSubRecipe" class="space-y-0.5 mt-0.5">
+                      <div class="text-[10px] text-stone-500 font-medium truncate">
+                        รอบละ {{ Number(mat.yieldQty || 540).toLocaleString() }} {{ mat.unit }}
+                      </div>
+                      <div
+                        v-if="store.productionCapacity && store.productionCapacity[mat.id]"
+                        class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-semibold"
+                        :class="store.productionCapacity[mat.id].batches > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-rose-50 text-rose-700 border border-rose-200/60'"
+                        :title="store.productionCapacity[mat.id].batches > 0 ? `วัตถุดิบรองที่มีสามารถผลิตได้อีก ${store.productionCapacity[mat.id].batches} รอบ (+${store.productionCapacity[mat.id].yieldAmount.toLocaleString()} ${mat.unit})` : `วัตถุดิบรองไม่พอผลิต (ติดที่: ${store.productionCapacity[mat.id].limitingMaterial || 'ไม่มีวัตถุดิบ'})`"
+                      >
+                        <span>🥣</span>
+                        <span>ผลิตได้อีก {{ store.productionCapacity[mat.id].batches }} รอบ</span>
+                      </div>
                     </div>
                     <div v-else-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number tabular-nums truncate">
                       ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
@@ -587,7 +598,14 @@
                 <!-- 7. Status & Switch Lot Action -->
                 <td class="py-3 px-4 text-center">
                   <span
-                    v-if="lot.isInUse"
+                    v-if="isLotExpired(lot)"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800 shrink-0"
+                  >
+                    <span>🔴</span>
+                    <span>หมดอายุ</span>
+                  </span>
+                  <span
+                    v-else-if="lot.isInUse"
                     class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
                   >
                     กำลังใช้งาน
@@ -630,7 +648,7 @@
                     class="absolute right-2 z-30 w-48 bg-white rounded-xl shadow-xl border border-stone-200/80 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100"
                   >
                     <button
-                      v-if="!lot.isInUse && lot.qty > 0"
+                      v-if="!lot.isInUse && lot.qty > 0 && !isLotExpired(lot)"
                       @click="onActionSwitchLot(mat.id, lot.id)"
                       class="w-full px-3 py-2 text-stone-700 hover:bg-emerald-50 hover:text-emerald-800 flex items-center gap-2 transition-colors cursor-pointer"
                     >
@@ -651,7 +669,7 @@
                       class="w-full px-3 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
                     >
                       <Trash2 class="w-3.5 h-3.5 text-rose-500" />
-                      <span>บันทึกของเสียล็อตนี้</span>
+                      <span>{{ isLotExpired(lot) ? 'ตัดทิ้งของเสียที่หมดอายุ' : 'บันทึกของเสียล็อตนี้' }}</span>
                     </button>
 
                     <div class="my-1 border-t border-stone-100"></div>
@@ -972,9 +990,17 @@ function canProduceQuick(mat) {
   if (!mat.hasSubRecipe || !mat.subRecipe || mat.subRecipe.length === 0) return true
   for (const row of mat.subRecipe) {
     const subMat = store.materials.find(m => m.id === row.materialId)
-    const currentStock = subMat ? Number(subMat.stock) || 0 : 0
+    if (!subMat) return false
+    let unexpiredStock = 0
+    if (subMat.lots && subMat.lots.length > 0) {
+      unexpiredStock = subMat.lots
+        .filter(l => l.qty > 0 && !isExpired(l))
+        .reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
+    } else {
+      unexpiredStock = isExpired(subMat) ? 0 : (Number(subMat.stock) || 0)
+    }
     const needed = Number(row.qty) || 0
-    if (currentStock < needed) return false
+    if (unexpiredStock < needed) return false
   }
   return true
 }
@@ -993,10 +1019,8 @@ function canReduceQuick(mat) {
 
 async function quickAdjustStock(mat, delta) {
   if (!mat || !mat.hasSubRecipe) return
-  if (!store.stockDraftSnapshot) {
-    store.initStockDraftSnapshot()
-  }
   const yieldAmount = Number(mat.yieldQty) || 540
+
   if (delta > 0) {
     // Check sub-ingredients
     if (!canProduceQuick(mat)) {
@@ -1035,19 +1059,8 @@ async function quickAdjustStock(mat, delta) {
       }
     }
 
-    // Increment target stock & lot
-    store.addMaterialStock(mat, yieldAmount)
-
-    // Deduct sub-ingredients in realtime with proper lot synchronization
-    if (mat.subRecipe && mat.subRecipe.length > 0) {
-      for (const row of mat.subRecipe) {
-        const subMat = store.materials.find(m => m.id === row.materialId)
-        if (subMat) {
-          const needed = Number(row.qty) || 0
-          store.deductMaterialStock(subMat, needed)
-        }
-      }
-    }
+    // Produce 1 batch immediately and commit to stock
+    store.batchProduce(mat.id, yieldAmount, mat.subRecipe, 'ผลิตด่วน 1 รอบ (ปุ่ม +)', {}, false)
   } else {
     // Decrease 1 round: Cannot reduce already produced stock
     const base = getBaselineStock(mat.id)
@@ -1074,6 +1087,21 @@ async function quickAdjustStock(mat, delta) {
         }
       }
     }
+
+    store.persistLocal()
+    store.addActivityLog({
+      module: 'stock',
+      action: 'produce_undo',
+      title: 'ยกเลิกการผลิต 1 รอบ',
+      description: `ลดยอด ${mat.name} -${actuallyReduced} ${mat.unit} และคืนสต็อกวัตถุดิบรอง`,
+      targetId: mat.id,
+      targetName: mat.name,
+      targetEmoji: mat.emoji,
+      delta: -actuallyReduced,
+      unit: mat.unit,
+      user: 'ผู้จัดการคลัง'
+    })
+    store.showToast(`ยกเลิกการผลิต ${mat.name} 1 รอบเรียบร้อย (คืนสต็อกวัตถุดิบรองแล้ว)`, 'info')
   }
 }
 

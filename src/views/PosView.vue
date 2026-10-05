@@ -359,37 +359,8 @@ async function handleSwitchLot(w) {
   }
 }
 
-async function handleCheckout() {
+function handleCheckout() {
   if (store.cart.length === 0) return
-
-  // Pre-flight check for lot warnings
-  if (store.cartLotWarnings && store.cartLotWarnings.length > 0) {
-    for (const w of store.cartLotWarnings) {
-      const confirmed = await store.promptLotDepletion({
-        material: w.material,
-        currentLot: w.currentLot,
-        nextLot: w.nextLot,
-        neededQty: w.neededQty,
-        availableInCurrent: w.availableInCurrent,
-        remainingAfter: w.remainingAfter,
-        shortageQty: w.shortageQty,
-        willDeplete: w.willDeplete,
-        isLow: w.isLow,
-        actionContext: 'pos'
-      })
-      if (!confirmed) {
-        if (w.isShort) {
-          store.showToast(`ไม่สามารถชำระเงินได้เนื่องจากล็อตเดิมของ ${w.material.name} ไม่พอและไม่ต้องการเปลี่ยนล็อต`, 'warning')
-          return
-        }
-        // If not short (lot has enough but is near empty), user chose to keep current lot
-      } else if (w.nextLot) {
-        store.switchActiveLotSilently(w.material.id, w.nextLot.id)
-        store.showToast(`สลับล็อต ${w.material.name} เป็นล็อตใหม่เรียบร้อยแล้ว`, 'success')
-      }
-    }
-  }
-
   store.checkout()
 }
 </script>

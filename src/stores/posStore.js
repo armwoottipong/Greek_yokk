@@ -802,14 +802,57 @@ export const usePosStore = defineStore('pos', {
     },
 
     // 3. Estimated budget required to restock all low-stock items back to safe buffer (งบเติมสต็อกที่ต้องใช้)
+    // Only calculate for purchased items (!hasSubRecipe) to avoid double-counting with produced Greek Yogurt
     reorderBudgetNeeded: (state) => {
       return state.materials
-        .filter(m => !m.isDeleted && m.stock <= m.minAlert)
+        .filter(m => !m.isDeleted && !m.hasSubRecipe && m.stock <= m.minAlert)
         .reduce((sum, m) => {
           const targetStock = m.minAlert * 2
           const deficit = Math.max(0, targetStock - m.stock)
           return sum + (deficit * (m.unitCost || 0))
         }, 0)
+    },
+
+    // 4. Production Capacity for in-house produced items (e.g. Greek Yogurt) from available unexpired sub-ingredients
+    productionCapacity: (state) => {
+      const result = {}
+      state.materials
+        .filter(m => !m.isDeleted && m.hasSubRecipe && m.subRecipe && m.subRecipe.length > 0)
+        .forEach(m => {
+          let maxBatches = Infinity
+          let limitingMat = null
+
+          for (const req of m.subRecipe) {
+            const subMat = state.materials.find(sm => sm.id === req.materialId)
+            if (!subMat) {
+              maxBatches = 0
+              break
+            }
+            let unexpiredStock = 0
+            if (subMat.lots && subMat.lots.length > 0) {
+              unexpiredStock = subMat.lots
+                .filter(l => l.qty > 0 && !getExpiryStatus(l).isExpired)
+                .reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
+            } else {
+              unexpiredStock = getExpiryStatus(subMat).isExpired ? 0 : (Number(subMat.stock) || 0)
+            }
+
+            const batches = req.qty > 0 ? Math.floor(unexpiredStock / req.qty) : 0
+            if (batches < maxBatches) {
+              maxBatches = batches
+              limitingMat = subMat
+            }
+          }
+
+          const batchesPossible = maxBatches === Infinity ? 0 : maxBatches
+          result[m.id] = {
+            batches: batchesPossible,
+            yieldAmount: batchesPossible * (Number(m.yieldQty) || 0),
+            unit: m.unit,
+            limitingMaterial: limitingMat?.name || null
+          }
+        })
+      return result
     },
 
     // Sales & Profit Analytics
@@ -1091,13 +1134,15 @@ export const usePosStore = defineStore('pos', {
         }
       }
 
-      const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
+      const isLotExpired = (lot) => getExpiryStatus(lot).isExpired
+
+      const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !isLotExpired(l)) || mat.lots.find(l => l.qty > 0 && !isLotExpired(l)) || mat.lots[0]
       const curQty = Number(activeLot?.qty) || 0
       const reqQty = Number(neededQty) || 0
       const minAlert = Number(mat.minAlert) || 0
 
       const otherLots = mat.lots
-        .filter(l => l.id !== activeLot?.id && l.qty > 0)
+        .filter(l => l.id !== activeLot?.id && l.qty > 0 && !isLotExpired(l))
         .sort((a, b) => {
           if (a.expiryDate && b.expiryDate) return a.expiryDate.localeCompare(b.expiryDate)
           return (a.receiveDate || '').localeCompare(b.receiveDate || '')
@@ -1639,7 +1684,7 @@ export const usePosStore = defineStore('pos', {
       }
     },
 
-    stockIn(matId, qty, unitCost, note = '', packCost = null, dates = {}, asDraft = true) {
+    stockIn(matId, qty, unitCost, note = '', packCost = null, dates = {}, asDraft = false) {
       const mat = this.materials.find(m => m.id === matId)
       if (!mat) return
       const addQty = Number(qty) || 0
@@ -1738,6 +1783,14 @@ export const usePosStore = defineStore('pos', {
         })
         this.showToast(`เพิ่มแบบร่างรับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
       } else {
+        if (this.stockDraftSnapshot) {
+          const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
+          if (snapMat) {
+            snapMat.stock = mat.stock
+            if (mat.lots) snapMat.lots = JSON.parse(JSON.stringify(mat.lots))
+            snapMat.unitCost = mat.unitCost
+          }
+        }
         this.persistLocal()
         this.addActivityLog(logPayload)
         this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit}`, 'success')
@@ -1877,7 +1930,7 @@ export const usePosStore = defineStore('pos', {
       }
     },
 
-    batchProduce(targetMatId, yieldQty, subIngredients = [], note = '', dates = {}, asDraft = true) {
+    batchProduce(targetMatId, yieldQty, subIngredients = [], note = '', dates = {}, asDraft = false) {
       const target = this.materials.find(m => m.id === targetMatId)
       if (!target) return false
 
@@ -1889,16 +1942,24 @@ export const usePosStore = defineStore('pos', {
       const targetCurrentCost = Number(target.unitCost) || 0
       const addedQty = Number(yieldQty) || 0
 
-      // Check if sub-ingredients have enough stock
+      // Check if sub-ingredients have enough unexpired stock
       let totalCost = 0
       for (const item of subIngredients) {
         const subMat = this.materials.find(m => m.id === item.materialId)
         if (!subMat) continue
         const neededQty = Number(item.qty) || 0
-        const availableStock = Number(subMat.stock) || 0
+
+        let availableStock = subMat.stock
+        if (subMat.lots && subMat.lots.length > 0) {
+          availableStock = subMat.lots
+            .filter(l => l.qty > 0 && !getExpiryStatus(l).isExpired)
+            .reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
+        } else if (getExpiryStatus(subMat).isExpired) {
+          availableStock = 0
+        }
 
         if (neededQty > availableStock) {
-          this.showToast(`สต็อกไม่พอ: ${subMat.name} (มี ${availableStock} ${subMat.unit}, ต้องการ ${neededQty} ${subMat.unit})`, 'error')
+          this.showToast(`สต็อกไม่พอหรือหมดอายุ: ${subMat.name} (คงเหลือใช้งานได้ ${availableStock} ${subMat.unit}, ต้องการ ${neededQty} ${subMat.unit})`, 'error')
           return false
         }
         totalCost += (neededQty * (Number(subMat.unitCost) || 0))
@@ -2002,6 +2063,22 @@ export const usePosStore = defineStore('pos', {
         })
         this.showToast(`เพิ่มแบบร่างผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
       } else {
+        if (this.stockDraftSnapshot) {
+          const snapTarget = this.stockDraftSnapshot.find(s => s.id === target.id)
+          if (snapTarget) {
+            snapTarget.stock = target.stock
+            if (target.lots) snapTarget.lots = JSON.parse(JSON.stringify(target.lots))
+            snapTarget.unitCost = target.unitCost
+          }
+          subIngredients.forEach(item => {
+            const sm = this.materials.find(m => m.id === item.materialId)
+            const snapSub = this.stockDraftSnapshot.find(s => s.id === item.materialId)
+            if (sm && snapSub) {
+              snapSub.stock = sm.stock
+              if (sm.lots) snapSub.lots = JSON.parse(JSON.stringify(sm.lots))
+            }
+          })
+        }
         this.persistLocal()
         this.addActivityLog(mainLog)
         subLogs.forEach(sl => this.addActivityLog(sl))
@@ -2013,7 +2090,7 @@ export const usePosStore = defineStore('pos', {
     // ========================================================
     // LOT MANAGEMENT & WASTE (SPOILAGE) WRITE-OFF
     // ========================================================
-    switchActiveLot(materialId, lotId, asDraft = true) {
+    switchActiveLot(materialId, lotId, asDraft = false) {
       const mat = this.materials.find(m => m.id === materialId)
       if (!mat || !mat.lots) return
 
@@ -2043,12 +2120,20 @@ export const usePosStore = defineStore('pos', {
         })
         this.showToast(`เพิ่มแบบร่างสลับล็อต ${mat.name} (รอยืนยันที่แถบด้านล่าง)`, 'info')
       } else {
+        if (this.stockDraftSnapshot) {
+          const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
+          if (snapMat && snapMat.lots) {
+            snapMat.lots.forEach(l => {
+              l.isInUse = (l.id === lotId)
+            })
+          }
+        }
         this.persistLocal()
         this.showToast(`สลับใช้งานเป็นล็อตวันที่ ${formatThaiDate(targetLot?.receiveDate)} เรียบร้อยแล้ว`, 'success')
       }
     },
 
-    recordLotWaste({ materialId, lotId, wasteQty, reason = 'ของเสีย/หมดอายุ', note = '' }, asDraft = true) {
+    recordLotWaste({ materialId, lotId, wasteQty, reason = 'ของเสีย/หมดอายุ', note = '' }, asDraft = false) {
       const mat = this.materials.find(m => m.id === materialId)
       if (!mat || !mat.lots) return false
       const lot = mat.lots.find(l => l.id === lotId)
@@ -2073,7 +2158,7 @@ export const usePosStore = defineStore('pos', {
       // If this lot was in use and is now 0, advance to next available lot
       if (lot.isInUse && lot.qty <= 0) {
         lot.isInUse = false
-        const nextLot = mat.lots.find(l => l.qty > 0)
+        const nextLot = mat.lots.find(l => l.qty > 0 && !getExpiryStatus(l).isExpired) || mat.lots.find(l => l.qty > 0)
         if (nextLot) nextLot.isInUse = true
       }
 
@@ -2112,6 +2197,13 @@ export const usePosStore = defineStore('pos', {
         })
         this.showToast(`เพิ่มแบบร่างตัดของเสีย ${mat.name} -${qtyToWaste} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
       } else {
+        if (this.stockDraftSnapshot) {
+          const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
+          if (snapMat) {
+            snapMat.stock = mat.stock
+            if (mat.lots) snapMat.lots = JSON.parse(JSON.stringify(mat.lots))
+          }
+        }
         this.persistLocal()
         this.addActivityLog(logPayload)
         this.showToast(`บันทึกของเสีย ${mat.name} (-${qtyToWaste} ${mat.unit}) เสียหาย ฿${totalLossValue.toLocaleString()}`, 'info')
@@ -2135,21 +2227,29 @@ export const usePosStore = defineStore('pos', {
       }
     },
 
-    // Deduct stock from material lots (Priority: in-use lot, then FIFO)
+    // Deduct stock from material lots (Priority: in-use lot, then FIFO unexpired)
     deductMaterialStock(mat, neededQty) {
-      if (!mat) return
+      if (!mat) return { success: false, switchedLots: [] }
       const qty = Number(neededQty) || 0
-      if (qty <= 0) return
+      if (qty <= 0) return { success: true, switchedLots: [] }
 
       if (!mat.lots || mat.lots.length === 0) {
         mat.stock = Math.max(0, Math.round((mat.stock - qty) * 100) / 100)
-        return
+        if (this.stockDraftSnapshot) {
+          const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
+          if (snapMat) snapMat.stock = mat.stock
+        }
+        return { success: true, switchedLots: [] }
       }
 
       let remaining = qty
+      const switchedLots = []
+      const isLotExpired = (lot) => getExpiryStatus(lot).isExpired
 
-      // 1. Deduct from currently in-use lot first
-      let inUseLot = mat.lots.find(l => l.isInUse && l.qty > 0)
+      // 1. Deduct from currently in-use lot first (if not expired and has stock)
+      let inUseLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !isLotExpired(l))
+      const origInUseLotId = inUseLot?.id
+
       if (inUseLot) {
         const take = Math.min(inUseLot.qty, remaining)
         inUseLot.qty = Math.round((inUseLot.qty - take) * 100) / 100
@@ -2159,10 +2259,10 @@ export const usePosStore = defineStore('pos', {
         }
       }
 
-      // 2. If remaining > 0, deduct from other available lots by FIFO
+      // 2. If remaining > 0, deduct from other available unexpired lots by FIFO
       if (remaining > 0) {
         const otherLots = mat.lots
-          .filter(l => l.qty > 0)
+          .filter(l => l.qty > 0 && !isLotExpired(l) && l.id !== origInUseLotId)
           .sort((a, b) => {
             if (a.expiryDate && b.expiryDate) return a.expiryDate.localeCompare(b.expiryDate)
             return (a.receiveDate || '').localeCompare(b.receiveDate || '')
@@ -2178,20 +2278,50 @@ export const usePosStore = defineStore('pos', {
         }
       }
 
-      // 3. Ensure at least one positive lot is in-use if stock remains
-      if (!mat.lots.some(l => l.isInUse && l.qty > 0)) {
-        const nextAvail = mat.lots.find(l => l.qty > 0)
-        if (nextAvail) nextAvail.isInUse = true
+      // 3. Ensure at least one positive unexpired lot is in-use if stock remains
+      if (!mat.lots.some(l => l.isInUse && l.qty > 0 && !isLotExpired(l))) {
+        const nextAvail = mat.lots
+          .filter(l => l.qty > 0 && !isLotExpired(l))
+          .sort((a, b) => {
+            if (a.expiryDate && b.expiryDate) return a.expiryDate.localeCompare(b.expiryDate)
+            return (a.receiveDate || '').localeCompare(b.receiveDate || '')
+          })[0]
+        if (nextAvail) {
+          nextAvail.isInUse = true
+        }
       }
 
       mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
 
       // Update primary dates
-      const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots[0]
+      const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !isLotExpired(l)) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
       if (activeLot) {
         if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate
         if (activeLot.expiryDate) mat.expiryDate = activeLot.expiryDate
       }
+
+      // Check if active lot changed due to rollover
+      if (origInUseLotId && activeLot && activeLot.id !== origInUseLotId) {
+        switchedLots.push({
+          materialId: mat.id,
+          materialName: mat.name,
+          materialEmoji: mat.emoji,
+          fromLotId: origInUseLotId,
+          toLotId: activeLot.id,
+          toLotReceiveDate: activeLot.receiveDate
+        })
+      }
+
+      // Synchronize with snapshot if active
+      if (this.stockDraftSnapshot) {
+        const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
+        if (snapMat) {
+          snapMat.stock = mat.stock
+          if (mat.lots) snapMat.lots = JSON.parse(JSON.stringify(mat.lots))
+        }
+      }
+
+      return { success: true, switchedLots }
     },
 
     addMaterialStock(mat, addedQty) {
@@ -2224,6 +2354,14 @@ export const usePosStore = defineStore('pos', {
       if (activeLot) {
         if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate
         if (activeLot.expiryDate) mat.expiryDate = activeLot.expiryDate
+      }
+
+      if (this.stockDraftSnapshot) {
+        const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
+        if (snapMat) {
+          snapMat.stock = mat.stock
+          if (mat.lots) snapMat.lots = JSON.parse(JSON.stringify(mat.lots))
+        }
       }
     },
 
@@ -2274,19 +2412,28 @@ export const usePosStore = defineStore('pos', {
         const mat = this.matMap[matId]
         if (!mat || mat.isDeleted) continue
 
-        if (needed > mat.stock) {
+        let availableStock = mat.stock
+        if (mat.lots && mat.lots.length > 0) {
+          availableStock = mat.lots
+            .filter(l => l.qty > 0 && !getExpiryStatus(l).isExpired)
+            .reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
+        } else if (getExpiryStatus(mat).isExpired) {
+          availableStock = 0
+        }
+
+        if (needed > availableStock) {
           outOfStockList.push({
             name: mat.name,
             emoji: mat.emoji,
-            stock: mat.stock,
+            stock: availableStock,
             needed: needed,
             unit: mat.unit
           })
-        } else if ((mat.stock - needed) <= mat.minAlert) {
+        } else if ((availableStock - needed) <= mat.minAlert) {
           lowStockList.push({
             name: mat.name,
             emoji: mat.emoji,
-            remaining: Math.max(0, mat.stock - needed),
+            remaining: Math.max(0, availableStock - needed),
             minAlert: mat.minAlert,
             unit: mat.unit
           })
@@ -2391,15 +2538,19 @@ export const usePosStore = defineStore('pos', {
       const now = new Date()
       const datePart = now.getFullYear().toString().slice(-2) + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0')
       const orderId = `ORD-${datePart}-${String(this.orders.length + 101).slice(-3)}`
+      const switchedLotsAll = []
 
-      // Deduct materials from stock
+      // Deduct materials from stock (Priority: in-use lot, then automatic FIFO rollover)
       this.cart.forEach(item => {
         // Deduct Menu recipe
         if (item.menu.hasPackage !== false && item.menu.recipe) {
           item.menu.recipe.forEach(r => {
             const mat = this.materials.find(m => m.id === r.materialId)
             if (mat) {
-              this.deductMaterialStock(mat, r.qty * item.qty)
+              const res = this.deductMaterialStock(mat, r.qty * item.qty)
+              if (res?.switchedLots?.length) {
+                switchedLotsAll.push(...res.switchedLots)
+              }
             }
           })
         } else if (item.menu.recipe) {
@@ -2407,7 +2558,10 @@ export const usePosStore = defineStore('pos', {
           item.menu.recipe.forEach(r => {
             const mat = this.materials.find(m => m.id === r.materialId)
             if (mat && mat.category !== 'Packaging') {
-              this.deductMaterialStock(mat, r.qty * item.qty)
+              const res = this.deductMaterialStock(mat, r.qty * item.qty)
+              if (res?.switchedLots?.length) {
+                switchedLotsAll.push(...res.switchedLots)
+              }
             }
           })
         }
@@ -2418,7 +2572,10 @@ export const usePosStore = defineStore('pos', {
             if (a.materialId && a.amountUsed) {
               const mat = this.materials.find(m => m.id === a.materialId)
               if (mat) {
-                this.deductMaterialStock(mat, a.amountUsed * item.qty)
+                const res = this.deductMaterialStock(mat, a.amountUsed * item.qty)
+                if (res?.switchedLots?.length) {
+                  switchedLotsAll.push(...res.switchedLots)
+                }
               }
             }
           })
@@ -2483,7 +2640,13 @@ export const usePosStore = defineStore('pos', {
 
       // Open receipt modal
       this.modals.receipt = { isOpen: true, order: newOrder }
-      this.showToast(`สร้างออเดอร์ ${orderId} สำเร็จ (ตัดสต็อกแล้ว)`, 'success')
+
+      if (switchedLotsAll.length > 0) {
+        const uniqueSwitched = Array.from(new Set(switchedLotsAll.map(s => `${s.materialEmoji || ''} ${s.materialName}`))).join(', ')
+        this.showToast(`สร้างออเดอร์ ${orderId} สำเร็จ (ตัดสต็อกแล้ว - ล็อตเดิมหมด สลับไปใช้ล็อตถัดไปอัตโนมัติ: ${uniqueSwitched})`, 'info')
+      } else {
+        this.showToast(`สร้างออเดอร์ ${orderId} สำเร็จ (ตัดสต็อกแล้ว)`, 'success')
+      }
 
       // Sync in background if GAS is set
       if (this.gasApiUrl) {
