@@ -537,28 +537,11 @@
                   </div>
                 </td>
 
-                <!-- 2. Status Badge: In-Use vs Standby -->
-                <td class="py-2.5 px-4">
-                  <span
-                    v-if="lot.isInUse"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"
-                  >
-                    <span>🟢 กำลังใช้งาน</span>
-                  </span>
-                  <span
-                    v-else
-                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-100 text-stone-500"
-                  >
-                    <span>⚪ รอใช้งาน</span>
-                  </span>
-                </td>
+                <!-- 2. Type (Left clean to avoid duplication with parent row) -->
+                <td class="py-2.5 px-4"></td>
 
-                <!-- 3. Category / Sub-lot label -->
-                <td class="py-2.5 px-4">
-                  <span class="text-[10px] text-stone-400 font-sans">
-                    ล็อตย่อย
-                  </span>
-                </td>
+                <!-- 3. Category (Left clean to avoid clutter) -->
+                <td class="py-2.5 px-4"></td>
 
                 <!-- 4. Lot Quantity (Centered matching main row) -->
                 <td class="py-2.5 px-4">
@@ -593,10 +576,16 @@
                   ฿{{ Math.round(lot.qty * (lot.unitCost || mat.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                 </td>
 
-                <!-- 7. Switch Lot Button / Active Tag -->
+                <!-- 7. Status & Switch Lot Action -->
                 <td class="py-2.5 px-4 text-center">
+                  <span
+                    v-if="lot.isInUse"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0"
+                  >
+                    กำลังใช้งาน
+                  </span>
                   <button
-                    v-if="!lot.isInUse"
+                    v-else
                     type="button"
                     @click="store.switchActiveLot(mat.id, lot.id)"
                     class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-stone-200 hover:border-emerald-300 text-stone-700 hover:text-emerald-800 hover:bg-emerald-50 text-[10px] font-semibold transition-colors cursor-pointer shadow-2xs"
@@ -605,25 +594,17 @@
                     <Zap class="w-3 h-3 text-amber-500" />
                     <span>สลับมาใช้</span>
                   </button>
-                  <span
-                    v-else
-                    class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 font-sans"
-                  >
-                    <Check class="w-3.5 h-3.5 text-emerald-600" />
-                    <span>ล็อตใช้งาน</span>
-                  </span>
                 </td>
 
-                <!-- 8. Actions (Waste button) -->
+                <!-- 8. Actions (Compact Icon Button) -->
                 <td class="py-2.5 px-4 text-right">
                   <button
                     type="button"
                     @click="store.openWasteModal(mat.id, lot.id)"
-                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-semibold transition-colors cursor-pointer border border-rose-200/50"
-                    title="ตัดของเสียจากล็อตนี้"
+                    class="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
+                    title="บันทึกตัดของเสียจากล็อตนี้"
                   >
-                    <Trash2 class="w-3 h-3" />
-                    <span>ตัดของเสีย</span>
+                    <Trash2 class="w-3.5 h-3.5" />
                   </button>
                 </td>
               </tr>
