@@ -914,6 +914,56 @@ export const usePosStore = defineStore('pos', {
         totalFoodCost,
         grossProfit
       }
+    },
+
+    // Warning getter for materials in POS cart whose active lots are depleted or nearly empty
+    cartLotWarnings() {
+      if (!this.cart || this.cart.length === 0) return []
+      const required = {}
+      this.cart.forEach(item => {
+        if (item.menu.hasPackage !== false && item.menu.recipe) {
+          item.menu.recipe.forEach(r => {
+            required[r.materialId] = (required[r.materialId] || 0) + (r.qty * item.qty)
+          })
+        } else if (item.menu.recipe) {
+          item.menu.recipe.forEach(r => {
+            const m = this.materials.find(x => x.id === r.materialId)
+            if (m && m.category !== 'Packaging') {
+              required[r.materialId] = (required[r.materialId] || 0) + (r.qty * item.qty)
+            }
+          })
+        }
+        if (item.selectedAddons) {
+          item.selectedAddons.forEach(a => {
+            if (a.materialId && a.amountUsed) {
+              required[a.materialId] = (required[a.materialId] || 0) + (a.amountUsed * item.qty)
+            }
+          })
+        }
+      })
+
+      const warnings = []
+      for (const [matId, neededQty] of Object.entries(required)) {
+        const mat = this.materials.find(m => m.id === matId)
+        if (!mat || !mat.lots || mat.lots.length === 0) continue
+
+        const check = this.checkLotDepletion(matId, neededQty)
+        if ((check.willDeplete || check.isShort || check.isLow) && check.nextLot) {
+          warnings.push({
+            material: mat,
+            currentLot: check.currentLot,
+            nextLot: check.nextLot,
+            neededQty: Number(neededQty) || 0,
+            availableInCurrent: check.availableInCurrent,
+            remainingAfter: check.remainingAfter,
+            shortageQty: check.shortageQty,
+            willDeplete: check.willDeplete,
+            isShort: check.isShort,
+            isLow: check.isLow
+          })
+        }
+      }
+      return warnings
     }
   },
 
@@ -979,15 +1029,24 @@ export const usePosStore = defineStore('pos', {
       })
     },
 
-    // Real-time Lot Depletion Dialog (Prompts user when active lot runs out / reaches 0)
+    // Real-time Lot Depletion & Low-Stock Dialog
     promptLotDepletion({
       material,
       currentLot,
       nextLot,
       neededQty = 0,
       availableInCurrent = 0,
+      shortageQty = null,
+      remainingAfter = null,
+      willDeplete = true,
+      isLow = false,
       actionContext = 'produce'
     }) {
+      const needed = Number(neededQty) || 0
+      const available = Number(availableInCurrent) || (Number(currentLot?.qty) || 0)
+      const shortage = shortageQty !== null ? shortageQty : Math.max(0, Math.round((needed - available) * 100) / 100)
+      const remaining = remainingAfter !== null ? remainingAfter : Math.max(0, Math.round((available - needed) * 100) / 100)
+
       return new Promise((resolve) => {
         this.modals.lotDepletion = {
           isOpen: true,
@@ -997,9 +1056,12 @@ export const usePosStore = defineStore('pos', {
           unit: material.unit || '',
           currentLot,
           nextLot,
-          neededQty,
-          availableInCurrent,
-          shortageQty: Math.max(0, Math.round(((Number(neededQty) || 0) - (Number(availableInCurrent) || 0)) * 100) / 100),
+          neededQty: needed,
+          availableInCurrent: available,
+          shortageQty: shortage,
+          remainingAfter: remaining,
+          willDeplete: willDeplete !== undefined ? willDeplete : (available <= needed),
+          isLow,
           actionContext,
           onConfirm: () => {
             this.modals.lotDepletion.isOpen = false
@@ -1013,16 +1075,26 @@ export const usePosStore = defineStore('pos', {
       })
     },
 
-    // Check if an upcoming deduction from a material will deplete its active lot
+    // Check if an upcoming deduction from a material will deplete or leave active lot low
     checkLotDepletion(materialId, neededQty) {
       const mat = this.materials.find(m => m.id === materialId)
       if (!mat || !mat.lots || mat.lots.length === 0) {
-        return { willDeplete: false, isShort: false, currentLot: null, nextLot: null, availableInCurrent: 0, shortageQty: 0 }
+        return {
+          willDeplete: false,
+          isShort: false,
+          isLow: false,
+          currentLot: null,
+          nextLot: null,
+          availableInCurrent: 0,
+          remainingAfter: 0,
+          shortageQty: 0
+        }
       }
 
       const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
       const curQty = Number(activeLot?.qty) || 0
       const reqQty = Number(neededQty) || 0
+      const minAlert = Number(mat.minAlert) || 0
 
       const otherLots = mat.lots
         .filter(l => l.id !== activeLot?.id && l.qty > 0)
@@ -1035,13 +1107,19 @@ export const usePosStore = defineStore('pos', {
       const willDeplete = Boolean(activeLot && curQty <= reqQty && curQty > 0)
       const isShort = Boolean(activeLot && curQty < reqQty)
       const shortageQty = Math.max(0, Math.round((reqQty - curQty) * 100) / 100)
+      const remainingAfter = Math.max(0, Math.round((curQty - reqQty) * 100) / 100)
+
+      // isLow: if remaining after deduction is <= minAlert (or if active lot is already <= minAlert)
+      const isLow = Boolean(activeLot && (remainingAfter <= minAlert || curQty <= minAlert) && remainingAfter > 0)
 
       return {
         willDeplete,
         isShort,
+        isLow,
         currentLot: activeLot,
         nextLot,
         availableInCurrent: curQty,
+        remainingAfter,
         shortageQty
       }
     },

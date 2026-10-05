@@ -1009,20 +1009,26 @@ async function quickAdjustStock(mat, delta) {
       for (const row of mat.subRecipe) {
         const needed = Number(row.qty) || 0
         const check = store.checkLotDepletion(row.materialId, needed)
-        if (check.depleted) {
+        if ((check.willDeplete || check.isShort || check.isLow) && check.nextLot) {
           const subMat = store.materials.find(m => m.id === row.materialId)
           const confirmed = await store.promptLotDepletion({
             material: subMat,
             currentLot: check.currentLot,
             nextLot: check.nextLot,
             neededQty: needed,
-            shortage: check.shortage
+            availableInCurrent: check.availableInCurrent,
+            remainingAfter: check.remainingAfter,
+            shortageQty: check.shortageQty,
+            willDeplete: check.willDeplete,
+            isLow: check.isLow,
+            actionContext: 'produce'
           })
           if (!confirmed) {
-            store.showToast(`ยกเลิกการผลิต ${mat.name} เนื่องจากล็อตวัตถุดิบ ${subMat?.name || ''} หมดและไม่ต้องการเปลี่ยนล็อต`, 'info')
-            return
-          }
-          if (check.nextLot) {
+            if (check.isShort) {
+              store.showToast(`ยกเลิกการผลิต ${mat.name} เนื่องจากล็อตวัตถุดิบ ${subMat?.name || ''} ไม่พอและไม่ต้องการเปลี่ยนล็อต`, 'info')
+              return
+            }
+          } else if (check.nextLot) {
             store.switchActiveLotSilently(row.materialId, check.nextLot.id)
           }
         }

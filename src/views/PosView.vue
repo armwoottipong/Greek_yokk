@@ -223,9 +223,50 @@
           </button>
         </div>
 
+        <!-- Lot Warnings in Cart (Near depleted or low stock) -->
+        <div v-if="store.cartLotWarnings && store.cartLotWarnings.length > 0" class="p-2.5 bg-amber-50 border border-amber-200/90 rounded-2xl space-y-2 text-xs">
+          <div class="flex items-center justify-between text-amber-900 font-bold text-[11px] px-0.5">
+            <span class="flex items-center gap-1.5">
+              <span>⚠️</span>
+              <span>ล็อตวัตถุดิบใกล้หมด / สต็อกไม่พอ</span>
+            </span>
+            <span class="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-200/80 text-amber-950 font-bold">
+              {{ store.cartLotWarnings.length }} รายการ
+            </span>
+          </div>
+
+          <div
+            v-for="w in store.cartLotWarnings"
+            :key="w.material.id"
+            class="flex items-center justify-between gap-2 bg-white/90 p-2 rounded-xl border border-amber-200/60 shadow-2xs"
+          >
+            <div class="min-w-0 flex-1 truncate">
+              <div class="font-bold text-stone-900 truncate text-[11px]">
+                {{ w.material.emoji }} {{ w.material.name }}
+              </div>
+              <div class="text-[10px] text-stone-500 font-number truncate flex items-center gap-1">
+                <span>มีในล็อตนี้: {{ w.availableInCurrent.toLocaleString() }} {{ w.material.unit }}</span>
+                <span>•</span>
+                <span :class="w.willDeplete ? 'text-rose-600 font-bold' : 'text-amber-700 font-medium'">
+                  {{ w.shortageQty > 0 ? `ขาดอีก ${w.shortageQty} ${w.material.unit}` : (w.willDeplete ? 'สต็อกจะหมด' : 'ใกล้หมด') }}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              @click="handleSwitchLot(w)"
+              class="px-2.5 py-1 rounded-lg bg-amber-800 hover:bg-amber-900 active:bg-stone-900 text-white font-semibold text-[10px] shrink-0 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+              title="สลับไปใช้ล็อตถัดไปทันที"
+            >
+              <span>ย้ายล็อต</span>
+              <span>⚡</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Checkout Button -->
         <button
-          @click="store.checkout()"
+          @click="handleCheckout"
           class="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-2"
         >
           <Check class="w-4 h-4" />
@@ -297,5 +338,58 @@ function handleMenuClick(menu) {
   } else {
     store.addToCart(menu, [], 1)
   }
+}
+
+async function handleSwitchLot(w) {
+  const confirmed = await store.promptLotDepletion({
+    material: w.material,
+    currentLot: w.currentLot,
+    nextLot: w.nextLot,
+    neededQty: w.neededQty,
+    availableInCurrent: w.availableInCurrent,
+    remainingAfter: w.remainingAfter,
+    shortageQty: w.shortageQty,
+    willDeplete: w.willDeplete,
+    isLow: w.isLow,
+    actionContext: 'pos'
+  })
+  if (confirmed && w.nextLot) {
+    store.switchActiveLotSilently(w.material.id, w.nextLot.id)
+    store.showToast(`สลับล็อต ${w.material.name} เป็นล็อตใหม่เรียบร้อยแล้ว`, 'success')
+  }
+}
+
+async function handleCheckout() {
+  if (store.cart.length === 0) return
+
+  // Pre-flight check for lot warnings
+  if (store.cartLotWarnings && store.cartLotWarnings.length > 0) {
+    for (const w of store.cartLotWarnings) {
+      const confirmed = await store.promptLotDepletion({
+        material: w.material,
+        currentLot: w.currentLot,
+        nextLot: w.nextLot,
+        neededQty: w.neededQty,
+        availableInCurrent: w.availableInCurrent,
+        remainingAfter: w.remainingAfter,
+        shortageQty: w.shortageQty,
+        willDeplete: w.willDeplete,
+        isLow: w.isLow,
+        actionContext: 'pos'
+      })
+      if (!confirmed) {
+        if (w.isShort) {
+          store.showToast(`ไม่สามารถชำระเงินได้เนื่องจากล็อตเดิมของ ${w.material.name} ไม่พอและไม่ต้องการเปลี่ยนล็อต`, 'warning')
+          return
+        }
+        // If not short (lot has enough but is near empty), user chose to keep current lot
+      } else if (w.nextLot) {
+        store.switchActiveLotSilently(w.material.id, w.nextLot.id)
+        store.showToast(`สลับล็อต ${w.material.name} เป็นล็อตใหม่เรียบร้อยแล้ว`, 'success')
+      }
+    }
+  }
+
+  store.checkout()
 }
 </script>

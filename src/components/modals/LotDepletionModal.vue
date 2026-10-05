@@ -20,14 +20,17 @@
         <div class="min-w-0 flex-1 pt-0.5">
           <div class="flex items-center gap-2">
             <h3 class="text-sm font-bold text-stone-900 leading-snug">
-              แจ้งเตือน: ล็อตปัจจุบันหมดสต็อก
+              {{ modal.isLow && !modal.willDeplete ? 'แจ้งเตือน: ล็อตปัจจุบันใกล้หมด' : 'แจ้งเตือน: ล็อตปัจจุบันหมดสต็อก' }}
             </h3>
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-              Real-time Alert
+            <span
+              class="px-1.5 py-0.5 rounded text-[10px] font-bold"
+              :class="modal.willDeplete ? 'bg-rose-100 text-rose-900 border border-rose-300' : 'bg-amber-100 text-amber-900 border border-amber-300'"
+            >
+              {{ modal.actionContext === 'pos' ? 'ออเดอร์หน้าร้าน' : modal.actionContext === 'adjust' ? 'ตรวจนับสต็อก' : 'ผลิตตามสูตร' }}
             </span>
           </div>
           <p class="text-xs text-stone-500 mt-1 leading-relaxed">
-            สต็อกในล็อตที่กำลังใช้งานของ <span class="font-bold text-stone-800">{{ modal.materialEmoji }} {{ modal.materialName }}</span> หมดลงหรือไม่พอต่อจำนวนที่ต้องการ
+            สต็อกในล็อตที่กำลังใช้งานของ <span class="font-bold text-stone-800">{{ modal.materialEmoji }} {{ modal.materialName }}</span> {{ modal.willDeplete ? 'หมดลงหรือไม่พอต่อจำนวนที่ต้องการ' : 'ใกล้จะหมดลงหลังจากการดำเนินการนี้' }}
           </p>
         </div>
       </div>
@@ -41,8 +44,13 @@
               <span>🛑</span>
               <span>ล็อตปัจจุบัน (กำลังใช้งาน)</span>
             </span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200/80 text-rose-900">
-              สต็อกจะหมด (0 {{ modal.unit }})
+            <span
+              class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+              :class="modal.willDeplete ? 'bg-rose-200/80 text-rose-900' : 'bg-amber-200/80 text-amber-900'"
+            >
+              <template v-if="modal.shortageQty > 0">สต็อกไม่พอ (ขาดอีก {{ modal.shortageQty.toLocaleString() }} {{ modal.unit }})</template>
+              <template v-else-if="modal.willDeplete">สต็อกจะหมด (0 {{ modal.unit }})</template>
+              <template v-else>ใกล้หมด (จะเหลือ {{ modal.remainingAfter?.toLocaleString() }} {{ modal.unit }})</template>
             </span>
           </div>
           <div class="text-[11px] text-stone-600 space-y-0.5 font-number">
@@ -53,8 +61,8 @@
             </div>
             <div class="font-sans text-rose-700 font-medium">
               มีเหลือในล็อตนี้: {{ (Number(modal.availableInCurrent) || 0).toLocaleString() }} {{ modal.unit }}
-              <span v-if="modal.shortageQty > 0" class="text-stone-500">
-                (ต้องการใช้ {{ (Number(modal.neededQty) || 0).toLocaleString() }} {{ modal.unit }}, ขาดอีก {{ modal.shortageQty.toLocaleString() }} {{ modal.unit }})
+              <span v-if="modal.neededQty > 0" class="text-stone-500">
+                (ต้องการใช้ {{ (Number(modal.neededQty) || 0).toLocaleString() }} {{ modal.unit }})
               </span>
             </div>
           </div>
@@ -98,8 +106,8 @@
       <!-- Action Explanations -->
       <div class="p-3 rounded-xl bg-stone-50 border border-stone-100 text-[11px] text-stone-500 leading-relaxed">
         <p>
-          • <strong>ถ้ากด "เปลี่ยนไปล็อตใหม่":</strong> ระบบจะตัดสต็อกต่อจากล็อตใหม่ และย้ายสถานะ <em>"กำลังใช้งาน"</em> ไปที่ล็อตใหม่อัตโนมัติ<br />
-          • <strong>ถ้ากด "ยกเลิก":</strong> ระบบจะยกเลิกการข้ามล็อต และผลิตหรือปรับสต็อกได้เฉพาะเท่าที่ล็อตเดิมมี
+          • <strong>ถ้ากด "เปลี่ยนไปล็อตใหม่":</strong> ระบบจะย้ายสถานะ <em>"กำลังใช้งาน"</em> ไปที่ล็อตใหม่ทันที และตัดสต็อกต่อจากล็อตใหม่<br />
+          • <strong>ถ้ากด "ยกเลิก (ไม่เปลี่ยนล็อต)":</strong> ระบบจะไม่แตะต้องล็อตใหม่ และใช้เฉพาะสต็อกที่มีในล็อตเดิม (หากสต็อกไม่พอ การดำเนินการจะถูกยกเลิก)
         </p>
       </div>
 

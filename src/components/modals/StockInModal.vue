@@ -277,6 +277,20 @@
               <div class="flex items-center gap-2 font-number">
                 <span class="text-rose-600 font-semibold">-{{ sub.qty.toLocaleString() }} {{ store.matMap[sub.materialId]?.unit }}</span>
                 <span
+                  v-if="store.checkLotDepletion(sub.materialId, sub.qty).willDeplete"
+                  class="text-[9px] px-1.5 py-0.5 rounded font-sans font-bold bg-rose-100 text-rose-800"
+                  title="สต็อกในล็อตปัจจุบันจะหมดลง"
+                >
+                  ล็อตหมด
+                </span>
+                <span
+                  v-else-if="store.checkLotDepletion(sub.materialId, sub.qty).isLow"
+                  class="text-[9px] px-1.5 py-0.5 rounded font-sans font-bold bg-amber-100 text-amber-800"
+                  title="สต็อกในล็อตปัจจุบันใกล้หมด"
+                >
+                  ล็อตใกล้หมด
+                </span>
+                <span
                   class="text-[9px] px-1.5 py-0.5 rounded font-sans font-medium"
                   :class="sub.isSufficient ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700 font-bold'"
                 >
@@ -589,10 +603,10 @@ async function submit() {
       return
     }
 
-    // Check if any sub-ingredient's active lot will run out
+    // Check if any sub-ingredient's active lot will run out or is near empty
     for (const item of scaledSubIngredients.value) {
       const check = store.checkLotDepletion(item.materialId, item.qty)
-      if (check.willDeplete && check.nextLot) {
+      if ((check.willDeplete || check.isShort || check.isLow) && check.nextLot) {
         const subMat = store.matMap[item.materialId]
         const willSwitch = await store.promptLotDepletion({
           material: subMat,
@@ -600,11 +614,20 @@ async function submit() {
           nextLot: check.nextLot,
           neededQty: item.qty,
           availableInCurrent: check.availableInCurrent,
+          remainingAfter: check.remainingAfter,
+          shortageQty: check.shortageQty,
+          willDeplete: check.willDeplete,
+          isLow: check.isLow,
           actionContext: 'produce'
         })
         if (!willSwitch) {
-          store.showToast(`ยกเลิกการผลิต ${mat.name} (ไม่ต้องการเปลี่ยนไปใช้ล็อตใหม่)`, 'info')
-          return
+          if (check.isShort) {
+            store.showToast(`ยกเลิกการผลิต ${mat.name} (สต็อกล็อตเดิมไม่พอและไม่ต้องการเปลี่ยนไปใช้ล็อตใหม่)`, 'info')
+            return
+          }
+          // If not short (lot has enough but is near empty), user chose to keep current lot
+        } else {
+          store.switchActiveLotSilently(item.materialId, check.nextLot.id)
         }
       }
     }
