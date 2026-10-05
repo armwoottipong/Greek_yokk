@@ -360,6 +360,21 @@ export const usePosStore = defineStore('pos', {
     if (!initialCategories.material) initialCategories.material = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.material))
     if (!initialCategories.addon) initialCategories.addon = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.addon))
 
+    // Auto-migrate legacy category 'วัตถุดิบรอง' -> 'Dairy & Milk'
+    initialCategories.material.forEach(c => {
+      if (c.name === 'วัตถุดิบรอง') {
+        c.name = 'Dairy & Milk'
+        c.label = 'นม & แดรี่'
+        c.icon = '🥛'
+        c.dateTrackingMode = 'expiry_and_receive'
+      }
+    })
+    storedMaterials.forEach(m => {
+      if (m.category === 'วัตถุดิบรอง') {
+        m.category = 'Dairy & Milk'
+      }
+    })
+
     // Ensure all material categories have dateTrackingMode
     initialCategories.material.forEach(c => {
       if (!c.dateTrackingMode) {
@@ -494,8 +509,11 @@ export const usePosStore = defineStore('pos', {
           ]
         }
 
+        if (item.category === 'วัตถุดิบรอง') {
+          item.category = 'Dairy & Milk'
+        }
         // Sanitize: Raw sub-materials (like Milk MAT002) must NEVER have a sub-recipe!
-        if (item.id === 'MAT002' || item.isSubIngredient || (item.category && item.category.includes('รอง'))) {
+        if (item.id === 'MAT002' || item.id === 'MAT003' || item.isSubIngredient || (item.category && item.category.includes('รอง'))) {
           item.hasSubRecipe = false
           item.subRecipe = []
           item.isSubIngredient = true

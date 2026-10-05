@@ -174,19 +174,17 @@
       <div class="overflow-x-auto">
         <table class="w-full min-w-[1040px] table-fixed text-left text-xs">
           <colgroup>
-            <col class="w-[28%]" />
-            <col class="w-[10%]" />
-            <col class="w-[10%]" />
-            <col class="w-[15%]" />
-            <col class="w-[11%]" />
+            <col class="w-[32%]" />
+            <col class="w-[14%]" />
+            <col class="w-[17%]" />
             <col class="w-[13%]" />
-            <col class="w-[7%]" />
+            <col class="w-[13%]" />
             <col class="w-[6%]" />
+            <col class="w-[5%]" />
           </colgroup>
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/50 text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
               <th class="py-3 px-4 text-left">วัตถุดิบ / สินค้า</th>
-              <th class="py-3 px-4 text-left">ประเภท</th>
               <th class="py-3 px-4 text-left">หมวดหมู่</th>
               <th class="py-3 px-4 text-center">คงเหลือในคลัง</th>
               <th class="py-3 px-4 text-left">ต้นทุน/หน่วย</th>
@@ -213,6 +211,25 @@
                   <div class="min-w-0 flex-1 truncate">
                     <div class="font-bold text-stone-900 flex items-center gap-1.5 truncate">
                       <span class="truncate">{{ mat.name }}</span>
+
+                      <!-- Special Role Badges (Only shown for sub-ingredients or self-produced bases) -->
+                      <span
+                        v-if="mat.isSubIngredient"
+                        class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800 shrink-0"
+                        title="วัตถุดิบรอง สำหรับหมัก/ผลิตกรีกโยเกิร์ต"
+                      >
+                        <span>🥛</span>
+                        <span>วัตถุดิบรอง</span>
+                      </span>
+                      <span
+                        v-else-if="mat.hasSubRecipe"
+                        class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 shrink-0"
+                        title="วัตถุดิบหลัก ผลิตจากวัตถุดิบรอง"
+                      >
+                        <span>🥣</span>
+                        <span>ผลิตเอง</span>
+                      </span>
+
                       <span v-if="mat.isDeleted" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-200 text-stone-700 shrink-0">ซ่อนอยู่</span>
                       <button
                         v-if="hasMultipleLots(mat)"
@@ -262,34 +279,6 @@
                     </div>
                   </div>
                 </div>
-              </td>
-
-              <!-- Ingredient Role: หลัก / รอง (Borderless Pill Badges) -->
-              <td class="py-3 px-4">
-                <span
-                  v-if="mat.isSubIngredient"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800 truncate"
-                  title="วัตถุดิบรอง สำหรับหมัก/ผลิตกรีกโยเกิร์ต"
-                >
-                  <span class="shrink-0">🥛</span>
-                  <span class="truncate">วัตถุดิบรอง</span>
-                </span>
-                <span
-                  v-else-if="mat.hasSubRecipe"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 truncate"
-                  title="วัตถุดิบหลัก ผลิตจากวัตถุดิบรอง"
-                >
-                  <span class="shrink-0">🥣</span>
-                  <span class="truncate">หลัก (มีสูตรผลิต)</span>
-                </span>
-                <span
-                  v-else
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 truncate"
-                  title="วัตถุดิบหลัก สั่งซื้อตรงหน้าร้าน"
-                >
-                  <span class="shrink-0">📦</span>
-                  <span class="truncate">วัตถุดิบหลัก</span>
-                </span>
               </td>
 
               <!-- Category (Borderless Pill Badge) -->
@@ -547,10 +536,7 @@
                   </div>
                 </td>
 
-                <!-- 2. Type (Left clean to avoid duplication with parent row) -->
-                <td class="py-2.5 px-4"></td>
-
-                <!-- 3. Category (Left clean to avoid clutter) -->
+                <!-- 2. Category (Left clean to avoid clutter) -->
                 <td class="py-2.5 px-4"></td>
 
                 <!-- 4. Lot Quantity (Centered matching main row) -->
@@ -623,7 +609,7 @@
 
             <!-- Empty Row -->
             <tr v-if="filteredMaterials.length === 0">
-              <td colspan="8" class="py-12 text-center text-stone-400">
+              <td colspan="7" class="py-12 text-center text-stone-400">
                 <div class="text-3xl mb-2">🔍</div>
                 <p class="text-xs font-medium">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก</p>
               </td>

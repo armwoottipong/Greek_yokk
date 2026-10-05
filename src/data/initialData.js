@@ -91,7 +91,7 @@ export const DEFAULT_CATEGORIES = {
   ],
   material: [
     { id: "cat-mat-1", name: "Base Yogurt", label: "เบสกรีกโยเกิร์ต", icon: "🥣", dateTrackingMode: "receive_only" },
-    { id: "cat-mat-2", name: "วัตถุดิบรอง", label: "วัตถุดิบรอง", icon: "🥛", dateTrackingMode: "expiry_and_receive" },
+    { id: "cat-mat-2", name: "Dairy & Milk", label: "นม & แดรี่", icon: "🥛", dateTrackingMode: "expiry_and_receive" },
     { id: "cat-mat-3", name: "Fresh Fruits", label: "ผลไม้สด", icon: "🍓", dateTrackingMode: "receive_only" },
     { id: "cat-mat-4", name: "Sauces", label: "ซอส & น้ำผึ้ง", icon: "🍯", dateTrackingMode: "expiry_and_receive" },
     { id: "cat-mat-5", name: "Toppings", label: "ท็อปปิ้ง", icon: "🥜", dateTrackingMode: "none" },
@@ -135,8 +135,8 @@ export const DEFAULT_MATERIALS = [
     shelfLifeDays: 7,
     isDeleted: false
   },
-  { id: "MAT002", name: "นมสดพาสเจอร์ไรส์ (Fresh Milk)", category: "วัตถุดิบรอง", unit: "ml", packUnit: "ขวด", packSize: 1200, packCost: 54, stock: 15000, minAlert: 4000, unitCost: 0.045, emoji: "🥛", isSubIngredient: true, shelfLifeDays: 10, isDeleted: false },
-  { id: "MAT003", name: "หัวเชื้อโยเกิร์ตธรรมชาติ", category: "วัตถุดิบรอง", unit: "g", packUnit: "ถ้วย", packSize: 500, packCost: 40, stock: 2500, minAlert: 500, unitCost: 0.08, emoji: "🥣", isSubIngredient: true, shelfLifeDays: 14, isDeleted: false },
+  { id: "MAT002", name: "นมสดพาสเจอร์ไรส์ (Fresh Milk)", category: "Dairy & Milk", unit: "ml", packUnit: "ขวด", packSize: 1200, packCost: 54, stock: 15000, minAlert: 4000, unitCost: 0.045, emoji: "🥛", isSubIngredient: true, shelfLifeDays: 10, isDeleted: false },
+  { id: "MAT003", name: "หัวเชื้อโยเกิร์ตธรรมชาติ", category: "Dairy & Milk", unit: "g", packUnit: "ถ้วย", packSize: 500, packCost: 40, stock: 2500, minAlert: 500, unitCost: 0.08, emoji: "🥣", isSubIngredient: true, shelfLifeDays: 14, isDeleted: false },
   { id: "MAT004", name: "สตรอว์เบอร์รีสด", category: "Fresh Fruits", unit: "g", packUnit: "ลัง", packSize: 500, packCost: 175, stock: 1200, minAlert: 300, unitCost: 0.35, emoji: "🍓", isSubIngredient: false, shelfLifeDays: 4, isDeleted: false },
   { id: "MAT005", name: "บลูเบอร์รีสด", category: "Fresh Fruits", unit: "g", packUnit: "กล่อง", packSize: 125, packCost: 68.75, stock: 800, minAlert: 200, unitCost: 0.55, emoji: "🫐", isSubIngredient: false, shelfLifeDays: 5, isDeleted: false },
   { id: "MAT006", name: "มะม่วงน้ำดอกไม้สุก", category: "Fresh Fruits", unit: "g", packUnit: "กก.", packSize: 1000, packCost: 200, stock: 1500, minAlert: 400, unitCost: 0.20, emoji: "🥭", isSubIngredient: false, shelfLifeDays: 4, isDeleted: false },
