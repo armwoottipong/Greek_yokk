@@ -172,25 +172,25 @@
     <!-- Material Inventory Table -->
     <div class="editorial-card bg-white pb-12">
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[1040px] table-fixed text-left text-xs">
+        <table class="w-full min-w-[1120px] table-fixed text-left text-xs">
           <colgroup>
-            <col class="w-[32%]" />
-            <col class="w-[14%]" />
-            <col class="w-[17%]" />
+            <col class="w-[28%]" />
+            <col class="w-[11%]" />
+            <col class="w-[18%]" />
+            <col class="w-[12%]" />
             <col class="w-[13%]" />
-            <col class="w-[13%]" />
-            <col class="w-[6%]" />
-            <col class="w-[5%]" />
+            <col class="w-[9%]" />
+            <col class="w-[9%]" />
           </colgroup>
           <thead>
-            <tr class="border-b border-stone-200/80 bg-stone-50/50 text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
-              <th class="py-3 px-4 text-left">วัตถุดิบ / สินค้า</th>
-              <th class="py-3 px-4 text-left">หมวดหมู่</th>
-              <th class="py-3 px-4 text-center">คงเหลือในคลัง</th>
-              <th class="py-3 px-4 text-left">ต้นทุน/หน่วย</th>
-              <th class="py-3 px-4 text-left">มูลค่าสต็อกคงเหลือ</th>
-              <th class="py-3 px-4 text-center">สถานะ</th>
-              <th class="py-3 px-4 text-center">การจัดการ</th>
+            <tr class="border-b border-stone-200/80 bg-stone-50/70 text-[11px] font-semibold text-stone-600 tracking-wider">
+              <th class="py-3.5 px-4 text-left whitespace-nowrap">วัตถุดิบ / สินค้า</th>
+              <th class="py-3.5 px-4 text-left whitespace-nowrap">หมวดหมู่</th>
+              <th class="py-3.5 px-4 text-center whitespace-nowrap">คงเหลือในคลัง</th>
+              <th class="py-3.5 px-4 text-right whitespace-nowrap">ต้นทุน/หน่วย</th>
+              <th class="py-3.5 px-4 text-right whitespace-nowrap">มูลค่าสต็อกคงเหลือ</th>
+              <th class="py-3.5 px-4 text-center whitespace-nowrap">สถานะ</th>
+              <th class="py-3.5 px-4 text-center whitespace-nowrap">การจัดการ</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
@@ -205,8 +205,8 @@
                 ]"
               >
                 <!-- Material Info -->
-                <td class="py-3 px-4">
-                <div class="flex items-center gap-2.5 min-w-0">
+                <td class="py-3.5 px-4">
+                <div class="flex items-center gap-3 min-w-0">
                   <span class="text-xl shrink-0">{{ mat.emoji }}</span>
                   <div class="min-w-0 flex-1 truncate">
                     <div class="font-bold text-stone-900 flex items-center gap-1.5 truncate">
@@ -244,7 +244,7 @@
                         <ChevronDown v-else class="w-3 h-3" />
                       </button>
                     </div>
-                    <div class="text-[11px] text-stone-500 flex items-center gap-1.5 mt-0.5 font-number whitespace-nowrap overflow-hidden">
+                    <div class="text-[11px] text-stone-500 flex items-center gap-1.5 mt-1 font-number whitespace-nowrap overflow-hidden">
                       <!-- วันที่รับ -->
                       <span v-if="mat.lastStockInDate && store.getMaterialTrackingMode(mat) !== 'none'" class="inline-flex items-center gap-1 shrink-0">
                         <span class="text-stone-400 font-sans">รับล่าสุด :</span>
@@ -282,15 +282,15 @@
               </td>
 
               <!-- Category (Borderless Pill Badge) -->
-              <td class="py-3 px-4">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-600 truncate max-w-full">
+              <td class="py-3.5 px-4">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-600 truncate max-w-full">
                   {{ mat.category || 'อื่นๆ' }}
                 </span>
               </td>
 
               <!-- Stock Level: Balanced Layout with Centered Quantity & Pure Icon Buttons -->
-              <td class="py-3 px-4 text-center">
-                <div class="flex items-center justify-center gap-2">
+              <td class="py-3.5 px-4 text-center">
+                <div class="flex items-center justify-center gap-2.5">
                   <!-- Left Slot: Minus button for produced items, or invisible spacer for purchased items -->
                   <button
                     v-if="mat.hasSubRecipe && !mat.isDeleted"
@@ -369,7 +369,7 @@
               </td>
 
               <!-- Unit Cost (Primary: Pack purchase cost e.g. ฿105/ขวด, Secondary: base unit cost) -->
-              <td class="py-3 px-4 font-number text-stone-700 tabular-nums">
+              <td class="py-3.5 px-4 font-number text-right tabular-nums">
                 <div class="font-bold text-stone-900 text-xs tabular-nums truncate">
                   ฿{{ getDisplayPackCost(mat).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) }}
                   <span class="font-medium text-stone-500 text-[11px]">/{{ mat.packUnit || mat.unit }}</span>
@@ -380,14 +380,14 @@
               </td>
 
               <!-- Total Item Stock Valuation -->
-              <td class="py-3 px-4 tabular-nums">
-                <div class="font-bold font-number text-amber-950 tabular-nums truncate">
+              <td class="py-3.5 px-4 tabular-nums text-right">
+                <div class="font-bold font-number text-amber-950 text-xs tabular-nums truncate">
                   ฿{{ (Math.max(0, mat.stock) * (mat.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                 </div>
               </td>
 
               <!-- Status Badge (Clean single badge, no countdown clutter) -->
-              <td class="py-3 px-4 text-center">
+              <td class="py-3.5 px-4 text-center">
                 <span
                   v-if="mat.isDeleted"
                   class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-200 text-stone-700 shrink-0"
@@ -421,7 +421,7 @@
               </td>
 
               <!-- Actions (More Dropdown) -->
-              <td class="py-3 px-4 text-center relative">
+              <td class="py-3.5 px-4 text-center relative">
                 <button
                   type="button"
                   @click.stop="toggleActionMenu(mat.id)"
@@ -515,7 +515,7 @@
                 :class="lot.isInUse ? 'bg-emerald-50/25' : ''"
               >
                 <!-- 1. Sub-lot Name, Notes & Dates -->
-                <td class="py-2.5 px-4 pl-7 sm:pl-9">
+                <td class="py-3 px-4 pl-7 sm:pl-9">
                   <div class="flex items-center gap-2 min-w-0">
                     <span class="text-stone-300 font-mono text-xs leading-none shrink-0 select-none">↳</span>
                     <div class="min-w-0 flex-1 truncate">
@@ -523,7 +523,7 @@
                         <span>ล็อตที่ {{ lIdx + 1 }}</span>
                         <span v-if="lot.note" class="text-[10px] text-stone-400 font-normal truncate" :title="lot.note">({{ lot.note }})</span>
                       </div>
-                      <div class="text-[10px] text-stone-500 flex items-center gap-1.5 mt-0.5 font-number whitespace-nowrap overflow-hidden">
+                      <div class="text-[10px] text-stone-500 flex items-center gap-1.5 mt-1 font-number whitespace-nowrap overflow-hidden">
                         <!-- วันที่รับ -->
                         <span v-if="lot.receiveDate" class="inline-flex items-center gap-1 shrink-0">
                           <span class="text-stone-400 font-sans">รับ :</span>
@@ -549,11 +549,11 @@
                 </td>
 
                 <!-- 2. Category (Left clean to avoid clutter) -->
-                <td class="py-2.5 px-4"></td>
+                <td class="py-3 px-4"></td>
 
                 <!-- 4. Lot Quantity (Centered matching main row) -->
-                <td class="py-2.5 px-4 text-center">
-                  <div class="flex items-center justify-center gap-2">
+                <td class="py-3 px-4 text-center">
+                  <div class="flex items-center justify-center gap-2.5">
                     <div class="w-7 h-7 shrink-0"></div>
                     <div class="w-24 text-center shrink-0 tabular-nums">
                       <div class="font-bold font-number text-xs flex items-center justify-center gap-1 text-stone-800">
@@ -569,23 +569,23 @@
                 </td>
 
                 <!-- 5. Lot Unit Cost -->
-                <td class="py-2.5 px-4 font-number text-stone-700 text-xs tabular-nums">
+                <td class="py-3 px-4 font-number text-stone-700 text-xs tabular-nums text-right">
                   <div class="font-bold text-stone-800 text-xs tabular-nums">
                     ฿{{ (lot.packCost || Math.round((lot.unitCost || mat.unitCost || 0) * (mat.packSize || 1) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) }}
                     <span class="font-normal text-stone-400 text-[10px]">/{{ mat.packUnit || mat.unit }}</span>
                   </div>
-                  <div v-if="mat.packSize > 1" class="text-[9px] text-stone-400 tabular-nums">
+                  <div v-if="mat.packSize > 1" class="text-[9px] text-stone-400 tabular-nums mt-0.5">
                     (≈ ฿{{ Number(lot.unitCost || mat.unitCost || 0).toFixed(2) }}/{{ mat.unit }})
                   </div>
                 </td>
 
                 <!-- 6. Total Valuation of this lot -->
-                <td class="py-2.5 px-4 tabular-nums font-number text-xs font-bold text-amber-950">
+                <td class="py-3 px-4 tabular-nums font-number text-xs font-bold text-amber-950 text-right">
                   ฿{{ Math.round(lot.qty * (lot.unitCost || mat.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                 </td>
 
                 <!-- 7. Status & Switch Lot Action -->
-                <td class="py-2.5 px-4 text-center">
+                <td class="py-3 px-4 text-center">
                   <span
                     v-if="lot.isInUse"
                     class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
@@ -611,8 +611,8 @@
                 </td>
 
                 <!-- 8. Actions (Compact Icon Buttons: Adjust & Waste) -->
-                <td class="py-2.5 px-4 text-center">
-                  <div class="flex items-center justify-center gap-1">
+                <td class="py-3 px-4 text-center">
+                  <div class="flex items-center justify-center gap-1.5">
                     <button
                       type="button"
                       @click="openStockAdjust(mat.id, lot.id)"
