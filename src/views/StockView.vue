@@ -186,16 +186,18 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
-            <tr
+            <template
               v-for="(mat, idx) in filteredMaterials"
               :key="mat.id"
-              :class="[
-                'hover:bg-[#FAF9F6] transition-colors',
-                mat.isDeleted ? 'opacity-50 bg-stone-50/40' : ''
-              ]"
             >
-              <!-- Material Info -->
-              <td class="py-3 px-4">
+              <tr
+                :class="[
+                  'hover:bg-[#FAF9F6] transition-colors',
+                  mat.isDeleted ? 'opacity-50 bg-stone-50/40' : ''
+                ]"
+              >
+                <!-- Material Info -->
+                <td class="py-3 px-4">
                 <div class="flex items-center gap-2.5 min-w-0">
                   <span class="text-xl shrink-0">{{ mat.emoji }}</span>
                   <div class="min-w-0 flex-1 truncate">
@@ -632,6 +634,7 @@
                 </div>
               </td>
             </tr>
+          </template>
 
             <!-- Empty Row -->
             <tr v-if="filteredMaterials.length === 0">
