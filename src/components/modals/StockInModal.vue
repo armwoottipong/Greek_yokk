@@ -589,6 +589,26 @@ async function submit() {
       return
     }
 
+    // Check if any sub-ingredient's active lot will run out
+    for (const item of scaledSubIngredients.value) {
+      const check = store.checkLotDepletion(item.materialId, item.qty)
+      if (check.willDeplete && check.nextLot) {
+        const subMat = store.matMap[item.materialId]
+        const willSwitch = await store.promptLotDepletion({
+          material: subMat,
+          currentLot: check.currentLot,
+          nextLot: check.nextLot,
+          neededQty: item.qty,
+          availableInCurrent: check.availableInCurrent,
+          actionContext: 'produce'
+        })
+        if (!willSwitch) {
+          store.showToast(`ยกเลิกการผลิต ${mat.name} (ไม่ต้องการเปลี่ยนไปใช้ล็อตใหม่)`, 'info')
+          return
+        }
+      }
+    }
+
     const ok = store.batchProduce(mat.id, produceYieldQty.value, scaledSubIngredients.value, note.value, datePayload, true)
     if (ok) close()
     return

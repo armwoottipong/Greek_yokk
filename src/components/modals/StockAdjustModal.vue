@@ -53,6 +53,29 @@
           </select>
         </div>
 
+        <!-- Lot Selection Strip (If material has multiple lots) -->
+        <div v-if="selectedMaterial?.lots && selectedMaterial.lots.length > 1" class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-medium text-stone-700">ขอบเขตล็อตที่ต้องการตรวจนับ/ปรับยอด</label>
+            <span class="text-[10px] text-stone-400">มีทั้งหมด {{ selectedMaterial.lots.length }} ล็อต</span>
+          </div>
+          <select
+            v-model="selectedLotId"
+            class="soft-input w-full px-3.5 py-2 rounded-xl text-xs font-medium text-stone-900"
+          >
+            <option value="all">
+              📦 ปรับยอดรวมคลังทั้งหมด (ตัด/เพิ่มที่ล็อตกำลังใช้งานก่อน)
+            </option>
+            <option
+              v-for="l in selectedMaterial.lots"
+              :key="l.id"
+              :value="l.id"
+            >
+              {{ l.isInUse ? '⭐ [กำลังใช้งาน] ' : '• ' }}ล็อตวันที่ {{ formatThaiDate(l.receiveDate) }} (คงเหลือ: {{ Number(l.qty || 0).toLocaleString() }} {{ selectedMaterial.unit }})
+            </option>
+          </select>
+        </div>
+
         <!-- Unit Switch Capsule (if material has packUnit) -->
         <div v-if="selectedMaterial?.packUnit && selectedMaterial?.packSize > 1" class="space-y-1.5">
           <label class="block text-xs font-medium text-stone-700">หน่วยที่ใช้นับตรวจนับจริง</label>
@@ -212,13 +235,14 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { usePosStore } from '@/stores/posStore'
+import { usePosStore, formatThaiDate } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { X, Check, Plus, Minus, History } from 'lucide-vue-next'
 
 const store = usePosStore()
 
 const selectedMatId = ref('')
+const selectedLotId = ref('all')
 const unitMode = ref('base') // 'base' | 'pack'
 const actualStock = ref(0)
 const actualPackStock = ref(0)
@@ -227,6 +251,7 @@ const note = ref('')
 
 const { saveSnapshot, requestClose } = useModalForm(() => ({
   selectedMatId: selectedMatId.value,
+  selectedLotId: selectedLotId.value,
   actualStock: actualStock.value,
   reason: reason.value,
   note: note.value
@@ -236,7 +261,15 @@ const selectedMaterial = computed(() => {
   return store.matMap[selectedMatId.value]
 })
 
+const selectedLot = computed(() => {
+  if (!selectedMaterial.value || selectedLotId.value === 'all') return null
+  return selectedMaterial.value.lots?.find(l => l.id === selectedLotId.value) || null
+})
+
 const currentStock = computed(() => {
+  if (selectedLot.value) {
+    return Number(selectedLot.value.qty) || 0
+  }
   return selectedMaterial.value ? Number(selectedMaterial.value.stock) || 0 : 0
 })
 
@@ -273,9 +306,23 @@ function stepAdjustStock(delta) {
   }
 }
 
-function initForMaterial(mat) {
+function initForMaterial(mat, targetLotId = 'all') {
   if (!mat) return
   const pSize = mat.packSize > 0 ? mat.packSize : 1
+  selectedLotId.value = targetLotId || 'all'
+
+  if (targetLotId && targetLotId !== 'all' && mat.lots) {
+    const lot = mat.lots.find(l => l.id === targetLotId)
+    if (lot) {
+      actualStock.value = Number(lot.qty) || 0
+      actualPackStock.value = Number(((Number(lot.qty) || 0) / pSize).toFixed(2))
+      unitMode.value = mat.packUnit && mat.packSize > 1 ? 'pack' : 'base'
+      reason.value = 'นับสต็อกจริงรายวัน'
+      note.value = ''
+      return
+    }
+  }
+
   actualStock.value = mat.stock
   actualPackStock.value = Number((mat.stock / pSize).toFixed(2))
   unitMode.value = mat.packUnit && mat.packSize > 1 ? 'pack' : 'base'
@@ -283,11 +330,27 @@ function initForMaterial(mat) {
   note.value = ''
 }
 
+watch(selectedLotId, (newLotId) => {
+  if (!selectedMaterial.value) return
+  const pSize = selectedMaterial.value.packSize > 0 ? selectedMaterial.value.packSize : 1
+  if (newLotId !== 'all') {
+    const lot = selectedMaterial.value.lots?.find(l => l.id === newLotId)
+    if (lot) {
+      actualStock.value = Number(lot.qty) || 0
+      actualPackStock.value = Number(((Number(lot.qty) || 0) / pSize).toFixed(2))
+    }
+  } else {
+    actualStock.value = selectedMaterial.value.stock
+    actualPackStock.value = Number((selectedMaterial.value.stock / pSize).toFixed(2))
+  }
+})
+
 watch(() => store.modals.stockAdjust.isOpen, (open) => {
   if (open) {
     const id = store.modals.stockAdjust.materialId || (store.activeMaterials[0]?.id || '')
+    const lotId = store.modals.stockAdjust.lotId || 'all'
     selectedMatId.value = id
-    initForMaterial(store.matMap[id])
+    initForMaterial(store.matMap[id], lotId)
     nextTick(() => {
       saveSnapshot()
     })
@@ -295,12 +358,13 @@ watch(() => store.modals.stockAdjust.isOpen, (open) => {
 })
 
 watch(selectedMatId, (newId) => {
-  initForMaterial(store.matMap[newId])
+  initForMaterial(store.matMap[newId], 'all')
 })
 
 function close() {
   store.modals.stockAdjust.isOpen = false
   store.modals.stockAdjust.materialId = null
+  store.modals.stockAdjust.lotId = null
 }
 
 async function submit() {
@@ -311,6 +375,60 @@ async function submit() {
   if (actualStock.value < 0) {
     store.showToast('ยอดนับจริงต้องไม่ติดลบ', 'error')
     return
+  }
+
+  const mat = selectedMaterial.value
+  const targetLotId = selectedLotId.value !== 'all' ? selectedLotId.value : null
+
+  if (targetLotId) {
+    // Adjusting specific lot
+    const lot = mat.lots?.find(l => l.id === targetLotId)
+    if (lot && lot.isInUse && actualStock.value <= 0) {
+      // Lot is in-use and adjusted to 0!
+      const nextLot = mat.lots?.filter(l => l.id !== lot.id && l.qty > 0)[0]
+      if (nextLot) {
+        const willSwitch = await store.promptLotDepletion({
+          material: mat,
+          currentLot: lot,
+          nextLot,
+          neededQty: currentStock.value,
+          availableInCurrent: currentStock.value,
+          actionContext: 'adjust'
+        })
+        if (!willSwitch) {
+          store.showToast('ยกเลิกการปรับยอด (ไม่ต้องการสลับล็อตใหม่)', 'info')
+          return
+        }
+      }
+    }
+    store.stockAdjust(selectedMatId.value, actualStock.value, reason.value, note.value, true, targetLotId)
+    close()
+    return
+  }
+
+  // Adjusting all / total material stock
+  const diff = difference.value
+  if (diff < 0) {
+    const check = store.checkLotDepletion(mat.id, Math.abs(diff))
+    if (check.willDeplete && check.nextLot) {
+      const willSwitch = await store.promptLotDepletion({
+        material: mat,
+        currentLot: check.currentLot,
+        nextLot: check.nextLot,
+        neededQty: Math.abs(diff),
+        availableInCurrent: check.availableInCurrent,
+        actionContext: 'adjust'
+      })
+
+      if (!willSwitch) {
+        // Capped adjustment: adjust only up to what current lot has
+        const cappedNewStock = Math.max(0, currentStock.value - check.availableInCurrent)
+        store.stockAdjust(selectedMatId.value, cappedNewStock, reason.value, `${note.value} (ปรับลดเฉพาะเท่าที่ล็อตเดิมมี)`.trim(), true)
+        store.showToast(`ปรับลดเฉพาะเท่าที่ล็อตเดิมมี (คงเหลือ ${cappedNewStock} ${mat.unit})`, 'info')
+        close()
+        return
+      }
+    }
   }
 
   store.stockAdjust(selectedMatId.value, actualStock.value, reason.value, note.value, true)

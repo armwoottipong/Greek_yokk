@@ -592,6 +592,12 @@
                   >
                     กำลังใช้งาน
                   </span>
+                  <span
+                    v-else-if="lot.qty <= 0"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-400 shrink-0"
+                  >
+                    หมดสต็อก
+                  </span>
                   <button
                     v-else
                     type="button"
@@ -604,16 +610,26 @@
                   </button>
                 </td>
 
-                <!-- 8. Actions (Compact Icon Button) -->
+                <!-- 8. Actions (Compact Icon Buttons: Adjust & Waste) -->
                 <td class="py-2.5 px-4 text-center">
-                  <button
-                    type="button"
-                    @click="store.openWasteModal(mat.id, lot.id)"
-                    class="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
-                    title="บันทึกตัดของเสียจากล็อตนี้"
-                  >
-                    <Trash2 class="w-3.5 h-3.5" />
-                  </button>
+                  <div class="flex items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      @click="openStockAdjust(mat.id, lot.id)"
+                      class="p-1.5 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
+                      title="ปรับยอดเฉพาะล็อตนี้"
+                    >
+                      <SlidersHorizontal class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="store.openWasteModal(mat.id, lot.id)"
+                      class="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
+                      title="บันทึกตัดของเสียจากล็อตนี้"
+                    >
+                      <Trash2 class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             </template>
@@ -926,7 +942,7 @@ function canReduceQuick(mat) {
   return false
 }
 
-function quickAdjustStock(mat, delta) {
+async function quickAdjustStock(mat, delta) {
   if (!mat || !mat.hasSubRecipe) return
   if (!store.stockDraftSnapshot) {
     store.initStockDraftSnapshot()
@@ -938,15 +954,42 @@ function quickAdjustStock(mat, delta) {
       store.showToast(`วัตถุดิบรองไม่พอสำหรับผลิต ${mat.name} อีก 1 รอบ`, 'error')
       return
     }
-    // Increment target stock
-    mat.stock = Math.round((Number(mat.stock || 0) + yieldAmount) * 100) / 100
-    // Deduct sub-ingredients in realtime
+
+    // Pre-flight check lot depletion for each sub-ingredient
+    if (mat.subRecipe && mat.subRecipe.length > 0) {
+      for (const row of mat.subRecipe) {
+        const needed = Number(row.qty) || 0
+        const check = store.checkLotDepletion(row.materialId, needed)
+        if (check.depleted) {
+          const subMat = store.materials.find(m => m.id === row.materialId)
+          const confirmed = await store.promptLotDepletion({
+            material: subMat,
+            currentLot: check.currentLot,
+            nextLot: check.nextLot,
+            neededQty: needed,
+            shortage: check.shortage
+          })
+          if (!confirmed) {
+            store.showToast(`ยกเลิกการผลิต ${mat.name} เนื่องจากล็อตวัตถุดิบ ${subMat?.name || ''} หมดและไม่ต้องการเปลี่ยนล็อต`, 'info')
+            return
+          }
+          if (check.nextLot) {
+            store.switchActiveLotSilently(row.materialId, check.nextLot.id)
+          }
+        }
+      }
+    }
+
+    // Increment target stock & lot
+    store.addMaterialStock(mat, yieldAmount)
+
+    // Deduct sub-ingredients in realtime with proper lot synchronization
     if (mat.subRecipe && mat.subRecipe.length > 0) {
       for (const row of mat.subRecipe) {
         const subMat = store.materials.find(m => m.id === row.materialId)
         if (subMat) {
           const needed = Number(row.qty) || 0
-          subMat.stock = Math.max(0, Math.round((Number(subMat.stock || 0) - needed) * 100) / 100)
+          store.deductMaterialStock(subMat, needed)
         }
       }
     }
@@ -959,14 +1002,20 @@ function quickAdjustStock(mat, delta) {
       return
     }
     // Decrement produced stock by 1 batch yield (locked at baseline)
-    mat.stock = Math.max(baseline, Math.round((Number(mat.stock || 0) - yieldAmount) * 100) / 100)
+    const current = Number(mat.stock || 0)
+    const target = Math.max(baseline, Math.round((current - yieldAmount) * 100) / 100)
+    const actuallyReduced = Math.round((current - target) * 100) / 100
+    if (actuallyReduced > 0) {
+      store.deductMaterialStock(mat, actuallyReduced)
+    }
+
     // Restore sub-ingredients back to stock in realtime
     if (mat.subRecipe && mat.subRecipe.length > 0) {
       for (const row of mat.subRecipe) {
         const subMat = store.materials.find(m => m.id === row.materialId)
         if (subMat) {
           const returnedQty = Number(row.qty) || 0
-          subMat.stock = Math.round((Number(subMat.stock || 0) + returnedQty) * 100) / 100
+          store.addMaterialStock(subMat, returnedQty)
         }
       }
     }
@@ -1057,10 +1106,11 @@ function openStockIn(id = null) {
   }
 }
 
-function openStockAdjust(id = null) {
+function openStockAdjust(id = null, lotId = null) {
   store.modals.stockAdjust = {
     isOpen: true,
-    materialId: id || (store.activeMaterials[0]?.id || null)
+    materialId: id || (store.activeMaterials[0]?.id || null),
+    lotId: lotId || null
   }
 }
 

@@ -559,6 +559,21 @@ export const usePosStore = defineStore('pos', {
           type: 'warning', // 'warning' | 'danger' | 'save' | 'info'
           onConfirm: null,
           onCancel: null
+        },
+        lotDepletion: {
+          isOpen: false,
+          materialId: null,
+          materialName: '',
+          materialEmoji: '',
+          unit: '',
+          currentLot: null,
+          nextLot: null,
+          neededQty: 0,
+          availableInCurrent: 0,
+          shortageQty: 0,
+          actionContext: 'produce',
+          onConfirm: null,
+          onCancel: null
         }
       },
 
@@ -962,6 +977,87 @@ export const usePosStore = defineStore('pos', {
           }
         }
       })
+    },
+
+    // Real-time Lot Depletion Dialog (Prompts user when active lot runs out / reaches 0)
+    promptLotDepletion({
+      material,
+      currentLot,
+      nextLot,
+      neededQty = 0,
+      availableInCurrent = 0,
+      actionContext = 'produce'
+    }) {
+      return new Promise((resolve) => {
+        this.modals.lotDepletion = {
+          isOpen: true,
+          materialId: material.id,
+          materialName: material.name,
+          materialEmoji: material.emoji || '📦',
+          unit: material.unit || '',
+          currentLot,
+          nextLot,
+          neededQty,
+          availableInCurrent,
+          shortageQty: Math.max(0, Math.round(((Number(neededQty) || 0) - (Number(availableInCurrent) || 0)) * 100) / 100),
+          actionContext,
+          onConfirm: () => {
+            this.modals.lotDepletion.isOpen = false
+            resolve(true)
+          },
+          onCancel: () => {
+            this.modals.lotDepletion.isOpen = false
+            resolve(false)
+          }
+        }
+      })
+    },
+
+    // Check if an upcoming deduction from a material will deplete its active lot
+    checkLotDepletion(materialId, neededQty) {
+      const mat = this.materials.find(m => m.id === materialId)
+      if (!mat || !mat.lots || mat.lots.length === 0) {
+        return { willDeplete: false, isShort: false, currentLot: null, nextLot: null, availableInCurrent: 0, shortageQty: 0 }
+      }
+
+      const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
+      const curQty = Number(activeLot?.qty) || 0
+      const reqQty = Number(neededQty) || 0
+
+      const otherLots = mat.lots
+        .filter(l => l.id !== activeLot?.id && l.qty > 0)
+        .sort((a, b) => {
+          if (a.expiryDate && b.expiryDate) return a.expiryDate.localeCompare(b.expiryDate)
+          return (a.receiveDate || '').localeCompare(b.receiveDate || '')
+        })
+      const nextLot = otherLots[0] || null
+
+      const willDeplete = Boolean(activeLot && curQty <= reqQty && curQty > 0)
+      const isShort = Boolean(activeLot && curQty < reqQty)
+      const shortageQty = Math.max(0, Math.round((reqQty - curQty) * 100) / 100)
+
+      return {
+        willDeplete,
+        isShort,
+        currentLot: activeLot,
+        nextLot,
+        availableInCurrent: curQty,
+        shortageQty
+      }
+    },
+
+    // Silently switch active lot (e.g. during automatic rollover after user confirmation)
+    switchActiveLotSilently(materialId, lotId) {
+      const mat = this.materials.find(m => m.id === materialId)
+      if (!mat || !mat.lots) return
+      mat.lots.forEach(l => {
+        l.isInUse = (l.id === lotId)
+      })
+      const targetLot = mat.lots.find(l => l.id === lotId)
+      if (targetLot) {
+        if (targetLot.receiveDate) mat.lastStockInDate = targetLot.receiveDate
+        if (targetLot.expiryDate) mat.expiryDate = targetLot.expiryDate
+      }
     },
 
     setPlatform(platId) {
@@ -1570,7 +1666,7 @@ export const usePosStore = defineStore('pos', {
       }
     },
 
-    stockAdjust(matId, newActualQty, reason = '', note = '', asDraft = true) {
+    stockAdjust(matId, newActualQty, reason = '', note = '', asDraft = true, targetLotId = null) {
       const mat = this.materials.find(m => m.id === matId)
       if (!mat) return
 
@@ -1579,27 +1675,90 @@ export const usePosStore = defineStore('pos', {
       }
 
       const oldStock = Number(mat.stock) || 0
-      const diff = Number(newActualQty) - oldStock
-      mat.stock = Number(newActualQty)
-
-      // Sync with lots
       if (!mat.lots) mat.lots = []
-      let inUseLot = mat.lots.find(l => l.isInUse) || mat.lots.find(l => l.qty > 0)
-      if (inUseLot) {
-        inUseLot.qty = Math.max(0, Math.round((inUseLot.qty + diff) * 100) / 100)
-      } else if (mat.stock > 0) {
-        mat.lots.push({
-          id: `LOT-${mat.id}-${Date.now()}`,
-          receiveDate: mat.lastStockInDate || getTodayString(),
-          expiryDate: mat.expiryDate || null,
-          qty: mat.stock,
-          initialQty: mat.stock,
-          unitCost: mat.unitCost || 0,
-          packCost: mat.packCost || 0,
-          isInUse: true,
-          note: 'ปรับยอดตรวจนับ',
-          createdAt: new Date().toISOString()
-        })
+
+      let diff = 0
+      let lotNote = ''
+
+      if (targetLotId) {
+        // Adjusting a specific lot
+        const targetLot = mat.lots.find(l => l.id === targetLotId)
+        if (targetLot) {
+          const oldLotQty = Number(targetLot.qty) || 0
+          targetLot.qty = Math.max(0, Number(newActualQty))
+          diff = Math.round((targetLot.qty - oldLotQty) * 100) / 100
+          lotNote = ` [ล็อต ${formatThaiDate(targetLot.receiveDate)}]`
+
+          // If this lot was active and now depleted to 0, advance to next positive lot
+          if (targetLot.isInUse && targetLot.qty <= 0) {
+            targetLot.isInUse = false
+            const nextLot = mat.lots.find(l => l.qty > 0)
+            if (nextLot) {
+              nextLot.isInUse = true
+              if (nextLot.receiveDate) mat.lastStockInDate = nextLot.receiveDate
+              if (nextLot.expiryDate) mat.expiryDate = nextLot.expiryDate
+            }
+          }
+        }
+      } else {
+        // Adjusting overall material stock
+        diff = Number(newActualQty) - oldStock
+
+        if (diff < 0) {
+          // Reduction: deduct from in-use lot, then other lots FIFO
+          let remainingDeduct = Math.abs(diff)
+          let inUseLot = mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots.find(l => l.qty > 0)
+          if (inUseLot) {
+            const take = Math.min(inUseLot.qty, remainingDeduct)
+            inUseLot.qty = Math.round((inUseLot.qty - take) * 100) / 100
+            remainingDeduct = Math.round((remainingDeduct - take) * 100) / 100
+            if (inUseLot.qty <= 0) inUseLot.isInUse = false
+          }
+          if (remainingDeduct > 0) {
+            const otherLots = mat.lots.filter(l => l.qty > 0)
+            for (const l of otherLots) {
+              const take = Math.min(l.qty, remainingDeduct)
+              l.qty = Math.round((l.qty - take) * 100) / 100
+              remainingDeduct = Math.round((remainingDeduct - take) * 100) / 100
+              if (l.qty > 0) l.isInUse = true
+              if (remainingDeduct <= 0) break
+            }
+          }
+          // Ensure active lot is set if positive stock remains
+          if (!mat.lots.some(l => l.isInUse && l.qty > 0)) {
+            const nextAvail = mat.lots.find(l => l.qty > 0)
+            if (nextAvail) nextAvail.isInUse = true
+          }
+        } else if (diff > 0) {
+          // Increase: add to currently in-use lot or create new lot
+          let inUseLot = mat.lots.find(l => l.isInUse) || mat.lots[0]
+          if (inUseLot) {
+            inUseLot.qty = Math.round((inUseLot.qty + diff) * 100) / 100
+          } else {
+            mat.lots.push({
+              id: `LOT-${mat.id}-${Date.now()}`,
+              receiveDate: mat.lastStockInDate || getTodayString(),
+              expiryDate: mat.expiryDate || null,
+              qty: diff,
+              initialQty: diff,
+              unitCost: mat.unitCost || 0,
+              packCost: mat.packCost || 0,
+              isInUse: true,
+              note: 'ปรับยอดเพิ่มจากการตรวจนับ',
+              createdAt: new Date().toISOString()
+            })
+          }
+        }
+      }
+
+      // Recalculate material total stock from lots
+      mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
+
+      // Sync primary dates
+      const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots[0]
+      if (activeLot) {
+        if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate
+        if (activeLot.expiryDate) mat.expiryDate = activeLot.expiryDate
       }
 
       const diffStr = diff >= 0 ? `+${diff}` : `${diff}`
@@ -1607,16 +1766,16 @@ export const usePosStore = defineStore('pos', {
         module: 'stock',
         action: 'adjust',
         title: 'ปรับยอดนับจริง (Stock Audit)',
-        description: `ตรวจนับสต็อก ${mat.name}: เดิม ${oldStock.toLocaleString()} เป็น ${Number(newActualQty).toLocaleString()} ${mat.unit} (${diffStr} ${mat.unit})`,
+        description: `ตรวจนับสต็อก ${mat.name}: เดิม ${oldStock.toLocaleString()} เป็น ${Number(mat.stock).toLocaleString()} ${mat.unit} (${diffStr} ${mat.unit})${lotNote}`,
         targetId: mat.id,
         targetName: mat.name,
         targetEmoji: mat.emoji,
         delta: diff,
         unit: mat.unit,
         beforeStock: oldStock,
-        afterStock: Number(newActualQty),
+        afterStock: Number(mat.stock),
         reason: reason || 'นับสต็อกจริงรายวัน',
-        note: note || '',
+        note: note ? `${note}${lotNote}` : lotNote,
         user: 'ผู้ตรวจนับสต็อก'
       }
 
@@ -1627,7 +1786,7 @@ export const usePosStore = defineStore('pos', {
           materialName: mat.name,
           materialEmoji: mat.emoji,
           title: 'ปรับยอดนับจริง (แบบร่าง)',
-          description: `ปรับสต็อก ${mat.name}: ${oldStock} -> ${newActualQty} ${mat.unit} (${diffStr})`,
+          description: `ปรับสต็อก ${mat.name}: ${oldStock} -> ${mat.stock} ${mat.unit} (${diffStr})${lotNote}`,
           delta: diff,
           unit: mat.unit,
           log: logPayload
@@ -1636,7 +1795,7 @@ export const usePosStore = defineStore('pos', {
       } else {
         this.persistLocal()
         this.addActivityLog(logPayload)
-        this.showToast(`ปรับยอด ${mat.name} เป็น ${newActualQty} ${mat.unit} (${diffStr})`, 'info')
+        this.showToast(`ปรับยอด ${mat.name} เป็น ${mat.stock} ${mat.unit} (${diffStr})`, 'info')
       }
     },
 
@@ -1950,6 +2109,39 @@ export const usePosStore = defineStore('pos', {
       mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
 
       // Update primary dates
+      const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots[0]
+      if (activeLot) {
+        if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate
+        if (activeLot.expiryDate) mat.expiryDate = activeLot.expiryDate
+      }
+    },
+
+    addMaterialStock(mat, addedQty) {
+      if (!mat) return
+      const qty = Number(addedQty) || 0
+      if (qty <= 0) return
+
+      if (!mat.lots) mat.lots = []
+      let inUseLot = mat.lots.find(l => l.isInUse) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
+      if (inUseLot) {
+        inUseLot.qty = Math.round((Number(inUseLot.qty || 0) + qty) * 100) / 100
+        inUseLot.isInUse = true
+      } else {
+        mat.lots.push({
+          id: `LOT-${mat.id}-${Date.now()}`,
+          receiveDate: mat.lastStockInDate || getTodayString(),
+          expiryDate: mat.expiryDate || null,
+          qty: qty,
+          initialQty: qty,
+          unitCost: mat.unitCost || 0,
+          packCost: mat.packCost || 0,
+          isInUse: true,
+          note: 'ปรับเพิ่มสต็อก',
+          createdAt: new Date().toISOString()
+        })
+      }
+
+      mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
       const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots[0]
       if (activeLot) {
         if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate

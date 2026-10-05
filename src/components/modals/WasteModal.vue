@@ -249,8 +249,39 @@ function close() {
   store.closeWasteModal()
 }
 
-function confirmWaste() {
+async function confirmWaste() {
   if (!isValid.value || !currentMaterial.value || !currentLot.value) return
+
+  const qty = Number(wasteQty.value) || 0
+  const curLot = currentLot.value
+  const mat = currentMaterial.value
+
+  // If this lot is in use and will be completely depleted
+  if (curLot.isInUse && qty >= currentLotQty.value) {
+    const otherLots = mat.lots
+      ?.filter(l => l.id !== curLot.id && l.qty > 0)
+      .sort((a, b) => {
+        if (a.expiryDate && b.expiryDate) return a.expiryDate.localeCompare(b.expiryDate)
+        return (a.receiveDate || '').localeCompare(b.receiveDate || '')
+      })
+    const nextLot = otherLots ? otherLots[0] : null
+
+    if (nextLot) {
+      const willSwitch = await store.promptLotDepletion({
+        material: mat,
+        currentLot: curLot,
+        nextLot,
+        neededQty: qty,
+        availableInCurrent: currentLotQty.value,
+        actionContext: 'waste'
+      })
+
+      if (!willSwitch) {
+        store.showToast('ยกเลิกการตัดของเสีย (ไม่ต้องการสลับล็อตใหม่)', 'info')
+        return
+      }
+    }
+  }
 
   const success = store.recordLotWaste({
     materialId: currentMaterial.value.id,
