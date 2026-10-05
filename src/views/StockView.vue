@@ -203,12 +203,12 @@
                   <div class="min-w-0 flex-1 truncate">
                     <div class="font-bold text-stone-900 flex items-center gap-1.5 truncate">
                       <span class="truncate">{{ mat.name }}</span>
-                      <span v-if="mat.isDeleted" class="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-600 font-normal shrink-0">ซ่อนอยู่</span>
+                      <span v-if="mat.isDeleted" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-200 text-stone-700 shrink-0">ซ่อนอยู่</span>
                       <button
                         v-if="hasMultipleLots(mat)"
                         type="button"
                         @click="toggleExpand(mat.id)"
-                        class="px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-all inline-flex items-center gap-0.5 shrink-0 cursor-pointer"
+                        class="px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all inline-flex items-center gap-0.5 shrink-0 cursor-pointer"
                         :class="isExpanded(mat.id) ? 'bg-amber-900 text-white shadow-2xs' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'"
                         title="คลิกเพื่อคลี่/พับดูประวัติแต่ละล็อต"
                       >
@@ -240,7 +240,7 @@
                         <span>{{ formatDisplayDate(mat.expiryDate) }}</span>
                         <span
                           v-if="isExpired(mat)"
-                          class="text-[9px] px-1 py-0.2 bg-rose-100 text-rose-700 rounded font-sans font-bold ml-0.5"
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1"
                         >
                           หมดอายุ
                         </span>
@@ -254,11 +254,11 @@
                 </div>
               </td>
 
-              <!-- Ingredient Role: หลัก / รอง -->
+              <!-- Ingredient Role: หลัก / รอง (Borderless Pill Badges) -->
               <td class="py-3 px-4">
                 <span
                   v-if="mat.isSubIngredient"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-800 border border-purple-200/60 truncate"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800 truncate"
                   title="วัตถุดิบรอง สำหรับหมัก/ผลิตกรีกโยเกิร์ต"
                 >
                   <span class="shrink-0">🥛</span>
@@ -266,7 +266,7 @@
                 </span>
                 <span
                   v-else-if="mat.hasSubRecipe"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-900 border border-amber-200/60 truncate"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 truncate"
                   title="วัตถุดิบหลัก ผลิตจากวัตถุดิบรอง"
                 >
                   <span class="shrink-0">🥣</span>
@@ -274,7 +274,7 @@
                 </span>
                 <span
                   v-else
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/60 truncate"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 truncate"
                   title="วัตถุดิบหลัก สั่งซื้อตรงหน้าร้าน"
                 >
                   <span class="shrink-0">📦</span>
@@ -282,9 +282,9 @@
                 </span>
               </td>
 
-              <!-- Category -->
+              <!-- Category (Borderless Pill Badge) -->
               <td class="py-3 px-4">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-stone-100 text-stone-700 truncate max-w-full">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-600 truncate max-w-full">
                   {{ mat.category || 'อื่นๆ' }}
                 </span>
               </td>
@@ -379,13 +379,13 @@
               <td class="py-3 px-4 text-center">
                 <span
                   v-if="mat.isDeleted"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-200 text-stone-700 shrink-0"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-200 text-stone-700 shrink-0"
                 >
                   ซ่อนอยู่
                 </span>
                 <span
                   v-else-if="isExpired(mat)"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300 shrink-0"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 shrink-0"
                 >
                   หมดอายุแล้ว
                 </span>
@@ -397,7 +397,7 @@
                 </span>
                 <span
                   v-else-if="mat.stock <= mat.minAlert"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 shrink-0"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 shrink-0"
                 >
                   ใกล้หมด
                 </span>
@@ -530,7 +530,7 @@
                         >
                           <span class="font-sans" :class="isLotExpired(lot) ? 'text-rose-600 font-semibold' : 'text-stone-400'">หมดอายุ:</span>
                           <span>{{ formatDisplayDate(lot.expiryDate) }}</span>
-                          <span v-if="isLotExpired(lot)" class="text-[9px] px-1 py-0.2 bg-rose-100 text-rose-700 rounded font-sans font-bold">หมดอายุ</span>
+                          <span v-if="isLotExpired(lot)" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1">หมดอายุ</span>
                         </span>
                       </div>
                     </div>
@@ -580,7 +580,7 @@
                 <td class="py-2.5 px-4 text-center">
                   <span
                     v-if="lot.isInUse"
-                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
                   >
                     กำลังใช้งาน
                   </span>
@@ -588,7 +588,7 @@
                     v-else
                     type="button"
                     @click="store.switchActiveLot(mat.id, lot.id)"
-                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-stone-200 hover:border-emerald-300 text-stone-700 hover:text-emerald-800 hover:bg-emerald-50 text-[10px] font-semibold transition-colors cursor-pointer shadow-2xs"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-stone-100 hover:bg-emerald-100 text-stone-600 hover:text-emerald-800 text-[10px] font-semibold transition-colors cursor-pointer"
                     title="สลับให้ระบบ POS และการขายดึงจากล็อตนี้ก่อน"
                   >
                     <Zap class="w-3 h-3 text-amber-500" />

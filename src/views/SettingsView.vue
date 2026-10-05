@@ -326,7 +326,7 @@
                   </span>
                   <span
                     v-if="activeCategoryTab === 'material'"
-                    class="text-[9px] px-1.5 py-0.2 rounded border font-medium"
+                    class="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0"
                     :class="getTrackingModeClass(cat.dateTrackingMode)"
                   >
                     {{ getTrackingModeLabel(cat.dateTrackingMode) }}
@@ -338,8 +338,8 @@
             <div class="flex items-center gap-1.5 shrink-0">
               <!-- Item count badge -->
               <span
-                class="text-[11px] px-2 py-0.5 rounded-full font-number font-medium"
-                :class="getItemCount(activeCategoryTab, cat.name) > 0 ? 'bg-amber-50 text-amber-900 border border-amber-200/50' : 'bg-stone-100 text-stone-400'"
+                class="text-[10px] px-2 py-0.5 rounded-full font-number font-semibold"
+                :class="getItemCount(activeCategoryTab, cat.name) > 0 ? 'bg-amber-100 text-amber-900' : 'bg-stone-100 text-stone-500'"
               >
                 {{ getItemCount(activeCategoryTab, cat.name) }} {{ getItemUnitLabel(activeCategoryTab) }}
               </span>
@@ -615,9 +615,9 @@ function getTrackingModeLabel(mode) {
 }
 
 function getTrackingModeClass(mode) {
-  if (mode === 'receive_only') return 'bg-amber-50 text-amber-800 border-amber-200/60'
-  if (mode === 'expiry_and_receive') return 'bg-rose-50 text-rose-800 border-rose-200/60'
-  return 'bg-stone-100 text-stone-500 border-stone-200/40'
+  if (mode === 'receive_only') return 'bg-amber-100 text-amber-800'
+  if (mode === 'expiry_and_receive') return 'bg-rose-100 text-rose-700'
+  return 'bg-stone-100 text-stone-600'
 }
 
 function handleDeleteCategory(tab, cat) {

@@ -38,7 +38,7 @@
             </div>
             <span
               v-if="currentLot?.isInUse"
-              class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300"
+              class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800"
             >
               🟢 ล็อตที่ใช้อยู่
             </span>
