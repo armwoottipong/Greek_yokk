@@ -172,17 +172,27 @@
     <!-- Material Inventory Table -->
     <div class="editorial-card bg-white pb-12">
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[960px] table-fixed text-left text-xs">
+        <table class="w-full min-w-[1040px] table-fixed text-left text-xs">
+          <colgroup>
+            <col class="w-[28%]" />
+            <col class="w-[10%]" />
+            <col class="w-[10%]" />
+            <col class="w-[15%]" />
+            <col class="w-[11%]" />
+            <col class="w-[13%]" />
+            <col class="w-[7%]" />
+            <col class="w-[6%]" />
+          </colgroup>
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/50 text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
-              <th class="py-3 px-4 w-[20%]">วัตถุดิบ / สินค้า</th>
-              <th class="py-3 px-4 w-[11%]">ประเภท</th>
-              <th class="py-3 px-4 w-[10%]">หมวดหมู่</th>
-              <th class="py-3 px-4 w-[18%]">คงเหลือในคลัง</th>
-              <th class="py-3 px-4 w-[13%]">ต้นทุน/หน่วย</th>
-              <th class="py-3 px-4 w-[11%]">มูลค่าสต็อกคงเหลือ</th>
-              <th class="py-3 px-4 w-[10%] text-center">สถานะ</th>
-              <th class="py-3 px-4 w-[7%] text-right">การจัดการ</th>
+              <th class="py-3 px-4 text-left">วัตถุดิบ / สินค้า</th>
+              <th class="py-3 px-4 text-left">ประเภท</th>
+              <th class="py-3 px-4 text-left">หมวดหมู่</th>
+              <th class="py-3 px-4 text-center">คงเหลือในคลัง</th>
+              <th class="py-3 px-4 text-left">ต้นทุน/หน่วย</th>
+              <th class="py-3 px-4 text-left">มูลค่าสต็อกคงเหลือ</th>
+              <th class="py-3 px-4 text-center">สถานะ</th>
+              <th class="py-3 px-4 text-center">การจัดการ</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
@@ -217,10 +227,10 @@
                         <ChevronDown v-else class="w-3 h-3" />
                       </button>
                     </div>
-                    <div class="text-[11px] text-stone-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 font-number">
+                    <div class="text-[11px] text-stone-500 flex items-center gap-1.5 mt-0.5 font-number whitespace-nowrap overflow-hidden">
                       <!-- วันที่รับ -->
-                      <span v-if="mat.lastStockInDate && store.getMaterialTrackingMode(mat) !== 'none'" class="inline-flex items-center gap-1">
-                        <span class="text-stone-400 font-sans">รับล่าสุด:</span>
+                      <span v-if="mat.lastStockInDate && store.getMaterialTrackingMode(mat) !== 'none'" class="inline-flex items-center gap-1 shrink-0">
+                        <span class="text-stone-400 font-sans">รับล่าสุด :</span>
                         <span class="text-stone-700 font-medium">{{ formatDisplayDate(mat.lastStockInDate) }}</span>
                         <span v-if="store.getMaterialTrackingMode(mat) === 'receive_only' && getReceiveAgeStatus(mat.lastStockInDate).daysAgo !== null" class="text-[10px] text-stone-400 font-sans">
                           ({{ getReceiveAgeStatus(mat.lastStockInDate).shortText }})
@@ -228,27 +238,27 @@
                       </span>
 
                       <!-- ตัวคั่นจุดกลม หากมีทั้งสองค่า -->
-                      <span v-if="mat.lastStockInDate && mat.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'" class="text-stone-300">•</span>
+                      <span v-if="mat.lastStockInDate && mat.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'" class="text-stone-300 mx-0.5 shrink-0">•</span>
 
                       <!-- วันที่หมดอายุ -->
                       <span
                         v-if="mat.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'"
-                        class="inline-flex items-center gap-1"
+                        class="inline-flex items-center gap-1 shrink-0"
                         :class="isExpired(mat) ? 'text-rose-600 font-bold' : 'text-stone-700 font-medium'"
                       >
-                        <span class="font-sans" :class="isExpired(mat) ? 'text-rose-600 font-semibold' : 'text-stone-400'">วันหมดอายุ:</span>
+                        <span class="font-sans" :class="isExpired(mat) ? 'text-rose-600 font-semibold' : 'text-stone-400'">หมดอายุ :</span>
                         <span>{{ formatDisplayDate(mat.expiryDate) }}</span>
                         <span
                           v-if="isExpired(mat)"
-                          class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1"
+                          class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1"
                         >
                           หมดอายุ
                         </span>
                       </span>
 
                       <!-- กรณีไม่มีการบันทึกวันที่หรือหมวดหมู่ none -->
-                      <span v-if="store.getMaterialTrackingMode(mat) === 'none'" class="text-stone-400 font-sans text-[10px]">ไม่ระบุวันที่</span>
-                      <span v-else-if="!mat.lastStockInDate && !mat.expiryDate" class="text-stone-300">-</span>
+                      <span v-if="store.getMaterialTrackingMode(mat) === 'none'" class="text-stone-400 font-sans text-[10px] shrink-0">ไม่ระบุวันที่</span>
+                      <span v-else-if="!mat.lastStockInDate && !mat.expiryDate" class="text-stone-300 shrink-0">-</span>
                     </div>
                   </div>
                 </div>
@@ -290,8 +300,8 @@
               </td>
 
               <!-- Stock Level: Balanced Layout with Centered Quantity & Pure Icon Buttons -->
-              <td class="py-3 px-4">
-                <div class="flex items-center gap-2">
+              <td class="py-3 px-4 text-center">
+                <div class="flex items-center justify-center gap-2">
                   <!-- Left Slot: Minus button for produced items, or invisible spacer for purchased items -->
                   <button
                     v-if="mat.hasSubRecipe && !mat.isDeleted"
@@ -410,11 +420,11 @@
               </td>
 
               <!-- Actions (More Dropdown) -->
-              <td class="py-3 px-4 text-right relative">
+              <td class="py-3 px-4 text-center relative">
                 <button
                   type="button"
                   @click.stop="toggleActionMenu(mat.id)"
-                  class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer shrink-0"
+                  class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
                   :class="activeActionMenuId === mat.id ? 'bg-stone-100 text-stone-900' : ''"
                   title="การจัดการเพิ่มเติม"
                 >
@@ -426,7 +436,7 @@
                   v-if="activeActionMenuId === mat.id"
                   @click.stop
                   :class="idx >= filteredMaterials.length - 2 ? 'bottom-11' : 'top-11'"
-                  class="absolute right-4 z-30 w-48 bg-white rounded-xl shadow-xl border border-stone-200/80 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100"
+                  class="absolute right-2 z-30 w-48 bg-white rounded-xl shadow-xl border border-stone-200/80 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100"
                 >
                   <button
                     @click="onActionHistory(mat.id)"
@@ -512,25 +522,25 @@
                         <span>ล็อตที่ {{ lIdx + 1 }}</span>
                         <span v-if="lot.note" class="text-[10px] text-stone-400 font-normal truncate" :title="lot.note">({{ lot.note }})</span>
                       </div>
-                      <div class="text-[10px] text-stone-500 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5 font-number">
+                      <div class="text-[10px] text-stone-500 flex items-center gap-1.5 mt-0.5 font-number whitespace-nowrap overflow-hidden">
                         <!-- วันที่รับ -->
-                        <span v-if="lot.receiveDate" class="inline-flex items-center gap-1">
-                          <span class="text-stone-400 font-sans">รับ:</span>
+                        <span v-if="lot.receiveDate" class="inline-flex items-center gap-1 shrink-0">
+                          <span class="text-stone-400 font-sans">รับ :</span>
                           <span class="text-stone-700 font-medium">{{ formatDisplayDate(lot.receiveDate) }}</span>
-                          <span v-if="getLotAge(lot)" class="text-stone-400">({{ getLotAge(lot).shortText }})</span>
+                          <span v-if="getLotAge(lot)" class="text-stone-400 font-sans text-[9px]">({{ getLotAge(lot).shortText }})</span>
                         </span>
 
-                        <span v-if="lot.receiveDate && lot.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'" class="text-stone-300">•</span>
+                        <span v-if="lot.receiveDate && lot.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'" class="text-stone-300 mx-0.5 shrink-0">•</span>
 
                         <!-- วันที่หมดอายุ -->
                         <span
                           v-if="lot.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'"
-                          class="inline-flex items-center gap-1"
+                          class="inline-flex items-center gap-1 shrink-0"
                           :class="isLotExpired(lot) ? 'text-rose-600 font-bold' : ''"
                         >
-                          <span class="font-sans" :class="isLotExpired(lot) ? 'text-rose-600 font-semibold' : 'text-stone-400'">หมดอายุ:</span>
+                          <span class="font-sans" :class="isLotExpired(lot) ? 'text-rose-600 font-semibold' : 'text-stone-400'">หมดอายุ :</span>
                           <span>{{ formatDisplayDate(lot.expiryDate) }}</span>
-                          <span v-if="isLotExpired(lot)" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1">หมดอายุ</span>
+                          <span v-if="isLotExpired(lot)" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1">หมดอายุ</span>
                         </span>
                       </div>
                     </div>
@@ -544,8 +554,8 @@
                 <td class="py-2.5 px-4"></td>
 
                 <!-- 4. Lot Quantity (Centered matching main row) -->
-                <td class="py-2.5 px-4">
-                  <div class="flex items-center gap-2">
+                <td class="py-2.5 px-4 text-center">
+                  <div class="flex items-center justify-center gap-2">
                     <div class="w-7 h-7 shrink-0"></div>
                     <div class="w-24 text-center shrink-0 tabular-nums">
                       <div class="font-bold font-number text-xs flex items-center justify-center gap-1 text-stone-800">
@@ -597,7 +607,7 @@
                 </td>
 
                 <!-- 8. Actions (Compact Icon Button) -->
-                <td class="py-2.5 px-4 text-right">
+                <td class="py-2.5 px-4 text-center">
                   <button
                     type="button"
                     @click="store.openWasteModal(mat.id, lot.id)"
