@@ -180,6 +180,41 @@
             class="soft-input w-36 px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
           />
         </div>
+
+        <!-- Material date tracking mode selector -->
+        <div v-if="activeCategoryTab === 'material'" class="flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
+          <button
+            type="button"
+            @click="newCatForm.dateTrackingMode = 'receive_only'"
+            :class="newCatForm.dateTrackingMode === 'receive_only' ? 'bg-white text-stone-900 shadow-2xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
+            class="px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
+            title="บันทึกเฉพาะวันที่รับเข้า (เหมาะกับผลไม้สด เบสโยเกิร์ต)"
+          >
+            <span>🕒</span>
+            <span>เฉพาะวันรับ</span>
+          </button>
+          <button
+            type="button"
+            @click="newCatForm.dateTrackingMode = 'expiry_and_receive'"
+            :class="newCatForm.dateTrackingMode === 'expiry_and_receive' ? 'bg-white text-stone-900 shadow-2xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
+            class="px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
+            title="บันทึกทั้งวันรับและวันหมดอายุ (เหมาะกับนมสด หัวเชื้อ)"
+          >
+            <span>📅</span>
+            <span>รับ + หมดอายุ</span>
+          </button>
+          <button
+            type="button"
+            @click="newCatForm.dateTrackingMode = 'none'"
+            :class="newCatForm.dateTrackingMode === 'none' ? 'bg-white text-stone-900 shadow-2xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
+            class="px-2.5 py-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1"
+            title="ไม่ติดตามวันที่ (เหมาะกับบรรจุภัณฑ์ ของแห้ง)"
+          >
+            <span>🚫</span>
+            <span>ไม่ติดตาม</span>
+          </button>
+        </div>
+
         <button
           @click="addNewCategory"
           class="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
@@ -194,52 +229,83 @@
         <div
           v-for="cat in currentCategoryList"
           :key="cat.id"
-          class="p-3 rounded-xl border border-stone-200/70 bg-white hover:border-stone-300 transition-all flex items-center justify-between gap-2 shadow-2xs"
+          class="p-3 rounded-xl border border-stone-200/70 bg-white hover:border-stone-300 transition-all flex gap-2 shadow-2xs"
+          :class="editingCatId === cat.id ? 'flex-col items-stretch ring-2 ring-stone-900/10' : 'items-center justify-between'"
         >
           <!-- Edit mode -->
-          <div v-if="editingCatId === cat.id" class="flex items-center gap-2 flex-1 min-w-0">
-            <button
-              type="button"
-              @click="openEmojiForEditingCategory"
-              class="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-base shrink-0 transition-colors cursor-pointer"
-              title="เปลี่ยนไอคอน"
-            >
-              {{ editCatForm.icon }}
-            </button>
-            <div class="flex-1 min-w-0 space-y-1">
-              <input
-                v-model="editCatForm.name"
-                type="text"
-                placeholder="ชื่อหมวดหมู่"
-                class="soft-input w-full px-2.5 py-1 text-xs font-medium text-stone-900"
-                @keyup.enter="saveEditingCategory"
-                @keyup.esc="cancelEditingCategory"
-                autofocus
-              />
-              <input
-                v-if="activeCategoryTab === 'material'"
-                v-model="editCatForm.label"
-                type="text"
-                placeholder="ชื่อภาษาไทย"
-                class="soft-input w-full px-2.5 py-1 text-[11px] font-medium text-stone-600"
-                @keyup.enter="saveEditingCategory"
-                @keyup.esc="cancelEditingCategory"
-              />
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
+          <div v-if="editingCatId === cat.id" class="w-full space-y-2">
+            <div class="flex items-center gap-2">
               <button
-                @click="saveEditingCategory"
-                class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
-                title="บันทึก"
+                type="button"
+                @click="openEmojiForEditingCategory"
+                class="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-base shrink-0 transition-colors cursor-pointer"
+                title="เปลี่ยนไอคอน"
               >
-                <Check class="w-4 h-4" />
+                {{ editCatForm.icon }}
+              </button>
+              <div class="flex-1 min-w-0 space-y-1">
+                <input
+                  v-model="editCatForm.name"
+                  type="text"
+                  placeholder="ชื่อหมวดหมู่"
+                  class="soft-input w-full px-2.5 py-1 text-xs font-medium text-stone-900"
+                  @keyup.enter="saveEditingCategory"
+                  @keyup.esc="cancelEditingCategory"
+                  autofocus
+                />
+                <input
+                  v-if="activeCategoryTab === 'material'"
+                  v-model="editCatForm.label"
+                  type="text"
+                  placeholder="ชื่อภาษาไทย"
+                  class="soft-input w-full px-2.5 py-1 text-[11px] font-medium text-stone-600"
+                  @keyup.enter="saveEditingCategory"
+                  @keyup.esc="cancelEditingCategory"
+                />
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button
+                  @click="saveEditingCategory"
+                  class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                  title="บันทึก"
+                >
+                  <Check class="w-4 h-4" />
+                </button>
+                <button
+                  @click="cancelEditingCategory"
+                  class="p-1.5 text-stone-400 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                  title="ยกเลิก"
+                >
+                  <X class="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Material Tracking Mode Selector in Edit mode -->
+            <div v-if="activeCategoryTab === 'material'" class="flex items-center gap-1 bg-stone-100/90 p-1 rounded-lg">
+              <button
+                type="button"
+                @click="editCatForm.dateTrackingMode = 'receive_only'"
+                :class="editCatForm.dateTrackingMode === 'receive_only' ? 'bg-white text-stone-900 shadow-2xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
+                class="flex-1 py-1 rounded text-[10px] transition-all cursor-pointer text-center"
+              >
+                🕒 เฉพาะวันรับ
               </button>
               <button
-                @click="cancelEditingCategory"
-                class="p-1.5 text-stone-400 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
-                title="ยกเลิก"
+                type="button"
+                @click="editCatForm.dateTrackingMode = 'expiry_and_receive'"
+                :class="editCatForm.dateTrackingMode === 'expiry_and_receive' ? 'bg-white text-stone-900 shadow-2xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
+                class="flex-1 py-1 rounded text-[10px] transition-all cursor-pointer text-center"
               >
-                <X class="w-4 h-4" />
+                📅 รับ+หมดอายุ
+              </button>
+              <button
+                type="button"
+                @click="editCatForm.dateTrackingMode = 'none'"
+                :class="editCatForm.dateTrackingMode === 'none' ? 'bg-white text-stone-900 shadow-2xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
+                class="flex-1 py-1 rounded text-[10px] transition-all cursor-pointer text-center"
+              >
+                🚫 ไม่ติดตาม
               </button>
             </div>
           </div>
@@ -254,8 +320,17 @@
                 <div class="font-bold text-xs text-stone-800 truncate">
                   {{ cat.name }}
                 </div>
-                <div v-if="cat.label && cat.label !== cat.name" class="text-[10px] text-stone-400 truncate">
-                  {{ cat.label }}
+                <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <span v-if="cat.label && cat.label !== cat.name" class="text-[10px] text-stone-400 truncate">
+                    {{ cat.label }}
+                  </span>
+                  <span
+                    v-if="activeCategoryTab === 'material'"
+                    class="text-[9px] px-1.5 py-0.2 rounded border font-medium"
+                    :class="getTrackingModeClass(cat.dateTrackingMode)"
+                  >
+                    {{ getTrackingModeLabel(cat.dateTrackingMode) }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -443,13 +518,15 @@ const currentCategoryList = computed(() => {
 const newCatForm = ref({
   name: '',
   label: '',
-  icon: '🥣'
+  icon: '🥣',
+  dateTrackingMode: 'receive_only'
 })
 
 watch(activeCategoryTab, (tab) => {
   newCatForm.value.name = ''
   newCatForm.value.label = ''
   newCatForm.value.icon = tab === 'menu' ? '🥣' : tab === 'material' ? '📦' : '✨'
+  newCatForm.value.dateTrackingMode = 'receive_only'
   cancelEditingCategory()
 })
 
@@ -458,7 +535,8 @@ const editCatForm = ref({
   id: '',
   name: '',
   label: '',
-  icon: ''
+  icon: '',
+  dateTrackingMode: 'none'
 })
 
 function startEditingCategory(cat) {
@@ -467,13 +545,14 @@ function startEditingCategory(cat) {
     id: cat.id,
     name: cat.name,
     label: cat.label || '',
-    icon: cat.icon || '🏷️'
+    icon: cat.icon || '🏷️',
+    dateTrackingMode: cat.dateTrackingMode || 'none'
   }
 }
 
 function cancelEditingCategory() {
   editingCatId.value = null
-  editCatForm.value = { id: '', name: '', label: '', icon: '' }
+  editCatForm.value = { id: '', name: '', label: '', icon: '', dateTrackingMode: 'none' }
 }
 
 function saveEditingCategory() {
@@ -481,12 +560,16 @@ function saveEditingCategory() {
     store.showToast('กรุณากรอกชื่อหมวดหมู่', 'error')
     return
   }
-  const res = store.saveCategory(activeCategoryTab.value, {
+  const payload = {
     id: editCatForm.value.id,
     name: editCatForm.value.name.trim(),
     label: editCatForm.value.label.trim() || undefined,
     icon: editCatForm.value.icon
-  })
+  }
+  if (activeCategoryTab.value === 'material') {
+    payload.dateTrackingMode = editCatForm.value.dateTrackingMode || 'none'
+  }
+  const res = store.saveCategory(activeCategoryTab.value, payload)
   if (res.success) {
     cancelEditingCategory()
   }
@@ -509,15 +592,32 @@ function addNewCategory() {
     store.showToast('กรุณากรอกชื่อหมวดหมู่', 'error')
     return
   }
-  const res = store.saveCategory(activeCategoryTab.value, {
+  const payload = {
     name: newCatForm.value.name.trim(),
     label: newCatForm.value.label.trim() || undefined,
     icon: newCatForm.value.icon
-  })
+  }
+  if (activeCategoryTab.value === 'material') {
+    payload.dateTrackingMode = newCatForm.value.dateTrackingMode || 'none'
+  }
+  const res = store.saveCategory(activeCategoryTab.value, payload)
   if (res.success) {
     newCatForm.value.name = ''
     newCatForm.value.label = ''
+    newCatForm.value.dateTrackingMode = 'receive_only'
   }
+}
+
+function getTrackingModeLabel(mode) {
+  if (mode === 'receive_only') return '🕒 เฉพาะวันรับ'
+  if (mode === 'expiry_and_receive') return '📅 รับ+หมดอายุ'
+  return '🚫 ไม่ติดตามวัน'
+}
+
+function getTrackingModeClass(mode) {
+  if (mode === 'receive_only') return 'bg-amber-50 text-amber-800 border-amber-200/60'
+  if (mode === 'expiry_and_receive') return 'bg-rose-50 text-rose-800 border-rose-200/60'
+  return 'bg-stone-100 text-stone-500 border-stone-200/40'
 }
 
 function handleDeleteCategory(tab, cat) {

@@ -90,12 +90,12 @@ export const DEFAULT_CATEGORIES = {
     { id: "cat-menu-4", name: "Set & Drinks", icon: "🥤" }
   ],
   material: [
-    { id: "cat-mat-1", name: "Base Yogurt", label: "เบสกรีกโยเกิร์ต", icon: "🥣" },
-    { id: "cat-mat-2", name: "วัตถุดิบรอง", label: "วัตถุดิบรอง", icon: "🥛" },
-    { id: "cat-mat-3", name: "Fresh Fruits", label: "ผลไม้สด", icon: "🍓" },
-    { id: "cat-mat-4", name: "Sauces", label: "ซอส & น้ำผึ้ง", icon: "🍯" },
-    { id: "cat-mat-5", name: "Toppings", label: "ท็อปปิ้ง", icon: "🥜" },
-    { id: "cat-mat-6", name: "Packaging", label: "บรรจุภัณฑ์", icon: "📦" }
+    { id: "cat-mat-1", name: "Base Yogurt", label: "เบสกรีกโยเกิร์ต", icon: "🥣", dateTrackingMode: "receive_only" },
+    { id: "cat-mat-2", name: "วัตถุดิบรอง", label: "วัตถุดิบรอง", icon: "🥛", dateTrackingMode: "expiry_and_receive" },
+    { id: "cat-mat-3", name: "Fresh Fruits", label: "ผลไม้สด", icon: "🍓", dateTrackingMode: "receive_only" },
+    { id: "cat-mat-4", name: "Sauces", label: "ซอส & น้ำผึ้ง", icon: "🍯", dateTrackingMode: "expiry_and_receive" },
+    { id: "cat-mat-5", name: "Toppings", label: "ท็อปปิ้ง", icon: "🥜", dateTrackingMode: "none" },
+    { id: "cat-mat-6", name: "Packaging", label: "บรรจุภัณฑ์", icon: "📦", dateTrackingMode: "none" }
   ],
   addon: [
     { id: "cat-addon-1", name: "ผลไม้สด", icon: "🍓" },

@@ -293,8 +293,8 @@
           </div>
         </div>
 
-        <!-- วันที่รับเข้า/ผลิต & วันหมดอายุ (Form กระชับ เข้าใจง่าย) -->
-        <div class="grid grid-cols-2 gap-3">
+        <!-- วันที่รับเข้า/ผลิต & วันหมดอายุ ปรับตาม trackingMode ของหมวดหมู่ -->
+        <div v-if="trackingMode === 'expiry_and_receive'" class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-[11px] font-medium text-stone-600 mb-1">
               {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
@@ -325,6 +325,18 @@
               class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
             />
           </div>
+        </div>
+
+        <div v-else-if="trackingMode === 'receive_only'" class="space-y-1">
+          <label class="block text-[11px] font-medium text-stone-600">
+            {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
+          </label>
+          <input
+            v-model="receiveDate"
+            type="date"
+            class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
+          />
+          <p class="text-[10px] text-stone-400 font-sans">หมวดหมู่นี้ติดตามเฉพาะวันที่รับ/ผลิต ไม่ต้องระบุวันหมดอายุ</p>
         </div>
 
         <!-- Note (Unified) -->
@@ -402,12 +414,17 @@ const currentMat = computed(() => {
   return store.matMap[selectedMatId.value]
 })
 
+const trackingMode = computed(() => {
+  if (!currentMat.value) return 'none'
+  return store.getMaterialTrackingMode(currentMat.value)
+})
+
 const isProducedFromRecipe = computed(() => {
   return Boolean(currentMat.value?.hasSubRecipe && currentMat.value?.subRecipe && currentMat.value.subRecipe.length > 0)
 })
 
 function onReceiveDateChange() {
-  if (currentMat.value?.shelfLifeDays) {
+  if (trackingMode.value === 'expiry_and_receive' && currentMat.value?.shelfLifeDays) {
     expiryDate.value = addDays(receiveDate.value, currentMat.value.shelfLifeDays)
   }
 }
@@ -558,8 +575,8 @@ async function submit() {
   }
 
   const datePayload = {
-    receiveDate: receiveDate.value || getTodayString(),
-    expiryDate: expiryDate.value || null
+    receiveDate: trackingMode.value === 'none' ? getTodayString() : (receiveDate.value || getTodayString()),
+    expiryDate: trackingMode.value === 'expiry_and_receive' ? (expiryDate.value || null) : null
   }
 
   if (isProducedFromRecipe.value) {

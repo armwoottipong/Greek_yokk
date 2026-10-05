@@ -149,6 +149,27 @@ export function getExpiryStatus(mat) {
   }
 }
 
+export function getDaysAgo(dateStr) {
+  if (!dateStr) return null
+  const parts = String(dateStr).split('-')
+  if (parts.length !== 3) return null
+  const rec = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
+  if (isNaN(rec.getTime())) return null
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffTime = today.getTime() - rec.getTime()
+  return Math.round(diffTime / (1000 * 60 * 60 * 24))
+}
+
+export function getReceiveAgeStatus(receiveDateStr) {
+  const daysAgo = getDaysAgo(receiveDateStr)
+  if (daysAgo === null) return { text: '-', shortText: '-', daysAgo: null, badgeClass: 'text-stone-400 bg-stone-50' }
+  if (daysAgo <= 0) return { text: 'รับเข้าวันนี้', shortText: 'วันนี้', daysAgo: 0, badgeClass: 'bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200' }
+  if (daysAgo === 1) return { text: 'รับมา 1 วันที่แล้ว', shortText: '1 วัน', daysAgo: 1, badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200' }
+  if (daysAgo <= 3) return { text: `รับมา ${daysAgo} วันแล้ว`, shortText: `${daysAgo} วัน`, daysAgo, badgeClass: 'bg-amber-50 text-amber-800 font-medium border border-amber-200' }
+  return { text: `รับมา ${daysAgo} วันแล้ว (ควรใช้ก่อน)`, shortText: `${daysAgo} วัน`, daysAgo, badgeClass: 'bg-amber-100 text-amber-900 font-bold border border-amber-300' }
+}
+
 export function generateDefaultActivityLogs() {
   const now = Date.now()
   return [
@@ -339,6 +360,14 @@ export const usePosStore = defineStore('pos', {
     if (!initialCategories.material) initialCategories.material = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.material))
     if (!initialCategories.addon) initialCategories.addon = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.addon))
 
+    // Ensure all material categories have dateTrackingMode
+    initialCategories.material.forEach(c => {
+      if (!c.dateTrackingMode) {
+        const def = DEFAULT_CATEGORIES.material.find(d => d.name === c.name || d.id === c.id)
+        c.dateTrackingMode = def?.dateTrackingMode || 'none'
+      }
+    })
+
     // Ensure any categories in stored menus, materials, addons are recognized
     storedMenus.forEach(m => {
       if (m.category && !initialCategories.menu.some(c => c.name === m.category)) {
@@ -347,7 +376,7 @@ export const usePosStore = defineStore('pos', {
     })
     storedMaterials.forEach(m => {
       if (m.category && !initialCategories.material.some(c => c.name === m.category)) {
-        initialCategories.material.push({ id: `cat-mat-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, name: m.category, label: m.category, icon: '📦' })
+        initialCategories.material.push({ id: `cat-mat-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, name: m.category, label: m.category, icon: '📦', dateTrackingMode: 'none' })
       }
     })
     storedAddons.forEach(a => {
@@ -392,6 +421,55 @@ export const usePosStore = defineStore('pos', {
           expiryDate = addDays(lastStockInDate, shelfLifeDays)
         }
 
+        const rawStock = Number(m.stock) || 0
+
+        // Sub-lot migration and parsing
+        let lots = Array.isArray(m.lots) ? m.lots.map(l => ({
+          id: l.id || `LOT-${m.id}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          receiveDate: l.receiveDate || lastStockInDate || getTodayString(),
+          expiryDate: l.expiryDate || null,
+          qty: Number(l.qty) >= 0 ? Number(l.qty) : 0,
+          initialQty: Number(l.initialQty) || Number(l.qty) || 0,
+          unitCost: Number(l.unitCost) !== undefined ? Number(l.unitCost) : unitCost,
+          packCost: Number(l.packCost) !== undefined ? Number(l.packCost) : packCost,
+          isInUse: Boolean(l.isInUse),
+          note: l.note || '',
+          createdAt: l.createdAt || new Date().toISOString()
+        })) : []
+
+        // If no lots recorded but positive stock exists, create initial lot
+        if (lots.length === 0 && rawStock > 0) {
+          lots = [{
+            id: `LOT-${m.id}-INIT`,
+            receiveDate: lastStockInDate || getTodayString(),
+            expiryDate: expiryDate || null,
+            qty: rawStock,
+            initialQty: rawStock,
+            unitCost,
+            packCost,
+            isInUse: true,
+            note: 'ยอดยกมาเริ่มต้น',
+            createdAt: new Date().toISOString()
+          }]
+        }
+
+        // Ensure at least one positive lot is marked as in-use
+        if (lots.some(l => l.qty > 0) && !lots.some(l => l.isInUse && l.qty > 0)) {
+          const firstPositive = lots.find(l => l.qty > 0)
+          if (firstPositive) firstPositive.isInUse = true
+        }
+
+        const totalStock = lots.length > 0
+          ? Math.round(lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
+          : rawStock
+
+        // Set primary dates from active in-use lot or latest lot
+        const inUseLot = lots.find(l => l.isInUse && l.qty > 0) || lots[0]
+        if (inUseLot) {
+          if (inUseLot.receiveDate) lastStockInDate = inUseLot.receiveDate
+          if (inUseLot.expiryDate) expiryDate = inUseLot.expiryDate
+        }
+
         const item = {
           ...m,
           packUnit,
@@ -401,7 +479,8 @@ export const usePosStore = defineStore('pos', {
           shelfLifeDays,
           lastStockInDate,
           expiryDate,
-          stock: Number(m.stock) || 0,
+          stock: totalStock,
+          lots,
           minAlert: Number(m.minAlert) || 0,
           isDeleted: Boolean(m.isDeleted),
           isSubIngredient: Boolean(m.isSubIngredient)
@@ -447,6 +526,7 @@ export const usePosStore = defineStore('pos', {
         materialEdit: { isOpen: false, materialId: null },
         stockIn: { isOpen: false, materialId: null },
         stockAdjust: { isOpen: false, materialId: null },
+        waste: { isOpen: false, materialId: null, lotId: null },
         activityLog: { isOpen: false, module: 'all', targetMaterialId: null },
         customOrder: { isOpen: false, menuId: null },
         receipt: { isOpen: false, order: null },
@@ -557,6 +637,43 @@ export const usePosStore = defineStore('pos', {
         const diff = getExpiryDiffDays(m.expiryDate)
         return diff !== null && diff < 0
       })
+    },
+
+    // Category Tracking Mode Getter
+    getCategoryTrackingMode: (state) => (categoryName) => {
+      if (!categoryName) return 'none'
+      const cat = (state.categories?.material || []).find(
+        c => c.name === categoryName || c.label === categoryName
+      )
+      return cat?.dateTrackingMode || 'none'
+    },
+
+    // Material Tracking Mode Getter
+    getMaterialTrackingMode: (state) => (mat) => {
+      if (!mat || !mat.category) return 'none'
+      const cat = (state.categories?.material || []).find(
+        c => c.name === mat.category || c.label === mat.category
+      )
+      return cat?.dateTrackingMode || 'none'
+    },
+
+    // Sorted active lots for a material
+    getMaterialLots: () => (mat, showDepleted = false) => {
+      if (!mat || !mat.lots) return []
+      let list = showDepleted ? [...mat.lots] : mat.lots.filter(l => l.qty > 0)
+      return list.sort((a, b) => {
+        if (a.isInUse && !b.isInUse) return -1
+        if (!a.isInUse && b.isInUse) return 1
+        if (a.expiryDate && b.expiryDate) return a.expiryDate.localeCompare(b.expiryDate)
+        if (a.receiveDate && b.receiveDate) return a.receiveDate.localeCompare(b.receiveDate)
+        return 0
+      })
+    },
+
+    // Material In-Use Active Lot
+    getMaterialActiveLot: () => (mat) => {
+      if (!mat || !mat.lots || mat.lots.length === 0) return null
+      return mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
     },
 
     // ========================================================
@@ -910,7 +1027,8 @@ export const usePosStore = defineStore('pos', {
           ...oldCat,
           ...categoryData,
           name,
-          label: categoryData.label !== undefined ? categoryData.label : oldCat.label
+          label: categoryData.label !== undefined ? categoryData.label : oldCat.label,
+          dateTrackingMode: categoryData.dateTrackingMode !== undefined ? categoryData.dateTrackingMode : (oldCat.dateTrackingMode || 'none')
         }
 
         // Cascade rename to existing items
@@ -948,7 +1066,8 @@ export const usePosStore = defineStore('pos', {
           id: newId,
           name,
           label: categoryData.label || name,
-          icon: categoryData.icon || (type === 'menu' ? '🥣' : type === 'material' ? '📦' : '✨')
+          icon: categoryData.icon || (type === 'menu' ? '🥣' : type === 'material' ? '📦' : '✨'),
+          dateTrackingMode: categoryData.dateTrackingMode || 'none'
         })
 
         this.persistLocal()
@@ -1181,15 +1300,12 @@ export const usePosStore = defineStore('pos', {
         ? (currentValuation + incomingValuation) / newTotalStock
         : newUnitCostInput
 
-      mat.stock = Math.round(newTotalStock * 100) / 100
-      mat.unitCost = Math.round(weightedUnitCost * 10000) / 10000
-
       // Update pack cost to reflect latest pack purchase or weighted pack cost
       const packSize = Number(mat.packSize) > 0 ? Number(mat.packSize) : 1
       if (packCost !== undefined && packCost !== null && Number(packCost) > 0) {
         mat.packCost = Number(packCost)
       } else {
-        mat.packCost = Math.round(mat.unitCost * packSize * 100) / 100
+        mat.packCost = Math.round(newUnitCostInput * packSize * 100) / 100
       }
 
       // Update Receive & Expiry Dates
@@ -1197,6 +1313,30 @@ export const usePosStore = defineStore('pos', {
       const expiryDate = dates?.expiryDate || null
       mat.lastStockInDate = receiveDate
       mat.expiryDate = expiryDate
+
+      // Add as new lot
+      if (!mat.lots) mat.lots = []
+      const newLotId = `LOT-${mat.id}-${Date.now()}`
+      const hasOtherInUse = mat.lots.some(l => l.isInUse && l.qty > 0)
+      const newLot = {
+        id: newLotId,
+        receiveDate,
+        expiryDate: expiryDate || null,
+        qty: addQty,
+        initialQty: addQty,
+        unitCost: newUnitCostInput,
+        packCost: (packCost !== undefined && packCost !== null && Number(packCost) > 0)
+          ? Number(packCost)
+          : Math.round(newUnitCostInput * packSize * 100) / 100,
+        isInUse: !hasOtherInUse,
+        note: note || '',
+        createdAt: new Date().toISOString()
+      }
+      mat.lots.push(newLot)
+
+      // Total stock and cost
+      mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
+      mat.unitCost = Math.round(weightedUnitCost * 10000) / 10000
 
       this.persistLocal()
 
@@ -1231,6 +1371,27 @@ export const usePosStore = defineStore('pos', {
       const oldStock = Number(mat.stock) || 0
       const diff = Number(newActualQty) - oldStock
       mat.stock = Number(newActualQty)
+
+      // Sync with lots
+      if (!mat.lots) mat.lots = []
+      let inUseLot = mat.lots.find(l => l.isInUse) || mat.lots.find(l => l.qty > 0)
+      if (inUseLot) {
+        inUseLot.qty = Math.max(0, Math.round((inUseLot.qty + diff) * 100) / 100)
+      } else if (mat.stock > 0) {
+        mat.lots.push({
+          id: `LOT-${mat.id}-${Date.now()}`,
+          receiveDate: mat.lastStockInDate || getTodayString(),
+          expiryDate: mat.expiryDate || null,
+          qty: mat.stock,
+          initialQty: mat.stock,
+          unitCost: mat.unitCost || 0,
+          packCost: mat.packCost || 0,
+          isInUse: true,
+          note: 'ปรับยอดตรวจนับ',
+          createdAt: new Date().toISOString()
+        })
+      }
+
       this.persistLocal()
       this.addActivityLog({
         module: 'stock',
@@ -1260,7 +1421,7 @@ export const usePosStore = defineStore('pos', {
       const targetCurrentCost = Number(target.unitCost) || 0
       const addedQty = Number(yieldQty) || 0
 
-      // Check if sub-ingredients have enough stock (with strict Number conversion)
+      // Check if sub-ingredients have enough stock
       let totalCost = 0
       for (const item of subIngredients) {
         const subMat = this.materials.find(m => m.id === item.materialId)
@@ -1275,16 +1436,14 @@ export const usePosStore = defineStore('pos', {
         totalCost += (neededQty * (Number(subMat.unitCost) || 0))
       }
 
-      // Deduct sub-ingredients (with strict Number calculation)
+      // Deduct sub-ingredients from lots
       const deductedSummary = []
       for (const item of subIngredients) {
         const subMat = this.materials.find(m => m.id === item.materialId)
         if (subMat) {
           const neededQty = Number(item.qty) || 0
-          const oldStock = Number(subMat.stock) || 0
-          const newStock = Math.max(0, Math.round((oldStock - neededQty) * 100) / 100)
-          subMat.stock = newStock
-          deductedSummary.push(`${subMat.name} -${neededQty} ${subMat.unit} (เหลือ ${newStock.toLocaleString()} ${subMat.unit})`)
+          this.deductMaterialStock(subMat, neededQty)
+          deductedSummary.push(`${subMat.name} -${neededQty} ${subMat.unit} (เหลือ ${subMat.stock.toLocaleString()} ${subMat.unit})`)
         }
       }
 
@@ -1294,7 +1453,6 @@ export const usePosStore = defineStore('pos', {
       const newTotalStock = targetCurrentStock + addedQty
       const newUnitCost = newTotalStock > 0 ? (newValuation / newTotalStock) : targetCurrentCost
 
-      target.stock = Math.round(newTotalStock * 100) / 100
       target.unitCost = Math.round(newUnitCost * 10000) / 10000
 
       // Update Production Date & Expiry Date
@@ -1302,6 +1460,24 @@ export const usePosStore = defineStore('pos', {
       const expiryDate = dates?.expiryDate !== undefined ? (dates.expiryDate || null) : (target.shelfLifeDays ? addDays(produceDate, target.shelfLifeDays) : null)
       target.lastStockInDate = produceDate
       target.expiryDate = expiryDate
+
+      // Add as new lot
+      if (!target.lots) target.lots = []
+      const newLotId = `LOT-${target.id}-${Date.now()}`
+      const hasOtherInUse = target.lots.some(l => l.isInUse && l.qty > 0)
+      target.lots.push({
+        id: newLotId,
+        receiveDate: produceDate,
+        expiryDate: expiryDate || null,
+        qty: addedQty,
+        initialQty: addedQty,
+        unitCost: target.unitCost,
+        packCost: target.packCost || Math.round(target.unitCost * (target.packSize || 1) * 100) / 100,
+        isInUse: !hasOtherInUse,
+        note: note ? `ผลิตรอบใหม่: ${note}` : `ผลิตตามสูตร [${deductedSummary.join(', ')}]`,
+        createdAt: new Date().toISOString()
+      })
+      target.stock = Math.round(target.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
 
       this.persistLocal()
 
@@ -1328,7 +1504,7 @@ export const usePosStore = defineStore('pos', {
         user: 'ผู้ผลิต'
       })
 
-      // Log deduction for each sub-ingredient so inspecting their history reflects batch usage
+      // Log deduction for each sub-ingredient
       for (const item of subIngredients) {
         const subMat = this.materials.find(m => m.id === item.materialId)
         if (subMat) {
@@ -1353,6 +1529,152 @@ export const usePosStore = defineStore('pos', {
 
       this.showToast(`เพิ่มสต็อก ${target.name} +${addedQty} ${target.unit} สำเร็จ! [หักสต็อก: ${summaryText}]`, 'success')
       return true
+    },
+
+    // ========================================================
+    // LOT MANAGEMENT & WASTE (SPOILAGE) WRITE-OFF
+    // ========================================================
+    switchActiveLot(materialId, lotId) {
+      const mat = this.materials.find(m => m.id === materialId)
+      if (!mat || !mat.lots) return
+      mat.lots.forEach(l => {
+        l.isInUse = (l.id === lotId)
+      })
+      const targetLot = mat.lots.find(l => l.id === lotId)
+      if (targetLot) {
+        if (targetLot.receiveDate) mat.lastStockInDate = targetLot.receiveDate
+        if (targetLot.expiryDate) mat.expiryDate = targetLot.expiryDate
+      }
+      this.persistLocal()
+      this.showToast(`สลับใช้งานเป็นล็อตวันที่ ${formatThaiDate(targetLot?.receiveDate)} เรียบร้อยแล้ว`, 'success')
+    },
+
+    recordLotWaste({ materialId, lotId, wasteQty, reason = 'ของเสีย/หมดอายุ', note = '' }) {
+      const mat = this.materials.find(m => m.id === materialId)
+      if (!mat || !mat.lots) return false
+      const lot = mat.lots.find(l => l.id === lotId)
+      if (!lot) return false
+
+      const qtyToWaste = Math.min(Number(wasteQty) || 0, Number(lot.qty) || 0)
+      if (qtyToWaste <= 0) {
+        this.showToast('กรุณาระบุจำนวนของเสียที่ถูกต้อง', 'error')
+        return false
+      }
+
+      const beforeStock = mat.stock
+      lot.qty = Math.max(0, Math.round((lot.qty - qtyToWaste) * 100) / 100)
+
+      // Recalculate material total stock
+      mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
+
+      // If this lot was in use and is now 0, advance to next available lot
+      if (lot.isInUse && lot.qty <= 0) {
+        lot.isInUse = false
+        const nextLot = mat.lots.find(l => l.qty > 0)
+        if (nextLot) nextLot.isInUse = true
+      }
+
+      const unitCost = Number(lot.unitCost) || Number(mat.unitCost) || 0
+      const totalLossValue = Math.round((qtyToWaste * unitCost) * 100) / 100
+
+      this.persistLocal()
+
+      // Log waste transaction
+      this.addActivityLog({
+        module: 'stock',
+        action: 'waste',
+        title: 'บันทึกตัดทิ้งของเสีย (Waste Spoilage)',
+        description: `ตัดทิ้งของเสีย ${mat.name} ล็อต ${formatThaiDate(lot.receiveDate)} จำนวน -${qtyToWaste} ${mat.unit} (${reason}) มูลค่าเสียหาย ฿${totalLossValue.toLocaleString()}`,
+        targetId: mat.id,
+        targetName: mat.name,
+        targetEmoji: mat.emoji,
+        delta: -qtyToWaste,
+        unit: mat.unit,
+        beforeStock,
+        afterStock: mat.stock,
+        reason,
+        note: note ? `ล็อต ${formatThaiDate(lot.receiveDate)}: ${note}` : `ล็อต ${formatThaiDate(lot.receiveDate)}`,
+        cost: totalLossValue,
+        user: 'เจ้าหน้าที่คลัง'
+      })
+
+      this.showToast(`บันทึกของเสีย ${mat.name} (-${qtyToWaste} ${mat.unit}) เสียหาย ฿${totalLossValue.toLocaleString()}`, 'info')
+      return true
+    },
+
+    openWasteModal(materialId, lotId = null) {
+      this.modals.waste = {
+        isOpen: true,
+        materialId,
+        lotId
+      }
+    },
+
+    closeWasteModal() {
+      this.modals.waste = {
+        isOpen: false,
+        materialId: null,
+        lotId: null
+      }
+    },
+
+    // Deduct stock from material lots (Priority: in-use lot, then FIFO)
+    deductMaterialStock(mat, neededQty) {
+      if (!mat) return
+      const qty = Number(neededQty) || 0
+      if (qty <= 0) return
+
+      if (!mat.lots || mat.lots.length === 0) {
+        mat.stock = Math.max(0, Math.round((mat.stock - qty) * 100) / 100)
+        return
+      }
+
+      let remaining = qty
+
+      // 1. Deduct from currently in-use lot first
+      let inUseLot = mat.lots.find(l => l.isInUse && l.qty > 0)
+      if (inUseLot) {
+        const take = Math.min(inUseLot.qty, remaining)
+        inUseLot.qty = Math.round((inUseLot.qty - take) * 100) / 100
+        remaining = Math.round((remaining - take) * 100) / 100
+        if (inUseLot.qty <= 0) {
+          inUseLot.isInUse = false
+        }
+      }
+
+      // 2. If remaining > 0, deduct from other available lots by FIFO
+      if (remaining > 0) {
+        const otherLots = mat.lots
+          .filter(l => l.qty > 0)
+          .sort((a, b) => {
+            if (a.expiryDate && b.expiryDate) return a.expiryDate.localeCompare(b.expiryDate)
+            return (a.receiveDate || '').localeCompare(b.receiveDate || '')
+          })
+
+        for (const lot of otherLots) {
+          const take = Math.min(lot.qty, remaining)
+          lot.qty = Math.round((lot.qty - take) * 100) / 100
+          remaining = Math.round((remaining - take) * 100) / 100
+          lot.isInUse = true
+          if (lot.qty <= 0) lot.isInUse = false
+          if (remaining <= 0) break
+        }
+      }
+
+      // 3. Ensure at least one positive lot is in-use if stock remains
+      if (!mat.lots.some(l => l.isInUse && l.qty > 0)) {
+        const nextAvail = mat.lots.find(l => l.qty > 0)
+        if (nextAvail) nextAvail.isInUse = true
+      }
+
+      mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
+
+      // Update primary dates
+      const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0) || mat.lots[0]
+      if (activeLot) {
+        if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate
+        if (activeLot.expiryDate) mat.expiryDate = activeLot.expiryDate
+      }
     },
 
     // ========================================================
@@ -1527,7 +1849,7 @@ export const usePosStore = defineStore('pos', {
           item.menu.recipe.forEach(r => {
             const mat = this.materials.find(m => m.id === r.materialId)
             if (mat) {
-              mat.stock = Math.max(0, Math.round((mat.stock - (r.qty * item.qty)) * 100) / 100)
+              this.deductMaterialStock(mat, r.qty * item.qty)
             }
           })
         } else if (item.menu.recipe) {
@@ -1535,7 +1857,7 @@ export const usePosStore = defineStore('pos', {
           item.menu.recipe.forEach(r => {
             const mat = this.materials.find(m => m.id === r.materialId)
             if (mat && mat.category !== 'Packaging') {
-              mat.stock = Math.max(0, Math.round((mat.stock - (r.qty * item.qty)) * 100) / 100)
+              this.deductMaterialStock(mat, r.qty * item.qty)
             }
           })
         }
@@ -1546,7 +1868,7 @@ export const usePosStore = defineStore('pos', {
             if (a.materialId && a.amountUsed) {
               const mat = this.materials.find(m => m.id === a.materialId)
               if (mat) {
-                mat.stock = Math.max(0, Math.round((mat.stock - (a.amountUsed * item.qty)) * 100) / 100)
+                this.deductMaterialStock(mat, a.amountUsed * item.qty)
               }
             }
           })
