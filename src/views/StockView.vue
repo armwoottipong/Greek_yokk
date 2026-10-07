@@ -305,8 +305,18 @@
                   <div v-else class="w-7 h-7 shrink-0"></div>
 
                   <!-- Middle Slot: Quantity (Fixed width, centered, tabular-nums) -->
-                  <div class="w-24 text-center shrink-0 tabular-nums">
+                  <div class="w-28 text-center shrink-0 tabular-nums">
                     <div class="font-bold font-number text-sm flex items-center justify-center gap-1 tabular-nums">
+                      <!-- Icon ^ for increase (green), down sign for decrease (orange) in front of actual number -->
+                      <ChevronUp
+                        v-if="getDraftDiff(mat) > 0"
+                        class="w-3.5 h-3.5 text-emerald-600 stroke-[3] shrink-0"
+                      />
+                      <ChevronDown
+                        v-else-if="getDraftDiff(mat) < 0"
+                        class="w-3.5 h-3.5 text-orange-500 stroke-[3] shrink-0"
+                      />
+
                       <span
                         :class="[
                           mat.stock <= 0
@@ -322,15 +332,14 @@
                       <span class="text-xs font-normal text-stone-400 shrink-0">{{ mat.unit }}</span>
                     </div>
 
-                    <!-- Draft indicator pill -->
-                    <div v-if="getDraftDiff(mat) !== 0" class="my-0.5 flex justify-center">
-                      <span
-                        class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold"
-                        :class="getDraftDiff(mat) > 0 ? 'bg-amber-100 text-amber-900 border border-amber-300/80' : 'bg-rose-100 text-rose-800 border border-rose-300/80'"
-                        title="มีการเปลี่ยนแปลงในแบบร่าง รอยืนยันขั้นตอนสุดท้าย"
-                      >
-                        ร่าง: {{ getDraftDiff(mat) > 0 ? `+${getDraftDiff(mat).toLocaleString()}` : getDraftDiff(mat).toLocaleString() }}
-                      </span>
+                    <!-- Draft quantity text (Clean text, no badge: Green for increase, Orange for decrease) -->
+                    <div
+                      v-if="getDraftDiff(mat) !== 0"
+                      class="text-[11px] font-bold font-number tabular-nums my-0.5 leading-tight flex items-center justify-center gap-0.5"
+                      :class="getDraftDiff(mat) > 0 ? 'text-emerald-600' : 'text-orange-500'"
+                      title="จำนวนในแบบร่าง (รอยืนยันขั้นตอนสุดท้าย)"
+                    >
+                      <span>ร่าง: {{ getDraftDiff(mat) > 0 ? `+${getDraftDiff(mat).toLocaleString()}` : getDraftDiff(mat).toLocaleString() }}</span>
                     </div>
 
                     <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number tabular-nums truncate">
@@ -733,7 +742,7 @@
                 <div class="shrink-0 font-number font-bold text-xs text-right">
                   <span
                     :class="[
-                      item.delta > 0 ? 'text-emerald-400' : item.delta < 0 ? 'text-rose-400' : 'text-stone-300'
+                      item.delta > 0 ? 'text-emerald-400' : item.delta < 0 ? 'text-orange-400' : 'text-stone-300'
                     ]"
                   >
                     {{ item.delta > 0 ? `+${item.delta.toLocaleString()}` : item.delta ? item.delta.toLocaleString() : 'สลับล็อต' }}
