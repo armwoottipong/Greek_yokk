@@ -2116,7 +2116,20 @@ export const usePosStore = defineStore('pos', {
           title: 'สลับล็อตใช้งาน (แบบร่าง)',
           description: `สลับล็อต ${mat.name} เป็นล็อตวันที่ ${formatThaiDate(targetLot?.receiveDate)}`,
           delta: 0,
-          unit: mat.unit
+          unit: mat.unit,
+          log: {
+            module: 'stock',
+            action: 'switch_lot',
+            title: 'สลับล็อตใช้งาน',
+            description: `สลับล็อต ${mat.name} เป็นล็อตวันที่ ${formatThaiDate(targetLot?.receiveDate)}`,
+            targetId: mat.id,
+            targetName: mat.name,
+            targetEmoji: mat.emoji,
+            delta: 0,
+            unit: mat.unit,
+            note: `ล็อต ${formatThaiDate(targetLot?.receiveDate)} (คงเหลือ ${targetLot?.qty || 0} ${mat.unit})`,
+            user: 'ผู้จัดการคลัง'
+          }
         })
         this.showToast(`เพิ่มแบบร่างสลับล็อต ${mat.name} (รอยืนยันที่แถบด้านล่าง)`, 'info')
       } else {

@@ -165,7 +165,7 @@
           class="px-5 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
         >
           <Trash2 class="w-3.5 h-3.5" />
-          <span>บันทึกตัดของเสีย</span>
+          <span>บันทึกตัดของเสีย (แบบร่าง)</span>
         </button>
       </div>
     </div>
@@ -289,7 +289,7 @@ async function confirmWaste() {
     wasteQty: wasteQty.value,
     reason: selectedReason.value,
     note: wasteNote.value
-  }, false)
+  }, true)
 
   if (success) {
     close()
