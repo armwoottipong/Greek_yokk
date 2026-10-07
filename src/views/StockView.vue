@@ -1100,6 +1100,7 @@ async function quickAdjustStock(mat, delta) {
         if (subMat) {
           const returnedQty = Number(row.qty) || 0
           store.addMaterialStock(subMat, returnedQty)
+          store.reconcileMaterialDraft(subMat.id)
         }
       }
     }
@@ -1120,7 +1121,14 @@ async function quickAdjustStock(mat, delta) {
         unit: mat.unit
       })
     }
-    store.showToast(`ยกเลิกการผลิต ${mat.name} 1 รอบ (แบบร่างรอยืนยันที่แถบด้านล่าง)`, 'info')
+
+    store.reconcileMaterialDraft(mat.id)
+
+    if (store.hasStockDrafts) {
+      store.showToast(`ยกเลิกการผลิต ${mat.name} 1 รอบ (แบบร่างรอยืนยันที่แถบด้านล่าง)`, 'info')
+    } else {
+      store.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
+    }
   }
 }
 

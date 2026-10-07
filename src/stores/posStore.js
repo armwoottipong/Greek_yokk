@@ -600,58 +600,60 @@ export const usePosStore = defineStore('pos', {
 
   getters: {
     hasStockDrafts: (state) => {
-      if (state.stockDraftActions && state.stockDraftActions.length > 0) return true
       if (!state.stockDraftSnapshot) return false
       return state.materials.some(m => {
         const snap = state.stockDraftSnapshot.find(s => s.id === m.id)
-        return snap ? Number(snap.stock) !== Number(m.stock) : true
+        if (!snap) return true
+        const diff = Math.round(((Number(m.stock) || 0) - (Number(snap.stock) || 0)) * 100) / 100
+        if (diff !== 0) return true
+        const snapActiveLotId = snap.lots?.find(l => l.isInUse)?.id
+        const curActiveLotId = m.lots?.find(l => l.isInUse)?.id
+        return Boolean(snapActiveLotId && curActiveLotId && snapActiveLotId !== curActiveLotId)
       })
     },
 
     stockDraftSummary: (state) => {
       const changedMap = new Map()
+      if (!state.stockDraftSnapshot) return { count: 0, items: [], text: '' }
 
-      // From draft actions
-      if (Array.isArray(state.stockDraftActions)) {
-        state.stockDraftActions.forEach(act => {
-          if (act.materialId) {
-            changedMap.set(act.materialId, {
-              id: act.id,
-              materialId: act.materialId,
-              name: act.materialName,
-              emoji: act.materialEmoji,
-              unit: act.unit,
-              actionType: act.type,
-              title: act.title,
-              description: act.description,
-              delta: act.delta
-            })
-          }
-        })
-      }
+      state.materials.forEach(m => {
+        const snap = state.stockDraftSnapshot.find(s => s.id === m.id)
+        const snapStock = snap ? (Number(snap.stock) || 0) : 0
+        const curStock = Number(m.stock) || 0
+        const diff = Math.round((curStock - snapStock) * 100) / 100
 
-      // From direct stock difference (e.g. quick steppers)
-      if (state.stockDraftSnapshot) {
-        state.materials.forEach(m => {
-          const snap = state.stockDraftSnapshot.find(s => s.id === m.id)
-          const snapStock = snap ? (Number(snap.stock) || 0) : 0
-          const curStock = Number(m.stock) || 0
-          if (snapStock !== curStock && !changedMap.has(m.id)) {
-            const diff = Math.round((curStock - snapStock) * 100) / 100
-            changedMap.set(m.id, {
-              id: `stepper-${m.id}`,
-              materialId: m.id,
-              name: m.name,
-              emoji: m.emoji,
-              unit: m.unit,
-              actionType: diff > 0 ? 'produce' : 'adjust',
-              title: diff > 0 ? 'ผลิตตามสูตร (แบบร่าง)' : 'ปรับสต็อก (แบบร่าง)',
-              description: `${m.name} ${diff > 0 ? '+' : ''}${diff} ${m.unit}`,
-              delta: diff
-            })
+        const snapActiveLotId = snap?.lots?.find(l => l.isInUse)?.id
+        const curActiveLotId = m.lots?.find(l => l.isInUse)?.id
+        const lotSwitched = Boolean(snapActiveLotId && curActiveLotId && snapActiveLotId !== curActiveLotId)
+
+        if (diff !== 0 || lotSwitched) {
+          const matchingAction = Array.isArray(state.stockDraftActions)
+            ? state.stockDraftActions.slice().reverse().find(a => a.materialId === m.id)
+            : null
+
+          let actionType = diff > 0 ? 'produce' : diff < 0 ? 'adjust' : 'switch_lot'
+          let title = diff > 0 ? 'ปรับเพิ่มสต็อก (แบบร่าง)' : diff < 0 ? 'ปรับลดสต็อก (แบบร่าง)' : 'สลับล็อตใช้งาน (แบบร่าง)'
+          let description = `${m.name} ${diff > 0 ? '+' : ''}${diff} ${m.unit}`
+
+          if (matchingAction) {
+            actionType = matchingAction.type || actionType
+            title = matchingAction.title || title
+            description = matchingAction.description || description
           }
-        })
-      }
+
+          changedMap.set(m.id, {
+            id: matchingAction?.id || `draft-${m.id}`,
+            materialId: m.id,
+            name: m.name,
+            emoji: m.emoji,
+            unit: m.unit,
+            actionType,
+            title,
+            description,
+            delta: diff
+          })
+        }
+      })
 
       const items = Array.from(changedMap.values())
       return {
@@ -1229,6 +1231,35 @@ export const usePosStore = defineStore('pos', {
       })
     },
 
+    reconcileMaterialDraft(materialId) {
+      if (!this.stockDraftSnapshot) return
+      const mat = this.materials.find(m => m.id === materialId)
+      const snap = this.stockDraftSnapshot.find(s => s.id === materialId)
+      if (!mat || !snap) return
+
+      const diff = Math.round(((Number(mat.stock) || 0) - (Number(snap.stock) || 0)) * 100) / 100
+      const snapActiveLotId = snap.lots?.find(l => l.isInUse)?.id
+      const curActiveLotId = mat.lots?.find(l => l.isInUse)?.id
+      const lotSwitched = Boolean(snapActiveLotId && curActiveLotId && snapActiveLotId !== curActiveLotId)
+
+      if (diff === 0 && !lotSwitched) {
+        // Fully reverted back to snapshot state
+        mat.stock = snap.stock
+        if (snap.lots) {
+          mat.lots = JSON.parse(JSON.stringify(snap.lots))
+        }
+        mat.lastStockInDate = snap.lastStockInDate
+        mat.expiryDate = snap.expiryDate
+        mat.unitCost = snap.unitCost
+        mat.packCost = snap.packCost
+
+        // Remove any pending draft actions for this material
+        if (Array.isArray(this.stockDraftActions)) {
+          this.stockDraftActions = this.stockDraftActions.filter(a => a.materialId !== materialId)
+        }
+      }
+    },
+
     commitStockDrafts() {
       const loggedMatIds = new Set()
 
@@ -1781,7 +1812,12 @@ export const usePosStore = defineStore('pos', {
           unit: mat.unit,
           log: logPayload
         })
-        this.showToast(`เพิ่มแบบร่างรับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        this.reconcileMaterialDraft(mat.id)
+        if (this.hasStockDrafts) {
+          this.showToast(`เพิ่มแบบร่างรับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        } else {
+          this.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
+        }
       } else {
         if (this.stockDraftSnapshot) {
           const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
@@ -1922,7 +1958,12 @@ export const usePosStore = defineStore('pos', {
           unit: mat.unit,
           log: logPayload
         })
-        this.showToast(`เพิ่มแบบร่างปรับยอด ${mat.name} (${diffStr}) (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        this.reconcileMaterialDraft(mat.id)
+        if (this.hasStockDrafts) {
+          this.showToast(`เพิ่มแบบร่างปรับยอด ${mat.name} (${diffStr}) (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        } else {
+          this.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
+        }
       } else {
         this.persistLocal()
         this.addActivityLog(logPayload)
@@ -2061,7 +2102,13 @@ export const usePosStore = defineStore('pos', {
           log: mainLog,
           subLogs
         })
-        this.showToast(`เพิ่มแบบร่างผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        this.reconcileMaterialDraft(target.id)
+        subIngredients.forEach(item => this.reconcileMaterialDraft(item.materialId))
+        if (this.hasStockDrafts) {
+          this.showToast(`เพิ่มแบบร่างผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        } else {
+          this.showToast(`สต็อก ${target.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
+        }
       } else {
         if (this.stockDraftSnapshot) {
           const snapTarget = this.stockDraftSnapshot.find(s => s.id === target.id)
@@ -2131,7 +2178,12 @@ export const usePosStore = defineStore('pos', {
             user: 'ผู้จัดการคลัง'
           }
         })
-        this.showToast(`เพิ่มแบบร่างสลับล็อต ${mat.name} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        this.reconcileMaterialDraft(mat.id)
+        if (this.hasStockDrafts) {
+          this.showToast(`เพิ่มแบบร่างสลับล็อต ${mat.name} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        } else {
+          this.showToast(`ล็อตใช้งาน ${mat.name} คืนค่าเดิมเรียบร้อย`, 'info')
+        }
       } else {
         if (this.stockDraftSnapshot) {
           const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
@@ -2208,7 +2260,12 @@ export const usePosStore = defineStore('pos', {
           unit: mat.unit,
           log: logPayload
         })
-        this.showToast(`เพิ่มแบบร่างตัดของเสีย ${mat.name} -${qtyToWaste} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        this.reconcileMaterialDraft(mat.id)
+        if (this.hasStockDrafts) {
+          this.showToast(`เพิ่มแบบร่างตัดของเสีย ${mat.name} -${qtyToWaste} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+        } else {
+          this.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
+        }
       } else {
         if (this.stockDraftSnapshot) {
           const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
