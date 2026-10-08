@@ -757,6 +757,66 @@ export const usePosStore = defineStore('pos', {
       return cat?.dateTrackingMode || 'none'
     },
 
+    // Real-time lot action preview (Merge vs New Lot vs Direct Sum)
+    getLotActionPreview: (state) => (mat, receiveDate, expiryDate) => {
+      if (!mat) return { action: 'none', label: '', shortLabel: '', icon: '', badgeClass: '' }
+      const cat = state.categories.material?.find(
+        c => c.name === mat.category || c.label === mat.category
+      )
+      const mode = cat?.dateTrackingMode || 'none'
+
+      if (mode === 'none') {
+        return {
+          action: 'direct_sum',
+          label: 'สินค้าไม่คุมวันหมดอายุ — จะบวกทบเข้ายอดคงเหลือรวมทันที (ไม่แยกขยะล็อต)',
+          shortLabel: 'บวกทบยอดรวม',
+          icon: '📦',
+          badgeClass: 'bg-stone-50 text-stone-700 border border-stone-200/80'
+        }
+      }
+
+      const recDate = receiveDate || getTodayString()
+      const expDate = expiryDate || null
+
+      if (!mat.lots || mat.lots.length === 0) {
+        return {
+          action: 'new_lot',
+          label: 'ยังไม่มีประวัติล็อต — จะเปิดเป็นล็อตใหม่ (เริ่มนับอายุสต็อก)',
+          shortLabel: 'เปิดล็อตใหม่',
+          icon: '✨',
+          badgeClass: 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+        }
+      }
+
+      let matchingLot = null
+      if (mode === 'expiry_and_receive') {
+        matchingLot = mat.lots.find(l => (l.receiveDate === recDate || !l.receiveDate) && (l.expiryDate || null) === expDate && l.qty > 0)
+          || mat.lots.find(l => (l.expiryDate || null) === expDate && l.qty > 0)
+      } else if (mode === 'receive_only') {
+        matchingLot = mat.lots.find(l => l.receiveDate === recDate && l.qty > 0)
+      }
+
+      if (matchingLot) {
+        return {
+          action: 'merge',
+          targetLot: matchingLot,
+          label: `วันหมดอายุ/รอบรับตรงกับล็อตเดิม — จะรวมยอดเข้าล็อตเดิม (คงเหลือเดิม ${Number(matchingLot.qty || 0).toLocaleString()} ${mat.unit})`,
+          shortLabel: 'รวมเข้าล็อตเดิม',
+          icon: '🔄',
+          badgeClass: 'bg-sky-50 text-sky-800 border border-sky-200'
+        }
+      }
+
+      const expText = expDate ? ` (Exp: ${formatThaiDate(expDate)})` : ''
+      return {
+        action: 'new_lot',
+        label: `วันหมดอายุใหม่${expText} — จะเปิดเป็นล็อตใหม่ (จัดคิวใช้อัตโนมัติแบบ FIFO)`,
+        shortLabel: 'เปิดล็อตใหม่ (FIFO)',
+        icon: '✨',
+        badgeClass: 'bg-amber-50 text-amber-900 border border-amber-200'
+      }
+    },
+
     // Sorted active lots for a material
     getMaterialLots: () => (mat, showDepleted = false) => {
       if (!mat || !mat.lots) return []
@@ -1747,31 +1807,101 @@ export const usePosStore = defineStore('pos', {
         mat.packCost = Math.round(newUnitCostInput * packSize * 100) / 100
       }
 
-      // Update Receive & Expiry Dates
-      const receiveDate = dates?.receiveDate || getTodayString()
-      const expiryDate = dates?.expiryDate || null
+      const trackingMode = this.getMaterialTrackingMode(mat)
+      const receiveDate = trackingMode === 'none' ? getTodayString() : (dates?.receiveDate || getTodayString())
+      const expiryDate = trackingMode === 'expiry_and_receive' ? (dates?.expiryDate || null) : null
+
       mat.lastStockInDate = receiveDate
       mat.expiryDate = expiryDate
 
-      // Add as new lot
       if (!mat.lots) mat.lots = []
-      const newLotId = `LOT-${mat.id}-${Date.now()}`
-      const hasOtherInUse = mat.lots.some(l => l.isInUse && l.qty > 0)
-      const newLot = {
-        id: newLotId,
-        receiveDate,
-        expiryDate: expiryDate || null,
-        qty: addQty,
-        initialQty: addQty,
-        unitCost: newUnitCostInput,
-        packCost: (packCost !== undefined && packCost !== null && Number(packCost) > 0)
-          ? Number(packCost)
-          : Math.round(newUnitCostInput * packSize * 100) / 100,
-        isInUse: !hasOtherInUse,
-        note: note || '',
-        createdAt: new Date().toISOString()
+
+      let lotAction = 'new_lot'
+
+      if (trackingMode === 'none') {
+        // Non-perishable items: single master lot, no multiple lots clutter
+        if (mat.lots.length === 0) {
+          const masterLot = {
+            id: `LOT-${mat.id}-MAIN`,
+            receiveDate,
+            expiryDate: null,
+            qty: addQty,
+            initialQty: addQty,
+            unitCost: weightedUnitCost,
+            packCost: mat.packCost,
+            isInUse: true,
+            note: note || '',
+            createdAt: new Date().toISOString()
+          }
+          mat.lots.push(masterLot)
+        } else {
+          const masterLot = mat.lots[0]
+          masterLot.qty = Math.round(((Number(masterLot.qty) || 0) + addQty) * 100) / 100
+          masterLot.initialQty = Math.round(((Number(masterLot.initialQty) || 0) + addQty) * 100) / 100
+          masterLot.unitCost = weightedUnitCost
+          masterLot.packCost = mat.packCost
+          masterLot.receiveDate = receiveDate
+          masterLot.isInUse = true
+          if (note) masterLot.note = masterLot.note ? `${masterLot.note}; ${note}` : note
+          // If previous entries created multiple lots for non-perishable, consolidate them
+          if (mat.lots.length > 1) {
+            const extraQty = mat.lots.slice(1).reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
+            masterLot.qty = Math.round((masterLot.qty + extraQty) * 100) / 100
+            mat.lots = [masterLot]
+          }
+        }
+        lotAction = 'merged_non_perishable'
+      } else {
+        // Perishable or receive-tracked items
+        let matchingLot = null
+        if (trackingMode === 'expiry_and_receive') {
+          matchingLot = mat.lots.find(l => (l.receiveDate === receiveDate || !l.receiveDate) && (l.expiryDate || null) === expiryDate && l.qty > 0)
+            || mat.lots.find(l => (l.expiryDate || null) === expiryDate && l.qty > 0)
+        } else if (trackingMode === 'receive_only') {
+          matchingLot = mat.lots.find(l => l.receiveDate === receiveDate && l.qty > 0)
+        }
+
+        if (matchingLot) {
+          // Merge into matching lot
+          matchingLot.qty = Math.round(((Number(matchingLot.qty) || 0) + addQty) * 100) / 100
+          matchingLot.initialQty = Math.round(((Number(matchingLot.initialQty) || 0) + addQty) * 100) / 100
+          const lotOldQty = Math.max(0, Number(matchingLot.qty) - addQty)
+          const lotOldVal = lotOldQty * (Number(matchingLot.unitCost) || newUnitCostInput)
+          const lotNewVal = addQty * newUnitCostInput
+          matchingLot.unitCost = matchingLot.qty > 0 ? Math.round(((lotOldVal + lotNewVal) / matchingLot.qty) * 10000) / 10000 : newUnitCostInput
+          matchingLot.packCost = (packCost !== undefined && packCost !== null && Number(packCost) > 0)
+            ? Number(packCost)
+            : Math.round(newUnitCostInput * packSize * 100) / 100
+          if (note) matchingLot.note = matchingLot.note ? `${matchingLot.note}; ${note}` : note
+          lotAction = 'merged'
+        } else {
+          // Open as new lot
+          const newLotId = `LOT-${mat.id}-${Date.now()}`
+          const hasOtherInUse = mat.lots.some(l => l.isInUse && l.qty > 0)
+          mat.lots.push({
+            id: newLotId,
+            receiveDate,
+            expiryDate: expiryDate || null,
+            qty: addQty,
+            initialQty: addQty,
+            unitCost: newUnitCostInput,
+            packCost: (packCost !== undefined && packCost !== null && Number(packCost) > 0)
+              ? Number(packCost)
+              : Math.round(newUnitCostInput * packSize * 100) / 100,
+            isInUse: !hasOtherInUse,
+            note: note || '',
+            createdAt: new Date().toISOString()
+          })
+          lotAction = 'new_lot'
+        }
+
+        // Keep active in-use lot aligned with FIFO unexpired
+        const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !getExpiryStatus(l).isExpired) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
+        if (activeLot) {
+          if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate
+          if (activeLot.expiryDate) mat.expiryDate = activeLot.expiryDate
+        }
       }
-      mat.lots.push(newLot)
 
       // Total stock and cost
       mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
@@ -1781,11 +1911,20 @@ export const usePosStore = defineStore('pos', {
         ? `[รับเข้า: ${formatThaiDate(receiveDate)}, หมดอายุ: ${formatThaiDate(expiryDate)}]`
         : `[รับเข้า: ${formatThaiDate(receiveDate)}]`
 
+      let actionDescSuffix = ''
+      if (lotAction === 'merged') {
+        actionDescSuffix = expiryDate ? ` (รวมเข้าล็อตเดิม Exp: ${formatDisplayDate(expiryDate)})` : ' (รวมเข้าล็อตเดิม)'
+      } else if (lotAction === 'new_lot') {
+        actionDescSuffix = expiryDate ? ` (เปิดล็อตใหม่ Exp: ${formatDisplayDate(expiryDate)})` : ' (เปิดล็อตใหม่)'
+      } else {
+        actionDescSuffix = ' (บวกทบยอดรวม)'
+      }
+
       const logPayload = {
         module: 'stock',
         action: 'stock_in',
         title: 'รับเข้าสต็อก',
-        description: `รับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (ต้นทุนเฉลี่ย ฿${mat.unitCost}/${mat.unit})`,
+        description: `รับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit}${actionDescSuffix}`,
         targetId: mat.id,
         targetName: mat.name,
         targetEmoji: mat.emoji,
@@ -1807,7 +1946,7 @@ export const usePosStore = defineStore('pos', {
           materialName: mat.name,
           materialEmoji: mat.emoji,
           title: 'รับเข้าสต็อก (แบบร่าง)',
-          description: `รับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit}`,
+          description: `รับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit}${actionDescSuffix}`,
           delta: addQty,
           unit: mat.unit,
           log: logPayload
@@ -1829,7 +1968,7 @@ export const usePosStore = defineStore('pos', {
         }
         this.persistLocal()
         this.addActivityLog(logPayload)
-        this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit}`, 'success')
+        this.showToast(`รับเข้าสต็อก: ${mat.name} +${addQty.toLocaleString()} ${mat.unit}${actionDescSuffix}`, 'success')
       }
     },
 
@@ -2048,34 +2187,58 @@ export const usePosStore = defineStore('pos', {
       target.lastStockInDate = produceDate
       target.expiryDate = expiryDate
 
-      // Add as new lot
+      // Add or merge into lot
       if (!target.lots) target.lots = []
-      const newLotId = `LOT-${target.id}-${Date.now()}`
-      const hasOtherInUse = target.lots.some(l => l.isInUse && l.qty > 0)
-      target.lots.push({
-        id: newLotId,
-        receiveDate: produceDate,
-        expiryDate: expiryDate || null,
-        qty: addedQty,
-        initialQty: addedQty,
-        unitCost: target.unitCost,
-        packCost: target.packCost || Math.round(target.unitCost * (target.packSize || 1) * 100) / 100,
-        isInUse: !hasOtherInUse,
-        note: note ? `ผลิตรอบใหม่: ${note}` : `ผลิตตามสูตร [${deductedSummary.join(', ')}]`,
-        createdAt: new Date().toISOString()
-      })
+      let produceLotAction = 'new_lot'
+      const matchingProduceLot = target.lots.find(l => (l.receiveDate === produceDate || !l.receiveDate) && (l.expiryDate || null) === expiryDate && l.qty > 0)
+
+      if (matchingProduceLot) {
+        matchingProduceLot.qty = Math.round(((Number(matchingProduceLot.qty) || 0) + addedQty) * 100) / 100
+        matchingProduceLot.initialQty = Math.round(((Number(matchingProduceLot.initialQty) || 0) + addedQty) * 100) / 100
+        matchingProduceLot.unitCost = target.unitCost
+        matchingProduceLot.packCost = target.packCost || Math.round(target.unitCost * (target.packSize || 1) * 100) / 100
+        if (note) matchingProduceLot.note = matchingProduceLot.note ? `${matchingProduceLot.note}; ${note}` : note
+        produceLotAction = 'merged'
+      } else {
+        const newLotId = `LOT-${target.id}-${Date.now()}`
+        const hasOtherInUse = target.lots.some(l => l.isInUse && l.qty > 0)
+        target.lots.push({
+          id: newLotId,
+          receiveDate: produceDate,
+          expiryDate: expiryDate || null,
+          qty: addedQty,
+          initialQty: addedQty,
+          unitCost: target.unitCost,
+          packCost: target.packCost || Math.round(target.unitCost * (target.packSize || 1) * 100) / 100,
+          isInUse: !hasOtherInUse,
+          note: note ? `ผลิตรอบใหม่: ${note}` : `ผลิตตามสูตร [${deductedSummary.join(', ')}]`,
+          createdAt: new Date().toISOString()
+        })
+        produceLotAction = 'new_lot'
+      }
       target.stock = Math.round(target.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
+
+      // Keep active in-use lot aligned
+      const activeProduceLot = target.lots.find(l => l.isInUse && l.qty > 0 && !getExpiryStatus(l).isExpired) || target.lots.find(l => l.qty > 0) || target.lots[0]
+      if (activeProduceLot) {
+        if (activeProduceLot.receiveDate) target.lastStockInDate = activeProduceLot.receiveDate
+        if (activeProduceLot.expiryDate) target.expiryDate = activeProduceLot.expiryDate
+      }
 
       const dateNote = expiryDate
         ? `[ผลิต: ${formatThaiDate(produceDate)}, หมดอายุ: ${formatThaiDate(expiryDate)}]`
         : `[ผลิต: ${formatThaiDate(produceDate)}]`
+
+      const actionProduceSuffix = produceLotAction === 'merged'
+        ? (expiryDate ? ` (รวมเข้าล็อตเดิม Exp: ${formatDisplayDate(expiryDate)})` : ' (รวมเข้าล็อตเดิม)')
+        : (expiryDate ? ` (เปิดล็อตใหม่ Exp: ${formatDisplayDate(expiryDate)})` : ' (เปิดล็อตใหม่)')
 
       const summaryText = deductedSummary.join(', ')
       const mainLog = {
         module: 'stock',
         action: 'produce',
         title: 'ผลิตตามสูตร (Batch Produce)',
-        description: `ผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit}`,
+        description: `ผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit}${actionProduceSuffix}`,
         targetId: target.id,
         targetName: target.name,
         targetEmoji: target.emoji,

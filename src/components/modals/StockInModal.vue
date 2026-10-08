@@ -308,36 +308,49 @@
         </div>
 
         <!-- วันที่รับเข้า/ผลิต & วันหมดอายุ ปรับตาม trackingMode ของหมวดหมู่ -->
-        <div v-if="trackingMode === 'expiry_and_receive'" class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[11px] font-medium text-stone-600 mb-1">
-              {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
-            </label>
-            <input
-              v-model="receiveDate"
-              @change="onReceiveDateChange"
-              type="date"
-              class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
-            />
-          </div>
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-[11px] font-medium text-stone-600">วันหมดอายุ (ถ้ามี)</label>
-              <button
-                v-if="expiryDate"
-                type="button"
-                @click="expiryDate = ''"
-                class="text-[10px] text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
-                title="ล้างวันหมดอายุ (ไม่ระบุวันหมดอายุ)"
-              >
-                ล้าง
-              </button>
+        <div v-if="trackingMode === 'expiry_and_receive'" class="space-y-2">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-stone-600 mb-1">
+                {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
+              </label>
+              <input
+                v-model="receiveDate"
+                @change="onReceiveDateChange"
+                type="date"
+                class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
+              />
             </div>
-            <input
-              v-model="expiryDate"
-              type="date"
-              class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
-            />
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[11px] font-medium text-stone-600">วันหมดอายุ</label>
+                <div class="flex items-center gap-1.5 text-[10px]">
+                  <button
+                    v-if="currentMat?.shelfLifeDays && expiryDate !== addDays(receiveDate, currentMat.shelfLifeDays)"
+                    type="button"
+                    @click="expiryDate = addDays(receiveDate, currentMat.shelfLifeDays)"
+                    class="text-sky-600 hover:text-sky-800 transition-colors cursor-pointer"
+                    title="คำนวณวันหมดอายุอัตโนมัติตามอายุเก็บรักษา"
+                  >
+                    +{{ currentMat.shelfLifeDays }}วัน
+                  </button>
+                  <button
+                    v-if="expiryDate"
+                    type="button"
+                    @click="expiryDate = ''"
+                    class="text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
+                    title="ล้างวันหมดอายุ (ไม่ระบุวันหมดอายุ)"
+                  >
+                    ล้าง
+                  </button>
+                </div>
+              </div>
+              <input
+                v-model="expiryDate"
+                type="date"
+                class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
+              />
+            </div>
           </div>
         </div>
 
@@ -351,6 +364,28 @@
             class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
           />
           <p class="text-[10px] text-stone-400 font-sans">หมวดหมู่นี้ติดตามเฉพาะวันที่รับ/ผลิต ไม่ต้องระบุวันหมดอายุ</p>
+        </div>
+
+        <!-- สินค้าไม่คุมวันหมดอายุ (บรรจุภัณฑ์ / แก้ว / ช้อน) -->
+        <div v-else class="flex items-center gap-2.5 p-3 rounded-xl bg-stone-50 border border-stone-200/60 text-stone-600">
+          <span class="text-base shrink-0">📦</span>
+          <div class="text-[11px] leading-tight">
+            <span class="font-bold text-stone-800">สินค้าไม่คุมวันหมดอายุ</span>
+            <p class="text-[10px] text-stone-400 mt-0.5">ระบบจะบวกทบยอดเข้าสต็อกรวมทันที ไม่แยกเป็นหลายล็อตย่อยให้สับสน</p>
+          </div>
+        </div>
+
+        <!-- Smart Lot Action Preview Banner -->
+        <div
+          v-if="currentMat && lotPreview && trackingMode !== 'none'"
+          class="flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] leading-tight transition-all"
+          :class="lotPreview.badgeClass"
+        >
+          <span class="text-sm shrink-0">{{ lotPreview.icon }}</span>
+          <div class="flex-1 min-w-0">
+            <span class="font-bold">{{ lotPreview.shortLabel }}:</span>
+            <span class="ml-1 opacity-90">{{ lotPreview.label }}</span>
+          </div>
         </div>
 
         <!-- Note (Unified) -->
@@ -431,6 +466,11 @@ const currentMat = computed(() => {
 const trackingMode = computed(() => {
   if (!currentMat.value) return 'none'
   return store.getMaterialTrackingMode(currentMat.value)
+})
+
+const lotPreview = computed(() => {
+  if (!currentMat.value) return null
+  return store.getLotActionPreview(currentMat.value, receiveDate.value, expiryDate.value)
 })
 
 const isProducedFromRecipe = computed(() => {

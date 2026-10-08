@@ -288,25 +288,12 @@
                 </span>
               </td>
 
-              <!-- Stock Level: Balanced Layout with Centered Quantity & Pure Icon Buttons -->
+              <!-- Stock Level: Clear Quantity & Dedicated Stock In / Produce Action Button -->
               <td class="py-3.5 px-4 text-center">
                 <div class="flex items-center justify-center gap-2.5">
-                  <!-- Left Slot: Minus button for all active items -->
-                  <button
-                    v-if="!mat.isDeleted"
-                    type="button"
-                    @click="quickAdjustStock(mat, -1)"
-                    :disabled="!canReduceQuick(mat)"
-                    class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
-                    :title="mat.hasSubRecipe ? (canReduceQuick(mat) ? 'ยกเลิกการผลิต 1 รอบ (คืนวัตถุดิบรอง)' : 'วัตถุดิบที่ผลิตเสร็จไว้แล้ว ไม่สามารถลดยอดได้') : 'ปรับลดสต็อก 1 หน่วย/แพ็ค (แบบร่าง)'"
-                  >
-                    <Minus class="w-3.5 h-3.5" />
-                  </button>
-                  <div v-else class="w-7 h-7 shrink-0"></div>
-
-                  <!-- Middle Slot: Quantity (Fixed width, centered, tabular-nums) -->
-                  <div class="w-28 text-center shrink-0 tabular-nums">
-                    <div class="font-bold font-number text-sm flex items-center justify-center gap-1 tabular-nums">
+                  <!-- Stock Quantity & Status -->
+                  <div class="text-right shrink-0 tabular-nums min-w-[85px]">
+                    <div class="font-bold font-number text-sm flex items-center justify-end gap-1 tabular-nums">
                       <!-- Icon ^ for increase (green), down sign for decrease (orange) in front of actual number -->
                       <ChevronUp
                         v-if="getDraftDiff(mat) > 0"
@@ -320,10 +307,10 @@
                       <span
                         :class="[
                           mat.stock <= 0
-                            ? 'text-rose-600'
+                            ? 'text-rose-600 font-extrabold'
                             : mat.stock <= mat.minAlert
-                              ? 'text-amber-600'
-                              : 'text-stone-900'
+                              ? 'text-amber-600 font-bold'
+                              : 'text-stone-900 font-bold'
                         ]"
                         class="tabular-nums"
                       >
@@ -335,7 +322,7 @@
                     <!-- Draft quantity text (Clean text, no badge: Green for increase, Orange for decrease) -->
                     <div
                       v-if="getDraftDiff(mat) !== 0"
-                      class="text-[11px] font-bold font-number tabular-nums my-0.5 leading-tight flex items-center justify-center gap-0.5"
+                      class="text-[11px] font-bold font-number tabular-nums my-0.5 leading-tight flex items-center justify-end gap-0.5"
                       :class="getDraftDiff(mat) > 0 ? 'text-emerald-600' : 'text-orange-500'"
                       title="จำนวนในแบบร่าง (รอยืนยันขั้นตอนสุดท้าย)"
                     >
@@ -350,27 +337,30 @@
                     </div>
                   </div>
 
-                  <!-- Right Slot: Plus button for produced items or regular materials -->
-                  <button
-                    v-if="mat.hasSubRecipe && !mat.isDeleted"
-                    type="button"
-                    @click="quickAdjustStock(mat, 1)"
-                    :disabled="!canProduceQuick(mat)"
-                    class="w-7 h-7 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                    :title="canProduceQuick(mat) ? `ผลิตเพิ่ม 1 รอบ (+${mat.yieldQty || 540} ${mat.unit}) พร้อมหักสต็อกวัตถุดิบรอง` : 'วัตถุดิบรองไม่พอผลิตเพิ่ม'"
-                  >
-                    <Plus class="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    v-else-if="!mat.isDeleted"
-                    type="button"
-                    @click="quickAdjustStock(mat, 1)"
-                    class="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/60 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
-                    :title="`เพิ่มสต็อก +${mat.packSize > 1 ? (mat.packSize + ' ' + mat.unit + ' / 1 ' + mat.packUnit) : ('1 ' + mat.unit)} (แบบร่าง)`"
-                  >
-                    <Plus class="w-3.5 h-3.5" />
-                  </button>
-                  <div v-else class="w-7 h-7 shrink-0"></div>
+                  <!-- Purpose-built Action Button: Produce for recipe bases, Stock In for regular materials -->
+                  <div class="shrink-0">
+                    <button
+                      v-if="mat.hasSubRecipe && !mat.isDeleted"
+                      type="button"
+                      @click="openStockIn(mat.id)"
+                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 transition-all shadow-2xs cursor-pointer active:scale-95"
+                      title="เปิดหน้าต่างผลิตตามสูตร (หักสต็อกวัตถุดิบรองอัตโนมัติ)"
+                    >
+                      <span>🥣</span>
+                      <span>ผลิต</span>
+                    </button>
+                    <button
+                      v-else-if="!mat.isDeleted"
+                      type="button"
+                      @click="openStockIn(mat.id)"
+                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 transition-all shadow-2xs cursor-pointer active:scale-95"
+                      title="เปิดหน้าต่างรับเข้าสต็อก (ระบุจำนวน ราคา วันที่รับ และวันหมดอายุ)"
+                    >
+                      <ArrowDownToLine class="w-3.5 h-3.5 text-emerald-600" />
+                      <span>รับเข้า</span>
+                    </button>
+                    <div v-else class="w-12"></div>
+                  </div>
                 </div>
               </td>
 
@@ -825,7 +815,6 @@ import {
 } from '@/stores/posStore'
 import {
   Plus,
-  Minus,
   ArrowDownToLine,
   SlidersHorizontal,
   Search,
@@ -975,161 +964,6 @@ function onActionWasteLot(matId, lotId) {
 function onActionSwitchLot(matId, lotId) {
   closeActionMenu()
   store.switchActiveLot(matId, lotId, true)
-}
-
-// -------------------------------------------------------------
-// Quick Stepper & Real-time Sub-Ingredient Stock Deduction
-// -------------------------------------------------------------
-function canProduceQuick(mat) {
-  if (!mat || mat.isDeleted) return false
-  if (!mat.hasSubRecipe || !mat.subRecipe || mat.subRecipe.length === 0) return true
-  for (const row of mat.subRecipe) {
-    const subMat = store.materials.find(m => m.id === row.materialId)
-    if (!subMat) return false
-    let unexpiredStock = 0
-    if (subMat.lots && subMat.lots.length > 0) {
-      unexpiredStock = subMat.lots
-        .filter(l => l.qty > 0 && !isExpired(l))
-        .reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
-    } else {
-      unexpiredStock = isExpired(subMat) ? 0 : (Number(subMat.stock) || 0)
-    }
-    const needed = Number(row.qty) || 0
-    if (unexpiredStock < needed) return false
-  }
-  return true
-}
-
-function canReduceQuick(mat) {
-  if (!mat || mat.isDeleted) return false
-  if (mat.hasSubRecipe) {
-    const base = getBaselineStock(mat.id)
-    const baseline = base !== null ? base : (Number(mat.stock) || 0)
-    const yieldAmount = Number(mat.yieldQty) || 540
-    // วัตถุดิบที่ผลิตมาแล้ว ไม่สามารถลดได้ (ลดได้เฉพาะรอบที่เพิ่งกดผลิตเพิ่มในรอบนี้)
-    return (Number(mat.stock) || 0) >= baseline + yieldAmount
-  }
-  return Number(mat.stock || 0) > 0
-}
-
-async function quickAdjustStock(mat, delta) {
-  if (!mat || mat.isDeleted) return
-  if (!store.stockDraftSnapshot) {
-    store.initStockDraftSnapshot()
-  }
-
-  // Non-recipe items: quick step adjustment (+ / - by packSize or unit)
-  if (!mat.hasSubRecipe) {
-    const step = (mat.packSize && Number(mat.packSize) > 0) ? Number(mat.packSize) : 1
-    if (delta > 0) {
-      const unitCost = Number(mat.unitCost) || 0
-      const packCost = Number(mat.packCost) || (unitCost * step)
-      store.stockIn(mat.id, step, unitCost, 'ปรับเพิ่มด่วน (ปุ่ม +)', packCost, {}, true)
-    } else {
-      const current = Number(mat.stock) || 0
-      if (current <= 0) return
-      const target = Math.max(0, Math.round((current - step) * 100) / 100)
-      store.stockAdjust(mat.id, target, 'ปรับลดด่วน (ปุ่ม -)', 'ปรับลดสต็อกหน้ารายการ (แบบร่าง)', true)
-    }
-    return
-  }
-
-  // Recipe items (e.g. กรีกโยเกิร์ต)
-  const yieldAmount = Number(mat.yieldQty) || 540
-
-  if (delta > 0) {
-    // Check sub-ingredients
-    if (!canProduceQuick(mat)) {
-      store.showToast(`วัตถุดิบรองไม่พอสำหรับผลิต ${mat.name} อีก 1 รอบ`, 'error')
-      return
-    }
-
-    // Pre-flight check lot depletion for each sub-ingredient
-    if (mat.subRecipe && mat.subRecipe.length > 0) {
-      for (const row of mat.subRecipe) {
-        const needed = Number(row.qty) || 0
-        const check = store.checkLotDepletion(row.materialId, needed)
-        if ((check.willDeplete || check.isShort || check.isLow) && check.nextLot) {
-          const subMat = store.materials.find(m => m.id === row.materialId)
-          const confirmed = await store.promptLotDepletion({
-            material: subMat,
-            currentLot: check.currentLot,
-            nextLot: check.nextLot,
-            neededQty: needed,
-            availableInCurrent: check.availableInCurrent,
-            remainingAfter: check.remainingAfter,
-            shortageQty: check.shortageQty,
-            willDeplete: check.willDeplete,
-            isLow: check.isLow,
-            actionContext: 'produce'
-          })
-          if (!confirmed) {
-            if (check.isShort) {
-              store.showToast(`ยกเลิกการผลิต ${mat.name} เนื่องจากล็อตวัตถุดิบ ${subMat?.name || ''} ไม่พอและไม่ต้องการเปลี่ยนล็อต`, 'info')
-              return
-            }
-          } else if (check.nextLot) {
-            store.switchActiveLotSilently(row.materialId, check.nextLot.id)
-          }
-        }
-      }
-    }
-
-    // Produce 1 batch as draft
-    store.batchProduce(mat.id, yieldAmount, mat.subRecipe, 'ผลิตด่วน 1 รอบ (ปุ่ม +)', {}, true)
-  } else {
-    // Decrease 1 round: Cannot reduce already produced stock
-    const base = getBaselineStock(mat.id)
-    const baseline = base !== null ? base : (Number(mat.stock) || 0)
-    if (!canReduceQuick(mat)) {
-      store.showToast(`ไม่สามารถลด ${mat.name} ได้ เนื่องจากเป็นวัตถุดิบที่ผลิตเสร็จไว้แล้ว`, 'warning')
-      return
-    }
-    // Decrement produced stock by 1 batch yield (locked at baseline)
-    const current = Number(mat.stock || 0)
-    const target = Math.max(baseline, Math.round((current - yieldAmount) * 100) / 100)
-    const actuallyReduced = Math.round((current - target) * 100) / 100
-    if (actuallyReduced > 0) {
-      store.deductMaterialStock(mat, actuallyReduced)
-    }
-
-    // Restore sub-ingredients back to stock in realtime
-    if (mat.subRecipe && mat.subRecipe.length > 0) {
-      for (const row of mat.subRecipe) {
-        const subMat = store.materials.find(m => m.id === row.materialId)
-        if (subMat) {
-          const returnedQty = Number(row.qty) || 0
-          store.addMaterialStock(subMat, returnedQty)
-          store.reconcileMaterialDraft(subMat.id)
-        }
-      }
-    }
-
-    // Reconcile draft actions: if a batch_produce exists for this mat in stockDraftActions, pop it
-    const draftIdx = store.stockDraftActions.findIndex(a => a.materialId === mat.id && a.type === 'batch_produce')
-    if (draftIdx >= 0) {
-      store.stockDraftActions.splice(draftIdx, 1)
-    } else {
-      store.addStockDraftAction({
-        type: 'produce_undo',
-        materialId: mat.id,
-        materialName: mat.name,
-        materialEmoji: mat.emoji,
-        title: 'ยกเลิกการผลิต 1 รอบ (แบบร่าง)',
-        description: `ลดยอด ${mat.name} -${actuallyReduced} ${mat.unit} และคืนสต็อกวัตถุดิบรอง`,
-        delta: -actuallyReduced,
-        unit: mat.unit
-      })
-    }
-
-    store.reconcileMaterialDraft(mat.id)
-
-    if (store.hasStockDrafts) {
-      store.showToast(`ยกเลิกการผลิต ${mat.name} 1 รอบ (แบบร่างรอยืนยันที่แถบด้านล่าง)`, 'info')
-    } else {
-      store.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
-    }
-  }
 }
 
 // -------------------------------------------------------------
