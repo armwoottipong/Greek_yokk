@@ -416,7 +416,7 @@
           class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs disabled:opacity-40 transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Check class="w-3.5 h-3.5" />
-          <span>{{ isProducedFromRecipe ? 'บันทึกการผลิต (แบบร่าง)' : 'บันทึกรับเข้าสต็อก (แบบร่าง)' }}</span>
+          <span>{{ isProducedFromRecipe ? 'บันทึกการผลิต' : 'บันทึกรับเข้าสต็อก' }}</span>
         </button>
       </div>
     </div>

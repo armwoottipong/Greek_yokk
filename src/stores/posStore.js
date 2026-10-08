@@ -632,7 +632,7 @@ export const usePosStore = defineStore('pos', {
             : null
 
           let actionType = diff > 0 ? 'produce' : diff < 0 ? 'adjust' : 'switch_lot'
-          let title = diff > 0 ? 'ปรับเพิ่มสต็อก (แบบร่าง)' : diff < 0 ? 'ปรับลดสต็อก (แบบร่าง)' : 'สลับล็อตใช้งาน (แบบร่าง)'
+          let title = diff > 0 ? 'ปรับเพิ่มสต็อก' : diff < 0 ? 'ปรับลดสต็อก' : 'สลับล็อตใช้งาน'
           let description = `${m.name} ${diff > 0 ? '+' : ''}${diff} ${m.unit}`
 
           if (matchingAction) {
@@ -1421,7 +1421,7 @@ export const usePosStore = defineStore('pos', {
       }
       this.stockDraftActions = []
       this.stockDraftSnapshot = JSON.parse(JSON.stringify(this.materials))
-      this.showToast('ยกเลิกแบบร่างทั้งหมดแล้ว คืนค่าสต็อกเดิมเรียบร้อย', 'info')
+      this.showToast('ยกเลิกรายการทั้งหมดแล้ว คืนค่าสต็อกเดิมเรียบร้อย', 'info')
     },
 
     clearAllData() {
@@ -1965,7 +1965,7 @@ export const usePosStore = defineStore('pos', {
           materialId: mat.id,
           materialName: mat.name,
           materialEmoji: mat.emoji,
-          title: 'รับเข้าสต็อก (แบบร่าง)',
+          title: 'รับเข้าสต็อก',
           description: `รับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit}${actionDescSuffix}`,
           delta: addQty,
           unit: mat.unit,
@@ -1973,7 +1973,7 @@ export const usePosStore = defineStore('pos', {
         })
         this.reconcileMaterialDraft(mat.id)
         if (this.hasStockDrafts) {
-          this.showToast(`เพิ่มแบบร่างรับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+          this.showToast(`เพิ่มรายการรับเข้า ${mat.name} +${addQty.toLocaleString()} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
         } else {
           this.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
         }
@@ -2111,7 +2111,7 @@ export const usePosStore = defineStore('pos', {
           materialId: mat.id,
           materialName: mat.name,
           materialEmoji: mat.emoji,
-          title: 'ปรับยอดนับจริง (แบบร่าง)',
+          title: 'ปรับยอดนับจริง',
           description: `ปรับสต็อก ${mat.name}: ${oldStock} -> ${mat.stock} ${mat.unit} (${diffStr})${lotNote}`,
           delta: diff,
           unit: mat.unit,
@@ -2119,7 +2119,7 @@ export const usePosStore = defineStore('pos', {
         })
         this.reconcileMaterialDraft(mat.id)
         if (this.hasStockDrafts) {
-          this.showToast(`เพิ่มแบบร่างปรับยอด ${mat.name} (${diffStr}) (รอยืนยันที่แถบด้านล่าง)`, 'info')
+          this.showToast(`เพิ่มรายการปรับยอด ${mat.name} (${diffStr}) (รอยืนยันที่แถบด้านล่าง)`, 'info')
         } else {
           this.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
         }
@@ -2278,7 +2278,7 @@ export const usePosStore = defineStore('pos', {
           materialId: target.id,
           materialName: target.name,
           materialEmoji: target.emoji,
-          title: 'ผลิตตามสูตร (แบบร่าง)',
+          title: 'ผลิตตามสูตร',
           description: `ผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} [หัก: ${summaryText}]`,
           delta: addedQty,
           unit: target.unit,
@@ -2288,7 +2288,7 @@ export const usePosStore = defineStore('pos', {
         this.reconcileMaterialDraft(target.id)
         subIngredients.forEach(item => this.reconcileMaterialDraft(item.materialId))
         if (this.hasStockDrafts) {
-          this.showToast(`เพิ่มแบบร่างผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+          this.showToast(`เพิ่มรายการผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
         } else {
           this.showToast(`สต็อก ${target.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
         }
@@ -2343,7 +2343,7 @@ export const usePosStore = defineStore('pos', {
           materialId: mat.id,
           materialName: mat.name,
           materialEmoji: mat.emoji,
-          title: 'สลับล็อตใช้งาน (แบบร่าง)',
+          title: 'สลับล็อตใช้งาน',
           description: `สลับล็อต ${mat.name} เป็นล็อตวันที่ ${formatThaiDate(targetLot?.receiveDate)}`,
           delta: 0,
           unit: mat.unit,
@@ -2363,7 +2363,7 @@ export const usePosStore = defineStore('pos', {
         })
         this.reconcileMaterialDraft(mat.id)
         if (this.hasStockDrafts) {
-          this.showToast(`เพิ่มแบบร่างสลับล็อต ${mat.name} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+          this.showToast(`เพิ่มรายการสลับล็อต ${mat.name} (รอยืนยันที่แถบด้านล่าง)`, 'info')
         } else {
           this.showToast(`ล็อตใช้งาน ${mat.name} คืนค่าเดิมเรียบร้อย`, 'info')
         }
@@ -2437,7 +2437,7 @@ export const usePosStore = defineStore('pos', {
           materialId: mat.id,
           materialName: mat.name,
           materialEmoji: mat.emoji,
-          title: 'ตัดทิ้งของเสีย (แบบร่าง)',
+          title: 'ตัดทิ้งของเสีย',
           description: `ตัดทิ้งของเสีย ${mat.name} -${qtyToWaste} ${mat.unit} (${reason})`,
           delta: -qtyToWaste,
           unit: mat.unit,
@@ -2445,7 +2445,7 @@ export const usePosStore = defineStore('pos', {
         })
         this.reconcileMaterialDraft(mat.id)
         if (this.hasStockDrafts) {
-          this.showToast(`เพิ่มแบบร่างตัดของเสีย ${mat.name} -${qtyToWaste} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
+          this.showToast(`เพิ่มรายการตัดของเสีย ${mat.name} -${qtyToWaste} ${mat.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
         } else {
           this.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
         }

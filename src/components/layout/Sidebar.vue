@@ -55,7 +55,7 @@
             v-if="store.draftInventoryValuationDiff !== 0"
             class="text-[9px] px-1.5 py-0.5 rounded font-bold transition-all"
             :class="store.draftInventoryValuationDiff > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'"
-            :title="`แบบร่าง: ${store.draftInventoryValuationDiff > 0 ? '+' : ''}฿${Math.round(store.draftInventoryValuationDiff).toLocaleString()} (หลังบันทึก ≈ ฿${Math.round(store.projectedInventoryValuation).toLocaleString()})`"
+            :title="`${store.draftInventoryValuationDiff > 0 ? '+' : ''}฿${Math.round(store.draftInventoryValuationDiff).toLocaleString()} (หลังบันทึก ≈ ฿${Math.round(store.projectedInventoryValuation).toLocaleString()})`"
           >
             {{ store.draftInventoryValuationDiff > 0 ? `+฿${Math.round(store.draftInventoryValuationDiff).toLocaleString()}` : `-฿${Math.round(Math.abs(store.draftInventoryValuationDiff)).toLocaleString()}` }}
           </span>

@@ -55,10 +55,10 @@
             v-if="store.draftInventoryValuationDiff !== 0"
             class="flex items-center gap-1 font-semibold text-[10px] px-1.5 py-0.5 rounded-md font-number"
             :class="store.draftInventoryValuationDiff > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-orange-50 text-orange-700 border border-orange-200/80'"
-            title="ส่วนต่างมูลค่าจากแบบร่างที่รอยืนยัน"
+            title="ส่วนต่างมูลค่าที่รอยืนยัน"
           >
             <span class="w-1.5 h-1.5 rounded-full" :class="store.draftInventoryValuationDiff > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-orange-500 animate-pulse'"></span>
-            <span>ร่าง: {{ store.draftInventoryValuationDiff > 0 ? `+฿${store.draftInventoryValuationDiff.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `-฿${Math.abs(store.draftInventoryValuationDiff).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }}</span>
+            <span>{{ store.draftInventoryValuationDiff > 0 ? `+฿${store.draftInventoryValuationDiff.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `-฿${Math.abs(store.draftInventoryValuationDiff).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }}</span>
           </span>
           <span v-else>💰</span>
         </div>
@@ -71,7 +71,7 @@
             v-if="store.draftInventoryValuationDiff !== 0"
             class="font-number font-medium shrink-0"
             :class="store.draftInventoryValuationDiff > 0 ? 'text-emerald-700' : 'text-orange-700'"
-            title="มูลค่าคลังหลังยืนยันบันทึกแบบร่าง"
+            title="มูลค่าคลังหลังยืนยันบันทึก"
           >
             หลังบันทึก: ≈ ฿{{ store.projectedInventoryValuation.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}
           </span>
@@ -340,9 +340,9 @@
                       v-if="getDraftDiff(mat) !== 0"
                       class="text-[11px] font-bold font-number tabular-nums my-0.5 leading-tight flex items-center justify-end gap-0.5"
                       :class="getDraftDiff(mat) > 0 ? 'text-emerald-600' : 'text-orange-500'"
-                      title="จำนวนในแบบร่าง (รอยืนยันขั้นตอนสุดท้าย)"
+                      title="จำนวนที่รอยืนยันขั้นตอนสุดท้าย"
                     >
-                      <span>ร่าง: {{ getDraftDiff(mat) > 0 ? `+${getDraftDiff(mat).toLocaleString()}` : getDraftDiff(mat).toLocaleString() }}</span>
+                      <span>{{ getDraftDiff(mat) > 0 ? `+${getDraftDiff(mat).toLocaleString()}` : getDraftDiff(mat).toLocaleString() }}</span>
                     </div>
 
                     <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number tabular-nums truncate">
@@ -747,7 +747,7 @@
           >
             <div class="flex items-center justify-between pb-2 border-b border-stone-800 text-xs">
               <span class="font-bold flex items-center gap-1.5 text-amber-400">
-                <span>📋</span> รายการแบบร่างที่รอยืนยัน ({{ store.stockDraftSummary.count }} รายการ)
+                <span>📋</span> รายการที่รอยืนยัน ({{ store.stockDraftSummary.count }} รายการ)
               </span>
               <span class="text-[11px] text-stone-400">ยังไม่บันทึกจริงจนกว่าจะกดปุ่มบันทึก</span>
             </div>
@@ -788,7 +788,7 @@
             <div class="min-w-0">
               <div class="flex items-center gap-2">
                 <h4 class="text-xs font-bold text-white flex items-center gap-1.5 truncate">
-                  <span>แบบร่างรอการบันทึก</span>
+                  <span>รายการรอการบันทึก</span>
                   <span class="px-1.5 py-0.2 rounded-md bg-amber-500/30 text-amber-300 font-number text-[11px] font-bold">
                     {{ store.stockDraftSummary.count }} รายการ
                   </span>
@@ -814,7 +814,7 @@
               type="button"
               @click="revertPendingChanges"
               class="px-3 py-2 rounded-xl text-xs font-medium text-stone-300 hover:text-white hover:bg-stone-800 transition-colors cursor-pointer flex items-center gap-1.5"
-              title="ยกเลิกแบบร่างทั้งหมด คืนค่าสต็อกเดิม"
+              title="ยกเลิกรายการทั้งหมด คืนค่าสต็อกเดิม"
             >
               <Undo2 class="w-3.5 h-3.5" />
               <span>ยกเลิก</span>
