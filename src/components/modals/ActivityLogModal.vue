@@ -4,88 +4,62 @@
     class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
     @click.self="close"
   >
-    <!-- Modal Container -->
+    <!-- Modal Card Container -->
     <div
-      :class="[
-        'bg-white rounded-2xl sm:rounded-3xl border border-stone-200/80 shadow-2xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150',
-        isItemMode ? 'max-w-2xl' : 'max-w-3xl'
-      ]"
+      class="bg-white rounded-3xl border border-stone-200/90 shadow-2xl w-full max-w-4xl h-[88vh] max-h-[820px] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       <!-- ======================================================= -->
-      <!-- 1. TOP HEADER & UNIFIED CLEAN TOOLBAR                   -->
+      <!-- 1. TOP HEADER & SEARCH / FILTER TOOLBAR                 -->
       <!-- ======================================================= -->
-      <div class="px-5 sm:px-6 py-4 border-b border-stone-100 bg-white shrink-0">
-        <!-- Row 1: Title & Main Quick Controls -->
-        <div class="flex items-center justify-between gap-3">
-          <!-- Case A: Item Mode Title -->
-          <div v-if="isItemMode" class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-2xl bg-[#FAF9F6] border border-stone-200/60 flex items-center justify-center text-2xl shadow-2xs shrink-0">
-              {{ activeTargetMaterial?.emoji || '📦' }}
+      <div class="px-6 py-4 border-b border-stone-100 bg-white shrink-0">
+        <div class="flex items-center justify-between gap-4">
+          <!-- Left: Title & Mode Context -->
+          <div class="flex items-center gap-3.5 min-w-0 flex-1">
+            <!-- Icon Avatar -->
+            <div
+              class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-2xs border"
+              :class="isItemMode ? 'bg-[#FAF9F6] border-stone-200/60' : 'bg-amber-50 text-amber-900 border-amber-200/60'"
+            >
+              {{ isItemMode ? (activeTargetMaterial?.emoji || '📦') : isStockMode ? '📦' : '📜' }}
             </div>
+
+            <!-- Title & Count inline -->
             <div class="min-w-0">
               <div class="flex items-center gap-2">
-                <h3 class="text-sm sm:text-base font-bold text-stone-900 truncate">
-                  {{ activeTargetMaterial?.name }}
+                <h3 class="text-sm sm:text-base font-bold text-stone-900 truncate tracking-tight">
+                  {{ isItemMode ? activeTargetMaterial?.name : isStockMode ? 'ประวัติสต็อก (Stock History)' : 'ประวัติกิจกรรมระบบ' }}
                 </h3>
-                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 shrink-0">
-                  {{ activeTargetMaterial?.id }}
+                <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-number font-semibold whitespace-nowrap shrink-0">
+                  {{ filteredLogs.length }} รายการ
                 </span>
               </div>
-              <p class="text-xs text-stone-500 mt-0.5 flex items-center gap-2">
-                <span>คงเหลือปัจจุบัน: <strong class="text-stone-900 font-number">{{ formatNum(activeTargetMaterial?.stock) }} {{ activeTargetMaterial?.unit }}</strong></span>
-                <span v-if="activeTargetMaterial?.packUnit && activeTargetMaterial?.packSize > 1" class="text-stone-400">
-                  (≈ {{ ((activeTargetMaterial?.stock || 0) / activeTargetMaterial?.packSize).toFixed(1) }} {{ activeTargetMaterial?.packUnit }})
-                </span>
-              </p>
-            </div>
-          </div>
-
-          <!-- Case B: Stock Mode Title -->
-          <div v-else-if="isStockMode" class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-900 border border-amber-200/60 flex items-center justify-center text-xl shadow-2xs shrink-0">
-              📦
-            </div>
-            <div class="min-w-0">
-              <h3 class="text-sm sm:text-base font-bold text-stone-900 flex items-center gap-2">
-                <span>ประวัติสต็อก (Stock History)</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-number">
-                  {{ filteredLogs.length }} รายการ
-                </span>
-              </h3>
               <p class="text-xs text-stone-400 mt-0.5 truncate">
-                บันทึกการรับเข้า ตรวจนับสต็อกจริง ผลิต และของเสียทั้งหมด
+                <template v-if="isItemMode">
+                  สต็อกปัจจุบัน: <strong class="text-stone-800 font-number">{{ formatNum(activeTargetMaterial?.stock) }} {{ activeTargetMaterial?.unit }}</strong>
+                  <span v-if="activeTargetMaterial?.packUnit && activeTargetMaterial?.packSize > 1" class="text-stone-400 ml-1">
+                    (≈ {{ ((activeTargetMaterial?.stock || 0) / activeTargetMaterial?.packSize).toFixed(1) }} {{ activeTargetMaterial?.packUnit }})
+                  </span>
+                </template>
+                <template v-else-if="isStockMode">
+                  บันทึกการรับเข้า ตรวจนับสต็อกจริง ผลิต และของเสีย
+                </template>
+                <template v-else>
+                  บันทึกความเคลื่อนไหวคลังสต็อก แคชเชียร์ และระบบ
+                </template>
               </p>
             </div>
           </div>
 
-          <!-- Case C: Global Overview Title -->
-          <div v-else class="flex items-center gap-3 min-w-0">
-            <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-900 border border-amber-200/60 flex items-center justify-center text-xl shadow-2xs shrink-0">
-              📜
-            </div>
-            <div class="min-w-0">
-              <h3 class="text-sm sm:text-base font-bold text-stone-900 flex items-center gap-2">
-                <span>ประวัติกิจกรรมระบบ (Activity Log)</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-number">
-                  {{ filteredLogs.length }} รายการ
-                </span>
-              </h3>
-              <p class="text-xs text-stone-400 mt-0.5 truncate">
-                ตรวจสอบประวัติการรับเข้า นับสต็อก ออเดอร์ขาย และกิจกรรมระบบ
-              </p>
-            </div>
-          </div>
-
-          <!-- Right Action Strip: Search, Filter Popover Trigger, CSV, Close -->
-          <div class="flex items-center gap-2 shrink-0 relative">
-            <!-- Search Input (Clean and always visible) -->
-            <div class="relative w-36 sm:w-56">
-              <Search class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <!-- Right: Search, Filter Toggle, CSV Export, Close -->
+          <div class="flex items-center gap-2 shrink-0">
+            <!-- Search Input -->
+            <div class="relative w-44 sm:w-60">
+              <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="ค้นหาประวัติ..."
-                class="soft-input w-full pl-8 pr-7 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium"
+                placeholder="ค้นหาในประวัติ..."
+                class="soft-input w-full pl-8.5 pr-7 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium border border-stone-200"
               />
               <button
                 v-if="searchQuery"
@@ -96,43 +70,43 @@
               </button>
             </div>
 
-            <!-- Filter Popover Trigger Button -->
+            <!-- Filter Popover Button & Container -->
             <div class="relative">
               <button
                 type="button"
                 @click="toggleFilterPopover"
-                class="relative p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0"
+                class="h-8.5 px-3 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0"
                 :class="[
                   showFilterPopover
                     ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
                     : hasActiveFilter
-                      ? 'bg-amber-50 text-amber-900 border-amber-300 font-semibold'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border-transparent hover:text-stone-900'
+                      ? 'bg-amber-50 text-amber-900 border-amber-300'
+                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200/80 border-stone-200/60'
                 ]"
                 title="เปิดแผงตัวกรอง (Filter)"
               >
-                <Filter class="w-4 h-4" />
-                <!-- Active Filter Count Dot/Badge -->
+                <SlidersHorizontal class="w-3.5 h-3.5 text-amber-800" />
+                <span>ตัวกรอง</span>
                 <span
                   v-if="activeFilterCount > 0"
-                  class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500 text-white shadow-2xs font-number"
+                  class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-600 text-white font-number ml-0.5"
                 >
                   {{ activeFilterCount }}
                 </span>
               </button>
 
               <!-- ======================================================= -->
-              <!-- FLOATING FILTER POPOVER                                 -->
+              <!-- FLOATING FILTER POPOVER (Clean & Compact)              -->
               <!-- ======================================================= -->
               <div
                 v-if="showFilterPopover"
                 v-click-outside="closeFilterPopover"
-                class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-stone-200 shadow-2xl z-30 p-4 space-y-4 animate-in fade-in zoom-in-95 duration-100"
+                class="absolute right-0 top-full mt-2 w-80 sm:w-[380px] bg-white rounded-2xl border border-stone-200 shadow-2xl z-40 p-4 space-y-3.5 animate-in fade-in zoom-in-95 duration-100"
               >
                 <!-- Popover Header -->
                 <div class="flex items-center justify-between pb-2 border-b border-stone-100">
                   <div class="flex items-center gap-1.5 font-bold text-xs text-stone-900">
-                    <Filter class="w-3.5 h-3.5 text-amber-800" />
+                    <SlidersHorizontal class="w-3.5 h-3.5 text-amber-800" />
                     <span>ตัวกรองประวัติ (Filter)</span>
                   </div>
                   <div class="flex items-center gap-2">
@@ -147,37 +121,32 @@
                     <button
                       type="button"
                       @click="closeFilterPopover"
-                      class="text-stone-400 hover:text-stone-700 p-1 rounded-lg hover:bg-stone-100"
+                      class="text-stone-400 hover:text-stone-700 p-1 rounded-lg hover:bg-stone-100 cursor-pointer"
                     >
                       <X class="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
-                <!-- Section 1: Module Selector (Only for Global Overview) -->
-                <div v-if="isGlobalMode" class="space-y-1.5">
-                  <label class="text-[11px] font-semibold text-stone-500 block">หมวดหมู่ระบบ (Module)</label>
-                  <div class="grid grid-cols-2 gap-1.5 text-xs">
-                    <button
-                      type="button"
-                      v-for="m in moduleOptions"
-                      :key="m.id"
-                      @click="activeModule = m.id"
-                      class="px-2.5 py-1.5 rounded-xl border text-left font-medium transition-all cursor-pointer flex items-center gap-1.5 truncate text-[11px]"
-                      :class="activeModule === m.id ? 'bg-stone-900 text-white border-stone-900 shadow-2xs font-semibold' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'"
-                    >
-                      <span>{{ m.icon }}</span>
-                      <span class="truncate">{{ m.label }}</span>
-                    </button>
-                  </div>
+                <!-- Section 1: Module Selector (Only for Global Mode) -->
+                <div v-if="isGlobalMode" class="space-y-1">
+                  <label class="text-[11px] font-semibold text-stone-500 block">หมวดหมู่ระบบ</label>
+                  <select
+                    v-model="activeModule"
+                    class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 border border-stone-200"
+                  >
+                    <option v-for="m in moduleOptions" :key="m.id" :value="m.id">
+                      {{ m.icon }} {{ m.label }}
+                    </option>
+                  </select>
                 </div>
 
                 <!-- Section 2: Material Selector (When in Stock Mode) -->
-                <div v-if="isStockMode" class="space-y-1.5">
-                  <label class="text-[11px] font-semibold text-stone-500 block">เลือกวัตถุดิบเฉพาะ</label>
+                <div v-if="isStockMode" class="space-y-1">
+                  <label class="text-[11px] font-semibold text-stone-500 block">เลือกเฉพาะวัตถุดิบ</label>
                   <select
                     v-model="selectedMaterialId"
-                    class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-medium text-stone-700 border border-stone-200"
+                    class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 border border-stone-200"
                   >
                     <option value="all">📦 ทุกวัตถุดิบ</option>
                     <option v-for="m in store.materials" :key="m.id" :value="m.id">
@@ -187,8 +156,8 @@
                 </div>
 
                 <!-- Section 3: Action Type Filter -->
-                <div class="space-y-1.5">
-                  <label class="text-[11px] font-semibold text-stone-500 block">ประเภทการเคลื่อนไหว (Action)</label>
+                <div class="space-y-1">
+                  <label class="text-[11px] font-semibold text-stone-500 block">ประเภทกิจกรรม (Action)</label>
                   <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
                     <button
                       type="button"
@@ -204,16 +173,16 @@
                   </div>
                 </div>
 
-                <!-- Section 4: Interactive Date Range Calendar -->
-                <div class="space-y-1.5">
-                  <label class="text-[11px] font-semibold text-stone-500 block">ช่วงวันที่ (Date Range)</label>
+                <!-- Section 4: Pure Calendar Date Range (No Presets) -->
+                <div class="space-y-1">
+                  <label class="text-[11px] font-semibold text-stone-500 block">เลือกช่วงวันที่บนปฏิทิน</label>
                   <DateRangeCalendar
                     v-model:startDate="filterStartDate"
                     v-model:endDate="filterEndDate"
                   />
                 </div>
 
-                <!-- Popover Footer Action -->
+                <!-- Popover Footer -->
                 <div class="pt-2 border-t border-stone-100 flex items-center justify-between">
                   <span class="text-[11px] text-stone-400 font-number">
                     พบ {{ filteredLogs.length }} รายการ
@@ -223,7 +192,7 @@
                     @click="closeFilterPopover"
                     class="px-4 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                   >
-                    ดูผลลัพธ์
+                    เสร็จสิ้น
                   </button>
                 </div>
               </div>
@@ -234,10 +203,10 @@
               type="button"
               @click="exportCsv"
               :disabled="filteredLogs.length === 0"
-              class="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-stone-200 text-stone-700 hover:text-stone-950 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
+              class="h-8.5 px-3 rounded-xl border border-stone-200 text-stone-700 hover:text-stone-950 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
               title="ดาวน์โหลดประวัติเป็นไฟล์ CSV"
             >
-              <Download class="w-4 h-4 text-stone-500" />
+              <Download class="w-3.5 h-3.5 text-stone-500" />
               <span class="hidden sm:inline">CSV</span>
             </button>
 
@@ -245,52 +214,52 @@
             <button
               type="button"
               @click="close"
-              class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer shrink-0"
+              class="h-8.5 w-8.5 rounded-xl hover:bg-stone-100 text-stone-400 hover:text-stone-700 flex items-center justify-center transition-colors cursor-pointer shrink-0"
               title="ปิดหน้าต่าง"
             >
-              <X class="w-5 h-5" />
+              <X class="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <!-- Row 2: Active Filter Pills (Shown only when filters are active) -->
-        <div v-if="hasActiveFilter" class="flex items-center gap-1.5 flex-wrap pt-2.5 mt-2 border-t border-stone-100 text-[11px]">
-          <span class="text-stone-400 text-[10px] font-semibold">ตัวกรองที่เลือก:</span>
+        <!-- Row 2: Active Filter Chips Strip (Clean & Compact) -->
+        <div v-if="hasActiveFilter" class="flex items-center gap-1.5 flex-wrap pt-2.5 mt-2.5 border-t border-stone-100 text-[11px]">
+          <span class="text-stone-400 text-[10px] font-semibold">ตัวกรอง:</span>
 
           <!-- Module Chip -->
           <span
             v-if="isGlobalMode && activeModule !== 'all'"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-100 text-stone-800 font-medium"
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-stone-100 text-stone-800 font-medium"
           >
             <span>{{ getModuleLabel(activeModule) }}</span>
-            <button @click="activeModule = 'all'" class="hover:text-rose-600"><X class="w-3 h-3" /></button>
+            <button @click="activeModule = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
           </span>
 
           <!-- Material Chip -->
           <span
             v-if="isStockMode && selectedMaterialId !== 'all'"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-100 text-stone-800 font-medium"
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-stone-100 text-stone-800 font-medium"
           >
             <span>{{ getMaterialName(selectedMaterialId) }}</span>
-            <button @click="selectedMaterialId = 'all'" class="hover:text-rose-600"><X class="w-3 h-3" /></button>
+            <button @click="selectedMaterialId = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
           </span>
 
           <!-- Action Chip -->
           <span
             v-if="selectedActionFilter !== 'all'"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium"
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium"
           >
             <span>{{ getActionLabel(selectedActionFilter) }}</span>
-            <button @click="selectedActionFilter = 'all'" class="hover:text-rose-600"><X class="w-3 h-3" /></button>
+            <button @click="selectedActionFilter = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
           </span>
 
           <!-- Date Range Chip -->
           <span
             v-if="filterStartDate || filterEndDate"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium"
+            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium"
           >
             <span>📅 {{ formatDateRangeLabel(filterStartDate, filterEndDate) }}</span>
-            <button @click="clearDateRange" class="hover:text-rose-600"><X class="w-3 h-3" /></button>
+            <button @click="clearDateRange" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
           </span>
 
           <!-- Clear All -->
@@ -307,7 +276,7 @@
       <!-- ======================================================= -->
       <!-- 2. LOG LIST (Grouped by Date, Minimalist Clean Cards)   -->
       <!-- ======================================================= -->
-      <div class="overflow-y-auto flex-1 p-4 sm:p-6 space-y-6 text-xs bg-[#FAF9F6]">
+      <div class="overflow-y-auto flex-1 px-6 py-5 space-y-6 text-xs bg-[#FAF9F6]">
         <!-- Empty State -->
         <div v-if="filteredLogs.length === 0" class="py-16 text-center bg-white rounded-3xl border border-stone-200/60 p-6 shadow-2xs">
           <div class="text-4xl mb-3">📜</div>
@@ -333,34 +302,32 @@
           class="space-y-2.5"
         >
           <!-- Date Group Sticky Header -->
-          <div class="flex items-center justify-between sticky top-0 z-10 py-1 bg-[#FAF9F6]/90 backdrop-blur-xs">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-amber-700"></span>
-              <h4 class="text-xs font-bold text-stone-800 tracking-tight">
-                {{ group.dateLabel }}
-              </h4>
-            </div>
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-200/70 text-stone-600 font-number font-semibold">
+          <div class="flex items-center gap-3 sticky top-0 z-10 py-1 bg-[#FAF9F6]/95 backdrop-blur-xs">
+            <span class="text-xs font-bold text-stone-900 tracking-tight">
+              📅 {{ group.dateLabel }}
+            </span>
+            <div class="h-px flex-1 bg-stone-200/70"></div>
+            <span class="text-[11px] font-number font-semibold text-stone-400">
               {{ group.items.length }} รายการ
             </span>
           </div>
 
-          <!-- Log Item Cards in this group -->
+          <!-- Cards in this group -->
           <div class="space-y-2">
             <div
               v-for="log in group.items"
               :key="log.id"
-              class="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/70 shadow-2xs hover:border-stone-300 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              class="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/70 shadow-2xs hover:border-stone-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
             >
-              <!-- Left Content Area -->
+              <!-- Left Area -->
               <div class="flex items-start gap-3 min-w-0 flex-1">
-                <!-- Emoji Avatar -->
-                <div class="w-9 h-9 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-lg shrink-0 mt-0.5">
+                <!-- Emoji Box -->
+                <div class="w-9 h-9 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-base shrink-0 mt-0.5">
                   {{ log.targetEmoji || getActionIcon(log.action) }}
                 </div>
 
                 <div class="min-w-0 flex-1 space-y-1">
-                  <!-- Row 1: Action Badge & Target Title -->
+                  <!-- Row 1: Action Badge & Target Name & User -->
                   <div class="flex flex-wrap items-center gap-1.5">
                     <!-- Action Pill -->
                     <span
@@ -376,7 +343,7 @@
                       {{ log.targetName }}
                     </span>
 
-                    <!-- Operator -->
+                    <!-- User/Operator -->
                     <span v-if="log.user" class="text-[10px] text-stone-400 shrink-0">
                       • {{ log.user }}
                     </span>
@@ -384,13 +351,13 @@
 
                   <!-- Row 2: Stock Transition / Description -->
                   <p class="text-xs text-stone-700 leading-relaxed">
-                    <span v-if="hasStockTransition(log)" class="font-medium text-stone-500">
+                    <span v-if="hasStockTransition(log)" class="font-semibold text-stone-900 font-number">
                       {{ formatNum(log.beforeStock) }} ➔ <strong class="text-stone-900">{{ formatNum(log.afterStock) }}</strong> {{ log.unit || '' }}:
                     </span>
                     <span class="text-stone-600 ml-0.5">{{ log.description || log.note || '' }}</span>
                   </p>
 
-                  <!-- Row 3: Meta Badges (Reason, Expiry, Dates, Notes) -->
+                  <!-- Row 3: Reason, Dates & Note -->
                   <div v-if="log.reason || log.receiveDate || log.expiryDate || log.note" class="flex flex-wrap items-center gap-1.5 pt-0.5 text-[10px]">
                     <span
                       v-if="log.receiveDate"
@@ -422,19 +389,19 @@
                 </div>
               </div>
 
-              <!-- Right Content Area: Delta Badge & Timestamp -->
+              <!-- Right Area: Delta & Timestamp -->
               <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1.5 shrink-0 pl-1 border-t sm:border-t-0 pt-2 sm:pt-0 border-stone-100">
                 <!-- Delta Badge -->
                 <div v-if="hasDelta(log)" class="font-number font-bold text-xs">
                   <span
                     v-if="Number(log.delta) > 0"
-                    class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200/50"
+                    class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/50"
                   >
                     +{{ formatNum(log.delta) }} {{ log.unit || '' }}
                   </span>
                   <span
                     v-else-if="Number(log.delta) < 0"
-                    class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200/50"
+                    class="px-2.5 py-1 rounded-xl bg-rose-50 text-rose-700 border border-rose-200/50"
                   >
                     {{ formatNum(log.delta) }} {{ log.unit || '' }}
                   </span>
@@ -491,7 +458,7 @@ import {
   X,
   Search,
   Download,
-  Filter
+  SlidersHorizontal
 } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -527,7 +494,7 @@ const vClickOutside = {
 // Filter States
 const searchQuery = ref('')
 const activeModule = ref('all') // 'all' | 'stock' | 'pos' | 'menu' | 'system'
-const selectedActionFilter = ref('all') // 'all' | 'stock_in' | 'adjust' | 'produce' | 'waste' | 'sale_deduct' etc.
+const selectedActionFilter = ref('all') // 'all' | 'stock_in' | 'adjust' | 'produce' | 'waste' | 'switch_lot' etc.
 const selectedMaterialId = ref('all')
 const filterStartDate = ref(null) // 'YYYY-MM-DD'
 const filterEndDate = ref(null) // 'YYYY-MM-DD'
@@ -748,9 +715,9 @@ const groupedLogs = computed(() => {
     if (!groups[dateKey]) {
       let label = ''
       if (dateKey === todayStr) {
-        label = 'วันนี้'
+        label = `วันนี้ (${formatThaiDate(dateKey, true)})`
       } else if (dateKey === yestStr) {
-        label = 'เมื่อวาน'
+        label = `เมื่อวาน (${formatThaiDate(dateKey, true)})`
       } else if (dateKey !== 'unknown') {
         label = formatThaiDate(dateKey, true)
       } else {

@@ -1,134 +1,79 @@
 <template>
-  <div class="space-y-3 select-none">
-    <!-- Quick Range Preset Buttons -->
-    <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
+  <div class="select-none bg-stone-50/70 rounded-2xl border border-stone-200/80 p-3">
+    <!-- Calendar Header: Month & Year Navigator -->
+    <div class="flex items-center justify-between mb-2 px-0.5">
       <button
         type="button"
-        @click="selectPreset('all')"
-        class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium"
-        :class="!startDate && !endDate ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-200'"
+        @click="prevMonth"
+        class="w-7 h-7 rounded-lg hover:bg-stone-200/70 text-stone-600 hover:text-stone-900 transition-colors flex items-center justify-center cursor-pointer"
+        title="เดือนก่อนหน้า"
       >
-        ทุกช่วงเวลา
+        <ChevronLeft class="w-4 h-4" />
       </button>
+
+      <div class="flex items-center gap-1.5 font-bold text-xs text-stone-900 tracking-tight">
+        <span>{{ monthNames[currentMonth] }}</span>
+        <span class="font-number">{{ currentYear + 543 }}</span>
+      </div>
+
       <button
         type="button"
-        @click="selectPreset('today')"
-        class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium"
-        :class="isPresetActive('today') ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-200'"
+        @click="nextMonth"
+        class="w-7 h-7 rounded-lg hover:bg-stone-200/70 text-stone-600 hover:text-stone-900 transition-colors flex items-center justify-center cursor-pointer"
+        title="เดือนถัดไป"
       >
-        วันนี้
-      </button>
-      <button
-        type="button"
-        @click="selectPreset('yesterday')"
-        class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium"
-        :class="isPresetActive('yesterday') ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-200'"
-      >
-        เมื่อวาน
-      </button>
-      <button
-        type="button"
-        @click="selectPreset('7days')"
-        class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium"
-        :class="isPresetActive('7days') ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-200'"
-      >
-        7 วันล่าสุด
-      </button>
-      <button
-        type="button"
-        @click="selectPreset('30days')"
-        class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium"
-        :class="isPresetActive('30days') ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-200'"
-      >
-        30 วันล่าสุด
-      </button>
-      <button
-        type="button"
-        @click="selectPreset('thisMonth')"
-        class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium"
-        :class="isPresetActive('thisMonth') ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-200'"
-      >
-        เดือนนี้
+        <ChevronRight class="w-4 h-4" />
       </button>
     </div>
 
-    <!-- Calendar Card Container -->
-    <div class="p-3 bg-stone-50/80 rounded-2xl border border-stone-200/80">
-      <!-- Calendar Header: Month & Year Navigator -->
-      <div class="flex items-center justify-between mb-2.5 px-1">
+    <!-- Day of Week Headers -->
+    <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-stone-400 mb-1">
+      <span v-for="d in dayNames" :key="d" :class="d === 'อา.' ? 'text-rose-400' : ''">{{ d }}</span>
+    </div>
+
+    <!-- Calendar Days Grid -->
+    <div class="grid grid-cols-7 gap-y-1 gap-x-0.5 text-center text-xs">
+      <div
+        v-for="(cell, idx) in calendarDays"
+        :key="idx"
+        class="relative p-0.5"
+        :class="getRangeBackgroundClass(cell.dateString)"
+      >
         <button
           type="button"
-          @click="prevMonth"
-          class="p-1 rounded-lg hover:bg-stone-200 text-stone-600 hover:text-stone-900 transition-colors cursor-pointer"
-          title="เดือนก่อนหน้า"
+          @click="onDayClick(cell.dateString)"
+          :disabled="!cell.isCurrentMonth"
+          class="w-full h-7 rounded-lg flex items-center justify-center font-number font-medium text-xs transition-all cursor-pointer relative"
+          :class="[
+            getDayButtonClass(cell.dateString, cell.isCurrentMonth, cell.isToday)
+          ]"
         >
-          <ChevronLeft class="w-4 h-4" />
-        </button>
-
-        <div class="flex items-center gap-1.5 font-bold text-xs text-stone-800">
-          <span>{{ monthNames[currentMonth] }}</span>
-          <span class="font-number">{{ currentYear + 543 }} ({{ currentYear }})</span>
-        </div>
-
-        <button
-          type="button"
-          @click="nextMonth"
-          class="p-1 rounded-lg hover:bg-stone-200 text-stone-600 hover:text-stone-900 transition-colors cursor-pointer"
-          title="เดือนถัดไป"
-        >
-          <ChevronRight class="w-4 h-4" />
+          <span>{{ cell.day }}</span>
+          <span
+            v-if="cell.isToday && !isSelected(cell.dateString)"
+            class="w-1 h-1 rounded-full bg-amber-600 absolute bottom-0.5"
+          ></span>
         </button>
       </div>
+    </div>
 
-      <!-- Day of Week Headers -->
-      <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-stone-400 mb-1">
-        <span v-for="d in dayNames" :key="d" :class="d === 'อา.' ? 'text-rose-400' : ''">{{ d }}</span>
+    <!-- Footer Range Preview -->
+    <div class="mt-2.5 pt-2 border-t border-stone-200/60 flex items-center justify-between text-[11px] text-stone-600">
+      <div class="flex items-center gap-1.5 truncate">
+        <Calendar class="w-3.5 h-3.5 text-stone-400 shrink-0" />
+        <span class="font-medium truncate text-stone-700">
+          {{ formatRangeDisplay() }}
+        </span>
       </div>
 
-      <!-- Calendar Days Grid -->
-      <div class="grid grid-cols-7 gap-y-1 gap-x-0.5 text-center text-xs">
-        <div
-          v-for="(cell, idx) in calendarDays"
-          :key="idx"
-          class="relative p-0.5"
-          :class="getRangeBackgroundClass(cell.dateString)"
-        >
-          <button
-            type="button"
-            @click="onDayClick(cell.dateString)"
-            :disabled="!cell.isCurrentMonth"
-            class="w-full h-7.5 rounded-lg flex items-center justify-center font-number font-medium text-xs transition-all cursor-pointer relative"
-            :class="[
-              getDayButtonClass(cell.dateString, cell.isCurrentMonth, cell.isToday)
-            ]"
-          >
-            <span>{{ cell.day }}</span>
-            <span
-              v-if="cell.isToday && !isSelected(cell.dateString)"
-              class="w-1 h-1 rounded-full bg-amber-600 absolute bottom-1"
-            ></span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Footer Range Preview -->
-      <div class="mt-2.5 pt-2 border-t border-stone-200/60 flex items-center justify-between text-[11px] text-stone-600">
-        <div class="flex items-center gap-1.5 truncate">
-          <Calendar class="w-3.5 h-3.5 text-stone-400 shrink-0" />
-          <span class="font-medium truncate">
-            {{ formatRangeDisplay() }}
-          </span>
-        </div>
-
-        <button
-          v-if="startDate || endDate"
-          type="button"
-          @click="clearRange"
-          class="text-rose-600 hover:text-rose-800 hover:underline shrink-0 font-medium cursor-pointer"
-        >
-          ล้างวันที่
-        </button>
-      </div>
+      <button
+        v-if="startDate || endDate"
+        type="button"
+        @click="clearRange"
+        class="text-rose-600 hover:text-rose-800 hover:underline shrink-0 font-medium cursor-pointer text-[11px] ml-2"
+      >
+        ล้างวันที่
+      </button>
     </div>
   </div>
 </template>
@@ -240,12 +185,12 @@ function toDateString(date) {
 
 function onDayClick(dateString) {
   if (!props.startDate || (props.startDate && props.endDate)) {
-    // Start fresh selection
+    // Start fresh selection: pick start date
     emit('update:startDate', dateString)
     emit('update:endDate', null)
     emit('change', { startDate: dateString, endDate: null })
   } else if (props.startDate && !props.endDate) {
-    // Complete range
+    // Complete range: pick end date
     if (dateString < props.startDate) {
       emit('update:startDate', dateString)
       emit('update:endDate', props.startDate)
@@ -272,10 +217,10 @@ function getRangeBackgroundClass(dateStr) {
     return 'bg-amber-100/70 text-amber-950'
   }
   if (dateStr === props.startDate && props.endDate) {
-    return 'bg-amber-100/70 rounded-l-xl'
+    return 'bg-amber-100/70 rounded-l-lg'
   }
   if (dateStr === props.endDate && props.startDate) {
-    return 'bg-amber-100/70 rounded-r-xl'
+    return 'bg-amber-100/70 rounded-r-lg'
   }
   return ''
 }
@@ -309,112 +254,12 @@ function clearRange() {
   emit('change', { startDate: null, endDate: null })
 }
 
-function selectPreset(type) {
-  const now = new Date()
-  if (type === 'all') {
-    clearRange()
-    return
-  }
-
-  if (type === 'today') {
-    const dStr = toDateString(now)
-    emit('update:startDate', dStr)
-    emit('update:endDate', dStr)
-    emit('change', { startDate: dStr, endDate: dStr })
-    currentYear.value = now.getFullYear()
-    currentMonth.value = now.getMonth()
-    return
-  }
-
-  if (type === 'yesterday') {
-    const yest = new Date(now)
-    yest.setDate(now.getDate() - 1)
-    const dStr = toDateString(yest)
-    emit('update:startDate', dStr)
-    emit('update:endDate', dStr)
-    emit('change', { startDate: dStr, endDate: dStr })
-    currentYear.value = yest.getFullYear()
-    currentMonth.value = yest.getMonth()
-    return
-  }
-
-  if (type === '7days') {
-    const start = new Date(now)
-    start.setDate(now.getDate() - 6)
-    const sStr = toDateString(start)
-    const eStr = toDateString(now)
-    emit('update:startDate', sStr)
-    emit('update:endDate', eStr)
-    emit('change', { startDate: sStr, endDate: eStr })
-    currentYear.value = now.getFullYear()
-    currentMonth.value = now.getMonth()
-    return
-  }
-
-  if (type === '30days') {
-    const start = new Date(now)
-    start.setDate(now.getDate() - 29)
-    const sStr = toDateString(start)
-    const eStr = toDateString(now)
-    emit('update:startDate', sStr)
-    emit('update:endDate', eStr)
-    emit('change', { startDate: sStr, endDate: eStr })
-    currentYear.value = now.getFullYear()
-    currentMonth.value = now.getMonth()
-    return
-  }
-
-  if (type === 'thisMonth') {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1)
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    const sStr = toDateString(start)
-    const eStr = toDateString(end)
-    emit('update:startDate', sStr)
-    emit('update:endDate', eStr)
-    emit('change', { startDate: sStr, endDate: eStr })
-    currentYear.value = now.getFullYear()
-    currentMonth.value = now.getMonth()
-    return
-  }
-}
-
-function isPresetActive(type) {
-  const now = new Date()
-  const todayStr = toDateString(now)
-
-  if (type === 'today') {
-    return props.startDate === todayStr && props.endDate === todayStr
-  }
-  if (type === 'yesterday') {
-    const yest = new Date(now)
-    yest.setDate(now.getDate() - 1)
-    const yStr = toDateString(yest)
-    return props.startDate === yStr && props.endDate === yStr
-  }
-  if (type === '7days') {
-    const start = new Date(now)
-    start.setDate(now.getDate() - 6)
-    return props.startDate === toDateString(start) && props.endDate === todayStr
-  }
-  if (type === '30days') {
-    const start = new Date(now)
-    start.setDate(now.getDate() - 29)
-    return props.startDate === toDateString(start) && props.endDate === todayStr
-  }
-  if (type === 'thisMonth') {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1)
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    return props.startDate === toDateString(start) && props.endDate === toDateString(end)
-  }
-  return false
-}
-
 function formatRangeDisplay() {
   if (!props.startDate && !props.endDate) {
-    return 'แสดงทุกช่วงเวลา'
+    return 'คลิกเลือกวันที่เริ่มต้นบนปฏิทิน'
   }
   if (props.startDate && !props.endDate) {
-    return `ตั้งแต่วันที่ ${formatDateLabel(props.startDate)} (เลือกวันสิ้นสุด...)`
+    return `${formatDateLabel(props.startDate)} ➔ คลิกเลือกวันสิ้นสุด...`
   }
   if (props.startDate === props.endDate) {
     return `${formatDateLabel(props.startDate)}`
