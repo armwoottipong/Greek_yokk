@@ -404,16 +404,21 @@ function submitStocktake() {
   }
 
   // Stage changes via draft system
-  changedItems.forEach(item => {
-    store.adjustMaterialStock({
-      materialId: item.materialId,
-      newStock: item.newStock,
-      reason: 'ตรวจนับสต็อกปิดร้าน (Stocktake)',
-      note: `ตรวจนับสต็อกปิดร้าน (ปรับแก้ ${item.diff > 0 ? '+' : ''}${item.diff.toLocaleString()})`
-    }, true)
-  })
+  if (typeof store.batchStocktake === 'function') {
+    store.batchStocktake(changedItems, true)
+  } else {
+    changedItems.forEach(item => {
+      store.stockAdjust(
+        item.materialId,
+        item.newStock,
+        'ตรวจนับสต็อกปิดร้าน (Stocktake)',
+        `ตรวจนับสต็อกปิดร้าน (ปรับแก้ ${item.diff > 0 ? '+' : ''}${item.diff.toLocaleString()})`,
+        true
+      )
+    })
+    store.showToast(`เพิ่มผลตรวจนับ ${changedItems.length} รายการ เข้าแบบร่างเรียบร้อย (รอยืนยันที่แถบด้านล่าง)`, 'success')
+  }
 
-  store.showToast(`เพิ่มผลตรวจนับ ${changedItems.length} รายการ เข้าแบบร่างเรียบร้อย (รอยืนยันที่แถบด้านล่าง)`, 'success')
   close()
 }
 </script>

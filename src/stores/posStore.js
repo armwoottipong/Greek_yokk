@@ -2074,7 +2074,7 @@ export const usePosStore = defineStore('pos', {
       }
     },
 
-    stockAdjust(matId, newActualQty, reason = '', note = '', asDraft = true, targetLotId = null) {
+    stockAdjust(matId, newActualQty, reason = '', note = '', asDraft = true, targetLotId = null, silent = false) {
       const mat = this.materials.find(m => m.id === matId)
       if (!mat) return
 
@@ -2200,15 +2200,47 @@ export const usePosStore = defineStore('pos', {
           log: logPayload
         })
         this.reconcileMaterialDraft(mat.id)
-        if (this.hasStockDrafts) {
-          this.showToast(`เพิ่มรายการปรับยอด ${mat.name} (${diffStr}) (รอยืนยันที่แถบด้านล่าง)`, 'info')
-        } else {
-          this.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
+        if (!silent) {
+          if (this.hasStockDrafts) {
+            this.showToast(`เพิ่มรายการปรับยอด ${mat.name} (${diffStr}) (รอยืนยันที่แถบด้านล่าง)`, 'info')
+          } else {
+            this.showToast(`สต็อก ${mat.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
+          }
         }
       } else {
         this.persistLocal()
         this.addActivityLog(logPayload)
-        this.showToast(`ปรับยอด ${mat.name} เป็น ${mat.stock} ${mat.unit} (${diffStr})`, 'info')
+        if (!silent) {
+          this.showToast(`ปรับยอด ${mat.name} เป็น ${mat.stock} ${mat.unit} (${diffStr})`, 'info')
+        }
+      }
+    },
+
+    adjustMaterialStock(payloadOrMatId, ...rest) {
+      if (typeof payloadOrMatId === 'object' && payloadOrMatId !== null) {
+        const { materialId, newStock, reason = 'ตรวจนับสต็อกปิดร้าน (Stocktake)', note = '', asDraft = true, targetLotId = null, silent = false } = payloadOrMatId
+        return this.stockAdjust(materialId, newStock, reason, note, asDraft, targetLotId, silent)
+      }
+      return this.stockAdjust(payloadOrMatId, ...rest)
+    },
+
+    batchStocktake(items = [], asDraft = true) {
+      if (!items || items.length === 0) return
+      items.forEach(item => {
+        this.stockAdjust(
+          item.materialId,
+          item.newStock,
+          item.reason || 'ตรวจนับสต็อกปิดร้าน (Stocktake)',
+          item.note || `ตรวจนับสต็อกปิดร้าน (ปรับแก้ ${item.diff > 0 ? '+' : ''}${item.diff.toLocaleString()})`,
+          asDraft,
+          null,
+          true
+        )
+      })
+      if (asDraft) {
+        this.showToast(`เพิ่มผลตรวจนับ ${items.length} รายการ เข้าแบบร่างเรียบร้อย (รอยืนยันที่แถบด้านล่าง)`, 'success')
+      } else {
+        this.showToast(`บันทึกผลตรวจนับ ${items.length} รายการ เรียบร้อยแล้ว`, 'success')
       }
     },
 
