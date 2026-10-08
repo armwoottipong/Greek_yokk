@@ -49,15 +49,32 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <!-- Total Valuation Card -->
       <div class="editorial-card p-4 bg-white">
-        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
-          <span>มูลค่าคลังรวม</span>
-          <span>💰</span>
+        <div class="flex items-center justify-between text-[11px] mb-1">
+          <span class="text-stone-400">มูลค่าคลังรวม</span>
+          <span
+            v-if="store.draftInventoryValuationDiff !== 0"
+            class="flex items-center gap-1 font-semibold text-[10px] px-1.5 py-0.5 rounded-md font-number"
+            :class="store.draftInventoryValuationDiff > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-orange-50 text-orange-700 border border-orange-200/80'"
+            title="ส่วนต่างมูลค่าจากแบบร่างที่รอยืนยัน"
+          >
+            <span class="w-1.5 h-1.5 rounded-full" :class="store.draftInventoryValuationDiff > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-orange-500 animate-pulse'"></span>
+            <span>ร่าง: {{ store.draftInventoryValuationDiff > 0 ? `+฿${store.draftInventoryValuationDiff.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `-฿${Math.abs(store.draftInventoryValuationDiff).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }}</span>
+          </span>
+          <span v-else>💰</span>
         </div>
         <div class="text-xl font-bold font-number text-amber-950">
           ฿{{ store.totalInventoryValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
         </div>
-        <div class="text-[10px] text-stone-400 mt-1">
-          หลัก: {{ store.mainMaterials.length }} • รอง: {{ store.subMaterials.length }} ชนิด
+        <div class="text-[10px] mt-1 flex items-center justify-between gap-1">
+          <span class="text-stone-400 truncate">หลัก: {{ store.mainMaterials.length }} • รอง: {{ store.subMaterials.length }} ชนิด</span>
+          <span
+            v-if="store.draftInventoryValuationDiff !== 0"
+            class="font-number font-medium shrink-0"
+            :class="store.draftInventoryValuationDiff > 0 ? 'text-emerald-700' : 'text-orange-700'"
+            title="มูลค่าคลังหลังยืนยันบันทึกแบบร่าง"
+          >
+            หลังบันทึก: ≈ ฿{{ store.projectedInventoryValuation.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}
+          </span>
         </div>
       </div>
 

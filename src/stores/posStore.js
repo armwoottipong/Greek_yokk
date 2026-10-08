@@ -840,11 +840,31 @@ export const usePosStore = defineStore('pos', {
     // RAW MATERIAL COST & BUDGET VALUATION (งบต้นทุนวัตถุดิบโดยรวม)
     // ========================================================
     
-    // 1. Total valuation of all raw materials & packaging currently in stock (มูลค่าคลังรวม)
+    // 1. Total baseline valuation of all raw materials & packaging currently in stock (มูลค่ายอดจริงปัจจุบัน - Committed Asset)
     totalInventoryValuation: (state) => {
+      const source = state.stockDraftSnapshot || state.materials
+      return source
+        .filter(m => !m.isDeleted)
+        .reduce((sum, m) => sum + (Math.max(0, m.stock) * (m.unitCost || 0)), 0)
+    },
+
+    // 1b. Projected total valuation including pending draft adjustments (มูลค่าคาดการณ์รวมแบบร่าง)
+    projectedInventoryValuation: (state) => {
       return state.materials
         .filter(m => !m.isDeleted)
         .reduce((sum, m) => sum + (Math.max(0, m.stock) * (m.unitCost || 0)), 0)
+    },
+
+    // 1c. Draft valuation difference in Baht (+ for increase, - for decrease)
+    draftInventoryValuationDiff: (state) => {
+      if (!state.stockDraftSnapshot) return 0
+      const baseline = state.stockDraftSnapshot
+        .filter(m => !m.isDeleted)
+        .reduce((sum, m) => sum + (Math.max(0, m.stock) * (m.unitCost || 0)), 0)
+      const current = state.materials
+        .filter(m => !m.isDeleted)
+        .reduce((sum, m) => sum + (Math.max(0, m.stock) * (m.unitCost || 0)), 0)
+      return Math.round((current - baseline) * 100) / 100
     },
 
     // 2. Inventory Valuation broken down by category (มูลค่าตามหมวดหมู่)

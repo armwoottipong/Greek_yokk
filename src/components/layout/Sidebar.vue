@@ -47,9 +47,19 @@
     <div class="p-4 border-t border-stone-100 bg-[#FAF9F6] text-xs">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[11px] font-medium text-stone-500">สถานะคลัง & ต้นทุน</span>
-        <span class="text-[10px] font-number px-1.5 py-0.5 rounded bg-amber-100/80 text-amber-900 font-medium">
-          ฿{{ Math.round(store.totalInventoryValuation).toLocaleString() }}
-        </span>
+        <div class="flex items-center gap-1.5 font-number">
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100/80 text-amber-900 font-medium">
+            ฿{{ Math.round(store.totalInventoryValuation).toLocaleString() }}
+          </span>
+          <span
+            v-if="store.draftInventoryValuationDiff !== 0"
+            class="text-[9px] px-1.5 py-0.5 rounded font-bold transition-all"
+            :class="store.draftInventoryValuationDiff > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'"
+            :title="`แบบร่าง: ${store.draftInventoryValuationDiff > 0 ? '+' : ''}฿${Math.round(store.draftInventoryValuationDiff).toLocaleString()} (หลังบันทึก ≈ ฿${Math.round(store.projectedInventoryValuation).toLocaleString()})`"
+          >
+            {{ store.draftInventoryValuationDiff > 0 ? `+฿${Math.round(store.draftInventoryValuationDiff).toLocaleString()}` : `-฿${Math.round(Math.abs(store.draftInventoryValuationDiff)).toLocaleString()}` }}
+          </span>
+        </div>
       </div>
       <div class="flex items-center justify-between text-[11px] text-stone-400">
         <span class="flex items-center gap-1.5">
