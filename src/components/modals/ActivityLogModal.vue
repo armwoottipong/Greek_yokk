@@ -50,164 +50,18 @@
             </div>
           </div>
 
-          <!-- Right: Search, Filter Toggle, CSV Export, Close -->
+          <!-- Right: Only High-Level Utilities (Export CSV & Close) -->
           <div class="flex items-center gap-2 shrink-0">
-            <!-- Search Input -->
-            <div class="relative w-44 sm:w-60">
-              <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="ค้นหาในประวัติ..."
-                class="soft-input w-full pl-8.5 pr-7 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium border border-stone-200"
-              />
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-0.5 rounded"
-              >
-                <X class="w-3 h-3" />
-              </button>
-            </div>
-
-            <!-- Filter Popover Button & Container -->
-            <div class="relative">
-              <button
-                type="button"
-                @click="toggleFilterPopover"
-                class="h-8.5 px-3 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0"
-                :class="[
-                  showFilterPopover
-                    ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
-                    : hasActiveFilter
-                      ? 'bg-amber-50 text-amber-900 border-amber-300'
-                      : 'bg-stone-100 text-stone-700 hover:bg-stone-200/80 border-stone-200/60'
-                ]"
-                title="เปิดแผงตัวกรอง (Filter)"
-              >
-                <SlidersHorizontal class="w-3.5 h-3.5 text-amber-800" />
-                <span>ตัวกรอง</span>
-                <span
-                  v-if="activeFilterCount > 0"
-                  class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-600 text-white font-number ml-0.5"
-                >
-                  {{ activeFilterCount }}
-                </span>
-              </button>
-
-              <!-- ======================================================= -->
-              <!-- FLOATING FILTER POPOVER (Clean & Compact)              -->
-              <!-- ======================================================= -->
-              <div
-                v-if="showFilterPopover"
-                v-click-outside="closeFilterPopover"
-                class="absolute right-0 top-full mt-2 w-80 sm:w-[380px] bg-white rounded-2xl border border-stone-200 shadow-2xl z-40 p-4 space-y-3.5 animate-in fade-in zoom-in-95 duration-100"
-              >
-                <!-- Popover Header -->
-                <div class="flex items-center justify-between pb-2 border-b border-stone-100">
-                  <div class="flex items-center gap-1.5 font-bold text-xs text-stone-900">
-                    <SlidersHorizontal class="w-3.5 h-3.5 text-amber-800" />
-                    <span>ตัวกรองประวัติ (Filter)</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button
-                      v-if="hasActiveFilter"
-                      type="button"
-                      @click="resetFilters"
-                      class="text-[11px] font-medium text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
-                    >
-                      ล้างตัวกรอง
-                    </button>
-                    <button
-                      type="button"
-                      @click="closeFilterPopover"
-                      class="text-stone-400 hover:text-stone-700 p-1 rounded-lg hover:bg-stone-100 cursor-pointer"
-                    >
-                      <X class="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Section 1: Module Selector (Only for Global Mode) -->
-                <div v-if="isGlobalMode" class="space-y-1">
-                  <label class="text-[11px] font-semibold text-stone-500 block">หมวดหมู่ระบบ</label>
-                  <select
-                    v-model="activeModule"
-                    class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 border border-stone-200"
-                  >
-                    <option v-for="m in moduleOptions" :key="m.id" :value="m.id">
-                      {{ m.icon }} {{ m.label }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- Section 2: Material Selector (When in Stock Mode) -->
-                <div v-if="isStockMode" class="space-y-1">
-                  <label class="text-[11px] font-semibold text-stone-500 block">เลือกเฉพาะวัตถุดิบ</label>
-                  <select
-                    v-model="selectedMaterialId"
-                    class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 border border-stone-200"
-                  >
-                    <option value="all">📦 ทุกวัตถุดิบ</option>
-                    <option v-for="m in store.materials" :key="m.id" :value="m.id">
-                      {{ m.emoji }} {{ m.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- Section 3: Action Type Filter -->
-                <div class="space-y-1">
-                  <label class="text-[11px] font-semibold text-stone-500 block">ประเภทกิจกรรม (Action)</label>
-                  <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
-                    <button
-                      type="button"
-                      v-for="act in availableActionOptions"
-                      :key="act.id"
-                      @click="selectedActionFilter = act.id"
-                      class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium flex items-center gap-1"
-                      :class="selectedActionFilter === act.id ? 'bg-stone-900 text-white border-stone-900 shadow-2xs font-semibold' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'"
-                    >
-                      <span>{{ act.icon }}</span>
-                      <span>{{ act.label }}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Section 4: Pure Calendar Date Range (No Presets) -->
-                <div class="space-y-1">
-                  <label class="text-[11px] font-semibold text-stone-500 block">เลือกช่วงวันที่บนปฏิทิน</label>
-                  <DateRangeCalendar
-                    v-model:startDate="filterStartDate"
-                    v-model:endDate="filterEndDate"
-                  />
-                </div>
-
-                <!-- Popover Footer -->
-                <div class="pt-2 border-t border-stone-100 flex items-center justify-between">
-                  <span class="text-[11px] text-stone-400 font-number">
-                    พบ {{ filteredLogs.length }} รายการ
-                  </span>
-                  <button
-                    type="button"
-                    @click="closeFilterPopover"
-                    class="px-4 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-                  >
-                    เสร็จสิ้น
-                  </button>
-                </div>
-              </div>
-            </div>
-
             <!-- Export CSV Button -->
             <button
               type="button"
               @click="exportCsv"
               :disabled="filteredLogs.length === 0"
-              class="h-8.5 px-3 rounded-xl border border-stone-200 text-stone-700 hover:text-stone-950 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
+              class="h-8.5 px-3 rounded-xl border border-stone-200/90 text-stone-700 hover:text-stone-950 hover:bg-stone-50 hover:border-stone-300 text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 shadow-2xs shrink-0"
               title="ดาวน์โหลดประวัติเป็นไฟล์ CSV"
             >
               <Download class="w-3.5 h-3.5 text-stone-500" />
-              <span class="hidden sm:inline">CSV</span>
+              <span class="hidden sm:inline">ส่งออก CSV</span>
             </button>
 
             <!-- Close Modal Button -->
@@ -221,56 +75,236 @@
             </button>
           </div>
         </div>
+      </div>
 
-        <!-- Row 2: Active Filter Chips Strip (Clean & Compact) -->
-        <div v-if="hasActiveFilter" class="flex items-center gap-1.5 flex-wrap pt-2.5 mt-2.5 border-t border-stone-100 text-[11px]">
-          <span class="text-stone-400 text-[10px] font-semibold">ตัวกรอง:</span>
-
-          <!-- Module Chip -->
-          <span
-            v-if="isGlobalMode && activeModule !== 'all'"
-            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-stone-100 text-stone-800 font-medium"
-          >
-            <span>{{ getModuleLabel(activeModule) }}</span>
-            <button @click="activeModule = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
-          </span>
-
-          <!-- Material Chip -->
-          <span
-            v-if="isStockMode && selectedMaterialId !== 'all'"
-            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-stone-100 text-stone-800 font-medium"
-          >
-            <span>{{ getMaterialName(selectedMaterialId) }}</span>
-            <button @click="selectedMaterialId = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
-          </span>
-
-          <!-- Action Chip -->
-          <span
-            v-if="selectedActionFilter !== 'all'"
-            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium"
-          >
-            <span>{{ getActionLabel(selectedActionFilter) }}</span>
-            <button @click="selectedActionFilter = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
-          </span>
-
-          <!-- Date Range Chip -->
-          <span
-            v-if="filterStartDate || filterEndDate"
-            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium"
-          >
-            <span>📅 {{ formatDateRangeLabel(filterStartDate, filterEndDate) }}</span>
-            <button @click="clearDateRange" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
-          </span>
-
-          <!-- Clear All -->
+      <!-- ======================================================= -->
+      <!-- 2. CONTROL & FILTER TOOLBAR                             -->
+      <!-- ======================================================= -->
+      <div class="px-6 py-2.5 bg-[#FAF9F6] border-b border-stone-200/70 flex flex-wrap items-center justify-between gap-2.5 shrink-0 text-xs">
+        <!-- Left: Quick Action Filter Pills (1-Click instant filtering) -->
+        <div class="flex items-center gap-1.5 overflow-x-auto text-xs no-scrollbar py-0.5">
           <button
             type="button"
-            @click="resetFilters"
-            class="text-[10px] text-rose-600 hover:text-rose-800 hover:underline font-medium ml-1 cursor-pointer"
+            v-for="act in quickActionPills"
+            :key="act.id"
+            @click="selectedActionFilter = act.id"
+            class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium text-[11px] flex items-center gap-1 shrink-0"
+            :class="[
+              selectedActionFilter === act.id
+                ? 'bg-stone-900 text-white border-stone-900 shadow-2xs font-semibold'
+                : 'bg-white text-stone-600 hover:text-stone-900 border-stone-200/80 shadow-3xs hover:bg-stone-50'
+            ]"
           >
-            ล้างทั้งหมด
+            <span>{{ act.icon }}</span>
+            <span>{{ act.label }}</span>
+            <span
+              v-if="act.count !== undefined"
+              class="text-[10px] font-number opacity-80"
+            >
+              ({{ act.count }})
+            </span>
           </button>
         </div>
+
+        <!-- Right: Search Input & Advanced Filter Popover -->
+        <div class="flex items-center gap-2 flex-1 justify-end min-w-[260px]">
+          <!-- Search Input -->
+          <div class="relative w-44 sm:w-56 md:w-64">
+            <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="ค้นหาในประวัติ..."
+              class="w-full pl-8.5 pr-7 py-1.5 rounded-xl bg-white border border-stone-200 text-xs text-stone-900 placeholder:text-stone-400 font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 shadow-3xs transition-all"
+            />
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-0.5 rounded cursor-pointer"
+              title="ล้างข้อความค้นหา"
+            >
+              <X class="w-3 h-3" />
+            </button>
+          </div>
+
+          <!-- Filter Popover Button & Container -->
+          <div class="relative">
+            <button
+              type="button"
+              @click="toggleFilterPopover"
+              class="h-8 px-3 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0"
+              :class="[
+                showFilterPopover
+                  ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
+                  : hasActiveAdvancedFilter
+                    ? 'bg-amber-50 text-amber-900 border-amber-300'
+                    : 'bg-white text-stone-700 hover:bg-stone-50 border-stone-200 shadow-3xs'
+              ]"
+              title="เปิดแผงตัวกรองขั้นสูงและปฏิทิน"
+            >
+              <SlidersHorizontal class="w-3.5 h-3.5 text-amber-800" />
+              <span>ตัวกรอง</span>
+              <span
+                v-if="advancedFilterCount > 0"
+                class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-600 text-white font-number ml-0.5"
+              >
+                {{ advancedFilterCount }}
+              </span>
+            </button>
+
+            <!-- ======================================================= -->
+            <!-- FLOATING FILTER POPOVER (Clean & Compact)              -->
+            <!-- ======================================================= -->
+            <div
+              v-if="showFilterPopover"
+              v-click-outside="closeFilterPopover"
+              class="absolute right-0 top-full mt-2 w-80 sm:w-[380px] bg-white rounded-2xl border border-stone-200 shadow-2xl z-40 p-4 space-y-3.5 animate-in fade-in zoom-in-95 duration-100"
+            >
+              <!-- Popover Header -->
+              <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+                <div class="flex items-center gap-1.5 font-bold text-xs text-stone-900">
+                  <SlidersHorizontal class="w-3.5 h-3.5 text-amber-800" />
+                  <span>ตัวกรองประวัติ (Filter)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    v-if="hasActiveFilter"
+                    type="button"
+                    @click="resetFilters"
+                    class="text-[11px] font-medium text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                  >
+                    ล้างตัวกรอง
+                  </button>
+                  <button
+                    type="button"
+                    @click="closeFilterPopover"
+                    class="text-stone-400 hover:text-stone-700 p-1 rounded-lg hover:bg-stone-100 cursor-pointer"
+                  >
+                    <X class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <!-- Section 1: Module Selector (Only for Global Mode) -->
+              <div v-if="isGlobalMode" class="space-y-1">
+                <label class="text-[11px] font-semibold text-stone-500 block">หมวดหมู่ระบบ</label>
+                <select
+                  v-model="activeModule"
+                  class="w-full px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 border border-stone-200 bg-white"
+                >
+                  <option v-for="m in moduleOptions" :key="m.id" :value="m.id">
+                    {{ m.icon }} {{ m.label }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Section 2: Material Selector (When in Stock Mode) -->
+              <div v-if="isStockMode" class="space-y-1">
+                <label class="text-[11px] font-semibold text-stone-500 block">เลือกเฉพาะวัตถุดิบ</label>
+                <select
+                  v-model="selectedMaterialId"
+                  class="w-full px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 border border-stone-200 bg-white"
+                >
+                  <option value="all">📦 ทุกวัตถุดิบ</option>
+                  <option v-for="m in store.materials" :key="m.id" :value="m.id">
+                    {{ m.emoji }} {{ m.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Section 3: Action Type Filter in popover -->
+              <div class="space-y-1">
+                <label class="text-[11px] font-semibold text-stone-500 block">ประเภทกิจกรรม (Action)</label>
+                <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
+                  <button
+                    type="button"
+                    v-for="act in availableActionOptions"
+                    :key="act.id"
+                    @click="selectedActionFilter = act.id"
+                    class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium flex items-center gap-1"
+                    :class="selectedActionFilter === act.id ? 'bg-stone-900 text-white border-stone-900 shadow-2xs font-semibold' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'"
+                  >
+                    <span>{{ act.icon }}</span>
+                    <span>{{ act.label }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Section 4: Pure Calendar Date Range (No Presets) -->
+              <div class="space-y-1">
+                <label class="text-[11px] font-semibold text-stone-500 block">เลือกช่วงวันที่บนปฏิทิน</label>
+                <DateRangeCalendar
+                  v-model:startDate="filterStartDate"
+                  v-model:endDate="filterEndDate"
+                />
+              </div>
+
+              <!-- Popover Footer -->
+              <div class="pt-2 border-t border-stone-100 flex items-center justify-between">
+                <span class="text-[11px] text-stone-400 font-number">
+                  พบ {{ filteredLogs.length }} รายการ
+                </span>
+                <button
+                  type="button"
+                  @click="closeFilterPopover"
+                  class="px-4 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                >
+                  เสร็จสิ้น
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Active Filter Chips Strip (Clean & Compact) -->
+      <div v-if="hasActiveFilter" class="px-6 py-2 bg-stone-50 border-b border-stone-200/70 flex items-center gap-1.5 flex-wrap text-[11px] shrink-0">
+        <span class="text-stone-400 text-[10px] font-semibold">ตัวกรองที่ใช้งาน:</span>
+
+        <!-- Module Chip -->
+        <span
+          v-if="isGlobalMode && activeModule !== 'all'"
+          class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-white border border-stone-200 text-stone-800 font-medium"
+        >
+          <span>{{ getModuleLabel(activeModule) }}</span>
+          <button @click="activeModule = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
+        </span>
+
+        <!-- Material Chip -->
+        <span
+          v-if="isStockMode && selectedMaterialId !== 'all'"
+          class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-white border border-stone-200 text-stone-800 font-medium"
+        >
+          <span>{{ getMaterialName(selectedMaterialId) }}</span>
+          <button @click="selectedMaterialId = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
+        </span>
+
+        <!-- Action Chip -->
+        <span
+          v-if="selectedActionFilter !== 'all'"
+          class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium border border-amber-200/60"
+        >
+          <span>{{ getActionLabel(selectedActionFilter) }}</span>
+          <button @click="selectedActionFilter = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
+        </span>
+
+        <!-- Date Range Chip -->
+        <span
+          v-if="filterStartDate || filterEndDate"
+          class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium border border-amber-200/60"
+        >
+          <span>📅 {{ formatDateRangeLabel(filterStartDate, filterEndDate) }}</span>
+          <button @click="clearDateRange" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
+        </span>
+
+        <!-- Clear All -->
+        <button
+          type="button"
+          @click="resetFilters"
+          class="text-[10px] text-rose-600 hover:text-rose-800 hover:underline font-medium ml-1 cursor-pointer"
+        >
+          ล้างทั้งหมด
+        </button>
       </div>
 
       <!-- ======================================================= -->
@@ -576,8 +610,77 @@ function close() {
   store.closeActivityLog()
 }
 
-// Active Filter Checks
+// Action Counts for Quick Pills
+const actionCounts = computed(() => {
+  let list = store.activityLogs || []
+  if (isItemMode.value) {
+    const id = activeTargetMaterialId.value
+    list = list.filter(l => l.targetId === id || l.materialId === id)
+  } else if (isStockMode.value) {
+    list = list.filter(l => l.module === 'stock')
+  }
+
+  const count = (fn) => list.filter(fn).length
+
+  return {
+    all: list.length,
+    stock_in: count(l => l.action === 'stock_in'),
+    adjust: count(l => l.action === 'adjust' || (l.action && String(l.action).startsWith('stock_adjust'))),
+    produce: count(l => l.action === 'produce' || l.action === 'produce_deduct' || (l.action && String(l.action).startsWith('produce'))),
+    sale_deduct: count(l => l.action === 'sale_deduct'),
+    waste: count(l => l.action === 'waste' || l.reason === 'ของเสีย/หมดอายุ' || (l.action && String(l.action).includes('waste'))),
+    order_complete: count(l => l.action === 'order_complete')
+  }
+})
+
+// Quick Action Pills displayed directly in the toolbar
+const quickActionPills = computed(() => {
+  const counts = actionCounts.value
+  const pills = [
+    { id: 'all', label: 'ทั้งหมด', icon: '✨', count: counts.all }
+  ]
+
+  if (counts.stock_in > 0 || isStockMode.value) {
+    pills.push({ id: 'stock_in', label: 'รับเข้า', icon: '📥', count: counts.stock_in })
+  }
+  if (counts.adjust > 0 || isStockMode.value) {
+    pills.push({ id: 'adjust', label: 'ตรวจนับจริง', icon: '⚖️', count: counts.adjust })
+  }
+  if (counts.produce > 0 || isStockMode.value) {
+    pills.push({ id: 'produce', label: 'ผลิตตามสูตร', icon: '🥣', count: counts.produce })
+  }
+  if (counts.sale_deduct > 0) {
+    pills.push({ id: 'sale_deduct', label: 'ตัดขาย', icon: '🛍️', count: counts.sale_deduct })
+  }
+  if (counts.waste > 0) {
+    pills.push({ id: 'waste', label: 'ของเสีย', icon: '🗑️', count: counts.waste })
+  }
+  if (counts.order_complete > 0 && isGlobalMode.value) {
+    pills.push({ id: 'order_complete', label: 'ขายหน้าร้าน', icon: '🧾', count: counts.order_complete })
+  }
+
+  return pills
+})
+
+// Advanced Filter Checks (for the Popover button badge)
+const hasActiveAdvancedFilter = computed(() => {
+  if (isGlobalMode.value && activeModule.value !== 'all') return true
+  if (isStockMode.value && selectedMaterialId.value !== 'all') return true
+  if (filterStartDate.value !== null || filterEndDate.value !== null) return true
+  return false
+})
+
+const advancedFilterCount = computed(() => {
+  let count = 0
+  if (isGlobalMode.value && activeModule.value !== 'all') count++
+  if (isStockMode.value && selectedMaterialId.value !== 'all') count++
+  if (filterStartDate.value !== null || filterEndDate.value !== null) count++
+  return count
+})
+
+// Active Filter Checks (for chip strip & empty state)
 const hasActiveFilter = computed(() => {
+  if (searchQuery.value.trim() !== '') return true
   if (isItemMode.value) {
     return selectedActionFilter.value !== 'all' || filterStartDate.value !== null || filterEndDate.value !== null
   }
@@ -585,15 +688,6 @@ const hasActiveFilter = computed(() => {
     return selectedActionFilter.value !== 'all' || selectedMaterialId.value !== 'all' || filterStartDate.value !== null || filterEndDate.value !== null
   }
   return activeModule.value !== 'all' || selectedActionFilter.value !== 'all' || filterStartDate.value !== null || filterEndDate.value !== null
-})
-
-const activeFilterCount = computed(() => {
-  let count = 0
-  if (isGlobalMode.value && activeModule.value !== 'all') count++
-  if (isStockMode.value && selectedMaterialId.value !== 'all') count++
-  if (selectedActionFilter.value !== 'all') count++
-  if (filterStartDate.value !== null || filterEndDate.value !== null) count++
-  return count
 })
 
 function resetFilters() {
