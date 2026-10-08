@@ -49,21 +49,22 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <!-- Total Valuation Card -->
       <div class="editorial-card p-4 bg-white">
-        <div class="flex items-center justify-between text-[11px] mb-1">
-          <span class="text-stone-400">มูลค่าคลังรวม</span>
+        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
+          <span>มูลค่าคลังรวม</span>
+          <span>💰</span>
+        </div>
+        <div class="flex items-baseline gap-2 font-number">
+          <span class="text-xl font-bold text-amber-950">
+            ฿{{ store.totalInventoryValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+          </span>
           <span
             v-if="store.draftInventoryValuationDiff !== 0"
-            class="flex items-center gap-1 font-semibold text-[10px] px-1.5 py-0.5 rounded-md font-number"
-            :class="store.draftInventoryValuationDiff > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-orange-50 text-orange-700 border border-orange-200/80'"
+            class="text-xs font-bold tabular-nums"
+            :class="store.draftInventoryValuationDiff > 0 ? 'text-emerald-600' : 'text-orange-500'"
             title="ส่วนต่างมูลค่าที่รอยืนยัน"
           >
-            <span class="w-1.5 h-1.5 rounded-full" :class="store.draftInventoryValuationDiff > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-orange-500 animate-pulse'"></span>
-            <span>{{ store.draftInventoryValuationDiff > 0 ? `+฿${store.draftInventoryValuationDiff.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `-฿${Math.abs(store.draftInventoryValuationDiff).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` }}</span>
+            {{ store.draftInventoryValuationDiff > 0 ? `+${Math.round(store.draftInventoryValuationDiff).toLocaleString()}` : Math.round(store.draftInventoryValuationDiff).toLocaleString() }}
           </span>
-          <span v-else>💰</span>
-        </div>
-        <div class="text-xl font-bold font-number text-amber-950">
-          ฿{{ store.totalInventoryValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
         </div>
         <div class="text-[10px] mt-1 flex items-center justify-between gap-1">
           <span class="text-stone-400 truncate">หลัก: {{ store.mainMaterials.length }} • รอง: {{ store.subMaterials.length }} ชนิด</span>

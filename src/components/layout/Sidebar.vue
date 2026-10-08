@@ -53,11 +53,11 @@
           </span>
           <span
             v-if="store.draftInventoryValuationDiff !== 0"
-            class="text-[9px] px-1.5 py-0.5 rounded font-bold transition-all"
-            :class="store.draftInventoryValuationDiff > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'"
+            class="text-[10px] font-bold font-number tabular-nums"
+            :class="store.draftInventoryValuationDiff > 0 ? 'text-emerald-600' : 'text-orange-500'"
             :title="`${store.draftInventoryValuationDiff > 0 ? '+' : ''}฿${Math.round(store.draftInventoryValuationDiff).toLocaleString()} (หลังบันทึก ≈ ฿${Math.round(store.projectedInventoryValuation).toLocaleString()})`"
           >
-            {{ store.draftInventoryValuationDiff > 0 ? `+฿${Math.round(store.draftInventoryValuationDiff).toLocaleString()}` : `-฿${Math.round(Math.abs(store.draftInventoryValuationDiff)).toLocaleString()}` }}
+            {{ store.draftInventoryValuationDiff > 0 ? `+${Math.round(store.draftInventoryValuationDiff).toLocaleString()}` : Math.round(store.draftInventoryValuationDiff).toLocaleString() }}
           </span>
         </div>
       </div>
