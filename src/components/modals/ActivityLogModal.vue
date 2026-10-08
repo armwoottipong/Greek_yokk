@@ -128,10 +128,10 @@
           </div>
 
           <!-- Filter Popover Button & Container -->
-          <div class="relative">
+          <div class="relative" ref="filterDropdownRef">
             <button
               type="button"
-              @click="toggleFilterPopover"
+              @click.stop="toggleFilterPopover"
               class="h-8 px-3 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0"
               :class="[
                 showFilterPopover
@@ -142,7 +142,7 @@
               ]"
               title="เปิดแผงตัวกรองขั้นสูงและปฏิทิน"
             >
-              <SlidersHorizontal class="w-3.5 h-3.5 text-amber-800" />
+              <SlidersHorizontal class="w-3.5 h-3.5" :class="showFilterPopover ? 'text-white' : 'text-amber-800'" />
               <span>ตัวกรอง</span>
               <span
                 v-if="advancedFilterCount > 0"
@@ -157,8 +157,8 @@
             <!-- ======================================================= -->
             <div
               v-if="showFilterPopover"
-              v-click-outside="closeFilterPopover"
-              class="absolute right-0 top-full mt-2 w-80 sm:w-[380px] bg-white rounded-2xl border border-stone-200 shadow-2xl z-40 p-4 space-y-3.5 animate-in fade-in zoom-in-95 duration-100"
+              @click.stop
+              class="absolute right-0 top-full mt-2 w-80 sm:w-[380px] max-h-[75vh] overflow-y-auto bg-white rounded-2xl border border-stone-200 shadow-2xl z-40 p-4 space-y-3.5 animate-in fade-in zoom-in-95 duration-100"
             >
               <!-- Popover Header -->
               <div class="flex items-center justify-between pb-2 border-b border-stone-100">
@@ -485,7 +485,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { usePosStore, formatThaiDate } from '@/stores/posStore'
 import DateRangeCalendar from '@/components/ui/DateRangeCalendar.vue'
 import {
@@ -499,6 +499,7 @@ const store = usePosStore()
 
 // Popover state
 const showFilterPopover = ref(false)
+const filterDropdownRef = ref(null)
 
 function toggleFilterPopover() {
   showFilterPopover.value = !showFilterPopover.value
@@ -508,22 +509,21 @@ function closeFilterPopover() {
   showFilterPopover.value = false
 }
 
-// Click outside directive for popover
-const vClickOutside = {
-  mounted(el, binding) {
-    el._clickOutsideHandler = (event) => {
-      if (!el.contains(event.target) && !event.target.closest('[title="เปิดแผงตัวกรอง (Filter)"]')) {
-        binding.value()
-      }
-    }
-    document.addEventListener('click', el._clickOutsideHandler)
-  },
-  unmounted(el) {
-    if (el._clickOutsideHandler) {
-      document.removeEventListener('click', el._clickOutsideHandler)
+function onDocumentClick(event) {
+  if (showFilterPopover.value && filterDropdownRef.value) {
+    if (!filterDropdownRef.value.contains(event.target)) {
+      showFilterPopover.value = false
     }
   }
 }
+
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocumentClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('pointerdown', onDocumentClick)
+})
 
 // Filter States
 const searchQuery = ref('')
@@ -572,6 +572,7 @@ const availableActionOptions = computed(() => {
       { id: 'stock_in', label: 'รับเข้าสต็อก', icon: '📥' },
       { id: 'adjust', label: 'ตรวจนับจริง', icon: '⚖️' },
       { id: 'produce', label: 'ผลิตตามสูตร', icon: '🥣' },
+      { id: 'sale_deduct', label: 'ตัดขาย', icon: '🛍️' },
       { id: 'waste', label: 'ของเสีย', icon: '🗑️' },
       { id: 'switch_lot', label: 'สลับล็อต', icon: '⚡' }
     ]
@@ -583,8 +584,10 @@ const availableActionOptions = computed(() => {
     { id: 'stock_in', label: 'รับเข้าสต็อก', icon: '📥' },
     { id: 'adjust', label: 'ตรวจนับจริง', icon: '⚖️' },
     { id: 'produce', label: 'ผลิตตามสูตร', icon: '🥣' },
+    { id: 'sale_deduct', label: 'ตัดขาย', icon: '🛍️' },
     { id: 'order_complete', label: 'ขายหน้าร้าน', icon: '🧾' },
-    { id: 'waste', label: 'ของเสีย', icon: '🗑️' }
+    { id: 'waste', label: 'ของเสีย', icon: '🗑️' },
+    { id: 'switch_lot', label: 'สลับล็อต', icon: '⚡' }
   ]
 })
 
@@ -629,6 +632,7 @@ const actionCounts = computed(() => {
     produce: count(l => l.action === 'produce' || l.action === 'produce_deduct' || (l.action && String(l.action).startsWith('produce'))),
     sale_deduct: count(l => l.action === 'sale_deduct'),
     waste: count(l => l.action === 'waste' || l.reason === 'ของเสีย/หมดอายุ' || (l.action && String(l.action).includes('waste'))),
+    switch_lot: count(l => l.action === 'switch_lot'),
     order_complete: count(l => l.action === 'order_complete')
   }
 })
@@ -654,6 +658,9 @@ const quickActionPills = computed(() => {
   }
   if (counts.waste > 0) {
     pills.push({ id: 'waste', label: 'ของเสีย', icon: '🗑️', count: counts.waste })
+  }
+  if (counts.switch_lot > 0) {
+    pills.push({ id: 'switch_lot', label: 'สลับล็อต', icon: '⚡', count: counts.switch_lot })
   }
   if (counts.order_complete > 0 && isGlobalMode.value) {
     pills.push({ id: 'order_complete', label: 'ขายหน้าร้าน', icon: '🧾', count: counts.order_complete })
@@ -715,6 +722,17 @@ function getMaterialName(matId) {
 }
 
 function getActionLabel(actId) {
+  const map = {
+    all: '✨ ทุกกิจกรรม',
+    stock_in: '📥 รับเข้าสต็อก',
+    adjust: '⚖️ ตรวจนับจริง',
+    produce: '🥣 ผลิตตามสูตร',
+    sale_deduct: '🛍️ ตัดขาย',
+    order_complete: '🧾 ขายหน้าร้าน',
+    waste: '🗑️ ของเสีย',
+    switch_lot: '⚡ สลับล็อต'
+  }
+  if (map[actId]) return map[actId]
   const opt = availableActionOptions.value.find(o => o.id === actId)
   return opt ? `${opt.icon} ${opt.label}` : actId
 }
@@ -760,6 +778,8 @@ const filteredLogs = computed(() => {
       list = list.filter(l => l.action === 'adjust' || (l.action && String(l.action).startsWith('stock_adjust')))
     } else if (act === 'produce') {
       list = list.filter(l => l.action === 'produce' || l.action === 'produce_deduct' || (l.action && String(l.action).startsWith('produce')))
+    } else if (act === 'waste') {
+      list = list.filter(l => l.action === 'waste' || l.reason === 'ของเสีย/หมดอายุ' || (l.action && String(l.action).includes('waste')))
     } else {
       list = list.filter(l => l.action === act)
     }
@@ -826,7 +846,11 @@ const groupedLogs = computed(() => {
     groups[dateKey].items.push(log)
   })
 
-  return Object.values(groups)
+  return Object.values(groups).sort((a, b) => {
+    if (a.dateKey === 'unknown') return 1
+    if (b.dateKey === 'unknown') return -1
+    return b.dateKey.localeCompare(a.dateKey)
+  })
 })
 
 function toDateString(d) {
@@ -941,10 +965,10 @@ function exportCsv() {
     `"${l.timestamp || ''}"`,
     `"${l.title || ''}"`,
     `"${l.targetName || ''}"`,
-    hasDelta(l) ? formatNum(l.delta) : '',
+    `"${hasDelta(l) ? formatNum(l.delta) : ''}"`,
     `"${l.unit || ''}"`,
-    l.beforeStock !== null && l.beforeStock !== undefined ? formatNum(l.beforeStock) : '',
-    l.afterStock !== null && l.afterStock !== undefined ? formatNum(l.afterStock) : '',
+    `"${l.beforeStock !== null && l.beforeStock !== undefined ? formatNum(l.beforeStock) : ''}"`,
+    `"${l.afterStock !== null && l.afterStock !== undefined ? formatNum(l.afterStock) : ''}"`,
     `"${l.reason || ''}"`,
     `"${l.note || ''}"`,
     `"${l.user || ''}"`
