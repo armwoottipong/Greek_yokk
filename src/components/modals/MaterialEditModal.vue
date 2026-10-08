@@ -529,22 +529,46 @@
       </div>
 
       <!-- 3. Clean Modal Footer -->
-      <div class="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-end gap-2.5 shrink-0">
-        <button
-          type="button"
-          @click="requestClose(close)"
-          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
-        >
-          ยกเลิก
-        </button>
-        <button
-          type="button"
-          @click="submit"
-          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
-        >
-          <Check class="w-3.5 h-3.5" />
-          <span>บันทึก</span>
-        </button>
+      <div class="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-between shrink-0">
+        <div v-if="isEditing" class="flex items-center gap-2">
+          <button
+            type="button"
+            @click="handleArchiveToggle"
+            class="px-3 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+            :title="form.isDeleted ? 'ยกเลิกการจัดเก็บ คืนสู่วัตถุดิบใช้งานปกติ' : 'จัดเก็บวัตถุดิบเพื่อซ่อนจากหน้าหลัก'"
+          >
+            <Archive class="w-3.5 h-3.5 text-stone-500" />
+            <span>{{ form.isDeleted ? 'ยกเลิกจัดเก็บ' : 'จัดเก็บ' }}</span>
+          </button>
+          <button
+            type="button"
+            @click="handlePermanentDelete"
+            class="px-3 py-2 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+            title="ลบวัตถุดิบนี้ออกจากระบบอย่างถาวร"
+          >
+            <Trash2 class="w-3.5 h-3.5" />
+            <span>ลบถาวร</span>
+          </button>
+        </div>
+        <div v-else></div>
+
+        <div class="flex items-center gap-2.5">
+          <button
+            type="button"
+            @click="requestClose(close)"
+            class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
+          >
+            ยกเลิก
+          </button>
+          <button
+            type="button"
+            @click="submit"
+            class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Check class="w-3.5 h-3.5" />
+            <span>บันทึก</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -554,7 +578,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
-import { X, Check, Plus, Minus } from 'lucide-vue-next'
+import { X, Check, Plus, Minus, Archive, Trash2 } from 'lucide-vue-next'
 
 const store = usePosStore()
 
@@ -968,6 +992,32 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
     })
   }
 })
+
+function handleArchiveToggle() {
+  if (!form.value.id) return
+  if (form.value.isDeleted) {
+    store.restoreMaterial(form.value.id)
+    form.value.isDeleted = false
+  } else {
+    store.softDeleteMaterial(form.value.id)
+    form.value.isDeleted = true
+  }
+}
+
+function handlePermanentDelete() {
+  if (!form.value.id) return
+  const usage = store.getMaterialUsage(form.value.id)
+  if (usage.isInUse) {
+    const list = [...usage.usedInMenus, ...usage.usedInAddons, ...usage.usedInMaterials].join(', ')
+    alert(`ไม่สามารถลบถาวรได้ เนื่องจากวัตถุดิบนี้ถูกใช้งานในสูตร: ${list}\nกรุณานำออกจากสูตรก่อน หรือเลือก 'จัดเก็บ' แทน`)
+    return
+  }
+
+  if (confirm(`ยืนยันลบวัตถุดิบ "${form.value.name}" อย่างถาวรหรือไม่?\n⚠️ ข้อมูลทั้งหมดจะถูกลบออกจากระบบและไม่สามารถกู้คืนได้`)) {
+    store.deleteMaterialPermanently(form.value.id)
+    close()
+  }
+}
 
 function close() {
   store.modals.materialEdit.isOpen = false

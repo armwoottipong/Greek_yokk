@@ -176,13 +176,17 @@
           />
         </div>
 
-        <label class="text-[11px] text-stone-400 hover:text-stone-700 cursor-pointer select-none flex items-center gap-1.5 shrink-0 pl-1">
+        <label
+          class="text-[11px] cursor-pointer select-none flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-xl border transition-all"
+          :class="showDeleted ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold shadow-2xs' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'"
+        >
           <input
             type="checkbox"
             v-model="showDeleted"
-            class="rounded border-stone-300 text-stone-900 focus:ring-0 w-3.5 h-3.5"
+            class="rounded border-stone-300 text-amber-900 focus:ring-0 w-3.5 h-3.5"
           />
-          <span>ที่ซ่อน ({{ deletedCount }})</span>
+          <Archive class="w-3.5 h-3.5 text-stone-500" :class="showDeleted ? 'text-amber-700' : ''" />
+          <span>รายการจัดเก็บ ({{ deletedCount }})</span>
         </label>
       </div>
     </div>
@@ -219,7 +223,7 @@
               <tr
                 :class="[
                   'hover:bg-[#FAF9F6] transition-colors',
-                  mat.isDeleted ? 'opacity-50 bg-stone-50/40' : ''
+                  mat.isDeleted ? 'bg-stone-50/70 text-stone-600' : ''
                 ]"
               >
                 <!-- Material Info -->
@@ -248,7 +252,13 @@
                         <span>ผลิตเอง</span>
                       </span>
 
-                      <span v-if="mat.isDeleted" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-200 text-stone-700 shrink-0">ซ่อนอยู่</span>
+                      <span
+                        v-if="mat.isDeleted"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-200/90 text-stone-700 shrink-0"
+                      >
+                        <Archive class="w-3 h-3" />
+                        <span>จัดเก็บแล้ว</span>
+                      </span>
                       <button
                         v-if="hasMultipleLots(mat)"
                         type="button"
@@ -401,9 +411,10 @@
               <td class="py-3.5 px-4 text-center">
                 <span
                   v-if="mat.isDeleted"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-200 text-stone-700 shrink-0"
+                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200 shrink-0"
                 >
-                  ซ่อนอยู่
+                  <Archive class="w-3 h-3 text-stone-500" />
+                  <span>จัดเก็บแล้ว</span>
                 </span>
                 <span
                   v-else-if="isExpired(mat)"
@@ -431,89 +442,17 @@
                 </span>
               </td>
 
-              <!-- Actions (More Dropdown) -->
-              <td class="py-3.5 px-4 text-center relative">
+              <!-- Actions (More Dropdown Trigger) -->
+              <td class="py-3.5 px-4 text-center">
                 <button
                   type="button"
-                  @click.stop="toggleActionMenu(mat.id)"
+                  @click.stop="toggleActionMenu(mat.id, $event)"
                   class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
-                  :class="activeActionMenuId === mat.id ? 'bg-stone-100 text-stone-900' : ''"
+                  :class="activeActionMenuId === mat.id ? 'bg-stone-200 text-stone-900 shadow-2xs' : ''"
                   title="การจัดการเพิ่มเติม"
                 >
                   <MoreHorizontal class="w-4 h-4" />
                 </button>
-
-                <!-- Dropdown Popup Menu -->
-                <div
-                  v-if="activeActionMenuId === mat.id"
-                  @click.stop
-                  :class="idx >= filteredMaterials.length - 2 ? 'bottom-11' : 'top-11'"
-                  class="absolute right-2 z-30 w-48 bg-white rounded-xl shadow-xl border border-stone-200/80 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100"
-                >
-                  <button
-                    @click="onActionHistory(mat.id)"
-                    class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <History class="w-3.5 h-3.5 text-sky-600" />
-                    <span>ประวัติการเคลื่อนไหว</span>
-                  </button>
-
-                  <div class="my-1 border-t border-stone-100"></div>
-
-                  <button
-                    v-if="!mat.isDeleted"
-                    @click="onActionStockIn(mat.id)"
-                    class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <ArrowDownToLine class="w-3.5 h-3.5 text-emerald-600" />
-                    <span>รับเข้าสต็อก</span>
-                  </button>
-
-                  <button
-                    v-if="!mat.isDeleted"
-                    @click="onActionStockAdjust(mat.id)"
-                    class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <SlidersHorizontal class="w-3.5 h-3.5 text-amber-600" />
-                    <span>ปรับยอดนับจริง</span>
-                  </button>
-
-                  <button
-                    @click="onActionEdit(mat.id)"
-                    class="w-full px-3 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <Edit3 class="w-3.5 h-3.5 text-stone-600" />
-                    <span>แก้ไขข้อมูล / สูตร</span>
-                  </button>
-
-                  <button
-                    v-if="!mat.isDeleted"
-                    @click="onActionWaste(mat.id)"
-                    class="w-full px-3 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <Trash2 class="w-3.5 h-3.5 text-rose-500" />
-                    <span>บันทึกของเสีย (Waste)</span>
-                  </button>
-
-                  <div class="my-1 border-t border-stone-100"></div>
-
-                  <button
-                    v-if="!mat.isDeleted"
-                    @click="onActionSoftDelete(mat)"
-                    class="w-full px-3 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <EyeOff class="w-3.5 h-3.5" />
-                    <span>ซ่อนรายการนี้</span>
-                  </button>
-                  <button
-                    v-else
-                    @click="onActionRestore(mat)"
-                    class="w-full px-3 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <RotateCcw class="w-3.5 h-3.5" />
-                    <span>กู้คืนรายการนี้</span>
-                  </button>
-                </div>
               </td>
             </tr>
 
@@ -834,6 +773,218 @@
         </div>
       </div>
     </transition>
+
+    <!-- Teleported Floating Action Menu (Never clipped by table rows or overflow-x container) -->
+    <Teleport to="body">
+      <div
+        v-if="activeActionMenuId && activeMenuMat"
+        class="fixed inset-0 z-[9999]"
+        @click="closeActionMenu"
+      >
+        <div
+          class="fixed w-52 bg-white rounded-2xl shadow-2xl border border-stone-200/95 py-1.5 text-xs text-left text-stone-800 animate-in fade-in zoom-in-95 duration-100 divide-y divide-stone-100"
+          :style="actionMenuPosition"
+          @click.stop
+        >
+          <!-- Context Item Header -->
+          <div class="px-3.5 py-2.5 bg-stone-50/80 rounded-t-2xl flex items-center justify-between">
+            <div class="flex items-center gap-2 min-w-0 pr-2">
+              <span class="text-base shrink-0">{{ activeMenuMat.emoji || '📦' }}</span>
+              <span class="font-bold text-stone-900 truncate">{{ activeMenuMat.name }}</span>
+            </div>
+            <span
+              v-if="activeMenuMat.isDeleted"
+              class="text-[9px] px-1.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-semibold shrink-0"
+            >
+              จัดเก็บ
+            </span>
+          </div>
+
+          <!-- General Actions -->
+          <div class="py-1">
+            <button
+              type="button"
+              @click="onActionHistory(activeMenuMat.id)"
+              class="w-full px-3.5 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <History class="w-3.5 h-3.5 text-sky-600 shrink-0" />
+              <span>ประวัติการเคลื่อนไหว</span>
+            </button>
+
+            <button
+              type="button"
+              @click="onActionEdit(activeMenuMat.id)"
+              class="w-full px-3.5 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Edit3 class="w-3.5 h-3.5 text-stone-600 shrink-0" />
+              <span>แก้ไขข้อมูล / สูตร</span>
+            </button>
+          </div>
+
+          <!-- Operational Actions (Only active materials) -->
+          <div v-if="!activeMenuMat.isDeleted" class="py-1">
+            <button
+              type="button"
+              @click="onActionStockIn(activeMenuMat.id)"
+              class="w-full px-3.5 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <ArrowDownToLine class="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>รับเข้าสต็อก</span>
+            </button>
+
+            <button
+              type="button"
+              @click="onActionStockAdjust(activeMenuMat.id)"
+              class="w-full px-3.5 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <SlidersHorizontal class="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>ปรับยอดนับจริง</span>
+            </button>
+
+            <button
+              type="button"
+              @click="onActionWaste(activeMenuMat.id)"
+              class="w-full px-3.5 py-2 text-stone-700 hover:bg-stone-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Trash2 class="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span>บันทึกของเสีย (Waste)</span>
+            </button>
+          </div>
+
+          <!-- Lifecycle Actions: Archive, Restore, Delete Permanently -->
+          <div class="py-1">
+            <button
+              v-if="!activeMenuMat.isDeleted"
+              type="button"
+              @click="onActionArchive(activeMenuMat)"
+              class="w-full px-3.5 py-2 text-stone-700 hover:bg-amber-50 hover:text-amber-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Archive class="w-3.5 h-3.5 text-stone-500 shrink-0" />
+              <span>จัดเก็บรายการนี้ (Archive)</span>
+            </button>
+
+            <button
+              v-else
+              type="button"
+              @click="onActionRestore(activeMenuMat)"
+              class="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer font-medium"
+            >
+              <RotateCcw class="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>ยกเลิกจัดเก็บ (Restore)</span>
+            </button>
+
+            <button
+              type="button"
+              @click="onActionPermanentDelete(activeMenuMat)"
+              class="w-full px-3.5 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2.5 transition-colors cursor-pointer font-medium"
+            >
+              <Trash2 class="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              <span>ลบถาวร (Delete)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal ยืนยันการลบถาวร (Permanent Delete Confirmation Modal) -->
+    <Teleport to="body">
+      <div
+        v-if="showDeleteModal && materialToDelete"
+        class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+      >
+        <div
+          class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden animate-in zoom-in-95 duration-150"
+          @click.stop
+        >
+          <!-- Header -->
+          <div class="p-6 pb-4">
+            <div
+              class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3"
+              :class="deleteUsageWarning?.isInUse ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'"
+            >
+              <AlertTriangle v-if="deleteUsageWarning?.isInUse" class="w-6 h-6 stroke-[2.2]" />
+              <Trash2 v-else class="w-6 h-6 stroke-[2.2]" />
+            </div>
+
+            <h3 class="text-base font-bold text-stone-900">
+              {{ deleteUsageWarning?.isInUse ? 'ไม่แนะนำให้ลบถาวร (วัตถุดิบผูกกับสูตรอยู่)' : 'ยืนยันลบวัตถุดิบอย่างถาวร' }}
+            </h3>
+
+            <p class="text-xs text-stone-500 mt-1">
+              วัตถุดิบ: <span class="font-bold text-stone-800">{{ materialToDelete.emoji }} {{ materialToDelete.name }}</span> (รหัส: {{ materialToDelete.id }})
+            </p>
+          </div>
+
+          <!-- Body -->
+          <div class="px-6 pb-6 text-xs text-stone-600 space-y-3">
+            <div
+              v-if="deleteUsageWarning?.isInUse"
+              class="p-3.5 bg-amber-50 rounded-2xl border border-amber-200/80 space-y-2"
+            >
+              <p class="font-semibold text-amber-900">
+                วัตถุดิบนี้กำลังถูกใช้งานในระบบ:
+              </p>
+              <ul class="list-disc list-inside space-y-1 text-amber-800 pl-1">
+                <li v-for="menu in deleteUsageWarning.usedInMenus" :key="menu">
+                  สูตรเมนู: <strong>{{ menu }}</strong>
+                </li>
+                <li v-for="addon in deleteUsageWarning.usedInAddons" :key="addon">
+                  ท็อปปิ้ง/Add-on: <strong>{{ addon }}</strong>
+                </li>
+                <li v-for="sub in deleteUsageWarning.usedInMaterials" :key="sub">
+                  สูตรวัตถุดิบหลัก: <strong>{{ sub }}</strong>
+                </li>
+              </ul>
+              <p class="text-[11px] text-amber-700 pt-1.5 border-t border-amber-200/60">
+                💡 แนะนำให้เลือก <strong>"จัดเก็บแทน"</strong> เพื่อซ่อนจากหน้าขายโดยไม่ทำให้สูตรเมนูเกิดข้อผิดพลาด
+              </p>
+            </div>
+
+            <div
+              v-else
+              class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-stone-600 space-y-1.5"
+            >
+              <p class="text-stone-700">
+                รายการนี้ไม่มีการผูกสูตรกับเมนูใดๆ (สามารถลบออกได้กรณีสร้างมาผิดหรือไม่ต้องการใช้งานแล้ว)
+              </p>
+              <p class="text-rose-600 font-semibold">
+                ⚠️ เมื่อลบแล้ว ข้อมูลสต็อก ประวัติล็อต และรายการนี้จะหายไปจากระบบอย่างถาวรและไม่สามารถกู้คืนได้
+              </p>
+            </div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div class="px-6 py-4 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              @click="closeDeleteModal"
+              class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-200/60 transition-colors cursor-pointer"
+            >
+              ยกเลิก
+            </button>
+
+            <button
+              v-if="deleteUsageWarning?.isInUse"
+              type="button"
+              @click="confirmArchiveInstead"
+              class="px-4 py-2 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Archive class="w-3.5 h-3.5" />
+              <span>จัดเก็บแทน (แนะนำ)</span>
+            </button>
+
+            <button
+              type="button"
+              @click="confirmDeletePermanently"
+              class="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 class="w-3.5 h-3.5" />
+              <span>{{ deleteUsageWarning?.isInUse ? 'ยืนยันลบถาวรต่อไป' : 'ลบถาวร' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -864,7 +1015,9 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
-  Zap
+  Zap,
+  Archive,
+  AlertTriangle
 } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -917,8 +1070,19 @@ function onActionWaste(matId) {
   store.openWasteModal(matId)
 }
 
-// Action menu dropdown state
+// Action menu dropdown state & positioning
 const activeActionMenuId = ref(null)
+const actionMenuPosition = ref({ top: '0px', right: '0px' })
+
+const activeMenuMat = computed(() => {
+  if (!activeActionMenuId.value) return null
+  return store.materials.find(m => m.id === activeActionMenuId.value) || null
+})
+
+// Permanent Delete & Usage Warning state
+const showDeleteModal = ref(false)
+const materialToDelete = ref(null)
+const deleteUsageWarning = ref(null)
 
 // Draft helpers & diff calculation
 function getDraftDiff(mat) {
@@ -939,18 +1103,48 @@ onMounted(() => {
     store.initStockDraftSnapshot()
   }
   window.addEventListener('click', closeActionMenu)
+  window.addEventListener('resize', closeActionMenu)
+  window.addEventListener('scroll', closeActionMenu, true)
 })
 
 onUnmounted(() => {
   window.removeEventListener('click', closeActionMenu)
+  window.removeEventListener('resize', closeActionMenu)
+  window.removeEventListener('scroll', closeActionMenu, true)
 })
 
-function toggleActionMenu(matId) {
+function toggleActionMenu(matId, event) {
   if (activeActionMenuId.value === matId) {
-    activeActionMenuId.value = null
-  } else {
-    activeActionMenuId.value = matId
+    closeActionMenu()
+    return
   }
+
+  const trigger = event?.currentTarget
+  if (trigger) {
+    const rect = trigger.getBoundingClientRect()
+    const menuWidth = 208 // w-52
+    const menuHeight = 280
+
+    let top = rect.bottom + 6
+    let transformOrigin = 'top right'
+
+    // If near bottom of viewport, flip upwards
+    if (rect.bottom + menuHeight > window.innerHeight - 10) {
+      top = Math.max(10, rect.top - menuHeight - 6)
+      transformOrigin = 'bottom right'
+    }
+
+    let right = window.innerWidth - rect.right
+    if (right < 10) right = 10
+
+    actionMenuPosition.value = {
+      top: `${top}px`,
+      right: `${right}px`,
+      transformOrigin
+    }
+  }
+
+  activeActionMenuId.value = matId
 }
 
 function closeActionMenu() {
@@ -977,14 +1171,41 @@ function onActionEdit(matId) {
   openEditMaterial(matId)
 }
 
-function onActionSoftDelete(mat) {
+function onActionArchive(mat) {
   closeActionMenu()
-  softDelete(mat)
+  store.softDeleteMaterial(mat.id)
 }
 
 function onActionRestore(mat) {
   closeActionMenu()
-  restore(mat)
+  store.restoreMaterial(mat.id)
+}
+
+function onActionPermanentDelete(mat) {
+  closeActionMenu()
+  materialToDelete.value = mat
+  deleteUsageWarning.value = store.getMaterialUsage(mat.id)
+  showDeleteModal.value = true
+}
+
+function closeDeleteModal() {
+  showDeleteModal.value = false
+  materialToDelete.value = null
+  deleteUsageWarning.value = null
+}
+
+function confirmArchiveInstead() {
+  if (materialToDelete.value) {
+    store.softDeleteMaterial(materialToDelete.value.id)
+  }
+  closeDeleteModal()
+}
+
+function confirmDeletePermanently() {
+  if (materialToDelete.value) {
+    store.deleteMaterialPermanently(materialToDelete.value.id)
+  }
+  closeDeleteModal()
 }
 
 function onActionStockAdjustLot(matId, lotId) {
@@ -1094,14 +1315,8 @@ function openStockAdjust(id = null, lotId = null) {
   }
 }
 
-function softDelete(mat) {
-  if (confirm(`ต้องการซ่อนวัตถุดิบ "${mat.name}" หรือไม่?\n(ข้อมูลจะไม่สูญหายและสามารถกู้คืนได้เสมอ)`)) {
-    store.softDeleteMaterial(mat.id)
-  }
-}
-
-function restore(mat) {
-  store.restoreMaterial(mat.id)
+function archiveMaterial(mat) {
+  store.softDeleteMaterial(mat.id)
 }
 
 function getDisplayPackCost(mat) {

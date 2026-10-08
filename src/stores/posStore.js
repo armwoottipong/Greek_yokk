@@ -1777,12 +1777,57 @@ export const usePosStore = defineStore('pos', {
       this.showToast(`บันทึกวัตถุดิบ "${matData.name}" สำเร็จ`, 'success')
     },
 
+    getMaterialUsage(matId) {
+      const usedInMenus = []
+      const usedInAddons = []
+      const usedInMaterials = []
+
+      // Check menu recipes
+      if (Array.isArray(this.menus)) {
+        this.menus.forEach(menu => {
+          if (menu.recipe && Array.isArray(menu.recipe)) {
+            if (menu.recipe.some(r => r.materialId === matId)) {
+              usedInMenus.push(menu.name)
+            }
+          }
+        })
+      }
+
+      // Check addons
+      if (Array.isArray(this.addons)) {
+        this.addons.forEach(addon => {
+          if (addon.materialId === matId) {
+            usedInAddons.push(addon.name)
+          }
+        })
+      }
+
+      // Check subRecipes of other materials
+      if (Array.isArray(this.materials)) {
+        this.materials.forEach(mat => {
+          if (mat.id !== matId && mat.subRecipe && Array.isArray(mat.subRecipe)) {
+            if (mat.subRecipe.some(s => s.materialId === matId)) {
+              usedInMaterials.push(mat.name)
+            }
+          }
+        })
+      }
+
+      return {
+        isInUse: usedInMenus.length > 0 || usedInAddons.length > 0 || usedInMaterials.length > 0,
+        usedInMenus,
+        usedInAddons,
+        usedInMaterials
+      }
+    },
+
     softDeleteMaterial(matId) {
       const mat = this.materials.find(m => m.id === matId)
       if (mat) {
         mat.isDeleted = true
+        mat.isArchived = true
         this.persistLocal()
-        this.showToast(`ซ่อนวัตถุดิบ "${mat.name}" แล้ว (ประวัติย้อนหลังยังคงอยู่)`, 'info')
+        this.showToast(`จัดเก็บวัตถุดิบ "${mat.name}" แล้ว (ประวัติย้อนหลังยังคงอยู่)`, 'info')
       }
     },
 
@@ -1790,9 +1835,45 @@ export const usePosStore = defineStore('pos', {
       const mat = this.materials.find(m => m.id === matId)
       if (mat) {
         mat.isDeleted = false
+        mat.isArchived = false
         this.persistLocal()
-        this.showToast(`กู้คืนวัตถุดิบ "${mat.name}" สำเร็จ`, 'success')
+        this.showToast(`ยกเลิกจัดเก็บวัตถุดิบ "${mat.name}" คืนสู่คลังหลักสำเร็จ`, 'success')
       }
+    },
+
+    deleteMaterialPermanently(matId) {
+      const idx = this.materials.findIndex(m => m.id === matId)
+      if (idx === -1) return false
+      const mat = this.materials[idx]
+      const matName = mat.name
+
+      // Remove from materials array
+      this.materials.splice(idx, 1)
+
+      // Remove from draft snapshot if present
+      if (this.stockDraftSnapshot && Array.isArray(this.stockDraftSnapshot)) {
+        this.stockDraftSnapshot = this.stockDraftSnapshot.filter(m => m.id !== matId)
+      }
+
+      // Remove pending draft actions for this material
+      if (this.stockDraftActions && Array.isArray(this.stockDraftActions)) {
+        this.stockDraftActions = this.stockDraftActions.filter(a => a.materialId !== matId)
+      }
+
+      // Record activity log
+      this.addActivityLog({
+        module: 'stock',
+        action: 'delete',
+        title: 'ลบวัตถุดิบถาวร',
+        description: `ลบวัตถุดิบ ${matName} ออกจากระบบถาวร`,
+        targetId: matId,
+        targetName: matName,
+        user: 'ผู้จัดการคลัง'
+      })
+
+      this.persistLocal()
+      this.showToast(`ลบวัตถุดิบ "${matName}" ออกจากระบบถาวรเรียบร้อยแล้ว`, 'success')
+      return true
     },
 
     stockIn(matId, qty, unitCost, note = '', packCost = null, dates = {}, asDraft = false) {
