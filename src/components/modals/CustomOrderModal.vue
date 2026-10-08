@@ -47,14 +47,16 @@
                   isAddonSelected(addon.id)
                     ? 'bg-purple-50/80 border-purple-300 text-purple-950 font-medium'
                     : isAddonOutOfStock(addon)
-                    ? 'opacity-40 bg-stone-50 border-stone-200 pointer-events-none'
+                    ? 'bg-amber-50/40 border-amber-200/80 text-stone-800'
                     : 'bg-[#FAF9F6] border-stone-100 hover:border-stone-200 text-stone-800'
                 ]"
               >
                 <div class="flex items-center gap-2 min-w-0">
                   <span class="text-lg">{{ addon.emoji }}</span>
                   <div class="min-w-0">
-                    <div v-if="isAddonOutOfStock(addon)" class="text-[10px] text-rose-600 font-semibold">[ของหมดสต็อก]</div>
+                    <div v-if="isAddonOutOfStock(addon)" class="text-[10px] text-amber-700 font-semibold flex items-center gap-0.5">
+                      <span>⚠️ ของหมด (เลือกได้)</span>
+                    </div>
                     <div v-else-if="addon.materialId" class="text-[10px] text-stone-400">ใช้ {{ addon.amountUsed }} {{ getMatUnit(addon.materialId) }}</div>
                     <div v-else class="text-[10px] text-stone-400">ท็อปปิ้งสำเร็จรูป</div>
                   </div>

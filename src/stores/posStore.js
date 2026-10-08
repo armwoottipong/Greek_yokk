@@ -2784,10 +2784,22 @@ export const usePosStore = defineStore('pos', {
     addToCart(menu, selectedAddons = [], qty = 1, forceConfirm = false) {
       const stockCheck = this.checkStockAvailability(menu, selectedAddons, qty)
 
-      // Rule 1: Out of stock - STRICTLY FORBIDDEN
-      if (!stockCheck.canAdd) {
-        const missing = stockCheck.outOfStockList.map(m => `${m.emoji} ${m.name} (คงเหลือ ${m.stock} ${m.unit})`).join(', ')
-        this.showToast(`ไม่สามารถเพิ่มได้: วัตถุดิบหมดสต็อก (${missing})`, 'error')
+      // Rule 1: Out of stock - Warn employee but allow confirmation to sell anyway (e.g. quick buy or borrow ingredients)
+      if (!stockCheck.canAdd && !forceConfirm) {
+        this.modals.lowStockWarning = {
+          isOpen: true,
+          isOutOfStock: true,
+          title: 'แจ้งเตือน: วัตถุดิบหมดสต็อก',
+          subtitle: 'วัตถุดิบในระบบไม่เพียงพอ แต่คุณสามารถยืนยันเพื่อขายต่อได้ (ระบบจะตัดสต็อกและบันทึกประวัติไว้)',
+          warningItems: stockCheck.outOfStockList.map(item => ({
+            ...item,
+            shortage: Math.max(0, Math.round((item.needed - item.stock) * 100) / 100)
+          })),
+          onConfirm: () => {
+            this.modals.lowStockWarning.isOpen = false
+            this.executeAddToCart(menu, selectedAddons, qty, true)
+          }
+        }
         return false
       }
 
@@ -2795,20 +2807,23 @@ export const usePosStore = defineStore('pos', {
       if (stockCheck.lowStockList.length > 0 && !forceConfirm) {
         this.modals.lowStockWarning = {
           isOpen: true,
+          isOutOfStock: false,
+          title: 'แจ้งเตือน: วัตถุดิบใกล้หมด',
+          subtitle: 'การเพิ่มออเดอร์นี้จะทำให้วัตถุดิบต่ำกว่าเกณฑ์ปลอดภัย',
           warningItems: stockCheck.lowStockList,
           onConfirm: () => {
             this.modals.lowStockWarning.isOpen = false
-            this.executeAddToCart(menu, selectedAddons, qty)
+            this.executeAddToCart(menu, selectedAddons, qty, false)
           }
         }
         return false
       }
 
-      this.executeAddToCart(menu, selectedAddons, qty)
+      this.executeAddToCart(menu, selectedAddons, qty, false)
       return true
     },
 
-    executeAddToCart(menu, selectedAddons = [], qty = 1) {
+    executeAddToCart(menu, selectedAddons = [], qty = 1, isBackorder = false) {
       const plat = this.currentPlatform
       const basePrice = (menu.prices && menu.prices[plat.id] !== undefined)
         ? Number(menu.prices[plat.id])
@@ -2820,17 +2835,23 @@ export const usePosStore = defineStore('pos', {
 
       if (existingIdx >= 0) {
         this.cart[existingIdx].qty += qty
+        if (isBackorder) this.cart[existingIdx].isBackorder = true
       } else {
         this.cart.push({
           menu,
           selectedAddons: [...selectedAddons],
           addonKey,
           qty,
-          basePrice
+          basePrice,
+          isBackorder
         })
       }
       this.modals.customOrder = { isOpen: false, menuId: null }
-      this.showToast(`เพิ่ม "${menu.name}" ลงในรายการแล้ว`, 'success')
+      if (isBackorder) {
+        this.showToast(`เพิ่ม "${menu.name}" (ยืนยันขายต่อแม้ของหมด) แล้ว`, 'warning')
+      } else {
+        this.showToast(`เพิ่ม "${menu.name}" ลงในรายการแล้ว`, 'success')
+      }
     },
 
     updateCartQty(index, newQty) {

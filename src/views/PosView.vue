@@ -65,14 +65,15 @@
             @click="handleMenuClick(menu)"
             :class="[
               'editorial-card p-4 flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md select-none',
-              isMenuOutOfStock(menu) ? 'opacity-40 pointer-events-none bg-stone-50' : 'bg-white'
+              isMenuOutOfStock(menu) ? 'bg-amber-50/20 border-amber-200/60' : 'bg-white'
             ]"
           >
             <div>
               <div class="flex items-start justify-between gap-2 mb-2">
                 <span class="text-3xl p-1.5 rounded-xl bg-[#FAF9F6] border border-stone-100">{{ menu.emoji }}</span>
-                <span v-if="isMenuOutOfStock(menu)" class="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold">
-                  หมดสต็อก
+                <span v-if="isMenuOutOfStock(menu)" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold flex items-center gap-1" title="วัตถุดิบหมด แต่สามารถกดสั่งขายต่อได้">
+                  <span>⚠️</span>
+                  <span>ของหมด (ขายต่อได้)</span>
                 </span>
                 <span v-else-if="menu.hasAddons" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-medium">
                   + Add-on ได้
@@ -129,7 +130,12 @@
             <div class="flex items-center gap-2 min-w-0">
               <span class="text-xl">{{ item.menu.emoji }}</span>
               <div class="min-w-0">
-                <div class="font-bold text-stone-900 truncate">{{ item.menu.name }}</div>
+                <div class="font-bold text-stone-900 truncate flex items-center gap-1.5">
+                  <span class="truncate">{{ item.menu.name }}</span>
+                  <span v-if="item.isBackorder" class="text-[9px] px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 font-medium shrink-0">
+                    ของหมด (ขายต่อ)
+                  </span>
+                </div>
                 <div class="text-[10px] text-stone-400 font-number">฿{{ getItemBasePrice(item) }} / ชาม</div>
               </div>
             </div>
