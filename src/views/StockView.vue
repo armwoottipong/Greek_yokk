@@ -36,6 +36,15 @@
         </button>
 
         <button
+          @click="openStocktake()"
+          class="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-950 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+          title="โหมดตรวจนับสต็อกปิดร้าน (Quick Stocktake Sheet) บันทึกยอดจริงทั้งหมดพร้อมกัน"
+        >
+          <ClipboardCheck class="w-4 h-4 text-amber-800" />
+          <span>ตรวจนับสต็อก</span>
+        </button>
+
+        <button
           @click="openCreateMaterial"
           class="inline-flex items-center gap-2 px-4 py-2 bg-amber-900 hover:bg-amber-950 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
@@ -1017,7 +1026,8 @@ import {
   Trash2,
   Zap,
   Archive,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardCheck
 } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -1313,6 +1323,10 @@ function openStockAdjust(id = null, lotId = null) {
     materialId: id || (store.activeMaterials[0]?.id || null),
     lotId: lotId || null
   }
+}
+
+function openStocktake() {
+  store.openStocktakeModal()
 }
 
 function archiveMaterial(mat) {

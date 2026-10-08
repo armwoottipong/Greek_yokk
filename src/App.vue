@@ -23,6 +23,7 @@
       <MaterialEditModal />
       <StockInModal />
       <StockAdjustModal />
+      <StocktakeModal />
       <WasteModal />
       <ActivityLogModal />
       <CustomOrderModal />
@@ -58,6 +59,7 @@ import AddonEditModal from '@/components/modals/AddonEditModal.vue'
 import MaterialEditModal from '@/components/modals/MaterialEditModal.vue'
 import StockInModal from '@/components/modals/StockInModal.vue'
 import StockAdjustModal from '@/components/modals/StockAdjustModal.vue'
+import StocktakeModal from '@/components/modals/StocktakeModal.vue'
 import WasteModal from '@/components/modals/WasteModal.vue'
 import ActivityLogModal from '@/components/modals/ActivityLogModal.vue'
 import CustomOrderModal from '@/components/modals/CustomOrderModal.vue'

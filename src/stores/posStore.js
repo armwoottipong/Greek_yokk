@@ -544,6 +544,7 @@ export const usePosStore = defineStore('pos', {
         materialEdit: { isOpen: false, materialId: null },
         stockIn: { isOpen: false, materialId: null },
         stockAdjust: { isOpen: false, materialId: null },
+        stocktake: { isOpen: false },
         waste: { isOpen: false, materialId: null, lotId: null },
         activityLog: { isOpen: false, module: 'all', targetMaterialId: null },
         customOrder: { isOpen: false, menuId: null },
@@ -2559,6 +2560,14 @@ export const usePosStore = defineStore('pos', {
         materialId: null,
         lotId: null
       }
+    },
+
+    openStocktakeModal() {
+      this.modals.stocktake = { isOpen: true }
+    },
+
+    closeStocktakeModal() {
+      this.modals.stocktake = { isOpen: false }
     },
 
     // Deduct stock from material lots (Priority: in-use lot, then FIFO unexpired)
