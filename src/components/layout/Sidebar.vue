@@ -1,7 +1,7 @@
 <template>
   <aside class="w-full md:w-64 bg-white border-r border-stone-200/80 flex flex-col shrink-0 z-20 select-none">
     <!-- Brand Header -->
-    <div class="p-5 border-b border-stone-100 flex items-center justify-between">
+    <div class="h-20 px-5 border-b border-stone-100 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-2xl bg-amber-900/10 flex items-center justify-center text-2xl shadow-xs">
           🥣

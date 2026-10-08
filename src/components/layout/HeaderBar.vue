@@ -1,5 +1,5 @@
 <template>
-  <header class="h-16 bg-white border-b border-stone-200/80 px-6 flex items-center justify-between shrink-0 select-none">
+  <header class="h-20 bg-white border-b border-stone-200/80 px-6 flex items-center justify-between shrink-0 select-none">
     <div>
       <h2 class="text-base font-bold text-stone-900 flex items-center gap-2">
         <span>{{ pageTitle.title }}</span>

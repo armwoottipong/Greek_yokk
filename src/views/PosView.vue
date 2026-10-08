@@ -1,5 +1,5 @@
 <template>
-  <div class="h-[calc(100vh-7rem)] flex flex-col lg:flex-row gap-5 overflow-hidden">
+  <div class="h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-5 overflow-hidden">
     <!-- Left: Menu Catalog Area -->
     <div class="flex-1 flex flex-col min-w-0 space-y-4 overflow-hidden">
       <!-- Top Platform Bar & Search -->
