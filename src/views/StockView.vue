@@ -337,29 +337,27 @@
                     </div>
                   </div>
 
-                  <!-- Purpose-built Action Button: Produce for recipe bases, Stock In for regular materials -->
+                  <!-- Purpose-built Action Button: Icon-only for Produce and Stock In -->
                   <div class="shrink-0">
                     <button
                       v-if="mat.hasSubRecipe && !mat.isDeleted"
                       type="button"
                       @click="openStockIn(mat.id)"
-                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 transition-all shadow-2xs cursor-pointer active:scale-95"
-                      title="เปิดหน้าต่างผลิตตามสูตร (หักสต็อกวัตถุดิบรองอัตโนมัติ)"
+                      class="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 flex items-center justify-center transition-all shadow-2xs cursor-pointer active:scale-95"
+                      title="ผลิตตามสูตร (หักสต็อกวัตถุดิบรองอัตโนมัติ)"
                     >
-                      <span>🥣</span>
-                      <span>ผลิต</span>
+                      <span class="text-xs">🥣</span>
                     </button>
                     <button
                       v-else-if="!mat.isDeleted"
                       type="button"
                       @click="openStockIn(mat.id)"
-                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 transition-all shadow-2xs cursor-pointer active:scale-95"
-                      title="เปิดหน้าต่างรับเข้าสต็อก (ระบุจำนวน ราคา วันที่รับ และวันหมดอายุ)"
+                      class="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 flex items-center justify-center transition-all shadow-2xs cursor-pointer active:scale-95"
+                      title="รับเข้าสต็อก (ระบุจำนวน ราคา วันที่รับ และวันหมดอายุ)"
                     >
                       <ArrowDownToLine class="w-3.5 h-3.5 text-emerald-600" />
-                      <span>รับเข้า</span>
                     </button>
-                    <div v-else class="w-12"></div>
+                    <div v-else class="w-7 h-7"></div>
                   </div>
                 </div>
               </td>
