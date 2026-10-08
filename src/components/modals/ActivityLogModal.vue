@@ -4,438 +4,466 @@
     class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
     @click.self="close"
   >
-    <!-- Modal Card Container -->
+    <!-- Modal Container -->
     <div
       :class="[
-        'bg-white rounded-2xl border border-stone-200/80 shadow-2xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150',
+        'bg-white rounded-2xl sm:rounded-3xl border border-stone-200/80 shadow-2xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150',
         isItemMode ? 'max-w-2xl' : 'max-w-3xl'
       ]"
     >
       <!-- ======================================================= -->
-      <!-- 1. HEADER                                              -->
+      <!-- 1. TOP HEADER & UNIFIED CLEAN TOOLBAR                   -->
       <!-- ======================================================= -->
-      <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
-        <!-- Case A: Item Mode Header -->
-        <div v-if="isItemMode" class="flex items-center gap-3 min-w-0">
-          <div class="w-10 h-10 rounded-2xl bg-[#FAF9F6] border border-stone-200/60 flex items-center justify-center text-2xl shadow-2xs shrink-0">
-            {{ activeTargetMaterial?.emoji || '📦' }}
-          </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <h3 class="text-base font-bold text-stone-900 truncate">
-                {{ activeTargetMaterial?.name }}
-              </h3>
-              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 shrink-0">
-                {{ activeTargetMaterial?.id }}
-              </span>
+      <div class="px-5 sm:px-6 py-4 border-b border-stone-100 bg-white shrink-0">
+        <!-- Row 1: Title & Main Quick Controls -->
+        <div class="flex items-center justify-between gap-3">
+          <!-- Case A: Item Mode Title -->
+          <div v-if="isItemMode" class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-2xl bg-[#FAF9F6] border border-stone-200/60 flex items-center justify-center text-2xl shadow-2xs shrink-0">
+              {{ activeTargetMaterial?.emoji || '📦' }}
             </div>
-            <p class="text-xs text-stone-500 mt-0.5 flex items-center gap-2">
-              <span>คงเหลือปัจจุบัน: <strong class="text-stone-900 font-number">{{ formatNum(activeTargetMaterial?.stock) }} {{ activeTargetMaterial?.unit }}</strong></span>
-              <span v-if="activeTargetMaterial?.packUnit && activeTargetMaterial?.packSize > 1" class="text-stone-400">
-                (≈ {{ ((activeTargetMaterial?.stock || 0) / activeTargetMaterial?.packSize).toFixed(1) }} {{ activeTargetMaterial?.packUnit }})
-              </span>
-            </p>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm sm:text-base font-bold text-stone-900 truncate">
+                  {{ activeTargetMaterial?.name }}
+                </h3>
+                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-stone-100 text-stone-500 shrink-0">
+                  {{ activeTargetMaterial?.id }}
+                </span>
+              </div>
+              <p class="text-xs text-stone-500 mt-0.5 flex items-center gap-2">
+                <span>คงเหลือปัจจุบัน: <strong class="text-stone-900 font-number">{{ formatNum(activeTargetMaterial?.stock) }} {{ activeTargetMaterial?.unit }}</strong></span>
+                <span v-if="activeTargetMaterial?.packUnit && activeTargetMaterial?.packSize > 1" class="text-stone-400">
+                  (≈ {{ ((activeTargetMaterial?.stock || 0) / activeTargetMaterial?.packSize).toFixed(1) }} {{ activeTargetMaterial?.packUnit }})
+                </span>
+              </p>
+            </div>
           </div>
-        </div>
 
-        <!-- Case B: Stock Module Header -->
-        <div v-else-if="isStockMode" class="flex items-center gap-3 min-w-0">
-          <div class="w-10 h-10 rounded-2xl bg-sky-50 text-sky-800 border border-sky-200/60 flex items-center justify-center text-xl shadow-2xs shrink-0">
-            📦
+          <!-- Case B: Stock Mode Title -->
+          <div v-else-if="isStockMode" class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-900 border border-amber-200/60 flex items-center justify-center text-xl shadow-2xs shrink-0">
+              📦
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-sm sm:text-base font-bold text-stone-900 flex items-center gap-2">
+                <span>ประวัติสต็อก (Stock History)</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-number">
+                  {{ filteredLogs.length }} รายการ
+                </span>
+              </h3>
+              <p class="text-xs text-stone-400 mt-0.5 truncate">
+                บันทึกการรับเข้า ตรวจนับสต็อกจริง ผลิต และของเสียทั้งหมด
+              </p>
+            </div>
           </div>
-          <div class="min-w-0">
-            <h3 class="text-base font-bold text-stone-900 flex items-center gap-2">
-              <span>ประวัติการเคลื่อนไหวสต็อก (Stock History)</span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-number">
-                {{ filteredLogs.length }} รายการ
-              </span>
-            </h3>
-            <p class="text-xs text-stone-400 mt-0.5">
-              บันทึกการรับเข้า ตรวจนับสต็อกจริง และผลิตตามสูตรทั้งหมด
-            </p>
+
+          <!-- Case C: Global Overview Title -->
+          <div v-else class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-900 border border-amber-200/60 flex items-center justify-center text-xl shadow-2xs shrink-0">
+              📜
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-sm sm:text-base font-bold text-stone-900 flex items-center gap-2">
+                <span>ประวัติกิจกรรมระบบ (Activity Log)</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-number">
+                  {{ filteredLogs.length }} รายการ
+                </span>
+              </h3>
+              <p class="text-xs text-stone-400 mt-0.5 truncate">
+                ตรวจสอบประวัติการรับเข้า นับสต็อก ออเดอร์ขาย และกิจกรรมระบบ
+              </p>
+            </div>
           </div>
-        </div>
 
-        <!-- Case C: Global Overview Header -->
-        <div v-else class="flex items-center gap-3 min-w-0">
-          <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-900 border border-amber-200/60 flex items-center justify-center text-xl shadow-2xs shrink-0">
-            📜
-          </div>
-          <div class="min-w-0">
-            <h3 class="text-base font-bold text-stone-900 flex items-center gap-2">
-              <span>ประวัติกิจกรรม & บันทึกการจัดการ</span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-number">
-                {{ filteredLogs.length }} รายการ
-              </span>
-            </h3>
-            <p class="text-xs text-stone-400 mt-0.5">
-              ตรวจสอบประวัติการรับเข้า ตรวจนับสต็อกจริง ผลิตตามสูตร และการขายทั้งหมด
-            </p>
-          </div>
-        </div>
-
-        <!-- Header Actions: Export CSV & Close Button -->
-        <div class="flex items-center gap-2 shrink-0">
-          <button
-            @click="exportCsv"
-            :disabled="filteredLogs.length === 0"
-            class="px-2.5 py-1.5 rounded-xl border border-stone-200 text-stone-700 hover:text-stone-950 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
-            title="ดาวน์โหลดประวัติเป็นไฟล์ CSV"
-          >
-            <Download class="w-3.5 h-3.5 text-stone-500" />
-            <span class="hidden sm:inline">CSV</span>
-          </button>
-
-          <button
-            @click="close"
-            class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      <!-- ======================================================= -->
-      <!-- 2. TOOLBAR & FILTERS (Clean and isolated per mode)     -->
-      <!-- ======================================================= -->
-      <!-- Case A: Item Mode Toolbar (Only relevant pills for this item) -->
-      <div v-if="isItemMode" class="px-6 py-2.5 bg-[#FAF9F6] border-b border-stone-100 flex items-center justify-between gap-3 shrink-0">
-        <div class="flex items-center gap-1.5 overflow-x-auto text-xs no-scrollbar">
-          <button
-            @click="itemActionFilter = 'all'"
-            :class="[
-              'px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium text-[11px]',
-              itemActionFilter === 'all'
-                ? 'bg-stone-900 text-white shadow-2xs font-semibold'
-                : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200/60'
-            ]"
-          >
-            ทั้งหมด ({{ itemAllLogs.length }})
-          </button>
-
-          <button
-            v-if="itemStockInLogs.length > 0"
-            @click="itemActionFilter = 'stock_in'"
-            :class="[
-              'px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium text-[11px] flex items-center gap-1',
-              itemActionFilter === 'stock_in'
-                ? 'bg-emerald-800 text-white shadow-2xs font-semibold'
-                : 'bg-white text-emerald-800 hover:bg-emerald-50 border border-emerald-200/60'
-            ]"
-          >
-            <span>📥 รับเข้า</span>
-            <span class="font-number text-[10px]">({{ itemStockInLogs.length }})</span>
-          </button>
-
-          <button
-            v-if="itemAdjustLogs.length > 0"
-            @click="itemActionFilter = 'adjust'"
-            :class="[
-              'px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium text-[11px] flex items-center gap-1',
-              itemActionFilter === 'adjust'
-                ? 'bg-amber-800 text-white shadow-2xs font-semibold'
-                : 'bg-white text-amber-800 hover:bg-amber-50 border border-amber-200/60'
-            ]"
-          >
-            <span>⚖️ ตรวจนับจริง</span>
-            <span class="font-number text-[10px]">({{ itemAdjustLogs.length }})</span>
-          </button>
-
-          <button
-            v-if="itemProduceLogs.length > 0"
-            @click="itemActionFilter = 'produce'"
-            :class="[
-              'px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium text-[11px] flex items-center gap-1',
-              itemActionFilter === 'produce'
-                ? 'bg-purple-800 text-white shadow-2xs font-semibold'
-                : 'bg-white text-purple-800 hover:bg-purple-50 border border-purple-200/60'
-            ]"
-          >
-            <span>🥣 ผลิต/ใช้ผลิต</span>
-            <span class="font-number text-[10px]">({{ itemProduceLogs.length }})</span>
-          </button>
-        </div>
-
-        <!-- Quick Search within this item -->
-        <div class="relative w-40 sm:w-52 shrink-0">
-          <Search class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="ค้นหาในประวัตินี้..."
-            class="soft-input w-full pl-8 pr-2.5 py-1 rounded-lg text-xs text-stone-900 placeholder:text-stone-400"
-          />
-        </div>
-      </div>
-
-      <!-- Case B: Stock Mode Toolbar (Purely for Stock without POS or other modules) -->
-      <div v-else-if="isStockMode" class="px-6 py-2.5 bg-white border-b border-stone-100 flex flex-wrap items-center justify-between gap-2.5 shrink-0 text-xs">
-        <!-- Stock Action Filter Pills -->
-        <div class="flex items-center gap-1.5 overflow-x-auto text-xs no-scrollbar">
-          <button
-            @click="stockActionFilter = 'all'"
-            :class="[
-              'px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium text-[11px]',
-              stockActionFilter === 'all'
-                ? 'bg-stone-900 text-white shadow-2xs font-semibold'
-                : 'bg-stone-100 text-stone-600 hover:text-stone-900'
-            ]"
-          >
-            ทั้งหมด
-          </button>
-
-          <button
-            @click="stockActionFilter = 'stock_in'"
-            :class="[
-              'px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium text-[11px] flex items-center gap-1',
-              stockActionFilter === 'stock_in'
-                ? 'bg-emerald-800 text-white shadow-2xs font-semibold'
-                : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-            ]"
-          >
-            <span>📥 รับเข้า</span>
-          </button>
-
-          <button
-            @click="stockActionFilter = 'adjust'"
-            :class="[
-              'px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium text-[11px] flex items-center gap-1',
-              stockActionFilter === 'adjust'
-                ? 'bg-amber-800 text-white shadow-2xs font-semibold'
-                : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
-            ]"
-          >
-            <span>⚖️ ปรับยอดนับจริง</span>
-          </button>
-
-          <button
-            @click="stockActionFilter = 'produce'"
-            :class="[
-              'px-2.5 py-1 rounded-lg transition-all cursor-pointer font-medium text-[11px] flex items-center gap-1',
-              stockActionFilter === 'produce'
-                ? 'bg-purple-800 text-white shadow-2xs font-semibold'
-                : 'bg-purple-50 text-purple-800 hover:bg-purple-100'
-            ]"
-          >
-            <span>🥣 ผลิตตามสูตร</span>
-          </button>
-        </div>
-
-        <div class="flex items-center gap-2 flex-1 justify-end min-w-[240px]">
-          <!-- Filter by specific material -->
-          <select
-            v-model="selectedMaterialId"
-            class="soft-input px-2.5 py-1 rounded-lg text-xs font-medium text-stone-700 shrink-0 max-w-[160px]"
-          >
-            <option value="all">ทุกวัตถุดิบ</option>
-            <option v-for="m in store.materials" :key="m.id" :value="m.id">
-              {{ m.emoji }} {{ m.name }}
-            </option>
-          </select>
-
-          <!-- Search box -->
-          <div class="relative w-36 sm:w-48 shrink-0">
-            <Search class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="ค้นหา..."
-              class="soft-input w-full pl-8 pr-2.5 py-1 rounded-lg text-xs text-stone-900 placeholder:text-stone-400"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Case C: Global Overview Tabs & Toolbar (Only when opened from top bar) -->
-      <template v-else>
-        <!-- Clean Module Tabs -->
-        <div class="px-6 pt-3 border-b border-stone-100 bg-[#FAF9F6] shrink-0">
-          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2.5 text-xs font-medium">
-            <button
-              v-for="tab in moduleTabs"
-              :key="tab.id"
-              @click="activeModule = tab.id"
-              :class="[
-                'px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 cursor-pointer',
-                activeModule === tab.id
-                  ? 'bg-stone-900 text-white shadow-xs font-semibold'
-                  : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200/60'
-              ]"
-            >
-              <span>{{ tab.icon }}</span>
-              <span>{{ tab.label }}</span>
-              <span
-                :class="[
-                  'text-[10px] px-1.5 py-0.2 rounded-full font-number',
-                  activeModule === tab.id ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-500'
-                ]"
+          <!-- Right Action Strip: Search, Filter Popover Trigger, CSV, Close -->
+          <div class="flex items-center gap-2 shrink-0 relative">
+            <!-- Search Input (Clean and always visible) -->
+            <div class="relative w-36 sm:w-56">
+              <Search class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="ค้นหาประวัติ..."
+                class="soft-input w-full pl-8 pr-7 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium"
+              />
+              <button
+                v-if="searchQuery"
+                @click="searchQuery = ''"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-0.5 rounded"
               >
-                {{ tab.count }}
-              </span>
+                <X class="w-3 h-3" />
+              </button>
+            </div>
+
+            <!-- Filter Popover Trigger Button -->
+            <div class="relative">
+              <button
+                type="button"
+                @click="toggleFilterPopover"
+                class="relative p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0"
+                :class="[
+                  showFilterPopover
+                    ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
+                    : hasActiveFilter
+                      ? 'bg-amber-50 text-amber-900 border-amber-300 font-semibold'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border-transparent hover:text-stone-900'
+                ]"
+                title="เปิดแผงตัวกรอง (Filter)"
+              >
+                <Filter class="w-4 h-4" />
+                <!-- Active Filter Count Dot/Badge -->
+                <span
+                  v-if="activeFilterCount > 0"
+                  class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500 text-white shadow-2xs font-number"
+                >
+                  {{ activeFilterCount }}
+                </span>
+              </button>
+
+              <!-- ======================================================= -->
+              <!-- FLOATING FILTER POPOVER                                 -->
+              <!-- ======================================================= -->
+              <div
+                v-if="showFilterPopover"
+                v-click-outside="closeFilterPopover"
+                class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-stone-200 shadow-2xl z-30 p-4 space-y-4 animate-in fade-in zoom-in-95 duration-100"
+              >
+                <!-- Popover Header -->
+                <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+                  <div class="flex items-center gap-1.5 font-bold text-xs text-stone-900">
+                    <Filter class="w-3.5 h-3.5 text-amber-800" />
+                    <span>ตัวกรองประวัติ (Filter)</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      v-if="hasActiveFilter"
+                      type="button"
+                      @click="resetFilters"
+                      class="text-[11px] font-medium text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                    >
+                      ล้างตัวกรอง
+                    </button>
+                    <button
+                      type="button"
+                      @click="closeFilterPopover"
+                      class="text-stone-400 hover:text-stone-700 p-1 rounded-lg hover:bg-stone-100"
+                    >
+                      <X class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Section 1: Module Selector (Only for Global Overview) -->
+                <div v-if="isGlobalMode" class="space-y-1.5">
+                  <label class="text-[11px] font-semibold text-stone-500 block">หมวดหมู่ระบบ (Module)</label>
+                  <div class="grid grid-cols-2 gap-1.5 text-xs">
+                    <button
+                      type="button"
+                      v-for="m in moduleOptions"
+                      :key="m.id"
+                      @click="activeModule = m.id"
+                      class="px-2.5 py-1.5 rounded-xl border text-left font-medium transition-all cursor-pointer flex items-center gap-1.5 truncate text-[11px]"
+                      :class="activeModule === m.id ? 'bg-stone-900 text-white border-stone-900 shadow-2xs font-semibold' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'"
+                    >
+                      <span>{{ m.icon }}</span>
+                      <span class="truncate">{{ m.label }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Section 2: Material Selector (When in Stock Mode) -->
+                <div v-if="isStockMode" class="space-y-1.5">
+                  <label class="text-[11px] font-semibold text-stone-500 block">เลือกวัตถุดิบเฉพาะ</label>
+                  <select
+                    v-model="selectedMaterialId"
+                    class="soft-input w-full px-3 py-1.5 rounded-xl text-xs font-medium text-stone-700 border border-stone-200"
+                  >
+                    <option value="all">📦 ทุกวัตถุดิบ</option>
+                    <option v-for="m in store.materials" :key="m.id" :value="m.id">
+                      {{ m.emoji }} {{ m.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- Section 3: Action Type Filter -->
+                <div class="space-y-1.5">
+                  <label class="text-[11px] font-semibold text-stone-500 block">ประเภทการเคลื่อนไหว (Action)</label>
+                  <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
+                    <button
+                      type="button"
+                      v-for="act in availableActionOptions"
+                      :key="act.id"
+                      @click="selectedActionFilter = act.id"
+                      class="px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-medium flex items-center gap-1"
+                      :class="selectedActionFilter === act.id ? 'bg-stone-900 text-white border-stone-900 shadow-2xs font-semibold' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'"
+                    >
+                      <span>{{ act.icon }}</span>
+                      <span>{{ act.label }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Section 4: Interactive Date Range Calendar -->
+                <div class="space-y-1.5">
+                  <label class="text-[11px] font-semibold text-stone-500 block">ช่วงวันที่ (Date Range)</label>
+                  <DateRangeCalendar
+                    v-model:startDate="filterStartDate"
+                    v-model:endDate="filterEndDate"
+                  />
+                </div>
+
+                <!-- Popover Footer Action -->
+                <div class="pt-2 border-t border-stone-100 flex items-center justify-between">
+                  <span class="text-[11px] text-stone-400 font-number">
+                    พบ {{ filteredLogs.length }} รายการ
+                  </span>
+                  <button
+                    type="button"
+                    @click="closeFilterPopover"
+                    class="px-4 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                  >
+                    ดูผลลัพธ์
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Export CSV Button -->
+            <button
+              type="button"
+              @click="exportCsv"
+              :disabled="filteredLogs.length === 0"
+              class="p-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-stone-200 text-stone-700 hover:text-stone-950 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 shrink-0"
+              title="ดาวน์โหลดประวัติเป็นไฟล์ CSV"
+            >
+              <Download class="w-4 h-4 text-stone-500" />
+              <span class="hidden sm:inline">CSV</span>
+            </button>
+
+            <!-- Close Modal Button -->
+            <button
+              type="button"
+              @click="close"
+              class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer shrink-0"
+              title="ปิดหน้าต่าง"
+            >
+              <X class="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        <!-- Search & Date Toolbar -->
-        <div class="px-6 py-2.5 bg-white border-b border-stone-100 flex items-center justify-between gap-3 shrink-0 text-xs">
-          <div class="relative flex-1 max-w-sm">
-            <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="ค้นหาชื่อวัตถุดิบ, เหตุผล, หมายเหตุ..."
-              class="soft-input w-full pl-8.5 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-            />
-          </div>
+        <!-- Row 2: Active Filter Pills (Shown only when filters are active) -->
+        <div v-if="hasActiveFilter" class="flex items-center gap-1.5 flex-wrap pt-2.5 mt-2 border-t border-stone-100 text-[11px]">
+          <span class="text-stone-400 text-[10px] font-semibold">ตัวกรองที่เลือก:</span>
 
-          <div class="flex items-center gap-2 shrink-0">
-            <select
-              v-model="dateFilter"
-              class="soft-input px-3 py-1.5 rounded-xl text-xs font-medium text-stone-700"
-            >
-              <option value="all">ทุกช่วงเวลา</option>
-              <option value="today">วันนี้</option>
-              <option value="week">7 วันล่าสุด</option>
-              <option value="month">30 วันล่าสุด</option>
-            </select>
-          </div>
+          <!-- Module Chip -->
+          <span
+            v-if="isGlobalMode && activeModule !== 'all'"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-100 text-stone-800 font-medium"
+          >
+            <span>{{ getModuleLabel(activeModule) }}</span>
+            <button @click="activeModule = 'all'" class="hover:text-rose-600"><X class="w-3 h-3" /></button>
+          </span>
+
+          <!-- Material Chip -->
+          <span
+            v-if="isStockMode && selectedMaterialId !== 'all'"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-stone-100 text-stone-800 font-medium"
+          >
+            <span>{{ getMaterialName(selectedMaterialId) }}</span>
+            <button @click="selectedMaterialId = 'all'" class="hover:text-rose-600"><X class="w-3 h-3" /></button>
+          </span>
+
+          <!-- Action Chip -->
+          <span
+            v-if="selectedActionFilter !== 'all'"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium"
+          >
+            <span>{{ getActionLabel(selectedActionFilter) }}</span>
+            <button @click="selectedActionFilter = 'all'" class="hover:text-rose-600"><X class="w-3 h-3" /></button>
+          </span>
+
+          <!-- Date Range Chip -->
+          <span
+            v-if="filterStartDate || filterEndDate"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium"
+          >
+            <span>📅 {{ formatDateRangeLabel(filterStartDate, filterEndDate) }}</span>
+            <button @click="clearDateRange" class="hover:text-rose-600"><X class="w-3 h-3" /></button>
+          </span>
+
+          <!-- Clear All -->
+          <button
+            type="button"
+            @click="resetFilters"
+            class="text-[10px] text-rose-600 hover:text-rose-800 hover:underline font-medium ml-1 cursor-pointer"
+          >
+            ล้างทั้งหมด
+          </button>
         </div>
-      </template>
+      </div>
 
       <!-- ======================================================= -->
-      <!-- 3. LOG LIST (Robust, crash-proof card list)             -->
+      <!-- 2. LOG LIST (Grouped by Date, Minimalist Clean Cards)   -->
       <!-- ======================================================= -->
-      <div class="overflow-y-auto flex-1 p-5 space-y-2.5 text-xs bg-[#FAF9F6]">
+      <div class="overflow-y-auto flex-1 p-4 sm:p-6 space-y-6 text-xs bg-[#FAF9F6]">
         <!-- Empty State -->
-        <div v-if="filteredLogs.length === 0" class="py-12 text-center bg-white rounded-2xl border border-stone-200/60 p-6">
-          <div class="text-3xl mb-2">📜</div>
-          <p class="text-xs font-semibold text-stone-700">
+        <div v-if="filteredLogs.length === 0" class="py-16 text-center bg-white rounded-3xl border border-stone-200/60 p-6 shadow-2xs">
+          <div class="text-4xl mb-3">📜</div>
+          <p class="text-sm font-bold text-stone-800">
             {{ isItemMode ? `ยังไม่มีประวัติการเคลื่อนไหวของ ${activeTargetMaterial?.name}` : 'ไม่พบประวัติกิจกรรมตามเงื่อนไขที่เลือก' }}
           </p>
-          <p class="text-[11px] text-stone-400 mt-1">
-            {{ isItemMode ? 'เมื่อมีการรับเข้า ปรับยอดนับจริง หรือผลิต รายการจะถูกบันทึกที่นี่อัตโนมัติ' : 'ลองเปลี่ยนคำค้นหา หรือเลือกดูช่วงเวลาอื่น' }}
+          <p class="text-xs text-stone-400 mt-1 max-w-sm mx-auto">
+            {{ isItemMode ? 'เมื่อมีการรับเข้า ปรับยอดนับจริง หรือผลิต รายการจะถูกบันทึกที่นี่อัตโนมัติ' : 'ลองเปลี่ยนคำค้นหา หรือเลือกปรับช่วงวันใหม่ในแผงตัวกรอง' }}
           </p>
           <button
             v-if="hasActiveFilter"
             @click="resetFilters"
-            class="mt-3 px-3 py-1.5 text-[11px] font-medium text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
+            class="mt-4 px-4 py-1.5 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors cursor-pointer"
           >
-            ล้างตัวกรอง
+            ล้างตัวกรองทั้งหมด
           </button>
         </div>
 
-        <!-- Log Item Cards -->
+        <!-- Date Groups -->
         <div
-          v-for="log in filteredLogs"
-          :key="log.id"
-          class="bg-white p-3.5 rounded-xl border border-stone-200/70 shadow-2xs hover:border-stone-300 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          v-for="group in groupedLogs"
+          :key="group.dateKey"
+          class="space-y-2.5"
         >
-          <!-- Left: Action badge, Title, Stock Transition & Notes -->
-          <div class="flex items-start gap-3 min-w-0 flex-1">
-            <span class="text-xl shrink-0 mt-0.5">
-              {{ log.targetEmoji || getActionIcon(log.action) }}
-            </span>
-            <div class="min-w-0 flex-1">
-              <div class="flex flex-wrap items-center gap-1.5 mb-1">
-                <!-- Action Badge -->
-                <span
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold shrink-0"
-                  :class="getActionBadgeClass(log.action)"
-                >
-                  <span>{{ getActionIcon(log.action) }}</span>
-                  <span>{{ log.title || 'กิจกรรม' }}</span>
-                </span>
-
-                <!-- Target Name (Only show when not in single item mode) -->
-                <span v-if="!isItemMode && log.targetName" class="font-bold text-stone-900 truncate">
-                  {{ log.targetName }}
-                </span>
-
-                <!-- User/Operator -->
-                <span v-if="log.user" class="text-[10px] text-stone-400 shrink-0">
-                  • {{ log.user }}
-                </span>
-              </div>
-
-              <!-- Movement Description / Stock transition (Safe checks) -->
-              <p class="text-xs text-stone-700">
-                <span v-if="hasStockTransition(log)" class="font-medium text-stone-500">
-                  {{ formatNum(log.beforeStock) }} ➔ <strong class="text-stone-900">{{ formatNum(log.afterStock) }}</strong> {{ log.unit || '' }}:
-                </span>
-                <span class="text-stone-600 ml-1">{{ log.description || log.note || '' }}</span>
-              </p>
-
-              <!-- Reason, Dates & Note tags -->
-              <div v-if="log.reason || log.receiveDate || log.expiryDate || log.note" class="flex flex-wrap items-center gap-1.5 mt-1.5 text-[10px]">
-                <span
-                  v-if="log.receiveDate"
-                  class="px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 font-medium font-number"
-                  :title="`วันที่รับเข้าหรือผลิต: ${log.receiveDate}`"
-                >
-                  📅 {{ formatThaiDate(log.receiveDate) }}
-                </span>
-                <span
-                  v-if="log.expiryDate"
-                  class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/60 font-medium font-number"
-                  :title="`วันหมดอายุ: ${log.expiryDate}`"
-                >
-                  ⏳ หมดอายุ: {{ formatThaiDate(log.expiryDate) }}
-                </span>
-                <span
-                  v-if="log.reason"
-                  class="px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 font-medium"
-                >
-                  เหตุผล: {{ log.reason }}
-                </span>
-                <span
-                  v-if="log.note && log.note !== log.description"
-                  class="text-stone-400 italic truncate max-w-sm"
-                >
-                  "{{ log.note }}"
-                </span>
-              </div>
+          <!-- Date Group Sticky Header -->
+          <div class="flex items-center justify-between sticky top-0 z-10 py-1 bg-[#FAF9F6]/90 backdrop-blur-xs">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-700"></span>
+              <h4 class="text-xs font-bold text-stone-800 tracking-tight">
+                {{ group.dateLabel }}
+              </h4>
             </div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-stone-200/70 text-stone-600 font-number font-semibold">
+              {{ group.items.length }} รายการ
+            </span>
           </div>
 
-          <!-- Right: Delta Badge & Timestamp -->
-          <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1.5 shrink-0 pl-1 border-t sm:border-t-0 pt-2 sm:pt-0 border-stone-100">
-            <!-- Delta Badge (Safe formatting) -->
-            <div v-if="hasDelta(log)" class="font-number font-bold text-xs">
-              <span
-                v-if="Number(log.delta) > 0"
-                class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200/50"
-              >
-                +{{ formatNum(log.delta) }} {{ log.unit || '' }}
-              </span>
-              <span
-                v-else-if="Number(log.delta) < 0"
-                class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200/50"
-              >
-                {{ formatNum(log.delta) }} {{ log.unit || '' }}
-              </span>
-            </div>
-            <div v-else class="text-[10px] text-stone-400 font-number">
-              -
-            </div>
+          <!-- Log Item Cards in this group -->
+          <div class="space-y-2">
+            <div
+              v-for="log in group.items"
+              :key="log.id"
+              class="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/70 shadow-2xs hover:border-stone-300 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            >
+              <!-- Left Content Area -->
+              <div class="flex items-start gap-3 min-w-0 flex-1">
+                <!-- Emoji Avatar -->
+                <div class="w-9 h-9 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-lg shrink-0 mt-0.5">
+                  {{ log.targetEmoji || getActionIcon(log.action) }}
+                </div>
 
-            <!-- Timestamp (Safe formatting) -->
-            <span class="text-[10px] text-stone-400 font-mono" :title="log.timestamp || ''">
-              {{ formatTime(log.timestamp) }}
-            </span>
+                <div class="min-w-0 flex-1 space-y-1">
+                  <!-- Row 1: Action Badge & Target Title -->
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <!-- Action Pill -->
+                    <span
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold shrink-0"
+                      :class="getActionBadgeClass(log.action)"
+                    >
+                      <span>{{ getActionIcon(log.action) }}</span>
+                      <span>{{ log.title || 'กิจกรรม' }}</span>
+                    </span>
+
+                    <!-- Target Name -->
+                    <span v-if="!isItemMode && log.targetName" class="font-bold text-stone-900 truncate text-xs">
+                      {{ log.targetName }}
+                    </span>
+
+                    <!-- Operator -->
+                    <span v-if="log.user" class="text-[10px] text-stone-400 shrink-0">
+                      • {{ log.user }}
+                    </span>
+                  </div>
+
+                  <!-- Row 2: Stock Transition / Description -->
+                  <p class="text-xs text-stone-700 leading-relaxed">
+                    <span v-if="hasStockTransition(log)" class="font-medium text-stone-500">
+                      {{ formatNum(log.beforeStock) }} ➔ <strong class="text-stone-900">{{ formatNum(log.afterStock) }}</strong> {{ log.unit || '' }}:
+                    </span>
+                    <span class="text-stone-600 ml-0.5">{{ log.description || log.note || '' }}</span>
+                  </p>
+
+                  <!-- Row 3: Meta Badges (Reason, Expiry, Dates, Notes) -->
+                  <div v-if="log.reason || log.receiveDate || log.expiryDate || log.note" class="flex flex-wrap items-center gap-1.5 pt-0.5 text-[10px]">
+                    <span
+                      v-if="log.receiveDate"
+                      class="px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 font-medium font-number"
+                      :title="`วันที่รับเข้าหรือผลิต: ${log.receiveDate}`"
+                    >
+                      📅 {{ formatThaiDate(log.receiveDate) }}
+                    </span>
+                    <span
+                      v-if="log.expiryDate"
+                      class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/60 font-medium font-number"
+                      :title="`วันหมดอายุ: ${log.expiryDate}`"
+                    >
+                      ⏳ หมดอายุ: {{ formatThaiDate(log.expiryDate) }}
+                    </span>
+                    <span
+                      v-if="log.reason"
+                      class="px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 font-medium"
+                    >
+                      เหตุผล: {{ log.reason }}
+                    </span>
+                    <span
+                      v-if="log.note && log.note !== log.description"
+                      class="text-stone-400 italic truncate max-w-sm"
+                    >
+                      "{{ log.note }}"
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Content Area: Delta Badge & Timestamp -->
+              <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1.5 shrink-0 pl-1 border-t sm:border-t-0 pt-2 sm:pt-0 border-stone-100">
+                <!-- Delta Badge -->
+                <div v-if="hasDelta(log)" class="font-number font-bold text-xs">
+                  <span
+                    v-if="Number(log.delta) > 0"
+                    class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200/50"
+                  >
+                    +{{ formatNum(log.delta) }} {{ log.unit || '' }}
+                  </span>
+                  <span
+                    v-else-if="Number(log.delta) < 0"
+                    class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200/50"
+                  >
+                    {{ formatNum(log.delta) }} {{ log.unit || '' }}
+                  </span>
+                </div>
+                <div v-else class="text-[10px] text-stone-400 font-number">
+                  -
+                </div>
+
+                <!-- Time of day -->
+                <span class="text-[10px] text-stone-400 font-mono" :title="log.timestamp || ''">
+                  {{ formatTimeOfDay(log.timestamp) }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- ======================================================= -->
-      <!-- 4. FOOTER                                               -->
+      <!-- 3. FOOTER BAR                                           -->
       <!-- ======================================================= -->
       <div class="px-6 py-3 border-t border-stone-100 bg-white flex items-center justify-between shrink-0 text-xs text-stone-500">
         <div>
-          <span>แสดง {{ filteredLogs.length }} รายการ</span>
+          <span>แสดง <strong class="text-stone-800 font-number">{{ filteredLogs.length }}</strong> รายการ</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
           <button
             v-if="!isItemMode"
+            type="button"
             @click="confirmClearLogs"
             :disabled="(store.activityLogs || []).length === 0"
             class="text-[11px] text-rose-600 hover:text-rose-800 hover:underline px-2 py-1 transition-colors cursor-pointer disabled:opacity-30"
@@ -458,28 +486,53 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { usePosStore, formatThaiDate } from '@/stores/posStore'
+import DateRangeCalendar from '@/components/ui/DateRangeCalendar.vue'
 import {
   X,
   Search,
-  Download
+  Download,
+  Filter
 } from 'lucide-vue-next'
 
 const store = usePosStore()
 
-// State for overview mode
-const activeModule = ref('all') // 'all' | 'stock' | 'pos' | 'menu' | 'system'
-const dateFilter = ref('all') // 'all' | 'today' | 'week' | 'month'
+// Popover state
+const showFilterPopover = ref(false)
 
-// State for item mode
-const itemActionFilter = ref('all') // 'all' | 'stock_in' | 'adjust' | 'produce'
+function toggleFilterPopover() {
+  showFilterPopover.value = !showFilterPopover.value
+}
 
-// State for stock mode
-const stockActionFilter = ref('all') // 'all' | 'stock_in' | 'adjust' | 'produce'
-const selectedMaterialId = ref('all')
+function closeFilterPopover() {
+  showFilterPopover.value = false
+}
 
-// Shared state
+// Click outside directive for popover
+const vClickOutside = {
+  mounted(el, binding) {
+    el._clickOutsideHandler = (event) => {
+      if (!el.contains(event.target) && !event.target.closest('[title="เปิดแผงตัวกรอง (Filter)"]')) {
+        binding.value()
+      }
+    }
+    document.addEventListener('click', el._clickOutsideHandler)
+  },
+  unmounted(el) {
+    if (el._clickOutsideHandler) {
+      document.removeEventListener('click', el._clickOutsideHandler)
+    }
+  }
+}
+
+// Filter States
 const searchQuery = ref('')
+const activeModule = ref('all') // 'all' | 'stock' | 'pos' | 'menu' | 'system'
+const selectedActionFilter = ref('all') // 'all' | 'stock_in' | 'adjust' | 'produce' | 'waste' | 'sale_deduct' etc.
+const selectedMaterialId = ref('all')
+const filterStartDate = ref(null) // 'YYYY-MM-DD'
+const filterEndDate = ref(null) // 'YYYY-MM-DD'
 
+// Active Target Material for single item mode
 const activeTargetMaterialId = computed(() => {
   return store.modals.activityLog?.targetMaterialId || null
 })
@@ -489,46 +542,59 @@ const activeTargetMaterial = computed(() => {
   return store.materials.find(m => m.id === activeTargetMaterialId.value) || store.matMap[activeTargetMaterialId.value] || null
 })
 
-// Mode 1: Looking at a specific item
+// Modes
 const isItemMode = computed(() => {
   return Boolean(activeTargetMaterialId.value && activeTargetMaterial.value)
 })
 
-// Mode 2: Looking at stock module history (not a single item, but opened from Stock View)
 const isStockMode = computed(() => {
   return !isItemMode.value && store.modals.activityLog?.module === 'stock'
 })
 
-// Mode 3: Global overview (opened from top HeaderBar)
 const isGlobalMode = computed(() => {
   return !isItemMode.value && !isStockMode.value
 })
 
-// Item-specific all logs
-const itemAllLogs = computed(() => {
-  if (!activeTargetMaterialId.value) return []
-  const id = activeTargetMaterialId.value
-  return (store.activityLogs || []).filter(l => l.targetId === id || l.materialId === id)
+// Options
+const moduleOptions = [
+  { id: 'all', label: 'ทั้งหมด', icon: '📋' },
+  { id: 'stock', label: 'คลังสต็อก', icon: '📦' },
+  { id: 'pos', label: 'แคชเชียร์/POS', icon: '🛒' },
+  { id: 'menu', label: 'เมนู/ท็อปปิ้ง', icon: '🍽️' },
+  { id: 'system', label: 'ระบบ/การตั้งค่า', icon: '⚙️' }
+]
+
+const availableActionOptions = computed(() => {
+  if (isStockMode.value || isItemMode.value) {
+    return [
+      { id: 'all', label: 'ทุกกิจกรรม', icon: '✨' },
+      { id: 'stock_in', label: 'รับเข้าสต็อก', icon: '📥' },
+      { id: 'adjust', label: 'ตรวจนับจริง', icon: '⚖️' },
+      { id: 'produce', label: 'ผลิตตามสูตร', icon: '🥣' },
+      { id: 'waste', label: 'ของเสีย', icon: '🗑️' },
+      { id: 'switch_lot', label: 'สลับล็อต', icon: '⚡' }
+    ]
+  }
+
+  // Global mode actions
+  return [
+    { id: 'all', label: 'ทุกกิจกรรม', icon: '✨' },
+    { id: 'stock_in', label: 'รับเข้าสต็อก', icon: '📥' },
+    { id: 'adjust', label: 'ตรวจนับจริง', icon: '⚖️' },
+    { id: 'produce', label: 'ผลิตตามสูตร', icon: '🥣' },
+    { id: 'order_complete', label: 'ขายหน้าร้าน', icon: '🧾' },
+    { id: 'waste', label: 'ของเสีย', icon: '🗑️' }
+  ]
 })
 
-const itemStockInLogs = computed(() => {
-  return itemAllLogs.value.filter(l => l.action === 'stock_in')
-})
-
-const itemAdjustLogs = computed(() => {
-  return itemAllLogs.value.filter(l => l.action === 'adjust' || (l.action && String(l.action).startsWith('stock_adjust')))
-})
-
-const itemProduceLogs = computed(() => {
-  return itemAllLogs.value.filter(l => l.action === 'produce' || l.action === 'produce_deduct' || (l.action && String(l.action).startsWith('produce')))
-})
-
+// Watch modal open
 watch(() => store.modals.activityLog?.isOpen, (open) => {
   if (open) {
-    itemActionFilter.value = 'all'
-    stockActionFilter.value = 'all'
+    showFilterPopover.value = false
+    selectedActionFilter.value = 'all'
     selectedMaterialId.value = 'all'
-    dateFilter.value = 'all'
+    filterStartDate.value = null
+    filterEndDate.value = null
     searchQuery.value = ''
     if (store.modals.activityLog.module) {
       activeModule.value = store.modals.activityLog.module
@@ -539,39 +605,188 @@ watch(() => store.modals.activityLog?.isOpen, (open) => {
 })
 
 function close() {
+  showFilterPopover.value = false
   store.closeActivityLog()
 }
 
+// Active Filter Checks
 const hasActiveFilter = computed(() => {
-  if (searchQuery.value.trim()) return true
-  if (isItemMode.value) return itemActionFilter.value !== 'all'
-  if (isStockMode.value) return stockActionFilter.value !== 'all' || selectedMaterialId.value !== 'all'
-  return dateFilter.value !== 'all' || activeModule.value !== 'all'
+  if (isItemMode.value) {
+    return selectedActionFilter.value !== 'all' || filterStartDate.value !== null || filterEndDate.value !== null
+  }
+  if (isStockMode.value) {
+    return selectedActionFilter.value !== 'all' || selectedMaterialId.value !== 'all' || filterStartDate.value !== null || filterEndDate.value !== null
+  }
+  return activeModule.value !== 'all' || selectedActionFilter.value !== 'all' || filterStartDate.value !== null || filterEndDate.value !== null
+})
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (isGlobalMode.value && activeModule.value !== 'all') count++
+  if (isStockMode.value && selectedMaterialId.value !== 'all') count++
+  if (selectedActionFilter.value !== 'all') count++
+  if (filterStartDate.value !== null || filterEndDate.value !== null) count++
+  return count
 })
 
 function resetFilters() {
-  itemActionFilter.value = 'all'
-  stockActionFilter.value = 'all'
-  selectedMaterialId.value = 'all'
   activeModule.value = 'all'
-  dateFilter.value = 'all'
+  selectedActionFilter.value = 'all'
+  selectedMaterialId.value = 'all'
+  filterStartDate.value = null
+  filterEndDate.value = null
   searchQuery.value = ''
 }
 
-// Module Tabs Definition for Overview mode
-const moduleTabs = computed(() => {
-  const allLogs = store.activityLogs || []
-  const countModule = (mod) => allLogs.filter(l => l.module === mod).length
-  return [
-    { id: 'all', label: 'ภาพรวมทั้งหมด', icon: '📋', count: allLogs.length },
-    { id: 'stock', label: 'คลังวัตถุดิบ & สต็อก', icon: '📦', count: countModule('stock') },
-    { id: 'pos', label: 'แคชเชียร์ & ออเดอร์', icon: '🛒', count: countModule('pos') },
-    { id: 'menu', label: 'เมนู & Add-on', icon: '🍽️', count: countModule('menu') + countModule('addon') },
-    { id: 'system', label: 'ระบบ & ซิงค์', icon: '⚙️', count: countModule('system') }
-  ]
+function clearDateRange() {
+  filterStartDate.value = null
+  filterEndDate.value = null
+}
+
+function getModuleLabel(modId) {
+  const opt = moduleOptions.find(o => o.id === modId)
+  return opt ? `${opt.icon} ${opt.label}` : modId
+}
+
+function getMaterialName(matId) {
+  const mat = store.materials.find(m => m.id === matId)
+  return mat ? `${mat.emoji} ${mat.name}` : matId
+}
+
+function getActionLabel(actId) {
+  const opt = availableActionOptions.value.find(o => o.id === actId)
+  return opt ? `${opt.icon} ${opt.label}` : actId
+}
+
+function formatDateRangeLabel(start, end) {
+  if (start && end) {
+    if (start === end) return formatThaiDate(start)
+    return `${formatThaiDate(start)} – ${formatThaiDate(end)}`
+  }
+  if (start) return `ตั้งแต่ ${formatThaiDate(start)}`
+  if (end) return `ถึง ${formatThaiDate(end)}`
+  return ''
+}
+
+// Filtered Logs
+const filteredLogs = computed(() => {
+  let list = store.activityLogs || []
+
+  // 1. Context Filtering
+  if (isItemMode.value) {
+    const id = activeTargetMaterialId.value
+    list = list.filter(l => l.targetId === id || l.materialId === id)
+  } else if (isStockMode.value) {
+    list = list.filter(l => l.module === 'stock')
+    if (selectedMaterialId.value !== 'all') {
+      list = list.filter(l => l.targetId === selectedMaterialId.value || l.materialId === selectedMaterialId.value)
+    }
+  } else {
+    // Global Mode
+    if (activeModule.value !== 'all') {
+      if (activeModule.value === 'menu') {
+        list = list.filter(l => l.module === 'menu' || l.module === 'addon')
+      } else {
+        list = list.filter(l => l.module === activeModule.value)
+      }
+    }
+  }
+
+  // 2. Action Type Filter
+  if (selectedActionFilter.value !== 'all') {
+    const act = selectedActionFilter.value
+    if (act === 'adjust') {
+      list = list.filter(l => l.action === 'adjust' || (l.action && String(l.action).startsWith('stock_adjust')))
+    } else if (act === 'produce') {
+      list = list.filter(l => l.action === 'produce' || l.action === 'produce_deduct' || (l.action && String(l.action).startsWith('produce')))
+    } else {
+      list = list.filter(l => l.action === act)
+    }
+  }
+
+  // 3. Date Range Filter
+  if (filterStartDate.value || filterEndDate.value) {
+    list = list.filter(l => {
+      if (!l.timestamp) return false
+      const logDay = l.timestamp.slice(0, 10)
+      if (filterStartDate.value && logDay < filterStartDate.value) return false
+      if (filterEndDate.value && logDay > filterEndDate.value) return false
+      return true
+    })
+  }
+
+  // 4. Search Filter
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(l => {
+      return (
+        (l.targetName && String(l.targetName).toLowerCase().includes(q)) ||
+        (l.title && String(l.title).toLowerCase().includes(q)) ||
+        (l.description && String(l.description).toLowerCase().includes(q)) ||
+        (l.reason && String(l.reason).toLowerCase().includes(q)) ||
+        (l.note && String(l.note).toLowerCase().includes(q)) ||
+        (l.targetId && String(l.targetId).toLowerCase().includes(q)) ||
+        (l.user && String(l.user).toLowerCase().includes(q))
+      )
+    })
+  }
+
+  return list
 })
 
-// Safe Helpers
+// Group logs by date
+const groupedLogs = computed(() => {
+  const groups = {}
+  const now = new Date()
+  const todayStr = toDateString(now)
+  const yest = new Date(now)
+  yest.setDate(now.getDate() - 1)
+  const yestStr = toDateString(yest)
+
+  filteredLogs.value.forEach(log => {
+    const dateKey = log.timestamp ? log.timestamp.slice(0, 10) : 'unknown'
+    if (!groups[dateKey]) {
+      let label = ''
+      if (dateKey === todayStr) {
+        label = 'วันนี้'
+      } else if (dateKey === yestStr) {
+        label = 'เมื่อวาน'
+      } else if (dateKey !== 'unknown') {
+        label = formatThaiDate(dateKey, true)
+      } else {
+        label = 'ไม่ระบุวันที่'
+      }
+      groups[dateKey] = {
+        dateKey,
+        dateLabel: label,
+        items: []
+      }
+    }
+    groups[dateKey].items.push(log)
+  })
+
+  return Object.values(groups)
+})
+
+function toDateString(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function formatTimeOfDay(isoString) {
+  if (!isoString) return ''
+  try {
+    const d = new Date(isoString)
+    if (isNaN(d.getTime())) return ''
+    return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+  } catch (e) {
+    return ''
+  }
+}
+
+// Helpers
 function hasStockTransition(log) {
   return (
     log &&
@@ -601,111 +816,6 @@ function formatNum(val) {
   return isNaN(n) ? String(val) : n.toLocaleString()
 }
 
-function formatTime(isoString) {
-  if (!isoString) return ''
-  try {
-    const d = new Date(isoString)
-    if (isNaN(d.getTime())) return ''
-    const now = new Date()
-    const isToday = d.toDateString() === now.toDateString()
-    const timeStr = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
-    if (isToday) {
-      return `วันนี้ ${timeStr} น.`
-    }
-    const dateStr = d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' })
-    return `${dateStr} ${timeStr}`
-  } catch (e) {
-    return ''
-  }
-}
-
-// Filtered Logs
-const filteredLogs = computed(() => {
-  let list = []
-
-  if (isItemMode.value) {
-    // 1. In Item Mode: Start with all logs for this specific item
-    list = itemAllLogs.value
-
-    // Filter by item action pill
-    if (itemActionFilter.value === 'stock_in') {
-      list = list.filter(l => l.action === 'stock_in')
-    } else if (itemActionFilter.value === 'adjust') {
-      list = list.filter(l => l.action === 'adjust' || (l.action && String(l.action).startsWith('stock_adjust')))
-    } else if (itemActionFilter.value === 'produce') {
-      list = list.filter(l => l.action === 'produce' || l.action === 'produce_deduct' || (l.action && String(l.action).startsWith('produce')))
-    }
-  } else if (isStockMode.value) {
-    // 2. In Stock Mode: Only stock logs
-    list = (store.activityLogs || []).filter(l => l.module === 'stock')
-
-    // Filter by stock action pill
-    if (stockActionFilter.value === 'stock_in') {
-      list = list.filter(l => l.action === 'stock_in')
-    } else if (stockActionFilter.value === 'adjust') {
-      list = list.filter(l => l.action === 'adjust' || (l.action && String(l.action).startsWith('stock_adjust')))
-    } else if (stockActionFilter.value === 'produce') {
-      list = list.filter(l => l.action === 'produce' || l.action === 'produce_deduct' || (l.action && String(l.action).startsWith('produce')))
-    }
-
-    // Filter by selected material
-    if (selectedMaterialId.value !== 'all') {
-      list = list.filter(l => l.targetId === selectedMaterialId.value || l.materialId === selectedMaterialId.value)
-    }
-  } else {
-    // 3. In Global Overview Mode: Start with all logs
-    list = store.activityLogs || []
-
-    // Filter by Module
-    if (activeModule.value !== 'all') {
-      if (activeModule.value === 'menu') {
-        list = list.filter(l => l.module === 'menu' || l.module === 'addon')
-      } else {
-        list = list.filter(l => l.module === activeModule.value)
-      }
-    }
-
-    // Date Filter
-    if (dateFilter.value !== 'all') {
-      const now = new Date()
-      list = list.filter(l => {
-        try {
-          const logDate = new Date(l.timestamp)
-          const diffMs = now - logDate
-          if (dateFilter.value === 'today') {
-            return logDate.toDateString() === now.toDateString()
-          } else if (dateFilter.value === 'week') {
-            return diffMs <= 7 * 24 * 60 * 60 * 1000
-          } else if (dateFilter.value === 'month') {
-            return diffMs <= 30 * 24 * 60 * 60 * 1000
-          }
-          return true
-        } catch (e) {
-          return true
-        }
-      })
-    }
-  }
-
-  // Common Search Filter
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.trim().toLowerCase()
-    list = list.filter(l => {
-      return (
-        (l.targetName && String(l.targetName).toLowerCase().includes(q)) ||
-        (l.title && String(l.title).toLowerCase().includes(q)) ||
-        (l.description && String(l.description).toLowerCase().includes(q)) ||
-        (l.reason && String(l.reason).toLowerCase().includes(q)) ||
-        (l.note && String(l.note).toLowerCase().includes(q)) ||
-        (l.targetId && String(l.targetId).toLowerCase().includes(q)) ||
-        (l.user && String(l.user).toLowerCase().includes(q))
-      )
-    })
-  }
-
-  return list
-})
-
 function getActionIcon(action) {
   switch (action) {
     case 'adjust':
@@ -722,6 +832,10 @@ function getActionIcon(action) {
       return '🛍️'
     case 'order_complete':
       return '🧾'
+    case 'waste':
+      return '🗑️'
+    case 'switch_lot':
+      return '⚡'
     case 'create':
       return '✨'
     case 'edit':
@@ -750,8 +864,11 @@ function getActionBadgeClass(action) {
     case 'sale_deduct':
     case 'order_complete':
       return 'bg-blue-50 text-blue-900 border border-blue-200/60'
+    case 'waste':
     case 'delete':
       return 'bg-rose-50 text-rose-800 border border-rose-200/60'
+    case 'switch_lot':
+      return 'bg-amber-100 text-amber-900 border border-amber-300'
     default:
       return 'bg-stone-100 text-stone-700 border border-stone-200/60'
   }
