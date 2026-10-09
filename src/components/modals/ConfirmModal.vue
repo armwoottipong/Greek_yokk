@@ -1,16 +1,11 @@
 <template>
-  <div
-    v-if="modal.isOpen"
+  <ModalShell labelled-by="ConfirmModal-title" :open="modal.isOpen"
     class="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-    @click.self="handleBackdropClick"
+    @request-close="handleBackdropClick"
     tabindex="-1"
-    @keydown.esc="onCancel"
-    @keydown.enter.prevent="onConfirm"
   >
     <div
       class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-sm w-full p-6 space-y-4 animate-in zoom-in-95 duration-150 relative"
-      role="dialog"
-      aria-modal="true"
     >
       <!-- Icon & Title Header -->
       <div class="flex items-start gap-3.5">
@@ -21,7 +16,7 @@
           <span>{{ themeClasses.emoji }}</span>
         </div>
         <div class="min-w-0 flex-1 pt-0.5">
-          <h3 class="text-sm font-bold text-stone-900 leading-snug">
+          <h3 id="ConfirmModal-title" class="text-sm font-bold text-stone-900 leading-snug">
             {{ modal.title || 'ยืนยันการดำเนินการ' }}
           </h3>
           <p class="text-xs text-stone-500 mt-1 leading-relaxed whitespace-pre-line">
@@ -50,11 +45,12 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import ModalShell from '@/components/ui/ModalShell.vue'
+import { computed, ref } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 
 const store = usePosStore()
@@ -89,14 +85,6 @@ const themeClasses = computed(() => {
         iconBox: 'bg-amber-50 text-amber-900 border-amber-200/60',
         confirmBtn: 'bg-amber-900 hover:bg-amber-950 active:bg-stone-900'
       }
-  }
-})
-
-watch(() => modal.value.isOpen, (open) => {
-  if (open) {
-    nextTick(() => {
-      confirmButtonRef.value?.focus?.()
-    })
   }
 })
 

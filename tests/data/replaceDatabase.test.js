@@ -33,3 +33,18 @@ it('failed save restores committed database and reports failure',()=> {
   s.menus.push({id:'M',name:'M',prices:{PLAT01:10},recipe:[]})
   expect(s.persistLocal().ok).toBe(false);expect(s.menus).toEqual([]);expect(s.materials[0].stock).toBe(100)
 })
+it('explicit restore can recover corrupt canonical data while preserving its raw bytes',()=> {
+ const s=createTestStore({storage:{GY_DATABASE_V3:'{broken canonical'}})
+ expect(s.storageError).toBeTruthy()
+ expect(s.replaceDatabase(raw(),{source:'import'}).ok).toBe(true)
+ const keys=Object.keys(localStorage).filter(k=>k.startsWith('GY_CORRUPT_RECOVERY_V3'))
+ expect(keys.length).toBe(1);expect(localStorage.getItem(keys[0])).toBe('{broken canonical')
+ expect(s.materials[0].stock).toBe(100)
+})
+it('demo receipt and stocktake preserve initial milk baseline',()=> {
+ const s=createTestStore();expect(s.resetDemoData().ok).toBe(true)
+ const before=s.materials.find(m=>m.id==='MAT002').stock
+ s.stockIn('MAT002',100,1,'',null,{expiryDate:'2099-01-01'},false)
+ expect(s.materials.find(m=>m.id==='MAT002').stock).toBe(before+100)
+ s.stockAdjust('MAT002',14000,'','',false);expect(s.materials.find(m=>m.id==='MAT002').stock).toBe(14000)
+})

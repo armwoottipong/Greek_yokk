@@ -1,20 +1,19 @@
 <template>
-  <div
-    v-if="store.modals.stockAdjust.isOpen"
+  <ModalShell labelled-by="StockAdjustModal-title" :open="store.modals.stockAdjust.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="requestClose(close)"
+    @request-close="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Calm Header -->
       <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
-          <h3 class="text-base font-semibold text-stone-900 flex items-center gap-2">
+          <h3 id="StockAdjustModal-title" class="text-base font-semibold text-stone-900 flex items-center gap-2">
             <span>⚖️</span>
             <span>ปรับยอดสต็อกจริง (Stock Adjust)</span>
           </h3>
           <p class="text-[11px] text-stone-500 mt-0.5">เทียบยอดนับจริงกับระบบและบันทึกเหตุผลผลต่าง</p>
         </div>
-        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer">
+        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
           <X class="w-5 h-5" />
         </button>
       </div>
@@ -230,10 +229,11 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore, formatThaiDate } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
@@ -288,7 +288,7 @@ function onPackStockInput() {
 
 function onBaseStockInput() {
   const pSize = selectedMaterial.value?.packSize > 0 ? selectedMaterial.value.packSize : 1
-  actualPackStock.value = Number(((Number(actualStock.value) || 0) / pSize).toFixed(2))
+  actualPackStock.value = (Number(actualStock.value) || 0) / pSize
 }
 
 function stepAdjustStock(delta) {
@@ -315,7 +315,7 @@ function initForMaterial(mat, targetLotId = 'all') {
     const lot = mat.lots.find(l => l.id === targetLotId)
     if (lot) {
       actualStock.value = Number(lot.qty) || 0
-      actualPackStock.value = Number(((Number(lot.qty) || 0) / pSize).toFixed(2))
+      actualPackStock.value = (Number(lot.qty) || 0) / pSize
       unitMode.value = mat.packUnit && mat.packSize > 1 ? 'pack' : 'base'
       reason.value = 'นับสต็อกจริงรายวัน'
       note.value = ''
@@ -324,7 +324,7 @@ function initForMaterial(mat, targetLotId = 'all') {
   }
 
   actualStock.value = mat.stock
-  actualPackStock.value = Number((mat.stock / pSize).toFixed(2))
+  actualPackStock.value = mat.stock / pSize
   unitMode.value = mat.packUnit && mat.packSize > 1 ? 'pack' : 'base'
   reason.value = 'นับสต็อกจริงรายวัน'
   note.value = ''
@@ -337,11 +337,11 @@ watch(selectedLotId, (newLotId) => {
     const lot = selectedMaterial.value.lots?.find(l => l.id === newLotId)
     if (lot) {
       actualStock.value = Number(lot.qty) || 0
-      actualPackStock.value = Number(((Number(lot.qty) || 0) / pSize).toFixed(2))
+      actualPackStock.value = (Number(lot.qty) || 0) / pSize
     }
   } else {
     actualStock.value = selectedMaterial.value.stock
-    actualPackStock.value = Number((selectedMaterial.value.stock / pSize).toFixed(2))
+    actualPackStock.value = selectedMaterial.value.stock / pSize
   }
 })
 
@@ -359,7 +359,7 @@ watch(() => store.modals.stockAdjust.isOpen, (open) => {
 
 watch(selectedMatId, (newId) => {
   initForMaterial(store.matMap[newId], 'all')
-})
+}, { flush: 'sync' })
 
 function close() {
   store.modals.stockAdjust.isOpen = false
@@ -401,8 +401,8 @@ async function submit() {
         }
       }
     }
-    store.stockAdjust(selectedMatId.value, actualStock.value, reason.value, note.value, true, targetLotId)
-    close()
+    const result = store.stockAdjust(selectedMatId.value, actualStock.value, reason.value, note.value, true, targetLotId)
+    if (result?.ok || result?.success) close()
     return
   }
 
@@ -423,7 +423,8 @@ async function submit() {
       if (!willSwitch) {
         // Capped adjustment: adjust only up to what current lot has
         const cappedNewStock = Math.max(0, currentStock.value - check.availableInCurrent)
-        store.stockAdjust(selectedMatId.value, cappedNewStock, reason.value, `${note.value} (ปรับลดเฉพาะเท่าที่ล็อตเดิมมี)`.trim(), true)
+        const result = store.stockAdjust(selectedMatId.value, cappedNewStock, reason.value, `${note.value} (ปรับลดเฉพาะเท่าที่ล็อตเดิมมี)`.trim(), true)
+        if (!result?.ok && !result?.success) return
         store.showToast(`ปรับลดเฉพาะเท่าที่ล็อตเดิมมี (คงเหลือ ${cappedNewStock} ${mat.unit})`, 'info')
         close()
         return
@@ -431,7 +432,7 @@ async function submit() {
     }
   }
 
-  store.stockAdjust(selectedMatId.value, actualStock.value, reason.value, note.value, true)
-  close()
+  const result = store.stockAdjust(selectedMatId.value, actualStock.value, reason.value, note.value, true)
+  if (result?.ok || result?.success) close()
 }
 </script>

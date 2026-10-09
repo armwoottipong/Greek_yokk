@@ -1,6 +1,5 @@
 <template>
-  <div
-    v-if="store.modals.receipt.isOpen && order"
+  <ModalShell @request-close="close" :open="store.modals.receipt.isOpen && Boolean(order)"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xs"
   >
     <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-sm w-full overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
@@ -10,7 +9,7 @@
           <span class="text-xl">🧾</span>
           <span class="text-xs font-bold text-stone-900">ใบเสร็จรับเงิน (สำเร็จ)</span>
         </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg">
+        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg" aria-label="ปิดหน้าต่าง">
           <X class="w-4 h-4" />
         </button>
       </div>
@@ -102,10 +101,11 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import confetti from 'canvas-confetti'

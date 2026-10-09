@@ -1,8 +1,7 @@
 <template>
-  <div
-    v-if="store.modals.emojiPicker.isOpen"
+  <ModalShell label="เลือกไอคอน" :open="store.modals.emojiPicker.isOpen"
     class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="close"
+    @request-close="close"
   >
     <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-sm w-full p-4 overflow-hidden space-y-3 animate-in fade-in zoom-in-95 duration-150">
       <!-- Search & Header -->
@@ -17,7 +16,7 @@
             autofocus
           />
         </div>
-        <button @click="close" class="p-1 text-stone-400 hover:text-stone-700 rounded-lg">
+        <button @click="close" class="p-1 text-stone-400 hover:text-stone-700 rounded-lg" aria-label="ปิดหน้าต่าง">
           <X class="w-4 h-4" />
         </button>
       </div>
@@ -50,10 +49,11 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { Search, X } from 'lucide-vue-next'

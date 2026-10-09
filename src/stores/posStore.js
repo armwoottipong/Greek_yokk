@@ -1,3 +1,4 @@
+import { syncDatabase } from '@/services/gasClient'
 import { getEffectiveRequirements, allocateInventory, aggregateRequirements, rebaseInventoryDraft } from '@/domain/inventory'
 import { businessDateKey } from '@/domain/businessDate'
 import { normalizeDatabase, clone, DATABASE_FIELDS } from '@/domain/database'
@@ -411,6 +412,11 @@ const posDefinition = {
       gasApiUrl: storedGasUrl,
       isSyncing: false,
       lastSyncTime: null,
+      lastSyncedRevision: null,
+      syncStatus: 'idle',
+      syncError: null,
+      pendingSyncRequest: null,
+      queuedSync: false,
 
       // Toast notifications
       toasts: [],
@@ -1116,7 +1122,7 @@ const posDefinition = {
     },
     commitDatabase(candidate, { preserveDraft = false, recovery = false } = {}) {
       if (this.storageError && !recovery) return {ok:false, code:'RECOVERY_REQUIRED', message:this.storageError}
-      const result = saveDatabase(localStorage, candidate, {expectedRevision: this.databaseRevision})
+      const result = saveDatabase(localStorage, candidate, {expectedRevision: this.databaseRevision, allowRecovery: recovery && Boolean(this.storageError)})
       if (result.ok) { this.publishDatabase(result.value,{preserveDraft}); this.storageError = null }
       else { this.showToast('บันทึกไม่สำเร็จ: ' + result.message, 'error') }
       return result
@@ -1403,35 +1409,24 @@ const posDefinition = {
     },
 
     async syncWithGas() {
-      if (!this.gasApiUrl) {
-        this.showToast('กรุณาระบุ Web App URL ในหน้าตั้งค่าก่อนซิงค์', 'error')
-        return
-      }
-      this.isSyncing = true
+      if(!this.gasApiUrl){this.showToast('กรุณาระบุ Web App URL ก่อนซิงค์','error');return {ok:false}}
+      if(this.isSyncing){this.queuedSync=true;return {ok:false,pending:true}}
+      this.isSyncing=true;this.syncStatus='pending';this.syncError=null
+      const snapshot=this.exportDatabase()
+      if(!this.pendingSyncRequest)this.pendingSyncRequest={url:this.gasApiUrl,requestId:createEntityId('SYNC'),snapshot}
+      const request=clone(this.pendingSyncRequest)
+      let result
       try {
-        const payload = {
-          action: 'syncAll',
-          data: {
-            materials: this.materials,
-            menus: this.menus,
-            addons: this.addons,
-            orders: this.orders
-          }
-        }
-        await fetch(this.gasApiUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        this.lastSyncTime = new Date().toLocaleTimeString('th-TH')
-        this.showToast('ส่งข้อมูลซิงค์ไปยัง Google Sheets เรียบร้อย', 'success')
-      } catch (err) {
-        console.error('GAS Sync error:', err)
-        this.showToast('การซิงค์ขัดข้อง: ' + err.message, 'error')
-      } finally {
-        this.isSyncing = false
-      }
+        const ack=await syncDatabase(request.url,request.snapshot,{requestId:request.requestId})
+        this.lastSyncedRevision=ack.revision;this.lastSyncTime=new Date().toLocaleTimeString('th-TH',{timeZone:'Asia/Bangkok'})
+        this.pendingSyncRequest=null;this.syncStatus=this.databaseRevision===ack.revision?'success':'pending'
+        this.showToast('Google Sheets ยืนยันบันทึกข้อมูลแล้ว','success');result={ok:true}
+      }catch(error){this.syncStatus='error';this.syncError=error.message;this.showToast('ยังยืนยันการซิงค์ไม่ได้: '+error.message,'error');result={ok:false,message:error.message}}
+      finally{this.isSyncing=false}
+      const repeat=result.ok&&(this.queuedSync||this.databaseRevision>request.snapshot.revision)
+      this.queuedSync=false
+      if(repeat)return this.syncWithGas()
+      return result
     },
 
     // ========================================================
@@ -2387,7 +2382,7 @@ const posDefinition = {
       }
       const {candidate,allocated}=prepared,summary=this.cartSummary,plat=this.currentPlatform
       const orderId=createEntityId('ORD',this.orders.map(o=>o.orderId))
-      const items=this.cart.map(item=>{const price=Number(item.menu.prices?.[plat.id]||0)+(item.selectedAddons||[]).reduce((n,a)=>n+Number(a.prices?.[plat.id]||0),0);return {menuId:item.menu.id,menuName:item.menu.name,qty:item.qty,unitPrice:price,totalPrice:price*item.qty,recipe:clone(item.menu.recipe||[]),hasPackage:item.menu.hasPackage!==false,selectedAddons:clone(item.selectedAddons||[])}})
+      const items=this.cart.map(item=>{const price=Number(item.menu.prices?.[plat.id]||0)+(item.selectedAddons||[]).reduce((n,a)=>n+Number(a.prices?.[plat.id]||0),0);return {menuId:item.menu.id,menuName:item.menu.name,qty:item.qty,unitPrice:price,totalPrice:price*item.qty,recipe:clone(item.menu.recipe||[]),hasPackage:item.menu.hasPackage!==false,selectedAddons:(item.selectedAddons||[]).map(a=>({...clone(a),price:Number(a.prices?.[plat.id]||0)}))}})
       const order={orderId,createdAt:new Date().toISOString(),platformId:plat.id,platformName:plat.name,subtotal:summary.subtotal,discount:0,gpAmount:summary.gpAmount,netRevenue:summary.netRevenue,foodCost:summary.totalFoodCost,grossProfit:summary.grossProfit,paymentMethod:this.paymentMethod,note:this.orderNote,items,inventoryAllocations:allocated.allocations,stockShortages:allocated.shortages}
       candidate.materials=allocated.materials;candidate.orders.unshift(order)
       candidate.stockShortages.push(...allocated.shortages.map(x=>({...x,orderId,createdAt:order.createdAt})))

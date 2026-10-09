@@ -59,7 +59,7 @@
       <!-- Menu Grid Cards -->
       <div class="flex-1 overflow-y-auto pr-1">
         <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-          <div
+          <button type="button"
             v-for="menu in filteredMenus"
             :key="menu.id"
             @click="handleMenuClick(menu)"
@@ -91,7 +91,7 @@
                 {{ menu.hasAddons ? 'ปรับแต่งชาม' : '+ ใส่รายการ' }}
               </span>
             </div>
-          </div>
+          </button>
         </div>
       </div>
     </div>

@@ -1,6 +1,5 @@
 <template>
-  <div
-    v-if="store.modals.lowStockWarning.isOpen"
+  <ModalShell labelled-by="LowStockWarningModal-title" @request-close="cancel" :open="store.modals.lowStockWarning.isOpen"
     class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xs"
   >
     <div
@@ -15,7 +14,7 @@
           {{ store.modals.lowStockWarning.isOutOfStock ? '🚨' : '⚠️' }}
         </div>
         <div>
-          <h3 class="text-sm font-bold text-stone-900">
+          <h3 id="LowStockWarningModal-title" class="text-sm font-bold text-stone-900">
             {{ store.modals.lowStockWarning.title || (store.modals.lowStockWarning.isOutOfStock ? 'แจ้งเตือน: วัตถุดิบหมดสต็อก' : 'แจ้งเตือน: วัตถุดิบใกล้หมด') }}
           </h3>
           <p class="text-[11px] text-stone-500">
@@ -70,10 +69,11 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { usePosStore } from '@/stores/posStore'
 
 const store = usePosStore()

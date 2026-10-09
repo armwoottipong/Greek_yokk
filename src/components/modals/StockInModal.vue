@@ -1,14 +1,13 @@
 <template>
-  <div
-    v-if="store.modals.stockIn.isOpen"
+  <ModalShell labelled-by="StockInModal-title" :open="store.modals.stockIn.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="requestClose(close)"
+    @request-close="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Calm Clean Header -->
       <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
-          <h3 class="text-sm font-semibold text-stone-900 flex items-center gap-1.5">
+          <h3 id="StockInModal-title" class="text-sm font-semibold text-stone-900 flex items-center gap-1.5">
             <span>📥</span>
             <span>รับเข้าสต็อกวัตถุดิบ</span>
           </h3>
@@ -16,7 +15,7 @@
             {{ isProducedFromRecipe ? 'ผลิตตามสูตร (หักวัตถุดิบรองอัตโนมัติ)' : 'รับซื้อวัตถุดิบเข้าคลัง' }}
           </p>
         </div>
-        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer">
+        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
           <X class="w-4 h-4" />
         </button>
       </div>
@@ -420,10 +419,11 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore, getTodayString, addDays, formatThaiDate } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
@@ -673,7 +673,7 @@ async function submit() {
     }
 
     const ok = store.batchProduce(mat.id, produceYieldQty.value, scaledSubIngredients.value, note.value, datePayload, true)
-    if (ok) close()
+    if (ok?.ok || ok?.success) close()
     return
   }
 
@@ -684,7 +684,7 @@ async function submit() {
 
   const pSize = mat.packSize > 0 ? mat.packSize : 1
   const unitCost = (Number(inputPackCost.value) || 0) / pSize
-  store.stockIn(mat.id, inputBaseQty.value, unitCost, note.value, inputPackCost.value, datePayload, true)
-  close()
+  const result = store.stockIn(mat.id, inputBaseQty.value, unitCost, note.value, inputPackCost.value, datePayload, true)
+  if (result?.ok || result?.success) close()
 }
 </script>

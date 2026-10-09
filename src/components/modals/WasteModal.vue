@@ -1,14 +1,13 @@
 <template>
-  <div
-    v-if="store.modals.waste.isOpen && currentMaterial"
+  <ModalShell labelled-by="WasteModal-title" :open="store.modals.waste.isOpen && Boolean(currentMaterial)"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="close"
+    @request-close="close"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Header -->
       <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
-          <h3 class="text-sm font-semibold text-rose-900 flex items-center gap-2">
+          <h3 id="WasteModal-title" class="text-sm font-semibold text-rose-900 flex items-center gap-2">
             <span>🗑️</span>
             <span>บันทึกตัดทิ้งของเสีย (Waste Spoilage)</span>
           </h3>
@@ -19,7 +18,7 @@
         <button
           @click="close"
           class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
-        >
+         aria-label="ปิดหน้าต่าง">
           <X class="w-4 h-4" />
         </button>
       </div>
@@ -169,10 +168,11 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore, formatThaiDate, getReceiveAgeStatus } from '@/stores/posStore'
 import { X, Trash2 } from 'lucide-vue-next'
@@ -291,7 +291,7 @@ async function confirmWaste() {
     note: wasteNote.value
   }, true)
 
-  if (success) {
+  if (success?.ok || success?.success) {
     close()
   }
 }

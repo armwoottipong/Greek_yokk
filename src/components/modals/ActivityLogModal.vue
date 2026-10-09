@@ -1,8 +1,7 @@
 <template>
-  <div
-    v-if="store.modals.activityLog?.isOpen"
+  <ModalShell labelled-by="ActivityLogModal-title" :open="store.modals.activityLog?.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="close"
+    @request-close="close"
   >
     <!-- Modal Card Container -->
     <div
@@ -26,7 +25,7 @@
             <!-- Title & Count inline -->
             <div class="min-w-0">
               <div class="flex items-center gap-2">
-                <h3 class="text-sm sm:text-base font-bold text-stone-900 truncate tracking-tight">
+                <h3 id="ActivityLogModal-title" class="text-sm sm:text-base font-bold text-stone-900 truncate tracking-tight">
                   {{ isItemMode ? activeTargetMaterial?.name : isStockMode ? 'ประวัติสต็อก (Stock History)' : 'ประวัติกิจกรรมระบบ' }}
                 </h3>
                 <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-number font-semibold whitespace-nowrap shrink-0">
@@ -70,7 +69,7 @@
               @click="close"
               class="h-8.5 w-8.5 rounded-xl hover:bg-stone-100 text-stone-400 hover:text-stone-700 flex items-center justify-center transition-colors cursor-pointer shrink-0"
               title="ปิดหน้าต่าง"
-            >
+             aria-label="ปิดหน้าต่าง">
               <X class="w-4 h-4" />
             </button>
           </div>
@@ -122,7 +121,7 @@
               @click="searchQuery = ''"
               class="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-0.5 rounded cursor-pointer"
               title="ล้างข้อความค้นหา"
-            >
+             aria-label="ปิดหน้าต่าง">
               <X class="w-3 h-3" />
             </button>
           </div>
@@ -179,7 +178,7 @@
                     type="button"
                     @click="closeFilterPopover"
                     class="text-stone-400 hover:text-stone-700 p-1 rounded-lg hover:bg-stone-100 cursor-pointer"
-                  >
+                   aria-label="ปิดหน้าต่าง">
                     <X class="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -267,7 +266,7 @@
           class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-white border border-stone-200 text-stone-800 font-medium"
         >
           <span>{{ getModuleLabel(activeModule) }}</span>
-          <button @click="activeModule = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
+          <button @click="activeModule = 'all'" class="hover:text-rose-600 cursor-pointer" aria-label="ปิดหน้าต่าง"><X class="w-3 h-3" /></button>
         </span>
 
         <!-- Material Chip -->
@@ -276,7 +275,7 @@
           class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-white border border-stone-200 text-stone-800 font-medium"
         >
           <span>{{ getMaterialName(selectedMaterialId) }}</span>
-          <button @click="selectedMaterialId = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
+          <button @click="selectedMaterialId = 'all'" class="hover:text-rose-600 cursor-pointer" aria-label="ปิดหน้าต่าง"><X class="w-3 h-3" /></button>
         </span>
 
         <!-- Action Chip -->
@@ -285,7 +284,7 @@
           class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium border border-amber-200/60"
         >
           <span>{{ getActionLabel(selectedActionFilter) }}</span>
-          <button @click="selectedActionFilter = 'all'" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
+          <button @click="selectedActionFilter = 'all'" class="hover:text-rose-600 cursor-pointer" aria-label="ปิดหน้าต่าง"><X class="w-3 h-3" /></button>
         </span>
 
         <!-- Date Range Chip -->
@@ -294,7 +293,7 @@
           class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-100/70 text-amber-900 font-medium border border-amber-200/60"
         >
           <span>📅 {{ formatDateRangeLabel(filterStartDate, filterEndDate) }}</span>
-          <button @click="clearDateRange" class="hover:text-rose-600 cursor-pointer"><X class="w-3 h-3" /></button>
+          <button @click="clearDateRange" class="hover:text-rose-600 cursor-pointer" aria-label="ปิดหน้าต่าง"><X class="w-3 h-3" /></button>
         </span>
 
         <!-- Clear All -->
@@ -481,10 +480,13 @@
         </div>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import { businessDateKey } from '@/domain/businessDate'
+import { csvField } from '@/domain/csv'
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { usePosStore, formatThaiDate } from '@/stores/posStore'
 import DateRangeCalendar from '@/components/ui/DateRangeCalendar.vue'
@@ -789,7 +791,8 @@ const filteredLogs = computed(() => {
   if (filterStartDate.value || filterEndDate.value) {
     list = list.filter(l => {
       if (!l.timestamp) return false
-      const logDay = l.timestamp.slice(0, 10)
+      const logDay = businessDateKey(l.timestamp)
+      if (!logDay) return false
       if (filterStartDate.value && logDay < filterStartDate.value) return false
       if (filterEndDate.value && logDay > filterEndDate.value) return false
       return true
@@ -819,13 +822,11 @@ const filteredLogs = computed(() => {
 const groupedLogs = computed(() => {
   const groups = {}
   const now = new Date()
-  const todayStr = toDateString(now)
-  const yest = new Date(now)
-  yest.setDate(now.getDate() - 1)
-  const yestStr = toDateString(yest)
+  const todayStr = businessDateKey(now)
+  const yestStr = businessDateKey(now.getTime() - 86400000)
 
   filteredLogs.value.forEach(log => {
-    const dateKey = log.timestamp ? log.timestamp.slice(0, 10) : 'unknown'
+    const dateKey = (log.timestamp && businessDateKey(log.timestamp)) || 'unknown'
     if (!groups[dateKey]) {
       let label = ''
       if (dateKey === todayStr) {
@@ -865,7 +866,7 @@ function formatTimeOfDay(isoString) {
   try {
     const d = new Date(isoString)
     if (isNaN(d.getTime())) return ''
-    return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'
+    return d.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' }) + ' น.'
   } catch (e) {
     return ''
   }
@@ -962,23 +963,17 @@ function getActionBadgeClass(action) {
 function exportCsv() {
   const headers = ['วันที่-เวลา', 'ประเภทกิจกรรม', 'รายการ', 'การเปลี่ยนแปลง', 'หน่วย', 'ก่อนปรับ', 'หลังปรับ', 'เหตุผล', 'หมายเหตุ', 'ผู้ทำรายการ']
   const rows = filteredLogs.value.map(l => [
-    `"${l.timestamp || ''}"`,
-    `"${l.title || ''}"`,
-    `"${l.targetName || ''}"`,
-    `"${hasDelta(l) ? formatNum(l.delta) : ''}"`,
-    `"${l.unit || ''}"`,
-    `"${l.beforeStock !== null && l.beforeStock !== undefined ? formatNum(l.beforeStock) : ''}"`,
-    `"${l.afterStock !== null && l.afterStock !== undefined ? formatNum(l.afterStock) : ''}"`,
-    `"${l.reason || ''}"`,
-    `"${l.note || ''}"`,
-    `"${l.user || ''}"`
+    l.timestamp || '', l.title || '', l.targetName || '',
+    hasDelta(l) ? formatNum(l.delta) : '', l.unit || '',
+    l.beforeStock != null ? formatNum(l.beforeStock) : '',
+    l.afterStock != null ? formatNum(l.afterStock) : '',
+    l.reason || '', l.note || '', l.user || ''
   ])
-
-  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n')
+  const csvContent = '\uFEFF' + [headers, ...rows].map(row => row.map(csvField).join(',')).join('\r\n')
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const dateStr = businessDateKey().replace(/-/g, '')
   const itemName = isItemMode.value && activeTargetMaterial.value 
     ? `_${activeTargetMaterial.value.name.replace(/\s+/g, '_')}` 
     : isStockMode.value 

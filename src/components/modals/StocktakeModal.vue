@@ -1,6 +1,5 @@
 <template>
-  <div
-    v-if="store.modals.stocktake?.isOpen"
+  <ModalShell labelled-by="StocktakeModal-title" @request-close="close" :open="store.modals.stocktake?.isOpen"
     class="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
   >
     <div
@@ -14,7 +13,7 @@
             📋
           </div>
           <div>
-            <h3 class="text-sm font-bold text-stone-900 flex items-center gap-2">
+            <h3 id="StocktakeModal-title" class="text-sm font-bold text-stone-900 flex items-center gap-2">
               <span>ตรวจนับสต็อกปิดร้าน (Stocktake Sheet)</span>
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold">
                 {{ activeMaterials.length }} รายการ
@@ -30,7 +29,7 @@
           type="button"
           @click="close"
           class="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-xl transition-colors cursor-pointer"
-        >
+         aria-label="ปิดหน้าต่าง">
           <X class="w-5 h-5" />
         </button>
       </div>
@@ -127,7 +126,7 @@
                         type="number"
                         step="any"
                         min="0"
-                        v-model.number="counts[mat.id].value"
+                        :value="counts[mat.id].value" @input="setCountValue(mat.id, $event.target.value)"
                         placeholder="0"
                         class="w-full text-right font-number font-bold text-xs py-1.5 px-2.5 rounded-xl border border-stone-300 focus:border-stone-900 focus:ring-1 focus:ring-stone-900 transition-all bg-white"
                         :class="getVariance(mat.id) !== 0 ? 'border-amber-400 bg-amber-50/30' : ''"
@@ -246,10 +245,11 @@
         </div>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { X, Check, Search, RotateCcw, CheckCheck } from 'lucide-vue-next'
@@ -296,6 +296,7 @@ watch(() => store.modals.stocktake?.isOpen, (isOpen) => {
     activeMaterials.value.forEach(m => {
       newCounts[m.id] = {
         value: Number(m.stock) || 0,
+        baseQty: Number(m.stock) || 0,
         unitMode: 'base'
       }
     })
@@ -310,13 +311,15 @@ function getActualBaseQty(matId) {
   const mat = store.matMap[matId]
   if (!mat) return 0
 
-  const val = Number(item.value) || 0
-  if (item.unitMode === 'pack' && mat.packSize > 1) {
-    return Math.round(val * mat.packSize * 100) / 100
-  }
-  return Math.round(val * 100) / 100
+  return item.unitMode === 'base' ? Number(item.value) : item.baseQty
 }
 
+function setCountValue(matId, value) {
+  const item = counts.value[matId]
+  const mat = store.matMap[matId]
+  item.value = Number(value)
+  item.baseQty = item.value * (item.unitMode === 'pack' ? mat.packSize : 1)
+}
 function getVariance(matId) {
   const mat = store.matMap[matId]
   if (!mat) return 0
@@ -336,20 +339,14 @@ function toggleCountUnit(matId) {
   const mat = store.matMap[matId]
   if (!mat || !mat.packSize || mat.packSize <= 1) return
 
-  if (item.unitMode === 'base') {
-    // Convert current base value to pack
-    item.value = Math.round((item.value / mat.packSize) * 10) / 10
-    item.unitMode = 'pack'
-  } else {
-    // Convert pack to base value
-    item.value = Math.round(item.value * mat.packSize)
-    item.unitMode = 'base'
-  }
+  if (item.unitMode === 'base') item.baseQty = Number(item.value)
+  item.unitMode = item.unitMode === 'base' ? 'pack' : 'base'
+  item.value = item.unitMode === 'pack' ? item.baseQty / mat.packSize : item.baseQty
 }
-
 function matchSystemStock(mat) {
   if (!counts.value[mat.id]) return
   counts.value[mat.id].value = Number(mat.stock) || 0
+  counts.value[mat.id].baseQty = Number(mat.stock) || 0
   counts.value[mat.id].unitMode = 'base'
 }
 
@@ -405,7 +402,8 @@ function submitStocktake() {
 
   // Stage changes via draft system
   if (typeof store.batchStocktake === 'function') {
-    store.batchStocktake(changedItems, true)
+    const result = store.batchStocktake(changedItems, true)
+    if (!result?.ok && !result?.success) return
   } else {
     changedItems.forEach(item => {
       store.stockAdjust(

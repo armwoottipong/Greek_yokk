@@ -55,6 +55,16 @@ npm run preview
 โปรเจกต์นี้มี CI/CD ผ่าน GitHub Actions อัตโนมัติ (`.github/workflows/deploy.yml`):
 1. ไปที่ GitHub Repository: **Settings** -> **Pages**
 2. ภายใต้หัวข้อ **Build and deployment** > **Source**:
-   - เลือก **GitHub Actions**
+   - เลือก **Deploy from a branch**
+   - Branch: **gh-pages**, Folder: **/(root)**
 3. ทุกครั้งที่มีการ `git push` ขึ้น Branch `main` ระบบจะทำการ Build และ Deploy เวอร์ชันล่าสุดให้ทันที
 4. เข้าใช้งานได้ที่: `https://armwoottipong.github.io/Greek_yokk/`
+
+
+## Audit remediation verification
+
+Run `npm test`, `npm run lint`, and `npm run build` before release. Active application entry is `src/main.js`; root `app.js`, `app_legacy.js`, and `index_legacy.html` are inactive historical references.
+
+Local data is saved as a validated schema-3 snapshot in `GY_DATABASE_V3`. Legacy keys and `GY_LEGACY_RECOVERY_V3` are preserved. Invalid data blocks saving until reviewed/restored; it is never reset automatically. Export JSON before migration or production upgrades. Google Sheets is an optional full snapshot backup, not a realtime multi-device database. Sync reports success only after readable committed acknowledgement; an unreadable/CORS response is an error.
+
+For the updated backend deploy `google_apps_script/Code.gs` to a **test** deployment first, follow [recovery notes](docs/superpowers/specs/2026-10-09-gas-recovery.md), and verify snapshot round-trip before changing the production URL. No deployment is performed by local tests.

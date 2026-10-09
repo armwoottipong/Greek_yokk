@@ -1,19 +1,18 @@
 <template>
-  <div
-    v-if="store.modals.addonEdit.isOpen"
+  <ModalShell labelled-by="AddonEditModal-title" :open="store.modals.addonEdit.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="requestClose(close)"
+    @request-close="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-stone-100 pb-3">
         <div>
-          <h3 class="text-base font-semibold text-stone-900">
+          <h3 id="AddonEditModal-title" class="text-base font-semibold text-stone-900">
             {{ isEditing ? `แก้ไข Add-on: ${form.name}` : 'เพิ่ม Add-on / ท็อปปิ้ง' }}
           </h3>
           <p class="text-[11px] text-stone-400 mt-0.5">กำหนดราคาตามแพลตฟอร์มและการผูกตัดวัตถุดิบในคลัง</p>
         </div>
-        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer">
+        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
           <X class="w-4 h-4" />
         </button>
       </div>
@@ -150,10 +149,11 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
@@ -230,7 +230,7 @@ async function submit() {
   const ok = await confirmSave(form.value.name.trim())
   if (!ok) return
 
-  store.saveAddon({
+  const result = store.saveAddon({
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     category: form.value.category,
@@ -240,6 +240,6 @@ async function submit() {
     amountUsed: Number(form.value.amountUsed) || 0
   })
 
-  close()
+  if (result?.ok || result?.success) close()
 }
 </script>

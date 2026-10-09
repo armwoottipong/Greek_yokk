@@ -1,8 +1,7 @@
 <template>
-  <div
-    v-if="store.modals.customOrder.isOpen && selectedMenu"
+  <ModalShell labelled-by="CustomOrderModal-title" :open="store.modals.customOrder.isOpen && Boolean(selectedMenu)"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="requestClose"
+    @request-close="requestClose"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Header -->
@@ -10,11 +9,11 @@
         <div class="flex items-center gap-3">
           <span class="text-3xl p-2 rounded-2xl bg-[#FAF9F6] border border-stone-100">{{ selectedMenu.emoji }}</span>
           <div>
-            <h3 class="text-base font-bold text-stone-900">{{ selectedMenu.name }}</h3>
+            <h3 id="CustomOrderModal-title" class="text-base font-bold text-stone-900">{{ selectedMenu.name }}</h3>
             <p class="text-xs text-stone-400 mt-0.5">{{ selectedMenu.description }}</p>
           </div>
         </div>
-        <button @click="requestClose" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer">
+        <button @click="requestClose" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
           <X class="w-5 h-5" />
         </button>
       </div>
@@ -38,7 +37,7 @@
           <div v-for="(group, catName) in groupedAddons" :key="catName" class="space-y-2">
             <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">{{ catName }}</div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div
+              <button type="button" :aria-pressed="isAddonSelected(addon.id)"
                 v-for="addon in group"
                 :key="addon.id"
                 @click="toggleAddon(addon)"
@@ -54,6 +53,7 @@
                 <div class="flex items-center gap-2 min-w-0">
                   <span class="text-lg">{{ addon.emoji }}</span>
                   <div class="min-w-0">
+                    <div class="font-semibold text-left">{{ addon.name }}</div>
                     <div v-if="isAddonOutOfStock(addon)" class="text-[10px] text-amber-700 font-semibold flex items-center gap-0.5">
                       <span>⚠️ ของหมด (เลือกได้)</span>
                     </div>
@@ -77,7 +77,7 @@
                     <Check v-if="isAddonSelected(addon.id)" class="w-3 h-3 stroke-[3]" />
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -117,10 +117,11 @@
         </div>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { X, Check, ShoppingBag } from 'lucide-vue-next'

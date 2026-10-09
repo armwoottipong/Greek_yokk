@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen w-screen overflow-hidden bg-[#FAF9F6] font-sans antialiased text-stone-900">
+  <div class="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#FAF9F6] font-sans antialiased text-stone-900">
     <!-- Sidebar Navigation -->
     <Sidebar />
 
@@ -7,6 +7,10 @@
     <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
       <!-- Dynamic Header -->
       <HeaderBar />
+
+      <div v-if="store.storageError" role="alert" class="mx-4 mt-3 rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-900">
+        {{ store.storageError.message || store.storageError }}
+      </div>
 
       <!-- Active View Content -->
       <main class="flex-1 overflow-y-auto p-4 md:p-6">
@@ -38,7 +42,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 
 import Sidebar from '@/components/layout/Sidebar.vue'
@@ -46,12 +50,12 @@ import HeaderBar from '@/components/layout/HeaderBar.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 // Views
-import DashboardView from '@/views/DashboardView.vue'
-import PosView from '@/views/PosView.vue'
-import MenuView from '@/views/MenuView.vue'
-import AddonView from '@/views/AddonView.vue'
-import StockView from '@/views/StockView.vue'
-import SettingsView from '@/views/SettingsView.vue'
+const DashboardView = defineAsyncComponent(() => import('@/views/DashboardView.vue'))
+const PosView = defineAsyncComponent(() => import('@/views/PosView.vue'))
+const MenuView = defineAsyncComponent(() => import('@/views/MenuView.vue'))
+const AddonView = defineAsyncComponent(() => import('@/views/AddonView.vue'))
+const StockView = defineAsyncComponent(() => import('@/views/StockView.vue'))
+const SettingsView = defineAsyncComponent(() => import('@/views/SettingsView.vue'))
 
 // Modals
 import MenuEditModal from '@/components/modals/MenuEditModal.vue'

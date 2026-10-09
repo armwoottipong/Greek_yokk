@@ -1,19 +1,18 @@
 <template>
-  <div
-    v-if="store.modals.menuEdit.isOpen"
+  <ModalShell labelled-by="MenuEditModal-title" :open="store.modals.menuEdit.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="requestClose(close)"
+    @request-close="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       <!-- Calm Header -->
       <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div>
-          <h3 class="text-base font-semibold text-stone-900">
+          <h3 id="MenuEditModal-title" class="text-base font-semibold text-stone-900">
             {{ isEditing ? `แก้ไขเมนู: ${form.name}` : 'เพิ่มเมนูใหม่' }}
           </h3>
           <p class="text-[11px] text-stone-500 mt-0.5">กำหนดราคาขายแต่ละแพลตฟอร์ม สูตรวัตถุดิบ และบรรจุภัณฑ์ที่ตัดสต็อก</p>
         </div>
-        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer">
+        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
           <X class="w-5 h-5" />
         </button>
       </div>
@@ -317,10 +316,11 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
@@ -520,7 +520,7 @@ async function submit() {
     })
   }
 
-  store.saveMenu({
+  const result = store.saveMenu({
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     category: form.value.category.trim() || 'Classic Bowls',
@@ -532,6 +532,6 @@ async function submit() {
     hasPackage: form.value.hasPackage
   })
 
-  close()
+  if (result?.ok || result?.success) close()
 }
 </script>

@@ -1,16 +1,11 @@
 <template>
-  <div
-    v-if="modal.isOpen"
+  <ModalShell labelled-by="LotDepletionModal-title" :open="modal.isOpen"
     class="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
     tabindex="-1"
-    @click.self="onCancel"
-    @keydown.esc="onCancel"
-    @keydown.enter.prevent="onConfirm"
+    @request-close="onCancel"
   >
     <div
       class="bg-white rounded-3xl border border-stone-200/90 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150 relative overflow-hidden"
-      role="dialog"
-      aria-modal="true"
     >
       <!-- Top Header -->
       <div class="flex items-start gap-3.5 pb-1">
@@ -19,7 +14,7 @@
         </div>
         <div class="min-w-0 flex-1 pt-0.5">
           <div class="flex items-center gap-2">
-            <h3 class="text-sm font-bold text-stone-900 leading-snug">
+            <h3 id="LotDepletionModal-title" class="text-sm font-bold text-stone-900 leading-snug">
               {{ modal.isLow && !modal.willDeplete ? 'แจ้งเตือน: ล็อตปัจจุบันใกล้หมด' : 'แจ้งเตือน: ล็อตปัจจุบันหมดสต็อก' }}
             </h3>
             <span
@@ -132,24 +127,17 @@
         </button>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import ModalShell from '@/components/ui/ModalShell.vue'
+import { computed, ref } from 'vue'
 import { usePosStore, formatDisplayDate } from '@/stores/posStore'
 
 const store = usePosStore()
 const modal = computed(() => store.modals.lotDepletion || {})
 const confirmButtonRef = ref(null)
-
-watch(() => modal.value.isOpen, (open) => {
-  if (open) {
-    nextTick(() => {
-      confirmButtonRef.value?.focus?.()
-    })
-  }
-})
 
 function onConfirm() {
   if (typeof modal.value.onConfirm === 'function') {

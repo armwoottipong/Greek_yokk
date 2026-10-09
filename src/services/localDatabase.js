@@ -11,13 +11,16 @@ export function loadDatabase(storage) {
     return normalizeDatabase(raw,{source:'legacy'})
   }catch(error){return {ok:false,errors:[{path:'storage',code:'LOAD_FAILED',message:error.message}]}}
 }
-export function saveDatabase(storage,candidate,{expectedRevision}={}) {
+export function saveDatabase(storage,candidate,{expectedRevision,allowRecovery=false}={}) {
   try {
     const result=normalizeDatabase(candidate)
     if(!result.ok)return {ok:false,code:'VALIDATION_FAILED',message:result.errors.map(e=>`${e.path}: ${e.message}`).join('\n')}
     const current=storage.getItem(DATABASE_KEY)
-    const revision=current===null?0:JSON.parse(current).revision
-    if(expectedRevision!==undefined&&revision!==expectedRevision)return {ok:false,code:'REVISION_CONFLICT',message:'ข้อมูลถูกเปลี่ยนจากหน้าต่างอื่น กรุณาโหลดข้อมูลล่าสุดก่อนบันทึก'}
+    let revision=0,invalidCurrent=false
+    if(current!==null){try{const parsed=JSON.parse(current);invalidCurrent=!normalizeDatabase(parsed).ok;revision=Number.isInteger(parsed.revision)?parsed.revision:0}catch{invalidCurrent=true}}
+    if(invalidCurrent&&!allowRecovery)return {ok:false,code:'RECOVERY_REQUIRED',message:'ข้อมูลที่บันทึกเสีย กรุณากู้คืนจากไฟล์สำรอง'}
+    if(invalidCurrent)storage.setItem(`GY_CORRUPT_RECOVERY_V3-${crypto.randomUUID()}`,current)
+    if(expectedRevision!==undefined&&revision!==expectedRevision&&!invalidCurrent)return {ok:false,code:'REVISION_CONFLICT',message:'ข้อมูลถูกเปลี่ยนจากหน้าต่างอื่น กรุณาโหลดข้อมูลล่าสุดก่อนบันทึก'}
     if(current===null && storage.getItem('GY_LEGACY_RECOVERY_V3')===null) {
       const recovery={};for(const key of [...Object.values(legacyKeys),'GY_GAS_API_URL'])recovery[key]=storage.getItem(key)
       storage.setItem('GY_LEGACY_RECOVERY_V3',JSON.stringify(recovery))

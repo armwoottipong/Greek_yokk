@@ -1,8 +1,7 @@
 <template>
-  <div
-    v-if="store.modals.materialEdit.isOpen"
+  <ModalShell labelled-by="MaterialEditModal-title" :open="store.modals.materialEdit.isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @click.self="requestClose(close)"
+    @request-close="requestClose(close)"
   >
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       
@@ -10,7 +9,7 @@
       <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
         <div class="min-w-0 flex-1 pr-3">
           <div class="flex items-center gap-2">
-            <h3 class="text-sm font-semibold text-stone-900 truncate">
+            <h3 id="MaterialEditModal-title" class="text-sm font-semibold text-stone-900 truncate">
               {{ isEditing 
                 ? (form.hasSubRecipe ? `แก้ไขสูตรผลิต: ${form.name}` : `แก้ไขวัตถุดิบ: ${form.name}`)
                 : (form.hasSubRecipe ? 'วัตถุดิบมีส่วนผสม (สูตรผลิต)' : 'เพิ่มวัตถุดิบ / สินค้า') 
@@ -60,7 +59,7 @@
             type="button"
             @click="requestClose(close)" 
             class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
-          >
+           aria-label="ปิดหน้าต่าง">
             <X class="w-4 h-4" />
           </button>
         </div>
@@ -345,7 +344,7 @@
                   @click="removeSubRecipeRow(idx)"
                   class="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
                   title="ลบส่วนผสมนี้"
-                >
+                 aria-label="ปิดหน้าต่าง">
                   <X class="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -571,10 +570,11 @@
         </div>
       </div>
     </div>
-  </div>
+  </ModalShell>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
@@ -945,6 +945,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
 
       form.value = {
         id: mat.id,
+        isDeleted: Boolean(mat.isDeleted),
         name: mat.name,
         category: mat.category || 'Base Yogurt',
         unit: ['g', 'ml', 'ชิ้น'].includes(mat.unit) ? mat.unit : (mat.unit === 'pcs' ? 'ชิ้น' : 'g'),
@@ -1050,28 +1051,12 @@ async function submit() {
     pCost = calculatedSubCost.value
     form.value.packUnit = 'รอบ'
 
-    // Deduct sub-ingredients based on incremental rounds produced
-    const incRounds = incrementalRounds.value
-    if (incRounds > 0 && form.value.subRecipe && form.value.subRecipe.length > 0) {
-      const deductedLogs = []
-      for (const row of form.value.subRecipe) {
-        const sub = store.materials.find(m => m.id === row.materialId)
-        if (sub) {
-          const needed = Math.round(incRounds * (Number(row.qty) || 0) * 100) / 100
-          sub.stock = Math.max(0, Math.round((Number(sub.stock || 0) - needed) * 100) / 100)
-          deductedLogs.push(`${sub.name} -${needed.toLocaleString()} ${sub.unit}`)
-        }
-      }
-      if (deductedLogs.length > 0) {
-        store.showToast(`หักสต็อกวัตถุดิบรอง (${incRounds} รอบ): ${deductedLogs.join(', ')}`, 'info')
-      }
-    }
   } else {
     pSize = Number(form.value.packSize) > 0 ? Number(form.value.packSize) : 1
     pCost = Number(form.value.packCost) >= 0 ? Number(form.value.packCost) : 0
   }
 
-  store.saveMaterial({
+  const result = store.saveMaterial({
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     category: form.value.category,
@@ -1094,6 +1079,6 @@ async function submit() {
       : []
   })
 
-  close()
+  if (result?.ok || result?.success) close()
 }
 </script>

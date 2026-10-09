@@ -35,11 +35,11 @@ const SHEETS = {
  * 1. ฟังก์ชันตั้งค่าชีตและใส่ข้อมูลเริ่มต้น (เรียกใช้ครั้งแรกครั้งเดียว)
  */
 function setupDatabase() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
 
   // กำหนดสไตล์หัวตาราง
   const applyHeaderStyle = (sheet, headers, bgHex) => {
-    sheet.clear();
+    if (sheet.getLastRow() > 0) return;
     sheet.appendRow(headers);
     const range = sheet.getRange(1, 1, 1, headers.length);
     range.setBackground(bgHex || "#2D3748")
@@ -72,7 +72,7 @@ function setupDatabase() {
     ["MAT013", "ถุงพลาสติกหิ้วเดี่ยว (1 แก้ว)", "Packaging", "pcs", 400, 100, 0.85, "🛍️", new Date(), false, false],
     ["MAT014", "ถุงพลาสติกหิ้วคู่ (2 แก้ว)", "Packaging", "pcs", 200, 50, 1.20, "🛍️", new Date(), false, false]
   ];
-  sampleMaterials.forEach(row => sMat.appendRow(row));
+  if (sMat.getLastRow() === 1) sampleMaterials.forEach(row => sMat.appendRow(row));
 
   // 2. Platforms
   let sPlat = ss.getSheetByName(SHEETS.PLATFORMS) || ss.insertSheet(SHEETS.PLATFORMS);
@@ -86,7 +86,7 @@ function setupDatabase() {
     ["PLAT03", "LINE MAN", 30, "#319795", true],
     ["PLAT04", "คนรู้จัก / VIP", 0, "#ED8936", true]
   ];
-  samplePlatforms.forEach(row => sPlat.appendRow(row));
+  if (sPlat.getLastRow() === 1) samplePlatforms.forEach(row => sPlat.appendRow(row));
 
   // 3. Menus
   let sMenu = ss.getSheetByName(SHEETS.MENUS) || ss.insertSheet(SHEETS.MENUS);
@@ -104,8 +104,8 @@ function setupDatabase() {
       JSON.stringify({ "PLAT01": 69, "PLAT02": 95, "PLAT03": 95, "PLAT04": 59 }),
       JSON.stringify([
         { "materialId": "MAT001", "qty": 100 },
-        { "materialId": "MAT012", "qty": 1 },
-        { "materialId": "MAT014", "qty": 1 }
+        { "materialId": "MAT010", "qty": 1 },
+        { "materialId": "MAT012", "qty": 1 }
       ]),
       true
     ],
@@ -118,8 +118,8 @@ function setupDatabase() {
       JSON.stringify({ "PLAT01": 99, "PLAT02": 139, "PLAT03": 139, "PLAT04": 89 }),
       JSON.stringify([
         { "materialId": "MAT001", "qty": 160 },
-        { "materialId": "MAT013", "qty": 1 },
-        { "materialId": "MAT014", "qty": 1 }
+        { "materialId": "MAT011", "qty": 1 },
+        { "materialId": "MAT012", "qty": 1 }
       ]),
       true
     ],
@@ -132,11 +132,11 @@ function setupDatabase() {
       JSON.stringify({ "PLAT01": 149, "PLAT02": 199, "PLAT03": 199, "PLAT04": 135 }),
       JSON.stringify([
         { "materialId": "MAT001", "qty": 160 },
-        { "materialId": "MAT003", "qty": 35 },
-        { "materialId": "MAT004", "qty": 25 },
+        { "materialId": "MAT004", "qty": 35 },
+        { "materialId": "MAT005", "qty": 25 },
         { "materialId": "MAT008", "qty": 15 },
-        { "materialId": "MAT013", "qty": 1 },
-        { "materialId": "MAT014", "qty": 1 }
+        { "materialId": "MAT011", "qty": 1 },
+        { "materialId": "MAT012", "qty": 1 }
       ]),
       true
     ],
@@ -149,16 +149,16 @@ function setupDatabase() {
       JSON.stringify({ "PLAT01": 139, "PLAT02": 185, "PLAT03": 185, "PLAT04": 125 }),
       JSON.stringify([
         { "materialId": "MAT001", "qty": 160 },
-        { "materialId": "MAT005", "qty": 45 },
-        { "materialId": "MAT006", "qty": 40 },
-        { "materialId": "MAT010", "qty": 20 },
-        { "materialId": "MAT013", "qty": 1 },
-        { "materialId": "MAT014", "qty": 1 }
+        { "materialId": "MAT006", "qty": 45 },
+        { "materialId": "MAT007", "qty": 40 },
+        { "materialId": "MAT009", "qty": 20 },
+        { "materialId": "MAT011", "qty": 1 },
+        { "materialId": "MAT012", "qty": 1 }
       ]),
       true
     ]
   ];
-  sampleMenus.forEach(row => sMenu.appendRow(row));
+  if (sMenu.getLastRow() === 1) sampleMenus.forEach(row => sMenu.appendRow(row));
 
   // 4. Addons
   let sAddon = ss.getSheetByName(SHEETS.ADDONS) || ss.insertSheet(SHEETS.ADDONS);
@@ -167,17 +167,14 @@ function setupDatabase() {
   ], "#DD6B20");
 
   const sampleAddons = [
-    ["ADD01", "สตรอว์เบอร์รีสด (30g)", "ผลไม้สด", "🍓", JSON.stringify({ "PLAT01": 20, "PLAT02": 29, "PLAT03": 29, "PLAT04": 18 }), "MAT003", 30, true],
-    ["ADD02", "บลูเบอร์รีสด (25g)", "ผลไม้สด", "🫐", JSON.stringify({ "PLAT01": 25, "PLAT02": 35, "PLAT03": 35, "PLAT04": 22 }), "MAT004", 25, true],
-    ["ADD03", "มะม่วงน้ำดอกไม้ (40g)", "ผลไม้สด", "🥭", JSON.stringify({ "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }), "MAT005", 40, true],
-    ["ADD04", "กล้วยหอมทอง (40g)", "ผลไม้สด", "🍌", JSON.stringify({ "PLAT01": 12, "PLAT02": 18, "PLAT03": 18, "PLAT04": 10 }), "MAT006", 40, true],
-    ["ADD05", "กีวีสีทอง (30g)", "ผลไม้สด", "🥝", JSON.stringify({ "PLAT01": 20, "PLAT02": 29, "PLAT03": 29, "PLAT04": 18 }), "MAT007", 30, true],
+    ["ADD01", "สตรอว์เบอร์รีสด (30g)", "ผลไม้สด", "🍓", JSON.stringify({ "PLAT01": 20, "PLAT02": 29, "PLAT03": 29, "PLAT04": 18 }), "MAT004", 30, true],
+    ["ADD02", "บลูเบอร์รีสด (25g)", "ผลไม้สด", "🫐", JSON.stringify({ "PLAT01": 25, "PLAT02": 35, "PLAT03": 35, "PLAT04": 22 }), "MAT005", 25, true],
+    ["ADD03", "มะม่วงน้ำดอกไม้ (40g)", "ผลไม้สด", "🥭", JSON.stringify({ "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }), "MAT006", 40, true],
+    ["ADD04", "กล้วยหอมทอง (40g)", "ผลไม้สด", "🍌", JSON.stringify({ "PLAT01": 12, "PLAT02": 18, "PLAT03": 18, "PLAT04": 10 }), "MAT007", 40, true],
     ["ADD06", "น้ำผึ้งแท้ดอกไม้ป่า (15ml)", "ซอส & น้ำผึ้ง", "🍯", JSON.stringify({ "PLAT01": 15, "PLAT02": 20, "PLAT03": 20, "PLAT04": 10 }), "MAT008", 15, true],
-    ["ADD07", "ซอสเบอร์รีโฮมเมด (20ml)", "ซอส & น้ำผึ้ง", "🫐", JSON.stringify({ "PLAT01": 15, "PLAT02": 20, "PLAT03": 20, "PLAT04": 10 }), "MAT009", 20, true],
-    ["ADD08", "กราโนล่าอบเนยถั่ว (20g)", "ธัญพืช & กรอบ", "🥜", JSON.stringify({ "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }), "MAT010", 20, true],
-    ["ADD09", "ดาร์กช็อกโกแลตชิป (15g)", "ท็อปปิ้งพิเศษ", "🍫", JSON.stringify({ "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }), "MAT011", 15, true]
+    ["ADD08", "กราโนล่าอบเนยถั่ว (20g)", "ธัญพืช & กรอบ", "🥜", JSON.stringify({ "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }), "MAT009", 20, true],
   ];
-  sampleAddons.forEach(row => sAddon.appendRow(row));
+  if (sAddon.getLastRow() === 1) sampleAddons.forEach(row => sAddon.appendRow(row));
 
   // 5. Orders
   let sOrders = ss.getSheetByName(SHEETS.ORDERS) || ss.insertSheet(SHEETS.ORDERS);
@@ -200,9 +197,12 @@ function setupDatabase() {
   // 8. Settings
   let sSet = ss.getSheetByName(SHEETS.SETTINGS) || ss.insertSheet(SHEETS.SETTINGS);
   applyHeaderStyle(sSet, ["Key", "Value", "Description"], "#718096");
+  if (sSet.getLastRow() === 1) {
   sSet.appendRow(["ShopName", "Greek Yogurt Bar & Cafe", "ชื่อร้าน"]);
   sSet.appendRow(["Currency", "THB", "สกุลเงิน"]);
   sSet.appendRow(["PresetEmojis", "🍓,🫐,🥭,🍌,🥝,🍇,🍯,🥣,🥛,🍫,🥜,🥑,🥥,🍑,🍒,🍍,🍋,🍏,🥨,🍪,🧇", "รายการ Emoji ผลไม้และท็อปปิ้ง"]);
+
+  }
 
   // ลบ Sheet1 เริ่มต้นถ้ามี
   let defaultSheet = ss.getSheetByName("Sheet1") || ss.getSheetByName("ชีต1");
@@ -217,93 +217,33 @@ function setupDatabase() {
  * 2. Web App GET Router
  */
 function doGet(e) {
-  const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "getAllData";
-  
-  try {
-    if (action === "ping") {
-      return jsonResponse({ status: "success", message: "API is active", time: new Date().toISOString() });
-    }
-    
-    if (action === "getAllData") {
-      const data = fetchAllMasterData();
-      return jsonResponse({ status: "success", data: data });
-    }
-
-    if (action === "getOrders") {
-      const orders = fetchOrders(e.parameter.startDate, e.parameter.endDate);
-      return jsonResponse({ status: "success", data: orders });
-    }
-
-    return jsonResponse({ status: "error", message: "Unknown action: " + action });
-  } catch (err) {
-    return jsonResponse({ status: "error", message: err.toString() });
-  }
+  return withDatabaseLock(function() {
+    recoverOperations();
+    const params = e && e.parameter || {};
+    const action = params.action || "getAllData";
+    if (action === "ping") return { status: "success", message: "API is active" };
+    if (action === "getAllData") return { status: "success", data: fetchAllMasterData() };
+    if (action === "getOrders") return { status: "success", data: fetchOrders(params.startDate, params.endDate) };
+    if (action === "getSnapshot") return { status: "success", data: readCommittedSnapshot(params.requestId) };
+    throw new Error("Unknown action: " + action);
+  });
 }
 
 /**
  * 3. Web App POST Router
  */
 function doPost(e) {
-  const lock = LockService.getScriptLock();
-  try {
-    // รอ lock สูงสุด 20 วินาที เพื่อป้องกันบันทึกซ้ำซ้อน
-    lock.waitLock(20000);
-    
+  return withDatabaseLock(function() {
     const payload = JSON.parse(e.postData.contents);
-    const action = payload.action;
-
-    let result;
-    switch (action) {
-      case "createOrder":
-        result = handleCreateOrder(payload.data);
-        break;
-      case "stockIn":
-        result = handleStockIn(payload.data);
-        break;
-      case "stockConversion":
-        result = handleStockConversion(payload.data);
-        break;
-      case "stockAdjust":
-        result = handleStockAdjust(payload.data);
-        break;
-      case "saveMenu":
-        result = handleSaveMenu(payload.data);
-        break;
-      case "saveAddon":
-        result = handleSaveAddon(payload.data);
-        break;
-      case "saveMaterial":
-        result = handleSaveMaterial(payload.data);
-        break;
-      case "deleteMaterial":
-        result = handleDeleteMaterial(payload.data);
-        break;
-      case "restoreMaterial":
-        result = handleRestoreMaterial(payload.data);
-        break;
-      case "savePlatforms":
-        result = handleSavePlatforms(payload.data);
-        break;
-      case "saveSettings":
-        result = handleSaveSettings(payload.data);
-        break;
-      default:
-        throw new Error("Invalid action: " + action);
-    }
-
-    return jsonResponse({ status: "success", data: result });
-  } catch (err) {
-    return jsonResponse({ status: "error", message: err.toString() });
-  } finally {
-    lock.releaseLock();
-  }
+    return { status: "success", data: executeOperation(payload) };
+  });
 }
 
 /**
  * Helper: ดึงข้อมูล Master Data ทั้งหมดส่งให้ Frontend
  */
 function fetchAllMasterData() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   
   return {
     materials: readSheetToJson(ss.getSheetByName(SHEETS.RAW_MATERIALS)),
@@ -319,7 +259,7 @@ function fetchAllMasterData() {
  * บันทึกคำสั่งซื้อใหม่ + ตัดสต็อกตามสูตรและ Add-on + คำนวณ GP & กำไร
  */
 function handleCreateOrder(orderData) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sOrders = ss.getSheetByName(SHEETS.ORDERS);
   const sOrderItems = ss.getSheetByName(SHEETS.ORDER_ITEMS);
   const sMaterials = ss.getSheetByName(SHEETS.RAW_MATERIALS);
@@ -343,7 +283,7 @@ function handleCreateOrder(orderData) {
   const stockDeductions = {}; // materialId -> totalQtyToDeduct
 
   const now = new Date();
-  const orderId = "ORD-" + Utilities.formatDate(now, "Asia/Bangkok", "yyMMdd-HHmmss") + "-" + Math.floor(Math.random() * 900 + 100);
+  const orderId = "ORD-" + Utilities.formatDate(now, "Asia/Bangkok", "yyMMdd-HHmmss") + "-" + Utilities.getUuid();
 
   // วนลูปแต่ละเมนูในออเดอร์
   orderData.items.forEach((item, idx) => {
@@ -454,7 +394,7 @@ function handleCreateOrder(orderData) {
  * รับเข้าสต็อก (Stock In) + คำนวณต้นทุนเฉลี่ย
  */
 function handleStockIn(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sMat = ss.getSheetByName(SHEETS.RAW_MATERIALS);
   const sTrans = ss.getSheetByName(SHEETS.STOCK_TRANSACTIONS);
   const now = new Date();
@@ -467,7 +407,7 @@ function handleStockIn(data) {
       const currentQty = Number(matData[i][4]) || 0;
       const currentCost = Number(matData[i][6]) || 0;
       const addQty = Number(data.quantity) || 0;
-      const purchasePrice = Number(data.unitCost) || currentCost;
+      const purchasePrice = data.unitCost == null ? currentCost : Number(data.unitCost);
 
       // ต้นทุนเฉลี่ยถ่วงน้ำหนัก (Weighted Average Cost)
       const newTotalQty = currentQty + addQty;
@@ -506,7 +446,8 @@ function handleStockIn(data) {
  * แปรรูปจากวัตถุดิบรอง (Stock Conversion / Prep Batch)
  */
 function handleStockConversion(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  data = validateConversion(data);
+  const ss = activeSpreadsheet();
   const sMat = ss.getSheetByName(SHEETS.RAW_MATERIALS);
   const sTrans = ss.getSheetByName(SHEETS.STOCK_TRANSACTIONS);
   const now = new Date();
@@ -583,7 +524,7 @@ function handleStockConversion(data) {
  * ปรับยอดสต็อก / บันทึกของเสีย (Waste / Adjust)
  */
 function handleStockAdjust(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sMat = ss.getSheetByName(SHEETS.RAW_MATERIALS);
   const sTrans = ss.getSheetByName(SHEETS.STOCK_TRANSACTIONS);
   const now = new Date();
@@ -633,12 +574,12 @@ function handleStockAdjust(data) {
  * บันทึกหรืออัปเดตเมนู
  */
 function handleSaveMenu(menu) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sMenu = ss.getSheetByName(SHEETS.MENUS);
   const data = sMenu.getDataRange().getValues();
 
   let targetRow = -1;
-  const menuId = menu.id || ("MENU-" + (data.length));
+  const menuId = menu.id || ("MENU-" + Utilities.getUuid());
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === menuId) {
@@ -671,12 +612,12 @@ function handleSaveMenu(menu) {
  * บันทึกหรืออัปเดต Add-on
  */
 function handleSaveAddon(addon) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sAddon = ss.getSheetByName(SHEETS.ADDONS);
   const data = sAddon.getDataRange().getValues();
 
   let targetRow = -1;
-  const addonId = addon.id || ("ADD-" + (data.length));
+  const addonId = addon.id || ("ADD-" + Utilities.getUuid());
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === addonId) {
@@ -709,12 +650,12 @@ function handleSaveAddon(addon) {
  * บันทึกวัตถุดิบใหม่หรือแก้ไข
  */
 function handleSaveMaterial(mat) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sMat = ss.getSheetByName(SHEETS.RAW_MATERIALS);
   const data = sMat.getDataRange().getValues();
 
   let targetRow = -1;
-  const matId = mat.id || ("MAT-" + (data.length));
+  const matId = mat.id || ("MAT-" + Utilities.getUuid());
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === matId) {
@@ -750,7 +691,7 @@ function handleSaveMaterial(mat) {
  * ลบวัตถุดิบ (Soft Delete / Archive) - คงประวัติการขายและสต็อกเดิมไว้
  */
 function handleDeleteMaterial(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sMat = ss.getSheetByName(SHEETS.RAW_MATERIALS);
   const matData = sMat.getDataRange().getValues();
 
@@ -770,7 +711,7 @@ function handleDeleteMaterial(data) {
  * กู้คืนวัตถุดิบที่ถูกลบ (Restore)
  */
 function handleRestoreMaterial(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sMat = ss.getSheetByName(SHEETS.RAW_MATERIALS);
   const matData = sMat.getDataRange().getValues();
 
@@ -790,7 +731,7 @@ function handleRestoreMaterial(data) {
  * บันทึกรายชื่อ Platforms และ GP%
  */
 function handleSavePlatforms(platformsList) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sPlat = ss.getSheetByName(SHEETS.PLATFORMS);
   sPlat.clear();
   sPlat.appendRow(["PlatformID", "Name", "GP_Percent", "BadgeColor", "IsActive"]);
@@ -812,7 +753,7 @@ function handleSavePlatforms(platformsList) {
  * บันทึกการตั้งค่า
  */
 function handleSaveSettings(settingsObj) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = activeSpreadsheet();
   const sSet = ss.getSheetByName(SHEETS.SETTINGS);
   
   for (const key in settingsObj) {
@@ -846,6 +787,7 @@ function readSheetToJson(sheet) {
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
+    if (!row[0]) continue;
     const item = {};
     headers.forEach((h, colIdx) => {
       let val = row[colIdx];
@@ -883,6 +825,7 @@ function fetchRecentOrders(ss, limit) {
 
   for (let i = data.length - 1; i >= start; i--) {
     const row = data[i];
+    if (!row[0]) continue;
     const order = {};
     headers.forEach((h, colIdx) => {
       order[h] = row[colIdx];
@@ -898,4 +841,328 @@ function fetchRecentOrders(ss, limit) {
 function jsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// All public HTTP mutations run against an in-memory candidate first. Only a
+// durable PREPARED operation permits business writes; recovery rewrites the same
+// absolute values, never reapplies quantity deltas. COMMITTED is written last.
+let candidateSpreadsheet = null;
+function activeSpreadsheet() {
+  return candidateSpreadsheet || SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function withDatabaseLock(work) {
+  const lock = LockService.getScriptLock();
+  let acquired = false;
+  try {
+    lock.waitLock(20000); acquired = true;
+    return jsonResponse(work());
+  } catch (err) {
+    return jsonResponse({ status: "error", message: String(err) });
+  } finally {
+    if (acquired) lock.releaseLock();
+  }
+}
+
+function ensureRecoverySheets() {
+  const ss = activeSpreadsheet();
+  const definitions = {
+    Operations: ["RequestID", "Action", "Status", "Fingerprint", "Generation", "Chunks", "Checksum", "Response_JSON"],
+    OperationChunks: ["Generation", "Index", "JSON"],
+    SnapshotChunks: ["RequestID", "Index", "JSON"],
+    SnapshotMetadata: ["RequestID", "Revision", "Checksum", "Chunks"]
+  };
+  Object.keys(definitions).forEach(function(name) {
+    const sheet = ss.getSheetByName(name) || ss.insertSheet(name);
+    if (!sheet.getLastRow()) sheet.appendRow(definitions[name]);
+  });
+}
+
+function checksum(text) {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+function chunksOf(text) {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += 30000) chunks.push(text.slice(i, i + 30000));
+  return chunks;
+}
+
+function readChunks(sheet, id, count, expectedChecksum) {
+  const rows = sheet.getDataRange().getValues().slice(1).filter(function(row) { return row[0] === id; });
+  if (rows.length !== count) throw new Error("Incomplete chunk count");
+  rows.sort(function(a, b) { return a[1] - b[1]; });
+  rows.forEach(function(row, index) { if (row[1] !== index) throw new Error("Invalid chunk sequence"); });
+  const text = rows.map(function(row) {
+    if (typeof row[2] !== "string" || row[2].slice(0, 5) !== "json:") throw new Error("Invalid chunk encoding");
+    return row[2].slice(5);
+  }).join("");
+  if (checksum(text) !== expectedChecksum) throw new Error("Chunk checksum mismatch");
+  return text;
+}
+
+function virtualSpreadsheet(ss) {
+  const sheets = {};
+  ss.getSheets().forEach(function(source) {
+    const name = source.getName();
+    if (["Operations", "OperationChunks"].indexOf(name) >= 0) return;
+    let rows = source.getDataRange().getValues().filter(function(row) { return row.some(function(cell) { return cell !== ""; }); });
+    const sheet = {
+      getName: function() { return name; },
+      getLastRow: function() { return rows.length; },
+      getDataRange: function() { return { getValues: function() { return rows.map(function(row) { return row.slice(); }); } }; },
+      appendRow: function(row) { rows.push(row.slice()); },
+      clear: function() { rows = []; },
+      getRange: function(r, c, h, w) {
+        return {
+          setValue: function(value) { rows[r - 1][c - 1] = value; },
+          setValues: function(values) {
+            for (let i = 0; i < h; i++) {
+              rows[r + i - 1] = rows[r + i - 1] || [];
+              for (let j = 0; j < w; j++) rows[r + i - 1][c + j - 1] = values[i][j];
+            }
+          }
+        };
+      }
+    };
+    sheets[name] = sheet;
+  });
+  return { getSheetByName: function(name) { return sheets[name]; }, getSheets: function() { return Object.keys(sheets).map(function(name) { return sheets[name]; }); } };
+}
+
+function replaceRows(sheet, rows) {
+  const oldRows = sheet.getLastRow();
+  const width = Math.max.apply(null, rows.map(function(row) { return row.length; }));
+  ensureGrid(sheet, rows.length, width);
+  // No clear-before-write. If shrinking, blank only the retired tail after the
+  // replacement. A failed boundary leaves PREPARED and recovery repeats it.
+  sheet.getRange(1, 1, rows.length, width).setValues(rows.map(function(row) {
+    return Array.from({ length: width }, function(_, index) { return row[index] == null ? "" : row[index]; });
+  }));
+  if (oldRows > rows.length) sheet.getRange(rows.length + 1, 1, oldRows - rows.length, width).clearContent();
+}
+
+function ensureGrid(sheet, rows, columns) {
+  if (rows > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), rows - sheet.getMaxRows());
+  if (columns > sheet.getMaxColumns()) sheet.insertColumnsAfter(sheet.getMaxColumns(), columns - sheet.getMaxColumns());
+}
+
+function applyPrepared(row, rowIndex) {
+  const ss = activeSpreadsheet();
+  const intent = JSON.parse(readChunks(ss.getSheetByName("OperationChunks"), row[4], row[5], row[6]));
+  Object.keys(intent.tables).forEach(function(name) { replaceRows(ss.getSheetByName(name), intent.tables[name]); });
+  SpreadsheetApp.flush();
+  Object.keys(intent.tables).forEach(function(name) {
+    const actual = ss.getSheetByName(name).getDataRange().getValues().slice(0, intent.tables[name].length);
+    if (JSON.stringify(actual) !== JSON.stringify(intent.tables[name])) throw new Error("Transaction readback mismatch: " + name);
+  });
+  if (row[1] === "syncAll") {
+    const meta = intent.tables.SnapshotMetadata[1];
+    readChunks(ss.getSheetByName("SnapshotChunks"), meta[0], meta[3], meta[2]);
+  }
+  ss.getSheetByName("Operations").getRange(rowIndex, 3).setValue("COMMITTED");
+  SpreadsheetApp.flush();
+  return JSON.parse(row[7]);
+}
+
+function recoverOperations() {
+  ensureRecoverySheets();
+  activeSpreadsheet().getSheetByName("Operations").getDataRange().getValues().slice(1).forEach(function(row, index) {
+    if (row[2] === "PREPARED") applyPrepared(row, index + 2);
+  });
+}
+
+function executeOperation(payload) {
+  if (typeof payload.requestId !== "string" || !payload.requestId.trim() || payload.requestId.length > 200) throw new Error("Stable requestId required");
+  recoverOperations();
+  const ss = activeSpreadsheet();
+  const operations = ss.getSheetByName("Operations");
+  const fingerprint = JSON.stringify({ action: payload.action, data: payload.data });
+  const existing = operations.getDataRange().getValues().slice(1).find(function(row) { return row[0] === payload.requestId; });
+  if (existing) {
+    if (existing[3] !== checksum(fingerprint)) throw new Error("requestId reused with different payload");
+    return JSON.parse(existing[7]);
+  }
+  validateMutation(payload.action, payload.data);
+  const candidate = virtualSpreadsheet(ss);
+  let response;
+  candidateSpreadsheet = candidate;
+  try {
+    const handlers = { createOrder: handleCreateOrder, stockIn: handleStockIn, stockConversion: handleStockConversion,
+      stockAdjust: handleStockAdjust, saveMenu: handleSaveMenu, saveAddon: handleSaveAddon, saveMaterial: handleSaveMaterial,
+      deleteMaterial: handleDeleteMaterial, restoreMaterial: handleRestoreMaterial, savePlatforms: handleSavePlatforms, saveSettings: handleSaveSettings };
+    if (payload.action === "syncAll") response = prepareSnapshot(payload.data.snapshot, payload.requestId);
+    else if (handlers[payload.action]) response = handlers[payload.action](payload.data);
+    else throw new Error("Invalid action: " + payload.action);
+    if (response.success === false) throw new Error(response.message);
+  } finally { candidateSpreadsheet = null; }
+  const tables = {};
+  candidate.getSheets().forEach(function(sheet) {
+    const rows = sheet.getDataRange().getValues();
+    const original = ss.getSheetByName(sheet.getName()).getDataRange().getValues().filter(function(row) { return row.some(function(cell) { return cell !== ""; }); });
+    if (JSON.stringify(rows) !== JSON.stringify(original)) tables[sheet.getName()] = rows;
+  });
+  // JSON-safe candidate also restores dates consistently as ISO timestamps.
+  const text = JSON.stringify({ tables: tables });
+  const chunks = chunksOf(text); const generation = Utilities.getUuid();
+  const chunkSheet = ss.getSheetByName("OperationChunks");
+  ensureGrid(chunkSheet, chunkSheet.getLastRow() + chunks.length, 3);
+  chunkSheet.getRange(chunkSheet.getLastRow() + 1, 1, chunks.length, 3).setValues(chunks.map(function(chunk, index) { return [generation, index, "json:" + chunk]; }));
+  readChunks(chunkSheet, generation, chunks.length, checksum(text));
+  const row = [payload.requestId, payload.action, "PREPARED", checksum(fingerprint), generation, chunks.length, checksum(text), JSON.stringify(response)];
+  operations.appendRow(row); SpreadsheetApp.flush();
+  return applyPrepared(row, operations.getLastRow());
+}
+
+function numberValue(value, label, positive) {
+  if (value == null || value === "" || typeof value === "boolean" || !Number.isFinite(Number(value)) || Number(value) < 0 || (positive && Number(value) === 0)) throw new Error("Invalid " + label);
+  return Number(value);
+}
+
+function materialMap() {
+  const map = {};
+  activeSpreadsheet().getSheetByName(SHEETS.RAW_MATERIALS).getDataRange().getValues().slice(1).forEach(function(row) {
+    if (row[0]) {
+      if (map[row[0]]) throw new Error("Duplicate material ID: " + row[0]);
+      map[row[0]] = row;
+    }
+  });
+  return map;
+}
+
+function requireMaterial(map, id) {
+  if (!map[id] || map[id][9] === true) throw new Error("Missing or archived material: " + id);
+  numberValue(map[id][4], "current stock"); numberValue(map[id][6], "current cost");
+  return map[id];
+}
+
+function validateConversion(data) {
+  const map = materialMap(); requireMaterial(map, data.targetMaterialId);
+  numberValue(data.yieldQty, "yield quantity", true); numberValue(data.totalBatchCost, "batch cost");
+  if (!Array.isArray(data.subUsages) || !data.subUsages.length) throw new Error("Production inputs required");
+  const totals = {};
+  data.subUsages.forEach(function(input) {
+    requireMaterial(map, input.materialId);
+    if (input.materialId === data.targetMaterialId) throw new Error("Self production is not allowed");
+    totals[input.materialId] = (totals[input.materialId] || 0) + numberValue(input.qty, "input quantity", true);
+  });
+  const usages = Object.keys(totals).map(function(id) {
+    if (totals[id] > Number(map[id][4])) throw new Error("Insufficient stock: " + id);
+    return { materialId: id, qty: totals[id] };
+  });
+  return Object.assign({}, data, { subUsages: usages });
+}
+
+function validateMutation(action, data) {
+  if (!data || typeof data !== "object") throw new Error("Mutation data required");
+  const map = materialMap();
+  if (action === "stockConversion") { validateConversion(data); return; }
+  if (action === "stockIn") {
+    requireMaterial(map, data.materialId); numberValue(data.quantity, "receipt quantity", true);
+    if (data.unitCost != null) numberValue(data.unitCost, "unit cost");
+  } else if (action === "stockAdjust") {
+    const material = requireMaterial(map, data.materialId);
+    if (data.type === "WASTE") {
+      if (numberValue(data.quantity, "waste quantity", true) > Number(material[4])) throw new Error("Insufficient waste stock");
+    } else numberValue(data.countedQty, "counted quantity");
+  } else if (action === "createOrder") {
+    if (!Array.isArray(data.items) || !data.items.length) throw new Error("Order items required");
+    const totals = {};
+    data.items.forEach(function(item) {
+      const qty = numberValue(item.qty, "order quantity", true);
+      numberValue(item.unitPrice, "unit price"); numberValue(item.totalPrice, "total price");
+      (item.recipe || []).concat((item.selectedAddons || []).map(function(addon) { return { materialId: addon.materialId, qty: addon.amountUsed }; })).forEach(function(input) {
+        requireMaterial(map, input.materialId);
+        totals[input.materialId] = (totals[input.materialId] || 0) + numberValue(input.qty, "recipe quantity") * qty;
+      });
+    });
+    Object.keys(totals).forEach(function(id) { if (totals[id] > Number(map[id][4])) throw new Error("Insufficient stock: " + id); });
+    const subtotal = numberValue(data.subtotal, "subtotal");
+    if (numberValue(data.discount, "discount") > subtotal) throw new Error("Discount exceeds subtotal");
+    if (numberValue(data.gpPercent, "GP percent") > 100) throw new Error("GP exceeds 100");
+  } else if (action === "saveMaterial") {
+    ["stock", "minAlert", "unitCost"].forEach(function(key) { if (data[key] != null) numberValue(data[key], key); });
+    if (!data.name) throw new Error("Material name required");
+  } else if (action === "saveAddon") {
+    requireMaterial(map, data.materialId); numberValue(data.amountUsed, "addon quantity"); validatePrices(data.prices);
+  } else if (action === "saveMenu") {
+    validatePrices(data.prices);
+    const recipe = typeof data.recipe === "string" ? JSON.parse(data.recipe) : data.recipe || [];
+    recipe.forEach(function(input) { requireMaterial(map, input.materialId); numberValue(input.qty, "recipe quantity"); });
+  } else if (action === "savePlatforms") {
+    if (!Array.isArray(data)) throw new Error("Platforms array required");
+    const ids = {};
+    data.forEach(function(platform) {
+      if (!platform.id || ids[platform.id]) throw new Error("Invalid or duplicate platform ID"); ids[platform.id] = true;
+      if (numberValue(platform.gpPercent, "GP percent") > 100) throw new Error("GP exceeds 100");
+    });
+  } else if (action === "syncAll") validateSnapshot(data.snapshot);
+}
+
+function validatePrices(prices) {
+  const value = typeof prices === "string" ? JSON.parse(prices) : prices || {};
+  Object.keys(value).forEach(function(key) { numberValue(value[key], "price"); });
+}
+
+function validateSnapshot(snapshot) {
+  if (!snapshot || snapshot.schemaVersion !== 3 || !Number.isInteger(snapshot.revision) || snapshot.revision < 0) throw new Error("Schema3 snapshot and revision required");
+  ["materials", "menus", "addons", "platforms", "orders", "activityLogs", "stockShortages"].forEach(function(key) {
+    if (!Array.isArray(snapshot[key])) throw new Error("Snapshot array required: " + key);
+    const ids = {};
+    snapshot[key].forEach(function(entity) {
+      if (!entity || typeof entity !== "object") throw new Error("Invalid snapshot entity");
+      if (entity.id) { if (ids[entity.id]) throw new Error("Duplicate snapshot ID: " + entity.id); ids[entity.id] = true; }
+    });
+  });
+  snapshot.materials.forEach(function(material) {
+    const stock = numberValue(material.stock, "snapshot stock");
+    ["unitCost", "packCost", "minAlert"].forEach(function(key) { if (material[key] != null) numberValue(material[key], "snapshot " + key); });
+    if (!Array.isArray(material.lots)) throw new Error("Snapshot material lots required");
+    const ids = {}; let total = 0;
+    material.lots.forEach(function(lot) {
+      if (!lot.id || ids[lot.id]) throw new Error("Duplicate or missing lot ID"); ids[lot.id] = true;
+      total += numberValue(lot.qty, "snapshot lot quantity");
+      if (lot.unitCost != null) numberValue(lot.unitCost, "snapshot lot cost");
+    });
+    if (!Number.isFinite(total) || Math.abs(total - stock) > 0.00001) throw new Error("Snapshot stock and lots disagree");
+  });
+  if (!snapshot.categories || typeof snapshot.categories !== "object" || typeof snapshot.gasApiUrl !== "string") throw new Error("Snapshot metadata required");
+}
+
+function prepareSnapshot(snapshot, requestId) {
+  const ss = activeSpreadsheet();
+  const oldMeta = ss.getSheetByName("SnapshotMetadata").getDataRange().getValues()[1];
+  if (oldMeta && snapshot.revision < Number(oldMeta[1])) throw new Error("Stale snapshot revision");
+  const text = JSON.stringify(snapshot); const chunks = chunksOf(text); const digest = checksum(text);
+  const sheet = ss.getSheetByName("SnapshotChunks");
+  chunks.forEach(function(chunk, index) { sheet.appendRow([requestId, index, "json:" + chunk]); });
+  const meta = ss.getSheetByName("SnapshotMetadata"); meta.clear();
+  meta.appendRow(["RequestID", "Revision", "Checksum", "Chunks"]); meta.appendRow([requestId, snapshot.revision, digest, chunks.length]);
+  return { requestId: requestId, revision: snapshot.revision, status: "committed", checksum: digest };
+}
+
+function readCommittedSnapshot(requestId) {
+  const ss = activeSpreadsheet();
+  const operations = ss.getSheetByName("Operations").getDataRange().getValues().slice(1);
+  const active = ss.getSheetByName("SnapshotMetadata").getDataRange().getValues()[1];
+  requestId = requestId || (active && active[0]);
+  const operation = operations.find(function(row) { return row[0] === requestId && row[1] === "syncAll" && row[2] === "COMMITTED"; });
+  if (!operation) throw new Error("No committed snapshot");
+  const ack = JSON.parse(operation[7]);
+  const rows = ss.getSheetByName("SnapshotChunks").getDataRange().getValues().slice(1).filter(function(row) { return row[0] === requestId; });
+  const snapshot = JSON.parse(readChunks(ss.getSheetByName("SnapshotChunks"), requestId, rows.length, ack.checksum));
+  return Object.assign({}, ack, { snapshot: snapshot });
+}
+
+function fetchOrders(startDate, endDate) {
+  [startDate, endDate].forEach(function(date) { if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Invalid date filter"); });
+  return readSheetToJson(activeSpreadsheet().getSheetByName(SHEETS.ORDERS)).filter(function(order) {
+    const date = new Date(new Date(order.CreatedAt).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    return (!startDate || date >= startDate) && (!endDate || date <= endDate);
+  }).reverse();
 }
