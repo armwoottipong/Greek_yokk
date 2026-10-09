@@ -4,6 +4,13 @@ import { gasHarness } from '../helpers/gasHarness.js'
 const conversion = {targetMaterialId:'MAT001',yieldQty:20,totalBatchCost:10,subUsages:[{materialId:'MAT002',qty:10},{materialId:'MAT002',qty:20}]}
 const snapshot = () => ({schemaVersion:3,revision:4,materials:[{id:'M',stock:2,lots:[{id:'L',qty:2}]}],menus:[],addons:[],platforms:[],orders:[],activityLogs:[{id:'log',note:'x'.repeat(65000)}],categories:{materials:['test']},gasApiUrl:'',stockShortages:[]})
 describe('GAS recoverable backend',()=>{
+  it('formula-looking literal values are rejected before intent without blocking later requests',()=>{
+    const h=gasHarness()
+    expect(h.post('saveSettings',{ShopName:'=hello'},'formula').status).toBe('error')
+    expect(h.rows('Operations').filter(r=>r[2]==='PREPARED')).toHaveLength(0)
+    expect(h.post('saveSettings',{ShopName:'plain shop'},'normal').status).toBe('success')
+    expect(h.get({action:'getAllData'}).status).toBe('success')
+  })
   it('setup retains business rows and seed references point to actual ingredients',()=>{
     const h=gasHarness(); h.rows('RawMaterials')[1][4]=123; h.context.setupDatabase()
     expect(h.rows('RawMaterials')[1][4]).toBe(123)

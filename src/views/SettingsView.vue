@@ -4,30 +4,41 @@
     <div>
       <h2 class="text-xl font-bold text-stone-900 tracking-tight">ตั้งค่าระบบ (System Settings)</h2>
       <p class="text-xs text-stone-400 mt-0.5">
-        เชื่อมต่อ Google Sheets API, จัดการช่องทางการขาย และสำรองฐานข้อมูล
+        ข้อมูลหลักเก็บในเครื่องนี้ เลือกสิ่งที่ต้องการจัดการด้านล่าง
       </p>
     </div>
 
+    <nav aria-label="หมวดการตั้งค่า" class="grid grid-cols-2 sm:flex gap-2">
+      <button v-for="section in settingsSections" :key="section.id" type="button"
+        :aria-controls="`settings-${section.id}`" :aria-pressed="activeSettingsSection === section.id"
+        @click="activeSettingsSection = section.id"
+        class="px-4 py-3 rounded-xl text-sm font-semibold text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+        :class="activeSettingsSection === section.id ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'">
+        {{ section.label }}
+      </button>
+    </nav>
+
     <!-- Section 1: Google Apps Script Web App Integration -->
-    <div class="editorial-card p-6 bg-white space-y-4">
+    <div id="settings-sheets" data-settings="sheets" v-show="activeSettingsSection === 'sheets'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
       <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
         <div class="p-2 rounded-xl bg-emerald-50 text-emerald-800">
           <Cloud class="w-5 h-5" />
         </div>
         <div>
           <h3 class="text-sm font-bold text-stone-900">เชื่อมต่อ Google Sheets (GAS API)</h3>
-          <p class="text-xs text-stone-400">ซิงค์ประวัติคำสั่งซื้อและสถานะสต็อกคงเหลือขึ้น Google Sheets อัตโนมัติ</p>
+          <p class="text-xs text-stone-500">สำรองข้อมูลไป Google Sheets เพิ่มเติม ระบบขายใช้งานได้โดยไม่ต้องเชื่อมต่อ</p>
         </div>
       </div>
 
       <div class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-stone-700 mb-1">
+          <label for="gas-url" class="block text-xs font-semibold text-stone-700 mb-1">
             Google Apps Script Web App URL
           </label>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-col sm:flex-row gap-2">
             <input
               v-model="gasUrlInput"
+              id="gas-url"
               type="url"
               placeholder="https://script.google.com/macros/s/AKfycb.../exec"
               class="soft-input flex-1 px-3 py-2 rounded-xl text-xs font-mono text-stone-900 placeholder:text-stone-400"
@@ -44,14 +55,14 @@
           </p>
         </div>
 
-        <div class="flex items-center justify-between pt-2">
+        <div class="flex flex-wrap gap-3 items-center justify-between pt-2">
           <div class="flex items-center gap-2 text-xs">
             <span
               class="w-2.5 h-2.5 rounded-full"
               :class="store.gasApiUrl ? 'bg-emerald-500' : 'bg-stone-300'"
             ></span>
             <span class="text-stone-600 font-medium">
-              {{ store.gasApiUrl ? 'สถานะ: เชื่อมต่อ Web App URL แล้ว' : 'สถานะ: ยังไม่ได้ระบุ URL' }}
+              {{ store.gasApiUrl ? 'บันทึก URL แล้ว' : 'ยังไม่ได้ระบุ URL' }}
             </span>
             <span v-if="store.lastSyncTime" class="text-stone-400 text-[11px]">
               (ซิงค์ล่าสุด: {{ store.lastSyncTime }})
@@ -64,14 +75,15 @@
             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors"
           >
             <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': store.isSyncing }" />
-            <span>{{ store.isSyncing ? 'กำลังส่งข้อมูล...' : 'ทดสอบซิงค์ข้อมูลเดี๋ยวนี้' }}</span>
+            <span>{{ store.isSyncing ? 'กำลังส่งข้อมูล...' : 'สำรองไป Google Sheets' }}</span>
           </button>
         </div>
+        <p v-if="store.syncError" role="alert" class="text-sm text-rose-700">{{ store.syncError }}</p>
       </div>
     </div>
 
     <!-- Section 2: Platform & Channel GP Rates -->
-    <div class="editorial-card p-6 bg-white space-y-4">
+    <div id="settings-platforms" data-settings="platforms" v-show="activeSettingsSection === 'platforms'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
       <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
         <div class="p-2 rounded-xl bg-amber-50 text-amber-800">
           <Store class="w-5 h-5" />
@@ -105,7 +117,7 @@
     </div>
 
     <!-- Section 3: Category Management (จัดการหมวดหมู่ระบบ) -->
-    <div class="editorial-card p-6 bg-white space-y-5">
+    <div id="settings-categories" data-settings="categories" v-show="activeSettingsSection === 'categories'" class="editorial-card p-4 sm:p-6 bg-white space-y-5">
       <div class="flex items-center justify-between border-b border-stone-100 pb-3">
         <div class="flex items-center gap-3">
           <div class="p-2 rounded-xl bg-indigo-50 text-indigo-700">
@@ -119,7 +131,7 @@
       </div>
 
       <!-- Category Type Switcher (Tabs) -->
-      <div class="flex items-center gap-1.5 p-1 bg-stone-100/80 rounded-xl w-fit">
+      <div class="flex flex-wrap items-center gap-1.5 p-1 bg-stone-100/80 rounded-xl w-fit">
         <button
           @click="activeCategoryTab = 'menu'"
           :class="activeCategoryTab === 'menu' ? 'bg-white text-stone-900 shadow-xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
@@ -368,14 +380,14 @@
     </div>
 
     <!-- Section 4: Data Management & Backup -->
-    <div class="editorial-card p-6 bg-white space-y-4">
+    <div id="settings-backup" data-settings="backup" v-show="activeSettingsSection === 'backup'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
       <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
         <div class="p-2 rounded-xl bg-rose-50 text-rose-800">
           <Database class="w-5 h-5" />
         </div>
         <div>
           <h3 class="text-sm font-bold text-stone-900">การจัดการฐานข้อมูลและการสำรอง (Database & Backup)</h3>
-          <p class="text-xs text-stone-400">สำรองข้อมูลทั้งหมดเป็น JSON หรือรีเฟรชกลับสู่ค่าเริ่มต้น</p>
+          <p class="text-xs text-stone-500">ดาวน์โหลดข้อมูลเก็บไว้ก่อนกู้คืนหรือเริ่มร้านใหม่</p>
         </div>
       </div>
 
@@ -468,7 +480,7 @@
     </div>
 
     <!-- Section 4: System Information -->
-    <div class="editorial-card p-5 bg-white flex items-center justify-between text-xs text-stone-400">
+    <div class="editorial-card p-5 bg-white flex flex-wrap gap-3 items-center justify-between text-xs text-stone-400">
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
         <span class="text-stone-600 font-medium">Greek Yogurt POS & Inventory System v2.0 (Vue 3 + Pinia)</span>
@@ -481,6 +493,7 @@
 </template>
 
 <script setup>
+import { businessDateKey } from '@/domain/businessDate'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import {
@@ -500,6 +513,13 @@ import {
 } from 'lucide-vue-next'
 
 const store = usePosStore()
+const activeSettingsSection = ref('backup')
+const settingsSections = [
+  { id: 'backup', label: 'สำรองและกู้คืน' },
+  { id: 'categories', label: 'หมวดหมู่' },
+  { id: 'platforms', label: 'ช่องทางขาย' },
+  { id: 'sheets', label: 'Google Sheets' }
+]
 const gasUrlInput = ref(store.gasApiUrl)
 const fileInput = ref(null)
 
@@ -670,7 +690,7 @@ function exportBackup() {
   const blob = new Blob([jsonStr], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  const dateStr = new Date().toISOString().split('T')[0]
+  const dateStr = businessDateKey(new Date())
   a.href = url
   a.download = `greek-yogurt-pos-backup-${dateStr}.json`
   a.click()

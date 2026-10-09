@@ -234,6 +234,7 @@
                 <div class="truncate max-w-xs text-stone-900 font-medium">
                   {{ order.items.map(i => `${i.qty}x ${i.menuName}`).join(', ') }}
                 </div>
+                <span v-if="order.stockShortages?.length" class="text-[11px] text-amber-800">วัตถุดิบขาดค้าง — ดูรายละเอียดในบิล</span>
               </td>
               <td class="py-3.5 px-4 text-right font-number font-bold text-stone-900">
                 ฿{{ order.subtotal }}
@@ -280,7 +281,7 @@ const metrics = computed(() => store.dashboardMetrics)
 function formatTime(isoStr) {
   if (!isoStr) return ''
   const d = new Date(isoStr)
-  return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone:'Asia/Bangkok' })
 }
 
 function viewReceipt(order) {

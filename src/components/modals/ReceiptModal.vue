@@ -62,6 +62,12 @@
           </div>
         </div>
 
+        <div v-if="order.stockShortages?.length" class="py-3 border-b border-dashed border-amber-300 text-amber-900">
+          <strong>วัตถุดิบขาดค้าง</strong>
+          <div v-for="shortage in order.stockShortages" :key="shortage.materialId">
+            {{ shortage.materialName || shortage.materialId }}: {{ shortage.qty }} {{ shortage.unit }}
+          </div>
+        </div>
         <!-- Totals -->
         <div class="py-3 space-y-1">
           <div class="flex justify-between text-xs font-bold pt-1 border-t border-stone-900">
@@ -117,14 +123,12 @@ const order = computed(() => store.modals.receipt.order)
 
 const orderGpPercent = computed(() => {
   if (!order.value || !order.value.gpAmount || !order.value.subtotal) return 0
-  const plat = store.platforms.find(p => p.id === order.value.platformId)
-  if (plat && plat.gpPercent !== undefined) return plat.gpPercent
   return Math.round((order.value.gpAmount / order.value.subtotal) * 100)
 })
 
 const formattedDate = computed(() => {
   if (!order.value?.createdAt) return ''
-  return new Date(order.value.createdAt).toLocaleString('th-TH')
+  return new Date(order.value.createdAt).toLocaleString('th-TH', {timeZone:'Asia/Bangkok'})
 })
 
 watch(() => store.modals.receipt.isOpen, (open) => {

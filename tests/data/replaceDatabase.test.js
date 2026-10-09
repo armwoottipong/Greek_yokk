@@ -48,3 +48,15 @@ it('demo receipt and stocktake preserve initial milk baseline',()=> {
  expect(s.materials.find(m=>m.id==='MAT002').stock).toBe(before+100)
  s.stockAdjust('MAT002',14000,'','',false);expect(s.materials.find(m=>m.id==='MAT002').stock).toBe(14000)
 })
+it('unrelated JSON cannot replace the database as an import',()=> {
+ const s=createTestStore({storage:{GY_MATERIALS:[material()]}})
+ expect(s.replaceDatabase({},{source:'import'}).ok).toBe(false)
+ expect(s.materials[0].stock).toBe(100)
+})
+it('intentional replacement preserves the exact previous canonical snapshot',()=> {
+ const s=createTestStore();s.replaceDatabase(raw(),{source:'import'});s.stockIn('X',1,1,'',null,{expiryDate:'2099-01-01'},false)
+ const previous=localStorage.getItem('GY_DATABASE_V3')
+ expect(s.replaceDatabase({materials:[],menus:[],addons:[]},{source:'import'}).ok).toBe(true)
+ const keys=Object.keys(localStorage).filter(k=>k.startsWith('GY_REPLACEMENT_RECOVERY_V3'))
+ expect(keys.some(k=>localStorage.getItem(k)===previous)).toBe(true)
+})

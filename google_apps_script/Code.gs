@@ -1007,6 +1007,15 @@ function executeOperation(payload) {
     const original = ss.getSheetByName(sheet.getName()).getDataRange().getValues().filter(function(row) { return row.some(function(cell) { return cell !== ""; }); });
     if (JSON.stringify(rows) !== JSON.stringify(original)) tables[sheet.getName()] = rows;
   });
+  // setValues interprets leading '=' as a formula. Reject before a durable
+  // intent, otherwise mismatching readback would block every recovery request.
+  Object.keys(tables).forEach(function(name) {
+    tables[name].forEach(function(row) {
+      row.forEach(function(cell) {
+        if (typeof cell === "string" && cell.charAt(0) === "=") throw new Error("Literal cell text beginning with = is unsupported: " + name);
+      });
+    });
+  });
   // JSON-safe candidate also restores dates consistently as ISO timestamps.
   const text = JSON.stringify({ tables: tables });
   const chunks = chunksOf(text); const generation = Utilities.getUuid();

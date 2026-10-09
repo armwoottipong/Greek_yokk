@@ -235,7 +235,7 @@ async function submit() {
     name: form.value.name.trim(),
     category: form.value.category,
     emoji: form.value.emoji || '🍓',
-    prices: form.value.prices,
+    prices: Object.fromEntries(Object.entries(form.value.prices).map(([id, value]) => [id, value === '' ? 0 : Number(value)])),
     materialId: form.value.materialId || null,
     amountUsed: Number(form.value.amountUsed) || 0
   })

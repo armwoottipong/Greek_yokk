@@ -526,7 +526,7 @@ async function submit() {
     category: form.value.category.trim() || 'Classic Bowls',
     emoji: form.value.emoji || '🥣',
     description: form.value.description.trim(),
-    prices: form.value.prices,
+    prices: Object.fromEntries(Object.entries(form.value.prices).map(([id, value]) => [id, value === '' ? 0 : Number(value)])),
     recipe: combinedRecipe,
     hasAddons: form.value.hasAddons,
     hasPackage: form.value.hasPackage
