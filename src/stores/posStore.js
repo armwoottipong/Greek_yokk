@@ -1,3 +1,5 @@
+import { getEffectiveRequirements, allocateInventory, aggregateRequirements, rebaseInventoryDraft } from '@/domain/inventory'
+import { businessDateKey } from '@/domain/businessDate'
 import { normalizeDatabase, clone, DATABASE_FIELDS } from '@/domain/database'
 import { loadDatabase, saveDatabase } from '@/services/localDatabase'
 import { createEntityId } from '@/domain/ids'
@@ -313,7 +315,7 @@ export function generateDefaultActivityLogs() {
   ]
 }
 
-export const usePosStore = defineStore('pos', {
+const posDefinition = {
   state: () => {
     const loaded = loadDatabase(localStorage)
     const storageError = loaded.ok ? null : loaded.errors.map(e => e.path + ': ' + e.message).join('\n')
@@ -422,6 +424,9 @@ export const usePosStore = defineStore('pos', {
 
       // Stock Staged / Draft System (All stock actions are Draft until confirmed at main stock popup)
       stockDraftSnapshot: null,
+      transactionDepth: 0,
+      transactionToasts: [],
+      stockDraftConflict: null,
       stockDraftActions: []
     }
   },
@@ -741,10 +746,10 @@ export const usePosStore = defineStore('pos', {
             let unexpiredStock = 0
             if (subMat.lots && subMat.lots.length > 0) {
               unexpiredStock = subMat.lots
-                .filter(l => l.qty > 0 && !getExpiryStatus(l).isExpired)
+                .filter(l => l.qty > 0 && !isExpired(l))
                 .reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
             } else {
-              unexpiredStock = getExpiryStatus(subMat).isExpired ? 0 : (Number(subMat.stock) || 0)
+              unexpiredStock = isExpired(subMat) ? 0 : (Number(subMat.stock) || 0)
             }
 
             const batches = req.qty > 0 ? Math.floor(unexpiredStock / req.qty) : 0
@@ -768,10 +773,10 @@ export const usePosStore = defineStore('pos', {
     // Sales & Profit Analytics
     filteredOrders: (state) => {
       const now = new Date()
-      const todayStr = now.toISOString().split('T')[0]
+      const todayStr = businessDateKey(now)
       return state.orders.filter(ord => {
         if (!ord.createdAt) return false
-        const ordDateStr = ord.createdAt.split('T')[0]
+        const ordDateStr = businessDateKey(ord.createdAt)
         if (state.dashboardPeriod === 'today') return ordDateStr === todayStr
         if (state.dashboardPeriod === 'week') {
           const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -832,24 +837,9 @@ export const usePosStore = defineStore('pos', {
 
         subtotal += (itemUnitPrice * item.qty)
 
-        // Calculate theoretical food cost of this item
         let singleItemCost = 0
-        if (item.menu.recipe && Array.isArray(item.menu.recipe)) {
-          item.menu.recipe.forEach(r => {
-            const mat = this.matMap[r.materialId]
-            if (mat && !mat.isDeleted) {
-              singleItemCost += (r.qty * (mat.unitCost || 0))
-            }
-          })
-        }
-        if (item.selectedAddons && item.selectedAddons.length > 0) {
-          item.selectedAddons.forEach(addon => {
-            const mat = this.matMap[addon.materialId]
-            if (mat && !mat.isDeleted) {
-              singleItemCost += ((addon.amountUsed || 0) * (mat.unitCost || 0))
-            }
-          })
-        }
+        const materials=this.stockDraftSnapshot||this.materials
+        for(const r of getEffectiveRequirements(item.menu,item.selectedAddons,1,materials))singleItemCost+=r.qty*(materials.find(m=>m.id===r.materialId)?.unitCost||0)
         totalFoodCost += (singleItemCost * item.qty)
       })
 
@@ -1044,7 +1034,7 @@ export const usePosStore = defineStore('pos', {
         }
       }
 
-      const isLotExpired = (lot) => getExpiryStatus(lot).isExpired
+      const isLotExpired = (lot) => isExpired(lot)
 
       const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !isLotExpired(l)) || mat.lots.find(l => l.qty > 0 && !isLotExpired(l)) || mat.lots[0]
       const curQty = Number(activeLot?.qty) || 0
@@ -1099,6 +1089,7 @@ export const usePosStore = defineStore('pos', {
 
     // Toast Notifications
     showToast(message, type = 'success') {
+      if (this.transactionDepth) { this.transactionToasts.push({message,type}); return }
       const id = Date.now() + Math.random()
       this.toasts.push({ id, message, type })
       setTimeout(() => {
@@ -1131,6 +1122,8 @@ export const usePosStore = defineStore('pos', {
       return result
     },
     persistLocal() {
+      if(this.transactionDepth)return {ok:true,pending:true}
+
       const result = this.commitDatabase(this.databaseSnapshot(), {preserveDraft: true})
       if (!result.ok) this.publishDatabase(this.committedDatabase)
       return result
@@ -1198,78 +1191,16 @@ export const usePosStore = defineStore('pos', {
     },
 
     commitStockDrafts() {
-      const loggedMatIds = new Set()
-
-      // 1. Process all pending activity logs from explicit draft actions
-      if (Array.isArray(this.stockDraftActions)) {
-        this.stockDraftActions.forEach(act => {
-          if (act.materialId) {
-            loggedMatIds.add(act.materialId)
-          }
-          if (act.log) {
-            this.addActivityLog(act.log)
-          }
-          if (Array.isArray(act.subLogs)) {
-            act.subLogs.forEach(sl => {
-              this.addActivityLog(sl)
-              if (sl.targetId) loggedMatIds.add(sl.targetId)
-            })
-          }
-        })
-      }
-
-      // 2. Check any remaining materials that differ from snapshot (e.g. quick stepper on stock page)
-      if (this.stockDraftSnapshot) {
-        this.materials.forEach(m => {
-          const snap = this.stockDraftSnapshot.find(s => s.id === m.id)
-          const snapStock = snap ? (Number(snap.stock) || 0) : 0
-          const currentStock = Number(m.stock) || 0
-          if (snap && snapStock !== currentStock && !loggedMatIds.has(m.id)) {
-            const diff = Math.round((currentStock - snapStock) * 100) / 100
-            let dateNote = ''
-            if (diff > 0) {
-              const todayStr = getTodayString()
-              m.lastStockInDate = todayStr
-              if (m.shelfLifeDays) {
-                m.expiryDate = addDays(todayStr, m.shelfLifeDays)
-                dateNote = ` [ผลิต: ${formatThaiDate(todayStr)}, หมดอายุ: ${formatThaiDate(m.expiryDate)}]`
-              }
-            }
-            this.addActivityLog({
-              module: 'stock',
-              action: diff > 0 ? 'produce' : 'stock_adjust_reduce',
-              title: diff > 0 ? 'ผลิตตามสูตร (Batch Produce)' : 'ปรับสต็อกลดลง',
-              description: diff > 0
-                ? `ผลิต ${m.name} +${diff.toLocaleString()} ${m.unit}`
-                : `ลดยอด ${m.name} ${diff.toLocaleString()} ${m.unit}`,
-              targetId: m.id,
-              targetName: m.name,
-              targetEmoji: m.emoji,
-              delta: diff,
-              unit: m.unit,
-              beforeStock: snapStock,
-              afterStock: currentStock,
-              receiveDate: m.lastStockInDate || undefined,
-              expiryDate: m.expiryDate || undefined,
-              reason: 'ปรับยอดหน้ารายการสต็อก (ขั้นตอนสุดท้าย)',
-              note: `ปรับจาก ${snapStock.toLocaleString()} เป็น ${currentStock.toLocaleString()} ${m.unit}${dateNote}`,
-              user: 'ผู้จัดการคลัง'
-            })
-          }
-        })
-      }
-
-      // 3. Persist to localStorage
-      this.persistLocal()
-
-      const count = (this.stockDraftActions && this.stockDraftActions.length) || 1
-
-      // 4. Update snapshot to the newly committed materials
-      this.stockDraftSnapshot = JSON.parse(JSON.stringify(this.materials))
-      this.stockDraftActions = []
-
-      this.showToast(`บันทึกข้อมูลคลังขั้นตอนสุดท้ายสำเร็จ (${count} รายการ)`, 'success')
-      return { success: true, count }
+      if(this.stockDraftConflict)return {ok:false,code:'DRAFT_CONFLICT',message:'แบบร่างขัดแย้งกับรายการขาย กรุณายกเลิกและตรวจนับใหม่'}
+      const candidate=this.databaseSnapshot({committedMaterials:false})
+      const logs=this.stockDraftActions.flatMap(a=>[a.log,...(a.subLogs||[])].filter(Boolean)).map(log=>this.makeActivityLog(log))
+      candidate.activityLogs=[...logs,...candidate.activityLogs].slice(0,500)
+      const result=this.commitDatabase(candidate)
+      if(!result.ok)return result
+      this.stockDraftSnapshot=clone(this.materials)
+      this.stockDraftActions=[]
+      this.showToast('บันทึกข้อมูลคลังสำเร็จ','success')
+      return {...result,success:true}
     },
 
     discardStockDrafts() {
@@ -1295,7 +1226,7 @@ export const usePosStore = defineStore('pos', {
     // ========================================================
     // ACTIVITY LOGS & AUDIT TRAIL
     // ========================================================
-    addActivityLog(logData) {
+    makeActivityLog(logData) {
       if (!this.activityLogs) this.activityLogs = []
       const targetId = logData.targetId || logData.materialId || null
       const targetName = logData.targetName || logData.materialName || ''
@@ -1323,12 +1254,13 @@ export const usePosStore = defineStore('pos', {
         cost: logData.cost || null,
         user
       }
-      this.activityLogs.unshift(newLog)
-      if (this.activityLogs.length > 500) {
-        this.activityLogs = this.activityLogs.slice(0, 500)
-      }
-      this.persistLocal()
       return newLog
+    },
+    addActivityLog(logData) {
+      const log=this.makeActivityLog(logData)
+      this.activityLogs=[log,...(this.activityLogs||[])].slice(0,500)
+      this.persistLocal()
+      return log
     },
 
     openActivityLog(module = 'all', targetMaterialId = null) {
@@ -1466,7 +1398,7 @@ export const usePosStore = defineStore('pos', {
 
     saveGasUrl(url) {
       this.gasApiUrl = url.trim()
-      localStorage.setItem('GY_GAS_API_URL', this.gasApiUrl)
+      this.persistLocal()
       this.showToast('บันทึก Google Sheets API URL สำเร็จ', 'success')
     },
 
@@ -1576,48 +1508,27 @@ export const usePosStore = defineStore('pos', {
     // MATERIAL & INVENTORY CRUD
     // ========================================================
     saveMaterial(matData) {
-      const packSize = Number(matData.packSize) > 0 ? Number(matData.packSize) : 1
-      const packCost = Number(matData.packCost) >= 0 ? Number(matData.packCost) : 0
-      let unitCost = Number(matData.unitCost) || 0
-      if (packCost > 0 && packSize > 0 && (!unitCost || unitCost === 0)) {
-        unitCost = packCost / packSize
-      }
-
-      const cleanData = {
-        ...matData,
-        packUnit: matData.packUnit ? String(matData.packUnit).trim() : 'ชิ้น',
-        packSize,
-        packCost,
-        unitCost: Math.round(unitCost * 10000) / 10000,
-        shelfLifeDays: matData.shelfLifeDays !== undefined ? matData.shelfLifeDays : null,
-        lastStockInDate: matData.lastStockInDate || undefined,
-        expiryDate: matData.expiryDate || undefined,
-        stock: Number(matData.stock) || 0,
-        minAlert: Number(matData.minAlert) || 0,
-        yieldQty: Number(matData.yieldQty) || 1200
-      }
-
-      if (cleanData.isSubIngredient || cleanData.id === 'MAT002') {
-        cleanData.hasSubRecipe = false
-        cleanData.subRecipe = []
-        cleanData.isSubIngredient = true
-      }
-
-      if (matData.id) {
-        const idx = this.materials.findIndex(m => m.id === matData.id)
-        if (idx >= 0) {
-          this.materials[idx] = { ...this.materials[idx], ...cleanData }
-        }
-      } else {
-        const newId = createEntityId('MAT',this.materials.map(m=>m.id))
-        this.materials.push({
-          ...cleanData,
-          id: newId,
-          isDeleted: false
-        })
-      }
+      const requested=Number(matData.stock??0)
+      if(!Number.isFinite(requested)||requested<0)return false
+      let mat=this.materials.find(m=>m.id===matData.id)
+      const oldStock=mat?.stock||0
+      const id=mat?.id||createEntityId('MAT',this.materials.map(m=>m.id))
+      const clean={...mat,...clone(matData),id,stock:oldStock,lots:clone(mat?.lots||[]),isDeleted:mat?.isDeleted||false}
+      clean.packSize=Number(matData.packSize??mat?.packSize??1)
+      clean.unitCost=Number(matData.unitCost??mat?.unitCost??0)
+      clean.packCost=Number(matData.packCost??mat?.packCost??clean.unitCost*clean.packSize)
+      clean.minAlert=Number(matData.minAlert??mat?.minAlert??0)
+      if(mat)Object.assign(mat,clean);else{this.materials.push(clean);mat=clean}
+      if(requested>oldStock && mat.hasSubRecipe && mat.subRecipe?.length) {
+        const yieldQty=Number(mat.yieldQty||mat.packSize)
+        if(!Number.isFinite(yieldQty)||yieldQty<=0)return false
+        const ingredients=mat.subRecipe.map(r=>({materialId:r.materialId,qty:Number(r.qty)*(requested-oldStock)/yieldQty}))
+        const result=this.batchProduce(id,requested-oldStock,ingredients,'ผลิตจากหน้าจัดการวัตถุดิบ',{},false)
+        if(result===false||result?.success===false||result?.ok===false)return false
+      }else if(requested!==oldStock)this.stockAdjust(id,requested,'แก้ไขยอดจากหน้าจัดการวัตถุดิบ','',false)
       this.persistLocal()
-      this.showToast(`บันทึกวัตถุดิบ "${matData.name}" สำเร็จ`, 'success')
+      this.showToast('บันทึกวัตถุดิบสำเร็จ','success')
+      return {success:true}
     },
 
     getMaterialUsage(matId) {
@@ -1840,7 +1751,7 @@ export const usePosStore = defineStore('pos', {
         }
 
         // Keep active in-use lot aligned with FIFO unexpired
-        const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !getExpiryStatus(l).isExpired) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
+        const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !isExpired(l)) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
         if (activeLot) {
           if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate
           if (activeLot.expiryDate) mat.expiryDate = activeLot.expiryDate
@@ -2086,196 +1997,30 @@ export const usePosStore = defineStore('pos', {
       }
     },
 
-    batchProduce(targetMatId, yieldQty, subIngredients = [], note = '', dates = {}, asDraft = false) {
-      const target = this.materials.find(m => m.id === targetMatId)
-      if (!target) return false
-
-      if (asDraft && !this.stockDraftSnapshot) {
-        this.initStockDraftSnapshot()
-      }
-
-      const targetCurrentStock = Number(target.stock) || 0
-      const targetCurrentCost = Number(target.unitCost) || 0
-      const addedQty = Number(yieldQty) || 0
-
-      // Check if sub-ingredients have enough unexpired stock
-      let totalCost = 0
-      for (const item of subIngredients) {
-        const subMat = this.materials.find(m => m.id === item.materialId)
-        if (!subMat) continue
-        const neededQty = Number(item.qty) || 0
-
-        let availableStock = subMat.stock
-        if (subMat.lots && subMat.lots.length > 0) {
-          availableStock = subMat.lots
-            .filter(l => l.qty > 0 && !getExpiryStatus(l).isExpired)
-            .reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
-        } else if (getExpiryStatus(subMat).isExpired) {
-          availableStock = 0
-        }
-
-        if (neededQty > availableStock) {
-          this.showToast(`สต็อกไม่พอหรือหมดอายุ: ${subMat.name} (คงเหลือใช้งานได้ ${availableStock} ${subMat.unit}, ต้องการ ${neededQty} ${subMat.unit})`, 'error')
-          return false
-        }
-        totalCost += (neededQty * (Number(subMat.unitCost) || 0))
-      }
-
-      // Deduct sub-ingredients from lots
-      const deductedSummary = []
-      const subLogs = []
-      for (const item of subIngredients) {
-        const subMat = this.materials.find(m => m.id === item.materialId)
-        if (subMat) {
-          const neededQty = Number(item.qty) || 0
-          const beforeSubStock = Number(subMat.stock) || 0
-          this.deductMaterialStock(subMat, neededQty)
-          deductedSummary.push(`${subMat.name} -${neededQty} ${subMat.unit}`)
-          subLogs.push({
-            module: 'stock',
-            action: 'produce_deduct',
-            title: 'เบิกใช้ผลิตตามสูตร',
-            description: `เบิกใช้ ${subMat.name} -${neededQty.toLocaleString()} ${subMat.unit} (ใช้ผลิต ${target.name})`,
-            targetId: subMat.id,
-            targetName: subMat.name,
-            targetEmoji: subMat.emoji,
-            delta: -neededQty,
-            unit: subMat.unit,
-            beforeStock: beforeSubStock,
-            afterStock: Number(subMat.stock) || 0,
-            note: `หักสต็อกเพื่อผลิต ${target.name} +${addedQty} ${target.unit}`,
-            user: 'ครัว/ผู้ผลิต'
-          })
-        }
-      }
-
-      // Calculate new weighted unit cost for finished target
-      const currentValuation = targetCurrentStock * targetCurrentCost
-      const newValuation = currentValuation + totalCost
-      const newTotalStock = targetCurrentStock + addedQty
-      const newUnitCost = newTotalStock > 0 ? (newValuation / newTotalStock) : targetCurrentCost
-
-      target.unitCost = Math.round(newUnitCost * 10000) / 10000
-
-      // Update Production Date & Expiry Date
-      const produceDate = dates?.receiveDate || getTodayString()
-      const expiryDate = dates?.expiryDate !== undefined ? (dates.expiryDate || null) : (target.shelfLifeDays ? addDays(produceDate, target.shelfLifeDays) : null)
-      target.lastStockInDate = produceDate
-      target.expiryDate = expiryDate
-
-      // Add or merge into lot
-      if (!target.lots) target.lots = []
-      let produceLotAction = 'new_lot'
-      const matchingProduceLot = target.lots.find(l => (l.receiveDate === produceDate || !l.receiveDate) && (l.expiryDate || null) === expiryDate && l.qty > 0)
-
-      if (matchingProduceLot) {
-        matchingProduceLot.qty = Math.round(((Number(matchingProduceLot.qty) || 0) + addedQty) * 100) / 100
-        matchingProduceLot.initialQty = Math.round(((Number(matchingProduceLot.initialQty) || 0) + addedQty) * 100) / 100
-        matchingProduceLot.unitCost = target.unitCost
-        matchingProduceLot.packCost = target.packCost || Math.round(target.unitCost * (target.packSize || 1) * 100) / 100
-        if (note) matchingProduceLot.note = matchingProduceLot.note ? `${matchingProduceLot.note}; ${note}` : note
-        produceLotAction = 'merged'
-      } else {
-        const newLotId = `LOT-${target.id}-${Date.now()}`
-        const hasOtherInUse = target.lots.some(l => l.isInUse && l.qty > 0)
-        target.lots.push({
-          id: newLotId,
-          receiveDate: produceDate,
-          expiryDate: expiryDate || null,
-          qty: addedQty,
-          initialQty: addedQty,
-          unitCost: target.unitCost,
-          packCost: target.packCost || Math.round(target.unitCost * (target.packSize || 1) * 100) / 100,
-          isInUse: !hasOtherInUse,
-          note: note ? `ผลิตรอบใหม่: ${note}` : `ผลิตตามสูตร [${deductedSummary.join(', ')}]`,
-          createdAt: new Date().toISOString()
-        })
-        produceLotAction = 'new_lot'
-      }
-      target.stock = Math.round(target.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
-
-      // Keep active in-use lot aligned
-      const activeProduceLot = target.lots.find(l => l.isInUse && l.qty > 0 && !getExpiryStatus(l).isExpired) || target.lots.find(l => l.qty > 0) || target.lots[0]
-      if (activeProduceLot) {
-        if (activeProduceLot.receiveDate) target.lastStockInDate = activeProduceLot.receiveDate
-        if (activeProduceLot.expiryDate) target.expiryDate = activeProduceLot.expiryDate
-      }
-
-      const dateNote = expiryDate
-        ? `[ผลิต: ${formatThaiDate(produceDate)}, หมดอายุ: ${formatThaiDate(expiryDate)}]`
-        : `[ผลิต: ${formatThaiDate(produceDate)}]`
-
-      const actionProduceSuffix = produceLotAction === 'merged'
-        ? (expiryDate ? ` (รวมเข้าล็อตเดิม Exp: ${formatDisplayDate(expiryDate)})` : ' (รวมเข้าล็อตเดิม)')
-        : (expiryDate ? ` (เปิดล็อตใหม่ Exp: ${formatDisplayDate(expiryDate)})` : ' (เปิดล็อตใหม่)')
-
-      const summaryText = deductedSummary.join(', ')
-      const mainLog = {
-        module: 'stock',
-        action: 'produce',
-        title: 'ผลิตตามสูตร (Batch Produce)',
-        description: `ผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit}${actionProduceSuffix}`,
-        targetId: target.id,
-        targetName: target.name,
-        targetEmoji: target.emoji,
-        delta: addedQty,
-        unit: target.unit,
-        beforeStock: targetCurrentStock,
-        afterStock: target.stock,
-        receiveDate: produceDate,
-        expiryDate: expiryDate || undefined,
-        note: note ? `${note} ${dateNote} [หัก: ${summaryText}]` : `${dateNote} [หักสต็อก: ${summaryText}]`,
-        user: 'ผู้ผลิต'
-      }
-
-      if (asDraft) {
-        this.addStockDraftAction({
-          type: 'batch_produce',
-          materialId: target.id,
-          materialName: target.name,
-          materialEmoji: target.emoji,
-          title: 'ผลิตตามสูตร',
-          description: `ผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} [หัก: ${summaryText}]`,
-          delta: addedQty,
-          unit: target.unit,
-          log: mainLog,
-          subLogs
-        })
-        this.reconcileMaterialDraft(target.id)
-        subIngredients.forEach(item => this.reconcileMaterialDraft(item.materialId))
-        if (this.hasStockDrafts) {
-          this.showToast(`เพิ่มรายการผลิต ${target.name} +${addedQty.toLocaleString()} ${target.unit} (รอยืนยันที่แถบด้านล่าง)`, 'info')
-        } else {
-          this.showToast(`สต็อก ${target.name} คืนค่าเท่าเดิมเรียบร้อย`, 'info')
-        }
-      } else {
-        if (this.stockDraftSnapshot) {
-          const snapTarget = this.stockDraftSnapshot.find(s => s.id === target.id)
-          if (snapTarget) {
-            snapTarget.stock = target.stock
-            if (target.lots) snapTarget.lots = JSON.parse(JSON.stringify(target.lots))
-            snapTarget.unitCost = target.unitCost
-          }
-          subIngredients.forEach(item => {
-            const sm = this.materials.find(m => m.id === item.materialId)
-            const snapSub = this.stockDraftSnapshot.find(s => s.id === item.materialId)
-            if (sm && snapSub) {
-              snapSub.stock = sm.stock
-              if (sm.lots) snapSub.lots = JSON.parse(JSON.stringify(sm.lots))
-            }
-          })
-        }
-        this.persistLocal()
-        this.addActivityLog(mainLog)
-        subLogs.forEach(sl => this.addActivityLog(sl))
-        this.showToast(`เพิ่มสต็อก ${target.name} +${addedQty} ${target.unit} สำเร็จ! [หักสต็อก: ${summaryText}]`, 'success')
-      }
-      return true
+    batchProduce(targetMatId,yieldQty,subIngredients=[],note='',dates={},asDraft=false) {
+      const addedQty=Number(yieldQty),target=this.materials.find(m=>m.id===targetMatId)
+      if(!target||target.isDeleted||!Number.isFinite(addedQty)||addedQty<=0)return false
+      let requirements
+      try{requirements=aggregateRequirements(subIngredients)}catch{return false}
+      if(requirements.some(r=>r.materialId===targetMatId))return false
+      const result=allocateInventory(this.materials,requirements)
+      if(!result.ok){this.showToast('วัตถุดิบไม่พอ หมดอายุ หรือสูตรไม่ถูกต้อง','error');return false}
+      if(asDraft&&!this.stockDraftSnapshot)this.initStockDraftSnapshot()
+      const before=clone(this.materials)
+      const rawCost=requirements.reduce((sum,r)=>sum+r.qty*(this.materials.find(m=>m.id===r.materialId)?.unitCost||0),0)
+      this.materials=result.materials
+      const output=this.materials.find(m=>m.id===targetMatId)
+      output.unitCost=(output.stock*(output.unitCost||0)+rawCost)/(output.stock+addedQty)
+      const receiveDate=dates.receiveDate||getTodayString(),expiryDate=dates.expiryDate|| (output.shelfLifeDays?addDays(receiveDate,output.shelfLifeDays):null)
+      const lot={id:createEntityId('LOT',output.lots.map(l=>l.id)),qty:addedQty,initialQty:addedQty,receiveDate,expiryDate,unitCost:rawCost/addedQty,isInUse:!output.lots.some(l=>l.isInUse&&l.qty>0),note,createdAt:new Date().toISOString()}
+      output.lots.push(lot);output.stock=Math.round((output.stock+addedQty)*100)/100
+      const log={module:'stock',action:'produce',title:'ผลิตตามสูตร',targetId:targetMatId,targetName:output.name,delta:addedQty,beforeStock:target.stock,afterStock:output.stock,note,unit:output.unit}
+      const subLogs=requirements.map(r=>({module:'stock',action:'produce_deduct',targetId:r.materialId,targetName:before.find(m=>m.id===r.materialId).name,delta:-r.qty,beforeStock:before.find(m=>m.id===r.materialId).stock,afterStock:this.materials.find(m=>m.id===r.materialId).stock,note}))
+      if(asDraft)this.addStockDraftAction({type:'batch_produce',materialId:targetMatId,delta:addedQty,log,subLogs})
+      else {this.addActivityLog(log);subLogs.forEach(l=>this.addActivityLog(l));this.persistLocal()}
+      return {ok:true,success:true}
     },
 
-    // ========================================================
-    // LOT MANAGEMENT & WASTE (SPOILAGE) WRITE-OFF
-    // ========================================================
     switchActiveLot(materialId, lotId, asDraft = false) {
       const mat = this.materials.find(m => m.id === materialId)
       if (!mat || !mat.lots) return
@@ -2362,7 +2107,7 @@ export const usePosStore = defineStore('pos', {
       // If this lot was in use and is now 0, advance to next available lot
       if (lot.isInUse && lot.qty <= 0) {
         lot.isInUse = false
-        const nextLot = mat.lots.find(l => l.qty > 0 && !getExpiryStatus(l).isExpired) || mat.lots.find(l => l.qty > 0)
+        const nextLot = mat.lots.find(l => l.qty > 0 && !isExpired(l)) || mat.lots.find(l => l.qty > 0)
         if (nextLot) nextLot.isInUse = true
       }
 
@@ -2445,100 +2190,14 @@ export const usePosStore = defineStore('pos', {
     },
 
     // Deduct stock from material lots (Priority: in-use lot, then FIFO unexpired)
-    deductMaterialStock(mat, neededQty) {
-      if (!mat) return { success: false, switchedLots: [] }
-      const qty = Number(neededQty) || 0
-      if (qty <= 0) return { success: true, switchedLots: [] }
-
-      if (!mat.lots || mat.lots.length === 0) {
-        mat.stock = Math.max(0, Math.round((mat.stock - qty) * 100) / 100)
-        if (this.stockDraftSnapshot) {
-          const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
-          if (snapMat) snapMat.stock = mat.stock
-        }
-        return { success: true, switchedLots: [] }
-      }
-
-      let remaining = qty
-      const switchedLots = []
-      const isLotExpired = (lot) => getExpiryStatus(lot).isExpired
-
-      // 1. Deduct from currently in-use lot first (if not expired and has stock)
-      let inUseLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !isLotExpired(l))
-      const origInUseLotId = inUseLot?.id
-
-      if (inUseLot) {
-        const take = Math.min(inUseLot.qty, remaining)
-        inUseLot.qty = Math.round((inUseLot.qty - take) * 100) / 100
-        remaining = Math.round((remaining - take) * 100) / 100
-        if (inUseLot.qty <= 0) {
-          inUseLot.isInUse = false
-        }
-      }
-
-      // 2. If remaining > 0, deduct from other available unexpired lots by FIFO
-      if (remaining > 0) {
-        const otherLots = mat.lots
-          .filter(l => l.qty > 0 && !isLotExpired(l) && l.id !== origInUseLotId)
-          .sort((a, b) => {
-            if (a.expiryDate && b.expiryDate) return a.expiryDate.localeCompare(b.expiryDate)
-            return (a.receiveDate || '').localeCompare(b.receiveDate || '')
-          })
-
-        for (const lot of otherLots) {
-          const take = Math.min(lot.qty, remaining)
-          lot.qty = Math.round((lot.qty - take) * 100) / 100
-          remaining = Math.round((remaining - take) * 100) / 100
-          lot.isInUse = true
-          if (lot.qty <= 0) lot.isInUse = false
-          if (remaining <= 0) break
-        }
-      }
-
-      // 3. Ensure at least one positive unexpired lot is in-use if stock remains
-      if (!mat.lots.some(l => l.isInUse && l.qty > 0 && !isLotExpired(l))) {
-        const nextAvail = mat.lots
-          .filter(l => l.qty > 0 && !isLotExpired(l))
-          .sort((a, b) => {
-            if (a.expiryDate && b.expiryDate) return a.expiryDate.localeCompare(b.expiryDate)
-            return (a.receiveDate || '').localeCompare(b.receiveDate || '')
-          })[0]
-        if (nextAvail) {
-          nextAvail.isInUse = true
-        }
-      }
-
-      mat.stock = Math.round(mat.lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
-
-      // Update primary dates
-      const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !isLotExpired(l)) || mat.lots.find(l => l.qty > 0) || mat.lots[0]
-      if (activeLot) {
-        if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate
-        if (activeLot.expiryDate) mat.expiryDate = activeLot.expiryDate
-      }
-
-      // Check if active lot changed due to rollover
-      if (origInUseLotId && activeLot && activeLot.id !== origInUseLotId) {
-        switchedLots.push({
-          materialId: mat.id,
-          materialName: mat.name,
-          materialEmoji: mat.emoji,
-          fromLotId: origInUseLotId,
-          toLotId: activeLot.id,
-          toLotReceiveDate: activeLot.receiveDate
-        })
-      }
-
-      // Synchronize with snapshot if active
-      if (this.stockDraftSnapshot) {
-        const snapMat = this.stockDraftSnapshot.find(s => s.id === mat.id)
-        if (snapMat) {
-          snapMat.stock = mat.stock
-          if (mat.lots) snapMat.lots = JSON.parse(JSON.stringify(mat.lots))
-        }
-      }
-
-      return { success: true, switchedLots }
+    deductMaterialStock(mat,neededQty) {
+      if(!mat)return {success:false}
+      const result=allocateInventory([mat],[{materialId:mat.id,qty:Number(neededQty)}])
+      if(!result.ok)return {success:false,issues:result.issues}
+      const previous=mat.lots?.find(l=>l.isInUse)?.id
+      Object.assign(mat,result.materials[0])
+      const next=mat.lots?.find(l=>l.isInUse)?.id
+      return {success:true,allocations:result.allocations,switchedLots:previous&&next&&previous!==next?[{materialId:mat.id,materialName:mat.name,materialEmoji:mat.emoji,fromLotId:previous,toLotId:next}]:[]}
     },
 
     addMaterialStock(mat, addedQty) {
@@ -2587,85 +2246,23 @@ export const usePosStore = defineStore('pos', {
     // ========================================================
     
     // Check material availability for a menu + add-ons
-    checkStockAvailability(menu, selectedAddons = [], targetQty = 1) {
-      const required = {}
-
-      // Menu Recipe deduction
-      if (menu.recipe && Array.isArray(menu.recipe)) {
-        menu.recipe.forEach(r => {
-          required[r.materialId] = (required[r.materialId] || 0) + (r.qty * targetQty)
-        })
-      }
-
-      // Add-on deduction
-      if (selectedAddons && selectedAddons.length > 0) {
-        selectedAddons.forEach(a => {
-          if (a.materialId && a.amountUsed) {
-            required[a.materialId] = (required[a.materialId] || 0) + (a.amountUsed * targetQty)
-          }
-        })
-      }
-
-      // Check current cart's already reserved materials
-      this.cart.forEach(item => {
-        if (item.menu.recipe) {
-          item.menu.recipe.forEach(r => {
-            required[r.materialId] = (required[r.materialId] || 0) + (r.qty * item.qty)
-          })
-        }
-        if (item.selectedAddons) {
-          item.selectedAddons.forEach(a => {
-            if (a.materialId && a.amountUsed) {
-              required[a.materialId] = (required[a.materialId] || 0) + (a.amountUsed * item.qty)
-            }
-          })
-        }
-      })
-
-      const outOfStockList = []
-      const lowStockList = []
-
-      for (const [matId, needed] of Object.entries(required)) {
-        const mat = this.matMap[matId]
-        if (!mat || mat.isDeleted) continue
-
-        let availableStock = mat.stock
-        if (mat.lots && mat.lots.length > 0) {
-          availableStock = mat.lots
-            .filter(l => l.qty > 0 && !getExpiryStatus(l).isExpired)
-            .reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
-        } else if (getExpiryStatus(mat).isExpired) {
-          availableStock = 0
-        }
-
-        if (needed > availableStock) {
-          outOfStockList.push({
-            name: mat.name,
-            emoji: mat.emoji,
-            stock: availableStock,
-            needed: needed,
-            unit: mat.unit
-          })
-        } else if ((availableStock - needed) <= mat.minAlert) {
-          lowStockList.push({
-            name: mat.name,
-            emoji: mat.emoji,
-            remaining: Math.max(0, availableStock - needed),
-            minAlert: mat.minAlert,
-            unit: mat.unit
-          })
-        }
-      }
-
-      return {
-        canAdd: outOfStockList.length === 0,
-        outOfStockList,
-        lowStockList
-      }
+    checkStockAvailability(menu,selectedAddons=[],targetQty=1) {
+      const materials=this.stockDraftSnapshot||this.materials
+      let required=[]
+      try {
+        required=getEffectiveRequirements(menu,selectedAddons,targetQty,materials)
+        for(const item of this.cart)required.push(...getEffectiveRequirements(item.menu,item.selectedAddons,item.qty,materials))
+        required=aggregateRequirements(required)
+      }catch(error){return {canAdd:false,outOfStockList:[{name:error.message,code:'INVALID_REQUIREMENTS'}],lowStockList:[]}}
+      const check=allocateInventory(materials,required)
+      const outOfStockList=check.ok?[]:check.issues.map(issue=>({...issue,name:issue.name||materials.find(m=>m.id===issue.materialId)?.name||issue.materialId}))
+      const lowStockList=check.ok?check.materials.filter(m=>required.some(r=>r.materialId===m.id)&&m.stock<=m.minAlert).map(m=>({name:m.name,emoji:m.emoji,remaining:m.stock,minAlert:m.minAlert,unit:m.unit})):[]
+      return {canAdd:check.ok,outOfStockList,lowStockList}
     },
 
     addToCart(menu, selectedAddons = [], qty = 1, forceConfirm = false) {
       const stockCheck = this.checkStockAvailability(menu, selectedAddons, qty)
+      if(stockCheck.outOfStockList.some(i=>i.code!=='SHORTAGE')) { this.showToast('ไม่สามารถขาย: วัตถุดิบหมดอายุ ถูกจัดเก็บ หรือสูตรไม่ถูกต้อง','error'); return false }
 
       // Rule 1: Out of stock - Warn employee but allow confirmation to sell anyway (e.g. quick buy or borrow ingredients)
       if (!stockCheck.canAdd && !forceConfirm) {
@@ -2721,8 +2318,8 @@ export const usePosStore = defineStore('pos', {
         if (isBackorder) this.cart[existingIdx].isBackorder = true
       } else {
         this.cart.push({
-          menu,
-          selectedAddons: [...selectedAddons],
+          menu: clone(menu),
+          selectedAddons: clone(selectedAddons),
           addonKey,
           qty,
           basePrice,
@@ -2765,133 +2362,88 @@ export const usePosStore = defineStore('pos', {
     },
 
     // Complete Checkout
-    checkout() {
-      if (this.cart.length === 0) {
-        this.showToast('ไม่มีรายการในออเดอร์', 'error')
+    prepareCheckout({allowShortage=false}={}) {
+      if(!this.cart.length)return {ok:false,code:'EMPTY_CART'}
+      const candidate=this.databaseSnapshot()
+      let requirements=[]
+      try {
+        for(const item of this.cart) {
+          const current=this.menus.find(m=>m.id===item.menu.id)
+          if(!current||current.isActive===false)return {ok:false,code:'MENU_UNAVAILABLE',issues:[]}
+          for(const addon of item.selectedAddons||[])if(!this.addons.some(a=>a.id===addon.id&&a.isActive!==false))return {ok:false,code:'ADDON_UNAVAILABLE',issues:[]}
+          requirements.push(...getEffectiveRequirements(item.menu,item.selectedAddons,item.qty,candidate.materials))
+        }
+      }catch(error){return {ok:false,code:'INVALID_CART',message:error.message,issues:[]}}
+      const allocated=allocateInventory(candidate.materials,requirements,{allowShortage})
+      return allocated.ok?{ok:true,candidate,allocated}:allocated
+    },
+    checkout({allowShortage=false}={}) {
+      const prepared=this.prepareCheckout({allowShortage})
+      if(!prepared.ok) {
+        if(prepared.issues?.length&&prepared.issues.every(i=>i.code==='SHORTAGE')) {
+          this.modals.lowStockWarning={isOpen:true,isOutOfStock:true,title:'ยืนยันยอดขาดก่อนขาย',subtitle:'ระบบจะบันทึกยอดวัตถุดิบขาดค้างไว้',warningItems:prepared.issues.map(i=>({...i,shortage:i.needed-i.stock})),onConfirm:()=>{this.modals.lowStockWarning.isOpen=false;this.checkout({allowShortage:true})}}
+        }else this.showToast('ไม่สามารถบันทึกออเดอร์: วัตถุดิบหรือรายการไม่พร้อมใช้','error')
         return null
       }
-
-      const summary = this.cartSummary
-      const plat = this.currentPlatform
-      const now = new Date()
-      const datePart = now.getFullYear().toString().slice(-2) + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0')
-      const orderId = `ORD-${datePart}-${String(this.orders.length + 101).slice(-3)}`
-      const switchedLotsAll = []
-
-      // Deduct materials from stock (Priority: in-use lot, then automatic FIFO rollover)
-      this.cart.forEach(item => {
-        // Deduct Menu recipe
-        if (item.menu.hasPackage !== false && item.menu.recipe) {
-          item.menu.recipe.forEach(r => {
-            const mat = this.materials.find(m => m.id === r.materialId)
-            if (mat) {
-              const res = this.deductMaterialStock(mat, r.qty * item.qty)
-              if (res?.switchedLots?.length) {
-                switchedLotsAll.push(...res.switchedLots)
-              }
-            }
-          })
-        } else if (item.menu.recipe) {
-          // If packaging is disabled, only deduct non-packaging materials
-          item.menu.recipe.forEach(r => {
-            const mat = this.materials.find(m => m.id === r.materialId)
-            if (mat && mat.category !== 'Packaging') {
-              const res = this.deductMaterialStock(mat, r.qty * item.qty)
-              if (res?.switchedLots?.length) {
-                switchedLotsAll.push(...res.switchedLots)
-              }
-            }
-          })
-        }
-
-        // Deduct Add-on materials
-        if (item.selectedAddons) {
-          item.selectedAddons.forEach(a => {
-            if (a.materialId && a.amountUsed) {
-              const mat = this.materials.find(m => m.id === a.materialId)
-              if (mat) {
-                const res = this.deductMaterialStock(mat, a.amountUsed * item.qty)
-                if (res?.switchedLots?.length) {
-                  switchedLotsAll.push(...res.switchedLots)
-                }
-              }
-            }
-          })
-        }
-      })
-
-      // Construct Order Object
-      const orderItems = this.cart.map(item => {
-        const itemUnitPrice = (item.menu.prices && item.menu.prices[plat.id] !== undefined) ? Number(item.menu.prices[plat.id]) : 0
-        const addonTotal = (item.selectedAddons || []).reduce((sum, a) => sum + (Number(a.prices?.[plat.id]) || 0), 0)
-        const finalUnitPrice = itemUnitPrice + addonTotal
-        return {
-          menuId: item.menu.id,
-          menuName: item.menu.name,
-          qty: item.qty,
-          unitPrice: finalUnitPrice,
-          totalPrice: finalUnitPrice * item.qty,
-          selectedAddons: item.selectedAddons.map(a => ({
-            id: a.id,
-            name: a.name,
-            price: Number(a.prices?.[plat.id]) || 0,
-            materialId: a.materialId,
-            amountUsed: a.amountUsed
-          }))
-        }
-      })
-
-      const newOrder = {
-        orderId,
-        createdAt: now.toISOString(),
-        platformId: plat.id,
-        platformName: plat.name,
-        subtotal: summary.subtotal,
-        discount: 0,
-        gpAmount: summary.gpAmount,
-        netRevenue: summary.netRevenue,
-        foodCost: summary.totalFoodCost,
-        grossProfit: summary.grossProfit,
-        paymentMethod: this.paymentMethod,
-        note: this.orderNote,
-        items: orderItems
-      }
-
-      this.orders.unshift(newOrder)
-      this.clearCart()
-      this.persistLocal()
-
-      // Record Sale Log
-      this.addActivityLog({
-        module: 'pos',
-        action: 'order_complete',
-        title: `ขายหน้าร้าน (${orderId})`,
-        description: `ออเดอร์ ${orderId} ยอดชำระ ฿${summary.subtotal.toLocaleString()} (${orderItems.length} รายการ - ${plat.name})`,
-        targetId: orderId,
-        targetName: orderItems.map(i => `${i.menuName} x${i.qty}`).join(', '),
-        targetEmoji: '🧾',
-        delta: summary.subtotal,
-        unit: '฿',
-        note: this.orderNote || `${plat.name} (${this.paymentMethod})`,
-        user: 'แคชเชียร์'
-      })
-
-      // Open receipt modal
-      this.modals.receipt = { isOpen: true, order: newOrder }
-
-      if (switchedLotsAll.length > 0) {
-        const uniqueSwitched = Array.from(new Set(switchedLotsAll.map(s => `${s.materialEmoji || ''} ${s.materialName}`))).join(', ')
-        this.showToast(`สร้างออเดอร์ ${orderId} สำเร็จ (ตัดสต็อกแล้ว - ล็อตเดิมหมด สลับไปใช้ล็อตถัดไปอัตโนมัติ: ${uniqueSwitched})`, 'info')
-      } else {
-        this.showToast(`สร้างออเดอร์ ${orderId} สำเร็จ (ตัดสต็อกแล้ว)`, 'success')
-      }
-
-      // Sync in background if GAS is set
-      if (this.gasApiUrl) {
-        this.syncWithGas()
-      }
-
-      return newOrder
+      const {candidate,allocated}=prepared,summary=this.cartSummary,plat=this.currentPlatform
+      const orderId=createEntityId('ORD',this.orders.map(o=>o.orderId))
+      const items=this.cart.map(item=>{const price=Number(item.menu.prices?.[plat.id]||0)+(item.selectedAddons||[]).reduce((n,a)=>n+Number(a.prices?.[plat.id]||0),0);return {menuId:item.menu.id,menuName:item.menu.name,qty:item.qty,unitPrice:price,totalPrice:price*item.qty,recipe:clone(item.menu.recipe||[]),hasPackage:item.menu.hasPackage!==false,selectedAddons:clone(item.selectedAddons||[])}})
+      const order={orderId,createdAt:new Date().toISOString(),platformId:plat.id,platformName:plat.name,subtotal:summary.subtotal,discount:0,gpAmount:summary.gpAmount,netRevenue:summary.netRevenue,foodCost:summary.totalFoodCost,grossProfit:summary.grossProfit,paymentMethod:this.paymentMethod,note:this.orderNote,items,inventoryAllocations:allocated.allocations,stockShortages:allocated.shortages}
+      candidate.materials=allocated.materials;candidate.orders.unshift(order)
+      candidate.stockShortages.push(...allocated.shortages.map(x=>({...x,orderId,createdAt:order.createdAt})))
+      candidate.activityLogs.unshift(this.makeActivityLog({module:'pos',action:'order_complete',title:'ขายหน้าร้าน',targetId:orderId,delta:summary.subtotal,note:this.orderNote,description:'ออเดอร์ '+orderId}))
+      candidate.activityLogs=candidate.activityLogs.slice(0,500)
+      const base=this.stockDraftSnapshot?clone(this.stockDraftSnapshot):null,draft=clone(this.materials)
+      const saved=this.commitDatabase(candidate)
+      if(!saved.ok)return null
+      if(base){this.stockDraftSnapshot=clone(this.materials);const rebased=rebaseInventoryDraft(base,draft,this.materials);if(rebased.ok)this.materials=rebased.materials;else{this.materials=draft;this.stockDraftConflict=rebased.issues;this.showToast('แบบร่างขัดแย้งกับรายการขาย กรุณาตรวจสอบใหม่','warning')}}
+      this.clearCart();this.modals.receipt={isOpen:true,order}
+      this.showToast('บันทึกออเดอร์สำเร็จ','success')
+      if(this.gasApiUrl)this.syncWithGas()
+      return order
     }
+
   }
-})
+}
+const committedActions = {
+  saveMenu:()=>false, deleteMenu:()=>false, toggleMenuStatus:()=>false,
+  saveAddon:()=>false, deleteAddon:()=>false, toggleAddonStatus:()=>false,
+  saveMaterial:()=>false, softDeleteMaterial:()=>false, restoreMaterial:()=>false,
+  deleteMaterialPermanently:()=>false, saveCategory:()=>false, deleteCategory:()=>false,
+  saveGasUrl:()=>false, clearActivityLogs:()=>false, addActivityLog:()=>false,
+  stockIn:args=>args[6]===true, stockAdjust:args=>args[4]!==false,
+  batchProduce:args=>args[5]===true, switchActiveLot:args=>args[2]===true,
+  recordLotWaste:args=>args[1]===true, batchStocktake:args=>args[1]!==false
+}
+for (const [name,isDraft] of Object.entries(committedActions)) {
+  const action=posDefinition.actions[name]
+  posDefinition.actions[name]=function(...args) {
+    if(this.transactionDepth)return action.apply(this,args)
+    if(isDraft(args)) { const result=action.apply(this,args); return result===false?{ok:false,success:false}:{...result,ok:true,success:true} }
+    const before=this.databaseSnapshot({committedMaterials:false})
+    const baseline=this.stockDraftSnapshot?clone(this.stockDraftSnapshot):null
+    const draftActions=clone(this.stockDraftActions)
+    if(baseline){this.materials=clone(baseline);this.stockDraftSnapshot=null}
+    this.transactionDepth=1;this.transactionToasts=[]
+    let output,error
+    try {output=action.apply(this,args)} catch(err) {error=err}
+    const toasts=this.transactionToasts;this.transactionDepth=0;this.transactionToasts=[]
+    if(error || output===false || output?.ok===false || output?.success===false) {
+      for(const field of DATABASE_FIELDS)this[field]=clone(before[field])
+      this.stockDraftSnapshot=baseline;this.stockDraftActions=draftActions
+      const failure={ok:false,success:false,code:'INVALID_OPERATION',message:error?.message||'รายการไม่ถูกต้อง'}
+      this.showToast(failure.message,'error');return failure
+    }
+    const result=this.commitDatabase(this.databaseSnapshot({committedMaterials:false}))
+    if(!result.ok){for(const field of DATABASE_FIELDS)this[field]=clone(before[field]);this.stockDraftSnapshot=baseline;this.stockDraftActions=draftActions;return {...result,success:false}}
+    if(baseline) {
+      const rebased=rebaseInventoryDraft(baseline,before.materials,this.materials)
+      this.stockDraftSnapshot=clone(this.materials);this.stockDraftActions=draftActions
+      if(rebased.ok)this.materials=rebased.materials
+      else {this.materials=clone(before.materials);this.stockDraftConflict=rebased.issues}
+    }
+    for(const toast of toasts)this.showToast(toast.message,toast.type)
+    return {...result,success:true}
+  }
+}
+export const usePosStore=defineStore('pos',posDefinition)

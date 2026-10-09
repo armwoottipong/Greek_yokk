@@ -1,0 +1,4 @@
+export function csvField(value) {
+ const text = String(value ?? '')
+ return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+}
