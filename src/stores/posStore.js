@@ -312,14 +312,10 @@ export function generateDefaultActivityLogs() {
 
 export const usePosStore = defineStore('pos', {
   state: () => {
-    // Wipe data clean on first load of this update for testing from scratch
-    const CLEARED_KEY = 'GY_CLEARED_ALL_V1'
-    if (!localStorage.getItem(CLEARED_KEY)) {
-      localStorage.setItem('GY_MATERIALS', JSON.stringify([]))
-      localStorage.setItem('GY_MENUS', JSON.stringify([]))
-      localStorage.setItem('GY_ADDONS', JSON.stringify([]))
-      localStorage.setItem('GY_ORDERS', JSON.stringify([]))
-      localStorage.setItem(CLEARED_KEY, 'true')
+    let storageError = null
+    const parseArray = (raw, fallback = []) => {
+      try { const value = raw === null ? fallback : JSON.parse(raw); if (!Array.isArray(value)) throw new Error("Invalid saved collection"); return value }
+      catch (error) { storageError = error.message; return [] }
     }
 
     const rawMaterials = localStorage.getItem('GY_MATERIALS')
@@ -330,11 +326,11 @@ export const usePosStore = defineStore('pos', {
     const rawLogs = localStorage.getItem('GY_ACTIVITY_LOGS')
     const storedGasUrl = localStorage.getItem('GY_GAS_API_URL') || ''
 
-    const storedMaterials = rawMaterials !== null ? (JSON.parse(rawMaterials) || []) : []
-    const storedMenus = rawMenus !== null ? (JSON.parse(rawMenus) || []) : []
-    const storedAddons = rawAddons !== null ? (JSON.parse(rawAddons) || []) : []
-    const storedPlatforms = rawPlatforms !== null ? (JSON.parse(rawPlatforms) || DEFAULT_PLATFORMS) : DEFAULT_PLATFORMS
-    const storedOrders = rawOrders !== null ? (JSON.parse(rawOrders) || []) : []
+    const storedMaterials = parseArray(rawMaterials)
+    const storedMenus = parseArray(rawMenus)
+    const storedAddons = parseArray(rawAddons)
+    const storedPlatforms = parseArray(rawPlatforms, DEFAULT_PLATFORMS)
+    const storedOrders = parseArray(rawOrders)
     
     let storedActivityLogs = []
     try {
@@ -344,9 +340,7 @@ export const usePosStore = defineStore('pos', {
     } catch (e) {
       storedActivityLogs = []
     }
-    if (!storedActivityLogs || storedActivityLogs.length === 0) {
-      storedActivityLogs = generateDefaultActivityLogs()
-    }
+
 
     let storedCategories = null
     try {
@@ -416,6 +410,7 @@ export const usePosStore = defineStore('pos', {
     }
 
     return {
+      storageError,
       currentTab: initialTab, // 'dashboard' | 'pos' | 'menu' | 'addon' | 'stock' | 'settings'
       dashboardPeriod: 'today', // 'today' | 'week' | 'month' | 'all'
 
