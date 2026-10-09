@@ -1,3 +1,6 @@
+import { normalizeDatabase, clone, DATABASE_FIELDS } from '@/domain/database'
+import { loadDatabase, saveDatabase } from '@/services/localDatabase'
+import { createEntityId } from '@/domain/ids'
 import { defineStore } from 'pinia'
 import {
   DEFAULT_MATERIALS,
@@ -312,87 +315,17 @@ export function generateDefaultActivityLogs() {
 
 export const usePosStore = defineStore('pos', {
   state: () => {
-    let storageError = null
-    const parseArray = (raw, fallback = []) => {
-      try { const value = raw === null ? fallback : JSON.parse(raw); if (!Array.isArray(value)) throw new Error("Invalid saved collection"); return value }
-      catch (error) { storageError = error.message; return [] }
-    }
-
-    const rawMaterials = localStorage.getItem('GY_MATERIALS')
-    const rawMenus = localStorage.getItem('GY_MENUS')
-    const rawAddons = localStorage.getItem('GY_ADDONS')
-    const rawPlatforms = localStorage.getItem('GY_PLATFORMS')
-    const rawOrders = localStorage.getItem('GY_ORDERS')
-    const rawLogs = localStorage.getItem('GY_ACTIVITY_LOGS')
-    const storedGasUrl = localStorage.getItem('GY_GAS_API_URL') || ''
-
-    const storedMaterials = parseArray(rawMaterials)
-    const storedMenus = parseArray(rawMenus)
-    const storedAddons = parseArray(rawAddons)
-    const storedPlatforms = parseArray(rawPlatforms, DEFAULT_PLATFORMS)
-    const storedOrders = parseArray(rawOrders)
-    
-    let storedActivityLogs = []
-    try {
-      if (rawLogs) {
-        storedActivityLogs = JSON.parse(rawLogs) || []
-      }
-    } catch (e) {
-      storedActivityLogs = []
-    }
-
-
-    let storedCategories = null
-    try {
-      storedCategories = JSON.parse(localStorage.getItem('GY_CATEGORIES'))
-    } catch (e) {
-      storedCategories = null
-    }
-
-    const initialCategories = storedCategories || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES))
-    if (!initialCategories.menu) initialCategories.menu = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.menu))
-    if (!initialCategories.material) initialCategories.material = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.material))
-    if (!initialCategories.addon) initialCategories.addon = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES.addon))
-
-    // Auto-migrate legacy category 'วัตถุดิบรอง' -> 'Dairy & Milk'
-    initialCategories.material.forEach(c => {
-      if (c.name === 'วัตถุดิบรอง') {
-        c.name = 'Dairy & Milk'
-        c.label = 'นม & แดรี่'
-        c.icon = '🥛'
-        c.dateTrackingMode = 'expiry_and_receive'
-      }
-    })
-    storedMaterials.forEach(m => {
-      if (m.category === 'วัตถุดิบรอง') {
-        m.category = 'Dairy & Milk'
-      }
-    })
-
-    // Ensure all material categories have dateTrackingMode
-    initialCategories.material.forEach(c => {
-      if (!c.dateTrackingMode) {
-        const def = DEFAULT_CATEGORIES.material.find(d => d.name === c.name || d.id === c.id)
-        c.dateTrackingMode = def?.dateTrackingMode || 'none'
-      }
-    })
-
-    // Ensure any categories in stored menus, materials, addons are recognized
-    storedMenus.forEach(m => {
-      if (m.category && !initialCategories.menu.some(c => c.name === m.category)) {
-        initialCategories.menu.push({ id: `cat-menu-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, name: m.category, icon: '🥣' })
-      }
-    })
-    storedMaterials.forEach(m => {
-      if (m.category && !initialCategories.material.some(c => c.name === m.category)) {
-        initialCategories.material.push({ id: `cat-mat-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, name: m.category, label: m.category, icon: '📦', dateTrackingMode: 'none' })
-      }
-    })
-    storedAddons.forEach(a => {
-      if (a.category && !initialCategories.addon.some(c => c.name === a.category)) {
-        initialCategories.addon.push({ id: `cat-addon-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`, name: a.category, icon: '✨' })
-      }
-    })
+    const loaded = loadDatabase(localStorage)
+    const storageError = loaded.ok ? null : loaded.errors.map(e => e.path + ': ' + e.message).join('\n')
+    const database = loaded.ok ? loaded.value : normalizeDatabase({}).value
+    const storedMaterials = database.materials
+    const storedMenus = database.menus
+    const storedAddons = database.addons
+    const storedPlatforms = database.platforms
+    const storedOrders = database.orders
+    const storedActivityLogs = database.activityLogs
+    const initialCategories = database.categories
+    const storedGasUrl = database.gasApiUrl
 
     // Persist active view/tab so page refresh stays on the same page
     const validTabs = ['dashboard', 'pos', 'menu', 'addon', 'stock', 'settings']
@@ -415,111 +348,10 @@ export const usePosStore = defineStore('pos', {
       dashboardPeriod: 'today', // 'today' | 'week' | 'month' | 'all'
 
       // Master Collections with strict number parsing and default recipe migration
-      materials: storedMaterials.map(m => {
-        const defaultRef = DEFAULT_MATERIALS.find(def => def.id === m.id)
-        const packUnit = m.packUnit || defaultRef?.packUnit || (m.unit === 'ml' ? 'ขวด' : m.unit === 'g' ? 'ถุง' : 'แพ็ค')
-        const packSize = Number(m.packSize) || defaultRef?.packSize || 1
-        const unitCost = Number(m.unitCost) !== undefined && Number(m.unitCost) > 0 ? Number(m.unitCost) : (defaultRef?.unitCost || 0)
-        const packCost = Number(m.packCost) || defaultRef?.packCost || (unitCost * packSize)
-        const shelfLifeDays = m.shelfLifeDays !== undefined ? m.shelfLifeDays : (defaultRef?.shelfLifeDays !== undefined ? defaultRef.shelfLifeDays : null)
-        let lastStockInDate = m.lastStockInDate || null
-        let expiryDate = m.expiryDate || null
-        if (!lastStockInDate && shelfLifeDays) {
-          lastStockInDate = getTodayString()
-        }
-        if (!expiryDate && shelfLifeDays && lastStockInDate) {
-          expiryDate = addDays(lastStockInDate, shelfLifeDays)
-        }
-
-        const rawStock = Number(m.stock) || 0
-
-        // Sub-lot migration and parsing
-        let lots = Array.isArray(m.lots) ? m.lots.map(l => ({
-          id: l.id || `LOT-${m.id}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-          receiveDate: l.receiveDate || lastStockInDate || getTodayString(),
-          expiryDate: l.expiryDate || null,
-          qty: Number(l.qty) >= 0 ? Number(l.qty) : 0,
-          initialQty: Number(l.initialQty) || Number(l.qty) || 0,
-          unitCost: Number(l.unitCost) !== undefined ? Number(l.unitCost) : unitCost,
-          packCost: Number(l.packCost) !== undefined ? Number(l.packCost) : packCost,
-          isInUse: Boolean(l.isInUse),
-          note: l.note || '',
-          createdAt: l.createdAt || new Date().toISOString()
-        })) : []
-
-        // If no lots recorded but positive stock exists, create initial lot
-        if (lots.length === 0 && rawStock > 0) {
-          lots = [{
-            id: `LOT-${m.id}-INIT`,
-            receiveDate: lastStockInDate || getTodayString(),
-            expiryDate: expiryDate || null,
-            qty: rawStock,
-            initialQty: rawStock,
-            unitCost,
-            packCost,
-            isInUse: true,
-            note: 'ยอดยกมาเริ่มต้น',
-            createdAt: new Date().toISOString()
-          }]
-        }
-
-        // Ensure at least one positive lot is marked as in-use
-        if (lots.some(l => l.qty > 0) && !lots.some(l => l.isInUse && l.qty > 0)) {
-          const firstPositive = lots.find(l => l.qty > 0)
-          if (firstPositive) firstPositive.isInUse = true
-        }
-
-        const totalStock = lots.length > 0
-          ? Math.round(lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0) * 100) / 100
-          : rawStock
-
-        // Set primary dates from active in-use lot or latest lot
-        const inUseLot = lots.find(l => l.isInUse && l.qty > 0) || lots[0]
-        if (inUseLot) {
-          if (inUseLot.receiveDate) lastStockInDate = inUseLot.receiveDate
-          if (inUseLot.expiryDate) expiryDate = inUseLot.expiryDate
-        }
-
-        const item = {
-          ...m,
-          packUnit,
-          packSize,
-          packCost,
-          unitCost,
-          shelfLifeDays,
-          lastStockInDate,
-          expiryDate,
-          stock: totalStock,
-          lots,
-          minAlert: Number(m.minAlert) || 0,
-          isDeleted: Boolean(m.isDeleted),
-          isSubIngredient: Boolean(m.isSubIngredient)
-        }
-        if (item.id === 'MAT001' && (!item.subRecipe || item.subRecipe.length === 0)) {
-          item.hasSubRecipe = true
-          item.yieldQty = 1200
-          item.subRecipe = [
-            { materialId: 'MAT002', qty: 5000 },
-            { materialId: 'MAT003', qty: 300 }
-          ]
-        }
-
-        if (item.category === 'วัตถุดิบรอง') {
-          item.category = 'Dairy & Milk'
-        }
-        // Sanitize: Raw sub-materials (like Milk MAT002) must NEVER have a sub-recipe!
-        if (item.id === 'MAT002' || item.id === 'MAT003' || item.isSubIngredient || (item.category && item.category.includes('รอง'))) {
-          item.hasSubRecipe = false
-          item.subRecipe = []
-          item.isSubIngredient = true
-          if (item.packUnit === 'รอบ') {
-            item.packUnit = item.unit === 'ml' ? 'ขวด' : (item.unit === 'g' ? 'ถุง' : 'แพ็ค')
-            item.packSize = defaultRef?.packSize || 1200
-            item.packCost = defaultRef?.packCost || 54
-          }
-        }
-        return item
-      }),
+      materials: storedMaterials,
+      databaseRevision: database.revision,
+      committedDatabase: clone(database),
+      stockShortages: database.stockShortages,
       menus: storedMenus,
       addons: storedAddons,
       platforms: storedPlatforms,
@@ -527,7 +359,7 @@ export const usePosStore = defineStore('pos', {
       activityLogs: storedActivityLogs,
 
       // POS Active State
-      currentPlatformId: 'PLAT01',
+      currentPlatformId: storedPlatforms.find(p => p.isActive !== false)?.id || 'PLAT01',
       cart: [],
       orderNote: '',
       paymentMethod: 'QR PromptPay',
@@ -1277,15 +1109,44 @@ export const usePosStore = defineStore('pos', {
     // ========================================================
     // STORAGE & SYNC
     // ========================================================
+    databaseSnapshot({ committedMaterials = true } = {}) {
+      const data = {schemaVersion: 3, revision: this.databaseRevision}
+      for (const field of DATABASE_FIELDS) data[field] = clone(this[field])
+      if (committedMaterials && this.stockDraftSnapshot) data.materials = clone(this.stockDraftSnapshot)
+      return data
+    },
+    exportDatabase() { return this.databaseSnapshot() },
+    publishDatabase(database, { preserveDraft = false } = {}) {
+      const draft = preserveDraft && this.stockDraftSnapshot ? clone(this.materials) : null
+      for (const field of DATABASE_FIELDS) this[field] = clone(database[field])
+      this.databaseRevision = database.revision
+      this.committedDatabase = clone(database)
+      if (draft) { this.stockDraftSnapshot = clone(database.materials); this.materials = draft }
+    },
+    commitDatabase(candidate, { preserveDraft = false, recovery = false } = {}) {
+      if (this.storageError && !recovery) return {ok:false, code:'RECOVERY_REQUIRED', message:this.storageError}
+      const result = saveDatabase(localStorage, candidate, {expectedRevision: this.databaseRevision})
+      if (result.ok) { this.publishDatabase(result.value,{preserveDraft}); this.storageError = null }
+      else { this.showToast('บันทึกไม่สำเร็จ: ' + result.message, 'error') }
+      return result
+    },
     persistLocal() {
-      localStorage.setItem('GY_MATERIALS', JSON.stringify(this.materials))
-      localStorage.setItem('GY_MENUS', JSON.stringify(this.menus))
-      localStorage.setItem('GY_ADDONS', JSON.stringify(this.addons))
-      localStorage.setItem('GY_PLATFORMS', JSON.stringify(this.platforms))
-      localStorage.setItem('GY_ORDERS', JSON.stringify(this.orders))
-      localStorage.setItem('GY_ACTIVITY_LOGS', JSON.stringify(this.activityLogs || []))
-      localStorage.setItem('GY_CATEGORIES', JSON.stringify(this.categories))
-      localStorage.setItem('GY_GAS_API_URL', this.gasApiUrl)
+      const result = this.commitDatabase(this.databaseSnapshot(), {preserveDraft: true})
+      if (!result.ok) this.publishDatabase(this.committedDatabase)
+      return result
+    },
+    replaceDatabase(raw, { source = 'import' } = {}) {
+      const normalized = normalizeDatabase(raw,{source})
+      if (!normalized.ok) return {ok:false,code:'VALIDATION_FAILED',message:normalized.errors.map(e=>e.path+': '+e.message).join('\n')}
+      const result = this.commitDatabase(normalized.value,{recovery:true})
+      if (!result.ok) return result
+      this.stockDraftSnapshot = null
+      this.stockDraftActions = []
+      this.stockDraftConflict = null
+      this.clearCart()
+      this.currentPlatformId = this.platforms.find(p=>p.isActive!==false).id
+      for (const modal of Object.values(this.modals)) { modal.isOpen=false; if('onConfirm' in modal)modal.onConfirm=null; if('onCancel' in modal)modal.onCancel=null; if('targetCallback' in modal)modal.targetCallback=null }
+      return result
     },
 
     // ========================================================
@@ -1421,28 +1282,14 @@ export const usePosStore = defineStore('pos', {
     },
 
     clearAllData() {
-      this.materials = []
-      this.menus = []
-      this.addons = []
-      this.orders = []
-      this.activityLogs = []
-      this.cart = []
-      this.orderNote = ''
-      this.persistLocal()
-      this.showToast('ล้างข้อมูลทั้งหมดออกเรียบร้อยแล้ว เริ่มต้นระบบใหม่แบบว่างเปล่า', 'info')
+      const result=this.replaceDatabase({platforms:clone(this.platforms),categories:clone(this.categories),gasApiUrl:this.gasApiUrl},{source:'clear'})
+      if(result.ok)this.showToast('ล้างข้อมูลเรียบร้อยแล้ว','info')
+      return result
     },
-
     resetDemoData() {
-      this.materials = DEFAULT_MATERIALS.map(m => ({ ...m }))
-      this.menus = DEFAULT_MENUS.map(m => ({ ...m }))
-      this.addons = DEFAULT_ADDONS.map(a => ({ ...a }))
-      this.platforms = DEFAULT_PLATFORMS.map(p => ({ ...p }))
-      this.orders = DEFAULT_ORDERS.map(o => ({ ...o }))
-      this.activityLogs = generateDefaultActivityLogs()
-      this.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES))
-      this.cart = []
-      this.persistLocal()
-      this.showToast('โหลดข้อมูลตัวอย่าง (Demo Data) สำเร็จแล้ว', 'info')
+      const result=this.replaceDatabase({materials:DEFAULT_MATERIALS,menus:DEFAULT_MENUS,addons:DEFAULT_ADDONS,platforms:DEFAULT_PLATFORMS,orders:DEFAULT_ORDERS,activityLogs:generateDefaultActivityLogs(),categories:DEFAULT_CATEGORIES,gasApiUrl:this.gasApiUrl},{source:'demo'})
+      if(result.ok)this.showToast('โหลดข้อมูลตัวอย่างสำเร็จ','info')
+      return result
     },
 
     // ========================================================
@@ -1665,7 +1512,7 @@ export const usePosStore = defineStore('pos', {
           this.menus[idx] = { ...this.menus[idx], ...menuData }
         }
       } else {
-        const newId = 'MENU' + String(this.menus.length + 1).padStart(2, '0')
+        const newId = createEntityId('MENU',this.menus.map(m=>m.id))
         this.menus.push({ ...menuData, id: newId, isActive: true })
       }
       this.persistLocal()
@@ -1700,7 +1547,7 @@ export const usePosStore = defineStore('pos', {
           this.addons[idx] = { ...this.addons[idx], ...addonData }
         }
       } else {
-        const newId = 'ADD' + String(this.addons.length + 1).padStart(2, '0')
+        const newId = createEntityId('ADD',this.addons.map(m=>m.id))
         this.addons.push({ ...addonData, id: newId, isActive: true })
       }
       this.persistLocal()
@@ -1762,7 +1609,7 @@ export const usePosStore = defineStore('pos', {
           this.materials[idx] = { ...this.materials[idx], ...cleanData }
         }
       } else {
-        const newId = 'MAT' + String(this.materials.length + 1).padStart(3, '0')
+        const newId = createEntityId('MAT',this.materials.map(m=>m.id))
         this.materials.push({
           ...cleanData,
           id: newId,

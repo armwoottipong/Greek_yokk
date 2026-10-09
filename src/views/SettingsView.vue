@@ -664,17 +664,7 @@ function testSync() {
 }
 
 function exportBackup() {
-  const data = {
-    exportDate: new Date().toISOString(),
-    system: 'Greek Yogurt POS v2.0',
-    materials: store.materials,
-    menus: store.menus,
-    addons: store.addons,
-    platforms: store.platforms,
-    orders: store.orders,
-    categories: store.categories,
-    gasApiUrl: store.gasApiUrl
-  }
+  const data = { ...store.exportDatabase(), exportDate: new Date().toISOString(), system: 'Greek Yogurt POS v3' }
 
   const jsonStr = JSON.stringify(data, null, 2)
   const blob = new Blob([jsonStr], { type: 'application/json' })
@@ -696,24 +686,11 @@ function handleImportFile(event) {
   reader.onload = (e) => {
     try {
       const data = JSON.parse(e.target.result)
-      if (data.materials && data.menus && data.addons) {
-        if (confirm('ยืนยันการกู้คืนข้อมูล? ข้อมูลปัจจุบันในเครื่องจะถูกแทนที่ด้วยข้อมูลจากไฟล์สำรอง')) {
-          store.materials = data.materials
-          store.menus = data.menus
-          store.addons = data.addons
-          if (data.categories) store.categories = data.categories
-          if (data.platforms) store.platforms = data.platforms
-          if (data.orders) store.orders = data.orders
-          if (data.gasApiUrl) {
-            store.gasApiUrl = data.gasApiUrl
-            gasUrlInput.value = data.gasApiUrl
-          }
-          store.persistLocal()
-          store.showToast('กู้คืนข้อมูลจากไฟล์สำรองสำเร็จเรียบร้อย', 'success')
-        }
-      } else {
-        store.showToast('รูปแบบไฟล์สำรองไม่ถูกต้อง', 'error')
-      }
+      if (!confirm('ยืนยันการกู้คืนข้อมูล? ข้อมูลปัจจุบันจะถูกแทนที่ด้วยไฟล์สำรอง')) return
+      const result = store.replaceDatabase(data,{source:'import'})
+      if (!result.ok) { store.showToast('กู้คืนไม่สำเร็จ: ' + result.message,'error'); return }
+      gasUrlInput.value = store.gasApiUrl
+      store.showToast('กู้คืนข้อมูลจากไฟล์สำรองสำเร็จ','success')
     } catch (err) {
       console.error(err)
       store.showToast('ไม่สามารถอ่านไฟล์ JSON ได้: ' + err.message, 'error')
