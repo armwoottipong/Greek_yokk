@@ -1,19 +1,19 @@
 <template>
   <div class="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#FBF5EA] font-sans antialiased text-stone-900">
     <!-- Sidebar Navigation -->
-    <Sidebar />
+    <Sidebar :mobile-open="mobileMenuOpen" @close="mobileMenuOpen=false" />
 
     <!-- Main Content Layout -->
     <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
       <!-- Dynamic Header -->
-      <HeaderBar />
+      <HeaderBar :mobile-menu-open="mobileMenuOpen" @toggle-menu="mobileMenuOpen=!mobileMenuOpen" />
 
       <div v-if="store.storageError" role="alert" class="mx-4 mt-3 rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-900">
         {{ store.storageError.message || store.storageError }}
       </div>
 
       <!-- Active View Content -->
-      <main class="flex-1 overflow-y-auto p-4 md:p-6">
+      <main :inert="mobileMenuOpen" class="flex-1 overflow-y-auto p-4 md:p-6">
         <KeepAlive>
           <component :is="currentViewComponent" />
         </KeepAlive>
@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { computed, ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 
 import Sidebar from '@/components/layout/Sidebar.vue'
@@ -74,6 +74,7 @@ import ConfirmModal from '@/components/modals/ConfirmModal.vue'
 import LotDepletionModal from '@/components/modals/LotDepletionModal.vue'
 
 const store = usePosStore()
+const mobileMenuOpen=ref(false)
 
 const currentViewComponent = computed(() => {
   switch (store.currentTab) {

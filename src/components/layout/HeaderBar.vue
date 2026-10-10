@@ -1,6 +1,7 @@
 <template>
   <header ref="panelHeader" class="brand-page-header bg-white border-b border-stone-200/80 flex items-center justify-between shrink-0 select-none">
-    <div class="min-w-0">
+    <button id="mobile-menu-toggle" ref="menuToggle" type="button" class="mobile-menu-toggle" :class="{'is-open':mobileMenuOpen}" :aria-expanded="mobileMenuOpen" aria-controls="main-sidebar" :aria-label="mobileMenuOpen?'ปิดเมนูหลัก':'เปิดเมนูหลัก'" @click="$emit('toggle-menu')"><span></span><span></span><span></span></button>
+    <div :inert="mobileMenuOpen" class="min-w-0">
       <h2 class="text-base font-bold text-stone-900 flex items-center gap-2">
         <span>{{ pageTitle.title }}</span>
         <span v-if="pageTitle.badge" class="text-xs px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-normal">
@@ -10,7 +11,7 @@
       <p class="text-xs text-stone-400 font-normal">{{ pageTitle.subtitle }}</p>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div :inert="mobileMenuOpen" class="flex items-center gap-3">
       <!-- Low Stock Alert Pill -->
       <button
         v-if="store.lowStockMaterials.length > 0"
@@ -67,15 +68,26 @@
 </template>
 <style scoped>
 .brand-page-header{min-height:var(--panel-header-height);padding:16px 24px;gap:16px}.brand-page-header h2{letter-spacing:-.3px}.brand-page-header p{margin-top:4px;color:var(--text-muted)}
+.mobile-menu-toggle{display:none;background:transparent;border:0;padding:11px;width:44px;height:44px;color:var(--accent-brand);cursor:pointer}
+.mobile-menu-toggle span{display:block;width:22px;height:2px;background:currentColor;border-radius:2px;transform-origin:center}
+.mobile-menu-toggle span+span{margin-top:5px}.mobile-menu-toggle.is-open span:first-child{transform:translateY(7px) rotate(45deg)}.mobile-menu-toggle.is-open span:nth-child(2){opacity:0;transform:scaleX(.3)}.mobile-menu-toggle.is-open span:last-child{transform:translateY(-7px) rotate(-45deg)}
+.mobile-menu-toggle:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}
+@media(max-width:767px){.brand-page-header{padding-left:66px}.mobile-menu-toggle{display:block;position:fixed;left:10px;top:12px;z-index:70}.mobile-menu-toggle.is-open{color:var(--bg-card)}}
+@media(prefers-reduced-motion:no-preference){.mobile-menu-toggle span{transition:transform 200ms ease,opacity 140ms ease}}
 @media(max-width:639px){.brand-page-header{padding:12px 16px;gap:8px;align-items:flex-start;flex-wrap:wrap}.brand-page-header h2{font-size:14px}.brand-page-header p{font-size:10px}.brand-page-header>div:last-child{gap:6px;margin-left:auto}}
+@media(max-width:639px){.brand-page-header{padding-left:66px}}
 </style>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted,watch,nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { RotateCcw, RefreshCw as CloudSync, Trash2, History } from 'lucide-vue-next'
 
 const store = usePosStore()
+const props=defineProps({mobileMenuOpen:Boolean})
+defineEmits(['toggle-menu'])
+const menuToggle=ref(null)
+watch(()=>props.mobileMenuOpen,async(open,previous)=>{if(!open && previous){await nextTick();menuToggle.value?.focus()}})
 const panelHeader = ref(null)
 let headerObserver
 function syncHeaderHeight() {
