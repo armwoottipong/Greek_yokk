@@ -49,3 +49,13 @@ it('contains every endpoint bar inside its click frame',async()=>{
  const w=mount(DashboardTrend,{props:{rows:[{date:'2026-10-09',totalSales:100,totalFoodCost:30,grossProfit:70},{date:'2026-10-10',totalSales:200,totalFoodCost:60,grossProfit:140}]}})
  try{await w.get('[data-chart-mode="bar"]').trigger('click');for(let i=0;i<2;i++){const frame=w.get(`[data-date-hover="${i}"] rect`),left=Number(frame.attributes('x')),right=left+Number(frame.attributes('width'));for(const key of ['totalSales','totalFoodCost','grossProfit']){const bar=w.get(`[data-mark="${i}-${key}"] rect`);expect(Number(bar.attributes('x'))).toBeGreaterThanOrEqual(left);expect(Number(bar.attributes('x'))+Number(bar.attributes('width'))).toBeLessThanOrEqual(right)}}}finally{w.unmount()}
 })
+it('toggles the same mark and dismisses on outside pointerdown without opening from outside',async()=>{
+ const w=mount(DashboardTrend,{props:{rows:[{date:'2026-10-10',totalSales:100,totalFoodCost:30,grossProfit:70}]}})
+ try{
+  const mark=w.get('[data-mark="0-totalSales"]')
+  await mark.trigger('click');expect(document.querySelector('[role="tooltip"]')).not.toBeNull()
+  await mark.trigger('click');expect(document.querySelector('[role="tooltip"]')).toBeNull()
+  await mark.trigger('click');document.body.dispatchEvent(new Event('pointerdown',{bubbles:true}));await w.vm.$nextTick();expect(document.querySelector('[role="tooltip"]')).toBeNull()
+  document.body.dispatchEvent(new Event('pointerdown',{bubbles:true}));await w.vm.$nextTick();expect(document.querySelector('[role="tooltip"]')).toBeNull()
+ }finally{w.unmount()}
+})
