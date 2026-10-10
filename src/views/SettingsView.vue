@@ -1,22 +1,27 @@
 <template>
-  <div class="max-w-4xl space-y-6">
+  <div class="settings-page">
     <!-- Header -->
-    <div>
-      <h2 class="text-xl font-bold text-stone-900 tracking-tight">ตั้งค่าระบบ (System Settings)</h2>
+    <div class="settings-intro">
+      <div>
+      <h2>ตั้งค่าร้านให้ลงตัว</h2>
       <p class="text-xs text-stone-400 mt-0.5">
-        ข้อมูลหลักเก็บในเครื่องนี้ เลือกสิ่งที่ต้องการจัดการด้านล่าง
+        ข้อมูลหลักเก็บในเครื่องนี้ จัดหมวดหมู่ สำรองข้อมูล และดูการเชื่อมต่อได้ในที่เดียว
       </p>
+      </div>
+      <span class="settings-local"><Database :size="15" /> ข้อมูลหลักเก็บในเครื่อง</span>
     </div>
 
-    <nav aria-label="หมวดการตั้งค่า" class="grid grid-cols-2 sm:flex gap-2">
+    <div class="settings-layout">
+    <nav aria-label="หมวดการตั้งค่า" class="settings-nav">
       <button v-for="section in settingsSections" :key="section.id" type="button"
         :aria-controls="`settings-${section.id}`" :aria-pressed="activeSettingsSection === section.id"
         @click="activeSettingsSection = section.id"
-        class="px-4 py-3 rounded-xl text-sm font-semibold text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-        :class="activeSettingsSection === section.id ? 'bg-brand-600 text-white' : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'">
-        {{ section.label }}
+        class="settings-nav-item">
+        <component :is="section.icon" :size="18" />
+        <span><strong>{{ section.label }}</strong><small>{{ section.description }}</small></span>
       </button>
     </nav>
+    <div class="settings-content">
 
     <!-- Section 1: Google Apps Script Web App Integration -->
     <div id="settings-sheets" data-settings="sheets" v-show="activeSettingsSection === 'sheets'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
@@ -25,7 +30,7 @@
           <Cloud class="w-5 h-5" />
         </div>
         <div>
-          <h3 class="text-sm font-bold text-stone-900">เชื่อมต่อ Google Sheets (GAS API)</h3>
+          <h3 class="text-sm font-bold text-stone-900">เชื่อมต่อ Google Sheets</h3>
           <p class="text-xs text-stone-500">สำรองข้อมูลไป Google Sheets เพิ่มเติม ระบบขายใช้งานได้โดยไม่ต้องเชื่อมต่อ</p>
         </div>
       </div>
@@ -89,8 +94,8 @@
           <Store class="w-5 h-5" />
         </div>
         <div>
-          <h3 class="text-sm font-bold text-stone-900">ช่องทางการขายและค่าธรรมเนียม GP (Platform GP Rates)</h3>
-          <p class="text-xs text-stone-400">อัตราหักเปอร์เซ็นต์ GP ที่นำไปคำนวณกำไรสุทธิแบบ Real-time</p>
+          <h3 class="text-sm font-bold text-stone-900">ช่องทางขายและค่าธรรมเนียม</h3>
+          <p class="text-xs text-stone-400">อัตรา GP ที่ใช้คำนวณกำไรในแต่ละบิล</p>
         </div>
       </div>
 
@@ -104,7 +109,7 @@
             <span class="text-2xl">{{ plat.icon }}</span>
             <div>
               <div class="font-bold text-stone-900 text-xs">{{ plat.name }}</div>
-              <div class="text-[11px] text-stone-400 font-mono">{{ plat.id }}</div>
+              <div class="text-[11px] text-stone-400">ค่าธรรมเนียมช่องทาง</div>
             </div>
           </div>
           <div class="text-right">
@@ -124,14 +129,14 @@
             <Tags class="w-5 h-5" />
           </div>
           <div>
-            <h3 class="text-sm font-bold text-stone-900">จัดการหมวดหมู่ระบบ (Category Management)</h3>
+            <h3 class="text-sm font-bold text-stone-900">จัดระเบียบหมวดหมู่</h3>
             <p class="text-xs text-stone-400">เพิ่ม ลบ หรือแก้ไขชื่อหมวดหมู่สำหรับเมนู วัตถุดิบ และ Add-on ให้เป็นระเบียบ</p>
           </div>
         </div>
       </div>
 
       <!-- Category Type Switcher (Tabs) -->
-      <div class="flex flex-wrap items-center gap-1.5 p-1 bg-stone-100/80 rounded-xl w-fit">
+      <div class="settings-category-tabs flex flex-wrap items-center gap-1.5 p-1 bg-stone-100/80 rounded-xl w-fit">
         <button
           @click="activeCategoryTab = 'menu'"
           :class="activeCategoryTab === 'menu' ? 'bg-white text-stone-900 shadow-xs font-semibold' : 'text-stone-500 hover:text-stone-800'"
@@ -165,8 +170,8 @@
       </div>
 
       <!-- Add New Category Inline Input -->
-      <div class="p-3.5 rounded-2xl bg-[#FBF5EA] border border-stone-200/60 flex flex-wrap items-center gap-2.5">
-        <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+      <div class="settings-category-form p-3.5 rounded-2xl bg-[#FBF5EA] border border-stone-200/60 flex flex-wrap items-center gap-2.5">
+        <div class="settings-category-fields flex items-center gap-2 flex-1 min-w-0">
           <!-- Emoji button -->
           <button
             type="button"
@@ -178,6 +183,7 @@
           </button>
           <input
             v-model="newCatForm.name"
+            aria-label="ชื่อหมวดหมู่ใหม่"
             type="text"
             :placeholder="getPlaceholder(activeCategoryTab)"
             @keyup.enter="addNewCategory"
@@ -186,6 +192,7 @@
           <input
             v-if="activeCategoryTab === 'material'"
             v-model="newCatForm.label"
+            aria-label="ชื่อภาษาไทยของหมวดหมู่ใหม่"
             type="text"
             placeholder="ชื่อภาษาไทย (ถ้ามี)"
             @keyup.enter="addNewCategory"
@@ -237,7 +244,7 @@
       </div>
 
       <!-- Category List Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+      <div class="settings-category-list grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div
           v-for="cat in currentCategoryList"
           :key="cat.id"
@@ -386,18 +393,18 @@
           <Database class="w-5 h-5" />
         </div>
         <div>
-          <h3 class="text-sm font-bold text-stone-900">การจัดการฐานข้อมูลและการสำรอง (Database & Backup)</h3>
+          <h3 class="text-sm font-bold text-stone-900">สำรองและกู้คืนข้อมูล</h3>
           <p class="text-xs text-stone-500">ดาวน์โหลดข้อมูลเก็บไว้ก่อนกู้คืนหรือเริ่มร้านใหม่</p>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="settings-backup-actions">
         <!-- Export Backup -->
-        <div class="p-4 rounded-xl border border-stone-100 bg-[#FBF5EA] flex flex-col justify-between space-y-3">
+        <div class="settings-backup-card is-export">
           <div>
             <div class="font-bold text-xs text-stone-900 flex items-center gap-1.5">
               <Download class="w-4 h-4 text-stone-600" />
-              <span>ส่งออกข้อมูลสำรอง (Export)</span>
+              <span>เก็บข้อมูลร้านไว้ให้อุ่นใจ</span>
             </div>
             <p class="text-[11px] text-stone-400 mt-1">
               ดาวน์โหลดไฟล์ .json รวมเมนู วัตถุดิบ และประวัติคำสั่งซื้อ
@@ -407,16 +414,16 @@
             @click="exportBackup"
             class="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
           >
-            ดาวน์โหลด JSON Backup
+            ดาวน์โหลดไฟล์สำรอง
           </button>
         </div>
 
         <!-- Import Backup -->
-        <div class="p-4 rounded-xl border border-stone-100 bg-[#FBF5EA] flex flex-col justify-between space-y-3">
+        <div class="settings-backup-card">
           <div>
             <div class="font-bold text-xs text-stone-900 flex items-center gap-1.5">
               <Upload class="w-4 h-4 text-stone-600" />
-              <span>นำเข้าข้อมูล (Import)</span>
+              <span>กู้คืนจากไฟล์สำรอง</span>
             </div>
             <p class="text-[11px] text-stone-400 mt-1">
               กู้คืนข้อมูลจากไฟล์ JSON ที่เคยสำรองไว้
@@ -434,20 +441,23 @@
               @click="$refs.fileInput.click()"
               class="w-full py-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
             >
-              เลือกไฟล์ JSON กู้คืน
+              เลือกไฟล์เพื่อกู้คืน
             </button>
           </div>
         </div>
+      </div>
+      <div class="settings-reset-heading"><h4>เริ่มต้นข้อมูลใหม่</h4><p>ทั้งสองตัวเลือกจะแทนที่ข้อมูลปัจจุบัน ควรเก็บไฟล์สำรองก่อน</p></div>
+      <div class="settings-reset-actions">
 
         <!-- Clear All Data (Start Fresh) -->
-        <div class="p-4 rounded-xl border border-rose-200 bg-rose-50/40 flex flex-col justify-between space-y-3">
+        <div class="settings-reset-card is-danger">
           <div>
             <div class="font-bold text-xs text-rose-900 flex items-center gap-1.5">
               <Trash2 class="w-4 h-4 text-rose-600" />
               <span>ล้างข้อมูลทั้งหมด (เริ่มใหม่)</span>
             </div>
             <p class="text-[11px] text-stone-500 mt-1">
-              ลบเมนู วัตถุดิบ Add-on และออเดอร์ทั้งหมด เพื่อเริ่มร้านใหม่แบบว่างเปล่า 100%
+              ลบเมนู วัตถุดิบ ท็อปปิ้ง และประวัติขาย เพื่อเริ่มร้านใหม่
             </p>
           </div>
           <button
@@ -459,7 +469,7 @@
         </div>
 
         <!-- Reset Demo Data -->
-        <div class="p-4 rounded-xl border border-stone-200 bg-stone-50/60 flex flex-col justify-between space-y-3">
+        <div class="settings-reset-card">
           <div>
             <div class="font-bold text-xs text-stone-800 flex items-center gap-1.5">
               <RotateCcw class="w-4 h-4 text-stone-600" />
@@ -480,19 +490,22 @@
     </div>
 
     <!-- Section 4: System Information -->
-    <div class="editorial-card p-5 bg-white flex flex-wrap gap-3 items-center justify-between text-xs text-stone-400">
+    <div class="settings-footer">
       <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span class="text-stone-600 font-medium">Greek Yogurt POS & Inventory System v2.0 (Vue 3 + Pinia)</span>
+        <Database :size="14" />
+        <span>Greek Yogg. · ข้อมูลในเครื่องนี้</span>
       </div>
       <div>
-        Local Data Stored: {{ (store.materials.length + store.menus.length + store.addons.length + store.orders.length) }} records
+        {{ (store.materials.length + store.menus.length + store.addons.length + store.orders.length) }} รายการ
       </div>
+    </div>
+    </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import '@/assets/settings.css'
 import { businessDateKey } from '@/domain/businessDate'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
@@ -515,10 +528,10 @@ import {
 const store = usePosStore()
 const activeSettingsSection = ref('backup')
 const settingsSections = [
-  { id: 'backup', label: 'สำรองและกู้คืน' },
-  { id: 'categories', label: 'หมวดหมู่' },
-  { id: 'platforms', label: 'ช่องทางขาย' },
-  { id: 'sheets', label: 'Google Sheets' }
+  { id: 'backup', label: 'สำรองและกู้คืน', description: 'เก็บข้อมูลร้านให้อุ่นใจ', icon: Database },
+  { id: 'categories', label: 'หมวดหมู่', description: 'เมนู วัตถุดิบ และท็อปปิ้ง', icon: Tags },
+  { id: 'platforms', label: 'ช่องทางขาย', description: 'ดูอัตราค่าธรรมเนียม GP', icon: Store },
+  { id: 'sheets', label: 'Google Sheets', description: 'เชื่อมต่อและสำรองออนไลน์', icon: Cloud }
 ]
 const gasUrlInput = ref(store.gasApiUrl)
 const fileInput = ref(null)

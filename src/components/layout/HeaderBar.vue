@@ -149,8 +149,8 @@ const pageTitle = computed(() => {
       }
     case 'settings':
       return {
-        title: 'การตั้งค่าระบบ & Google Sheets API',
-        subtitle: 'เชื่อมต่อ Google Apps Script สำหรับสำรองและดึงข้อมูล Realtime'
+        title: 'ตั้งค่าระบบ',
+        subtitle: 'จัดการข้อมูลร้าน หมวดหมู่ และการสำรองข้อมูล'
       }
     default:
       return { title: 'Greek Yogg.', subtitle: 'ระบบจัดการร้านกรีกโยเกิร์ต' }
