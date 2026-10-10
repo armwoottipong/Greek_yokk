@@ -32,3 +32,11 @@
 - Donut segments thicken slightly and link to the matching ranking row and numerical detail. Ranking rows also respond to hover/focus/tap. Selection resets on incoming data.
 - Added two red/green interaction regressions: geometry preserved, linked selection and reset. Full suite, lint and build pass; total test count171.
 - Browser verified three active trend points with280ms halo; donut GrabFood228/57.4% and29px active stroke. Read-only elementFromPoint checks east/west identify the correct donut segments. Clean reload verified; console empty. Review found no blockers. Evidence: dashboard-hover.jpg.
+
+## Per-mark tooltips
+
+- Shared ChartTooltip teleports a cream/burgundy value card to the body and clamps its position to viewport edges. Tooltip responds to mouse, keyboard focus, Enter/Space and touch click; Escape dismisses it.
+- Trend selection now targets a single metric and date. Removed aggregate hit rectangles that intercepted all marks. Line stroke hover selects the nearest recorded point on that specific series. Bars preserve exact heights and negative values; only the selected mark highlights.
+- Donut/ranking tooltips show the selected label, recorded value and percentage where applicable. Mode/data changes clear stale values. Accessible descriptions link each focused mark to its unique tooltip.
+- Red/green tests cover single-metric values, losses, Escape and segment percentage/reset. Existing hover tests updated to assert a single selected point/bar. Full suite173 tests; lint/build checked.
+- Browser verified cost93.7, profit234.9 independently, Escape removes tooltip, donut GrabFood228/57.4%. At360px tooltip is220px wide atx132/right352, within viewport. Reviewer agent could not complete because of its usage limit; local code and browser checks completed.
