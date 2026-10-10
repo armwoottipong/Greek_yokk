@@ -52,3 +52,14 @@
 
 .dashboard-trend [data-mark],.dashboard-trend [data-date-hover],.dashboard-trend path[pointer-events="stroke"],.dashboard-ranking [data-ranking-id]{cursor:pointer}
 .dashboard-chart-line{pointer-events:none}
+
+/* The open popup owns the selection; only its marks remain prominent. */
+.dashboard-trend .has-single-selection .dashboard-chart-point:not(.is-active),.dashboard-trend .has-single-selection .dashboard-chart-line:not(.is-selected-series){opacity:.25}
+.dashboard-trend .has-single-selection .dashboard-chart-bar:not(.is-active){opacity:.25}
+.dashboard-breakdown.has-single-selection .dashboard-donut-slice:not(.is-active),.dashboard-breakdown.has-single-selection .dashboard-ranking li:not(.is-active){opacity:.3}
+@media(prefers-reduced-motion:no-preference){
+ .dashboard-chart-point{transition:r 180ms ease,stroke-width 180ms ease,opacity 160ms ease}
+ .dashboard-chart-line{transition:opacity 160ms ease}
+ .dashboard-donut-slice{transition:stroke-width 200ms ease,filter 200ms ease,opacity 160ms ease}
+ .dashboard-ranking li{transition:background-color 160ms ease,box-shadow 160ms ease,opacity 160ms ease}
+}

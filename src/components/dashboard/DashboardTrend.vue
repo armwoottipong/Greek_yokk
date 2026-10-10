@@ -4,13 +4,13 @@
   <div class="dashboard-legend"><span v-for="s in series" :key="s.key"><i :style="{background:s.color}"></i>{{ s.label }}</span></div>
   <div v-if="mode==='table'" class="dashboard-table-wrap"><table><caption class="sr-only">ยอดขายรายช่วง</caption><thead><tr><th>ช่วงเวลา</th><th>บิล</th><th v-for="s in series" :key="s.key">{{ s.label }}</th></tr></thead><tbody><tr v-for="row in rows" :key="row.date"><th>{{ dateLabel(row.date) }}</th><td>{{ row.orderCount }}</td><td v-for="s in series" :key="s.key">฿{{ money(row[s.key]) }}</td></tr></tbody></table></div>
   <figure v-else :key="mode" class="dashboard-chart-reveal">
-   <svg :viewBox="`0 0 ${chartWidth} 270`" :class="{'has-active-point':active!==null}" :style="{'--chart-baseline':`${y(0)}px`}" role="group" @click.self="clearSelection" :aria-label="`กราฟ${mode==='line'?'เส้น':'แท่ง'}ยอดขาย ต้นทุน และกำไรขั้นต้น`">
+   <svg :viewBox="`0 0 ${chartWidth} 270`" :class="{'has-active-point':active!==null,'has-single-selection':tooltip?.selection?.key && tooltip.selection.key!=='all'}" :style="{'--chart-baseline':`${y(0)}px`}" role="group" @click.self="clearSelection" :aria-label="`กราฟ${mode==='line'?'เส้น':'แท่ง'}ยอดขาย ต้นทุน และกำไรขั้นต้น`">
     <rect v-if="active!==null" class="dashboard-hover-band" :x="dateLeft(active.index)" :y="clusterTop(active.index)" :width="dateRight(active.index)-dateLeft(active.index)" :height="clusterBottom(active.index)-clusterTop(active.index)" rx="8" fill="var(--accent-soft)" aria-hidden="true" />
     <g v-for="(row,index) in rows" :key="`date-${row.date}`" :data-date-hover="index" tabindex="0" role="button" :aria-label="`${dateLabel(row.date)} ดูทั้งสามค่า`" @mouseenter="highlight(index,'all')" @mouseleave="clearHover" @focus="highlight(index,'all')" @blur="clearHover" @click.stop="selectDate($event,index)" @keydown.enter="selectDate($event,index)" @keydown.space.prevent="selectDate($event,index)"><rect :x="dateLeft(index)" :y="clusterTop(index)" :width="dateRight(index)-dateLeft(index)" :height="clusterBottom(index)-clusterTop(index)" fill="transparent" /></g>
     <g v-for="tick in ticks" :key="tick" aria-hidden="true" pointer-events="none"><line x1="62" :x2="chartWidth-22" :y1="y(tick)" :y2="y(tick)" stroke="var(--border-subtle)" :stroke-dasharray="tick===0?undefined:'3 5'"/><text x="52" :y="y(tick)+4" text-anchor="end" class="chart-axis">{{ compact(tick) }}</text></g>
     <template v-for="s in series" :key="s.key">
      <template v-if="mode==='line' && rows.length>1">
-      <path class="dashboard-chart-line" pathLength="1" :d="path(s.key)" fill="none" :stroke="s.color" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true" />
+      <path class="dashboard-chart-line" :class="{'is-selected-series':active?.key===s.key}" pathLength="1" :d="path(s.key)" fill="none" :stroke="s.color" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true" />
       <path :d="path(s.key)" fill="none" stroke="transparent" stroke-width="12" pointer-events="stroke" @mousemove="selectLine($event,s,false)" @mouseleave="clearHover" @click.stop="selectLine($event,s,true)" />
      </template>
      <g v-for="(row,index) in rows" :key="row.date" :data-mark="`${index}-${s.key}`" tabindex="0" role="button" :aria-label="`${dateLabel(row.date)} ${s.label} ฿${money(row[s.key])}`" :aria-describedby="isSelected(index,s.key)?tooltipId:undefined" @mouseenter="highlight(index,s.key)" @mouseleave="clearHover" @focus="highlight(index,s.key)" @blur="clearHover" @click.stop="selectMark($event,index,s)" @keydown.enter="selectMark($event,index,s)" @keydown.space.prevent="selectMark($event,index,s)">
@@ -36,23 +36,25 @@ import {money,dateLabel} from '@/domain/dashboard'
 import ChartTooltip from '@/components/ui/ChartTooltip.vue'
 import {useChartTooltip} from '@/composables/useChartTooltip'
 const props=defineProps({rows:{type:Array,required:true},bucket:{type:String,default:'day'}})
-const mode=ref('line'),active=ref(null),tooltipId=`trend-${useId()}`
+const mode=ref('line'),hovered=ref(null),tooltipId=`trend-${useId()}`
 const {tooltip,showTooltip,hideTooltip}=useChartTooltip()
+const active=computed(()=>tooltip.value?.selection || hovered.value)
+watch(tooltip,value=>{if(!value)hovered.value=null},{flush:'sync'})
 const chartRoot=ref(null),chartWidth=ref(760)
 let resizeObserver
 onMounted(()=>{if(typeof ResizeObserver==='undefined') return;resizeObserver=new ResizeObserver(entries=>{chartWidth.value=Math.min(760,Math.max(280,entries[0].contentRect.width))});resizeObserver.observe(chartRoot.value)})
 onUnmounted(()=>resizeObserver?.disconnect())
-function clearSelection(){active.value=null;hideTooltip()}
-function highlight(index,key){active.value={index,key}}
-function clearHover(){active.value=null}
+function clearSelection(){hovered.value=null;hideTooltip()}
+function highlight(index,key){hovered.value={index,key}}
+function clearHover(){hovered.value=null}
 const clusterTop=index=>Math.max(14,Math.min(...series.map(s=>y(props.rows[index][s.key])),...(mode.value==='bar'?[y(0)]:[]))-6)
 const clusterBottom=index=>Math.min(231,Math.max(...series.map(s=>y(props.rows[index][s.key])),...(mode.value==='bar'?[y(0)]:[]))+6)
 watch([()=>props.rows,mode],clearSelection)
 const modes=[{id:'line',label:'เส้น',icon:ChartNoAxesCombined},{id:'bar',label:'แท่ง',icon:ChartNoAxesColumn},{id:'table',label:'ตาราง',icon:Table2}]
 const series=[{key:'totalSales',label:'ยอดขาย',color:'#780608'},{key:'totalFoodCost',label:'ต้นทุนขาย',color:'#B68B55'},{key:'grossProfit',label:'กำไรขั้นต้น',color:'#497464'}]
 const isSelected=(index,key)=>active.value?.index===index && (active.value?.key===key || active.value?.key==='all')
-function selectDate(event,index){const row=props.rows[index];if(!row)return;active.value={index,key:'all'};showTooltip(event,{heading:dateLabel(row.date),items:series.map(s=>({label:s.label,value:`฿${money(row[s.key])}`,color:s.color}))})}
-function selectMark(event,index,s){const row=props.rows[index];if(!row)return;active.value={index,key:s.key};showTooltip(event,{heading:dateLabel(row.date),label:s.label,value:`฿${money(row[s.key])}`,color:s.color})}
+function selectDate(event,index){const row=props.rows[index];if(!row)return;hovered.value=null;showTooltip(event,{selection:{index,key:'all'},heading:dateLabel(row.date),items:series.map(s=>({label:s.label,value:`฿${money(row[s.key])}`,color:s.color}))})}
+function selectMark(event,index,s){const row=props.rows[index];if(!row)return;hovered.value=null;showTooltip(event,{selection:{index,key:s.key},heading:dateLabel(row.date),label:s.label,value:`฿${money(row[s.key])}`,color:s.color})}
 function selectLine(event,s,open){const rect=event.currentTarget.closest('svg').getBoundingClientRect(),px=(event.clientX-rect.left)/rect.width*chartWidth.value;const index=Math.max(0,Math.min(props.rows.length-1,Math.round((px-78)/(chartWidth.value-116)*(props.rows.length-1))));if(open)selectMark(event,index,s);else highlight(index,s.key)}
 const bucketLabel=computed(()=>({day:'รายวัน',week:'ราย 7 วัน',month:'รายเดือน'}[props.bucket]))
 const bounds=computed(()=>{const values=props.rows.flatMap(r=>series.map(s=>r[s.key]));return {min:Math.min(0,...values),max:Math.max(1,...values)}})

@@ -1,5 +1,5 @@
 <template>
- <div class="dashboard-breakdown" @keydown.esc.stop="clearSelection">
+ <div class="dashboard-breakdown" :class="{'has-single-selection':!!tooltip}" @keydown.esc.stop="clearSelection">
   <div class="dashboard-section-heading"><div><h3>{{ title }}</h3><p>{{ subtitle }}</p></div><div v-if="allowDonut" class="dashboard-segments" aria-label="รูปแบบสัดส่วน"><button type="button" :aria-pressed="mode==='bar'" @click="mode='bar'">แท่ง</button><button type="button" :aria-pressed="mode==='donut'" @click="mode='donut'">วงแหวน</button></div></div>
   <p v-if="!rows.length" class="dashboard-empty-small">ยังไม่มีข้อมูลในช่วงนี้</p>
   <div v-else class="dashboard-breakdown-body" :class="{'has-donut':mode==='donut'}">
@@ -22,15 +22,17 @@ import {money} from '@/domain/dashboard'
 import ChartTooltip from '@/components/ui/ChartTooltip.vue'
 import {useChartTooltip} from '@/composables/useChartTooltip'
 const props=defineProps({title:{type:String,required:true},subtitle:{type:String,default:''},rows:{type:Array,required:true},unit:{type:String,default:'บาท'},allowDonut:Boolean})
-const mode=ref('bar'),active=ref(null),tooltipId=`breakdown-${useId()}`
+const mode=ref('bar'),hovered=ref(null),tooltipId=`breakdown-${useId()}`
 const {tooltip,showTooltip,hideTooltip}=useChartTooltip()
+const active=computed(()=>tooltip.value?.selection ?? hovered.value)
+watch(tooltip,value=>{if(!value)hovered.value=null},{flush:'sync'})
 const activeRow=computed(()=>props.rows.find(row=>row.id===active.value))
-function clearSelection(){active.value=null;hideTooltip()}
-function highlight(id){active.value=id}
-function clearHover(){active.value=null}
+function clearSelection(){hovered.value=null;hideTooltip()}
+function highlight(id){hovered.value=id}
+function clearHover(){hovered.value=null}
 watch([()=>props.rows,mode],clearSelection)
 const formattedValue=row=>props.unit==='บาท'?`฿${money(row.value)}`:`${money(row.value)} ${props.unit}`
-function selectRow(event,row,index){active.value=row.id;showTooltip(event,{heading:props.title,label:row.label,value:formattedValue(row),note:props.allowDonut?`${share(row).toFixed(1)}% ของทั้งหมด`:null,color:color(index)})}
+function selectRow(event,row,index){hovered.value=null;showTooltip(event,{selection:row.id,heading:props.title,label:row.label,value:formattedValue(row),note:props.allowDonut?`${share(row).toFixed(1)}% ของทั้งหมด`:null,color:color(index)})}
 const total=computed(()=>props.rows.reduce((sum,row)=>sum+Math.max(0,row.value),0))
 const maximum=computed(()=>Math.max(1,...props.rows.map(r=>r.value)))
 const share=row=>total.value?Math.max(0,row.value)/total.value*100:0

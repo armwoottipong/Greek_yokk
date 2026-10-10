@@ -3,7 +3,7 @@ import {ref,onMounted,onUnmounted} from 'vue'
 export function useChartTooltip(){
  const tooltip=ref(null)
  let trigger=null
- const contentKey=content=>JSON.stringify([content.heading,content.label,content.items?.map(item=>item.label)])
+ const contentKey=content=>JSON.stringify([content.selection,content.heading,content.label,content.items?.map(item=>item.label)])
  const hideTooltip=()=>{tooltip.value=null;trigger=null}
  function showTooltip(event,content){
   if(tooltip.value && contentKey(tooltip.value)===contentKey(content)){hideTooltip();return}

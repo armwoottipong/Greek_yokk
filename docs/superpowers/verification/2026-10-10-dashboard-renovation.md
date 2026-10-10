@@ -65,3 +65,9 @@
 
 - Removed SVG focused-group outline. Active bars use modest brightness and soft shadow; keyboard focus uses a stronger bar shadow while retaining point/group highlight.
 - Browser confirms focused group outline:none and selected bar brightness1.16/drop-shadow4px. Focused tooltip/hover8 tests, lint/build pass. Evidence: dashboard-active-bars.jpg.
+
+## Highlight follows the open popup
+
+- Popup payload owns selection separately from hover. Aggregate selection highlights all three metrics; a single selection pins the chosen bar/point/segment and fades other data marks. Mouseleave or hovering another item cannot move the pinned selection.
+- Toggle/Escape/outside dismissal reset hover state; data and mode changes clear selection. Selection participates in toggle identity.
+- Two red/green regressions cover pinned bar/group/donut state and dismissal. Full suite179 tests, lint/build pass. Read-only review found no blockers. Browser single cost selection opacity1 versus other bars.25; aggregate all3 opacity1. Evidence: dashboard-pinned-highlight.jpg.
