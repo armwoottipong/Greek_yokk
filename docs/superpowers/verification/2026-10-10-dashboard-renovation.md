@@ -60,3 +60,8 @@
 - Shared controller toggles repeat selections and dismisses on outside pointerdown. Capture listener preserves same-trigger clicks, allows switching to another trigger and is removed on unmount.
 - Vue Transition adds160ms entrance and120ms exit. Content/position remain during leave; guarded after-leave cleanup preserves rapid reopening. Both effects respect reduced motion.
 - New toggle/outside regression observed red then green. Full suite177 tests, lint/build pass. Browser clean reload verified aggregate content, repeat-click removal and outside-click removal. Read-only review found no blockers. Evidence: dashboard-toggle-tooltip.jpg.
+
+## Active bars without an outline
+
+- Removed SVG focused-group outline. Active bars use modest brightness and soft shadow; keyboard focus uses a stronger bar shadow while retaining point/group highlight.
+- Browser confirms focused group outline:none and selected bar brightness1.16/drop-shadow4px. Focused tooltip/hover8 tests, lint/build pass. Evidence: dashboard-active-bars.jpg.
