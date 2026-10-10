@@ -1,293 +1,70 @@
 <template>
-  <div class="space-y-6">
-    <!-- Period Selector Header -->
-    <div class="flex items-center justify-between flex-wrap gap-3">
-      <div>
-        <h3 class="text-sm font-bold text-stone-900">สรุปผลการดำเนินงาน</h3>
-        <p class="text-xs text-stone-400">ข้อมูลยอดขาย กำไร และมูลค่าสต็อกวัตถุดิบ ณ ปัจจุบัน</p>
-      </div>
-
-      <div class="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl text-xs font-medium">
-        <button
-          v-for="p in periods"
-          :key="p.id"
-          @click="store.dashboardPeriod = p.id"
-          :class="[
-            'px-3 py-1.5 rounded-lg transition-all',
-            store.dashboardPeriod === p.id
-              ? 'bg-white text-stone-900 shadow-xs font-semibold'
-              : 'text-stone-500 hover:text-stone-900'
-          ]"
-        >
-          {{ p.label }}
-        </button>
-      </div>
-    </div>
-
-    <!-- KPI Metric Cards (Sales & Profit) -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="editorial-card p-5 bg-white">
-        <div class="flex items-center justify-between text-xs text-stone-400 mb-2">
-          <span>ยอดขายรวม (Gross)</span>
-          <span class="p-1.5 rounded-lg bg-stone-100 text-stone-600">฿</span>
-        </div>
-        <div class="text-2xl font-bold font-number text-stone-900">
-          ฿{{ metrics.totalSales.toLocaleString() }}
-        </div>
-        <div class="text-[11px] text-stone-400 mt-1">
-          {{ metrics.orderCount }} คำสั่งซื้อ (เฉลี่ย ฿{{ Math.round(metrics.avgOrderValue) }}/บิล)
-        </div>
-      </div>
-
-      <div class="editorial-card p-5 bg-white">
-        <div class="flex items-center justify-between text-xs text-stone-400 mb-2">
-          <span>หักค่าธรรมเนียม GP</span>
-          <span class="p-1.5 rounded-lg bg-amber-50 text-amber-700">🛵</span>
-        </div>
-        <div class="text-2xl font-bold font-number text-amber-800">
-          -฿{{ Math.round(metrics.totalGp).toLocaleString() }}
-        </div>
-        <div class="text-[11px] text-stone-400 mt-1">
-          คิดเป็น {{ metrics.totalSales > 0 ? Math.round((metrics.totalGp / metrics.totalSales) * 100) : 0 }}% ของยอดขาย
-        </div>
-      </div>
-
-      <div class="editorial-card p-5 bg-white">
-        <div class="flex items-center justify-between text-xs text-stone-400 mb-2">
-          <span>ต้นทุนวัตถุดิบขาย (COGS)</span>
-          <span class="p-1.5 rounded-lg bg-rose-50 text-rose-700">🥣</span>
-        </div>
-        <div class="text-2xl font-bold font-number text-rose-800">
-          ฿{{ Math.round(metrics.totalFoodCost).toLocaleString() }}
-        </div>
-        <div class="text-[11px] text-stone-400 mt-1">
-          Cost Ratio: {{ metrics.foodCostRatio.toFixed(1) }}% ของยอดขาย
-        </div>
-      </div>
-
-      <div class="editorial-card p-5 bg-white border-l-4 border-l-emerald-600">
-        <div class="flex items-center justify-between text-xs text-stone-400 mb-2">
-          <span>กำไรขั้นต้นสุทธิ (Gross Profit)</span>
-          <span class="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">📈</span>
-        </div>
-        <div class="text-2xl font-bold font-number text-emerald-800">
-          ฿{{ Math.round(metrics.grossProfit).toLocaleString() }}
-        </div>
-        <div class="text-[11px] text-emerald-600 font-medium mt-1">
-          Margin: {{ metrics.netRevenue > 0 ? ((metrics.grossProfit / metrics.netRevenue) * 100).toFixed(1) : 0 }}%
-        </div>
-      </div>
-    </div>
-
-    <!-- ========================================================================= -->
-    <!-- USER REQUESTED: งบต้นทุนโดยรวมของวัตถุดิบและมูลค่าคลัง (RAW MATERIAL VALUATION)  -->
-    <!-- ========================================================================= -->
-    <div class="editorial-card p-6 bg-white space-y-5">
-      <div class="flex items-center justify-between flex-wrap gap-3 border-b border-stone-100 pb-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="p-2 rounded-xl bg-amber-900/10 text-amber-900 text-lg">💰</span>
-            <h3 class="text-base font-bold text-stone-900">งบต้นทุนโดยรวมของวัตถุดิบ & มูลค่าคลังสินค้า (Raw Material Valuation)</h3>
-          </div>
-          <p class="text-xs text-stone-400 mt-1">
-            คำนวณจากยอดสต็อกคงเหลือ x ต้นทุนต่อหน่วยล่าสุด แยกหมวดหมู่เบสกรีกโยเกิร์ต ผลไม้ ท็อปปิ้ง และบรรจุภัณฑ์
-          </p>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <div class="text-right">
-            <span class="text-[11px] text-stone-400 block">มูลค่าสต็อกคงเหลือรวม</span>
-            <div class="flex items-baseline justify-end gap-1.5 font-number">
-              <span class="text-xl font-bold text-amber-950">
-                ฿{{ Math.round(store.totalInventoryValuation).toLocaleString() }}
-              </span>
-              <span
-                v-if="store.draftInventoryValuationDiff !== 0"
-                class="text-xs font-bold font-number tabular-nums"
-                :class="store.draftInventoryValuationDiff > 0 ? 'text-emerald-600' : 'text-orange-500'"
-                :title="`${store.draftInventoryValuationDiff > 0 ? '+' : ''}฿${Math.round(store.draftInventoryValuationDiff).toLocaleString()} (หลังบันทึก ≈ ฿${Math.round(store.projectedInventoryValuation).toLocaleString()})`"
-              >
-                {{ store.draftInventoryValuationDiff > 0 ? `+${Math.round(store.draftInventoryValuationDiff).toLocaleString()}` : Math.round(store.draftInventoryValuationDiff).toLocaleString() }}
-              </span>
-            </div>
-            <span v-if="store.draftInventoryValuationDiff !== 0" class="text-[10px] text-stone-400 block font-number mt-0.5">
-              หลังบันทึก: ≈ ฿{{ Math.round(store.projectedInventoryValuation).toLocaleString() }}
-            </span>
-          </div>
-          <button
-            @click="store.switchTab('stock')"
-            class="px-4 py-2 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all"
-          >
-            จัดการคลัง
-          </button>
-        </div>
-      </div>
-
-      <!-- Inventory Highlights Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Card 1: Valuation breakdown -->
-        <div class="p-4 rounded-xl bg-[#FBF5EA] border border-stone-100 space-y-3">
-          <span class="text-xs font-bold text-stone-800 block">สัดส่วนมูลค่าตามหมวดหมู่</span>
-          <div class="space-y-2 text-xs">
-            <div v-if="store.inventoryValuationByCategory.length === 0" class="text-stone-400 py-3 text-center italic">
-              ยังไม่มีข้อมูลวัตถุดิบในคลัง
-            </div>
-            <div
-              v-for="cat in store.inventoryValuationByCategory"
-              :key="cat.category"
-              class="flex items-center justify-between"
-            >
-              <span class="text-stone-600 truncate">{{ cat.category }} ({{ cat.itemCount }} รายการ)</span>
-              <span class="font-number font-semibold text-stone-900">฿{{ Math.round(cat.totalValue).toLocaleString() }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 2: Reorder budget needed -->
-        <div class="p-4 rounded-xl bg-amber-50/60 border border-amber-200/50 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-amber-950">งบประมาณเติมสต็อกที่แนะนำ</span>
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-200/60 text-amber-900 font-medium">Reorder Budget</span>
-          </div>
-          <div class="text-2xl font-bold font-number text-amber-950">
-            ฿{{ Math.round(store.reorderBudgetNeeded).toLocaleString() }}
-          </div>
-          <p class="text-[11px] text-amber-800/80 leading-relaxed">
-            งบประมาณที่ต้องเตรียมเพื่อสั่งซื้อวัตถุดิบและบรรจุภัณฑ์ที่ต่ำกว่าเกณฑ์ความปลอดภัยกลับมาที่ระดับปลอดภัย (Buffer x2)
-          </p>
-        </div>
-
-        <!-- Card 3: Items alert status -->
-        <div class="p-4 rounded-xl bg-stone-50 border border-stone-100 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-stone-800">สถานะสต็อกภาพรวม</span>
-            <span class="text-[10px] text-stone-400 font-number">{{ store.activeMaterials.length }} รายการทั้งหมด</span>
-          </div>
-          <div class="space-y-1.5 text-xs">
-            <div class="flex justify-between items-center text-stone-600">
-              <span>วัตถุดิบพร้อมใช้งานปกติ:</span>
-              <span class="font-bold text-emerald-700 font-number">
-                {{ store.activeMaterials.length - store.lowStockMaterials.length }} รายการ
-              </span>
-            </div>
-            <div class="flex justify-between items-center text-stone-600">
-              <span>วัตถุดิบเตือนใกล้หมด:</span>
-              <span class="font-bold text-amber-700 font-number">
-                {{ store.lowStockMaterials.length }} รายการ
-              </span>
-            </div>
-            <div class="flex justify-between items-center text-stone-600">
-              <span>วัตถุดิบที่หมดสต็อกแล้ว:</span>
-              <span class="font-bold text-rose-700 font-number">
-                {{ store.outOfStockMaterials.length }} รายการ
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Orders Table -->
-    <div class="editorial-card overflow-hidden">
-      <div class="p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50/40">
-        <div>
-          <h3 class="text-sm font-bold text-stone-900">ประวัติคำสั่งซื้อล่าสุด</h3>
-          <p class="text-xs text-stone-400">รายการขาย ช่องทาง และกำไรสุทธิต่อบิล</p>
-        </div>
-        <span class="text-xs font-number text-stone-500 font-semibold">{{ store.filteredOrders.length }} บิล</span>
-      </div>
-
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs text-stone-700">
-          <thead class="bg-stone-50 text-stone-400 font-medium border-b border-stone-100">
-            <tr>
-              <th class="py-3 px-4">Order ID</th>
-              <th class="py-3 px-4">เวลา</th>
-              <th class="py-3 px-4">ช่องทาง</th>
-              <th class="py-3 px-4">รายการ</th>
-              <th class="py-3 px-4 text-right">ยอดชำระ</th>
-              <th class="py-3 px-4 text-right">GP หัก</th>
-              <th class="py-3 px-4 text-right">กำไรสุทธิ</th>
-              <th class="py-3 px-4 text-center">ใบเสร็จ</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-stone-100">
-            <tr v-if="store.filteredOrders.length === 0">
-              <td colspan="8" class="py-8 text-center text-stone-400 italic">
-                ยังไม่มีข้อมูลคำสั่งซื้อในรอบเวลานี้
-              </td>
-            </tr>
-            <tr
-              v-for="order in store.filteredOrders.slice(0, 8)"
-              :key="order.orderId"
-              @click="viewReceipt(order)"
-              class="hover:bg-stone-50/80 transition-colors cursor-pointer group"
-            >
-              <td class="py-3.5 px-4 font-mono font-semibold text-stone-900 group-hover:text-amber-900">{{ order.orderId }}</td>
-              <td class="py-3.5 px-4 text-stone-400">{{ formatTime(order.createdAt) }}</td>
-              <td class="py-3.5 px-4">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-stone-100 text-stone-800">
-                  {{ order.platformName }}
-                </span>
-              </td>
-              <td class="py-3.5 px-4">
-                <div class="truncate max-w-xs text-stone-900 font-medium">
-                  {{ order.items.map(i => `${i.qty}x ${i.menuName}`).join(', ') }}
-                </div>
-                <span v-if="order.stockShortages?.length" class="text-[11px] text-amber-800">วัตถุดิบขาดค้าง — ดูรายละเอียดในบิล</span>
-              </td>
-              <td class="py-3.5 px-4 text-right font-number font-bold text-stone-900">
-                ฿{{ order.subtotal }}
-              </td>
-              <td class="py-3.5 px-4 text-right font-number text-amber-800">
-                {{ order.gpAmount > 0 ? `-฿${order.gpAmount}` : '-' }}
-              </td>
-              <td class="py-3.5 px-4 text-right font-number font-bold text-emerald-800">
-                ฿{{ order.grossProfit }}
-              </td>
-              <td class="py-3.5 px-4 text-center" @click.stop>
-                <button
-                  type="button"
-                  @click="viewReceipt(order)"
-                  class="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium text-[11px] inline-flex items-center gap-1 transition-colors"
-                  title="ดูใบเสร็จ"
-                >
-                  🧾 <span>บิล</span>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+ <div class="dashboard">
+  <header class="dashboard-toolbar">
+   <div><h2>ภาพรวมร้าน</h2><p>ยอดขาย ต้นทุน และสิ่งที่ควรดูแลวันนี้</p></div>
+   <div class="dashboard-date-controls"><div class="dashboard-segments" aria-label="ช่วงเวลารายงาน"><button v-for="p in periods" :key="p.id" type="button" :data-period="p.id" :aria-pressed="period===p.id" @click="selectPeriod(p.id)">{{ p.label }}</button></div><button ref="dateAnchor" type="button" data-dashboard-dates class="dashboard-date-button" aria-haspopup="dialog" :aria-expanded="datesOpen" @click="datesOpen=true"><CalendarDays :size="16" aria-hidden="true" />{{ rangeLabel }}<ChevronDown :size="14" aria-hidden="true" /></button></div>
+  </header>
+  <Teleport to="body"><FilterDropdown id="dashboard-date-filter" title="ช่วงเวลารายงาน" :open="datesOpen" :anchor="dateAnchor" :values="range" @close="datesOpen=false" @apply="applyRange" /></Teleport>
+  <div class="dashboard-summary" aria-label="สรุปยอดขายในช่วงวันที่เลือก">
+   <section class="dashboard-sales"><span>ยอดขายรวม</span><strong data-sales-total class="font-number">฿{{ money(metrics.totalSales) }}</strong><p>{{ metrics.orderCount }} บิล <span>เฉลี่ย ฿{{ money(metrics.avgOrderValue) }} / บิล</span></p></section>
+   <dl class="dashboard-metrics"><div><dt>ค่าธรรมเนียมช่องทาง</dt><dd class="font-number">฿{{ money(metrics.totalGp) }}</dd><small>{{ percent(metrics.totalGp,metrics.totalSales) }}% ของยอดขาย</small></div><div><dt>ต้นทุนขาย</dt><dd class="font-number">฿{{ money(metrics.totalFoodCost) }}</dd><small>วัตถุดิบและบรรจุภัณฑ์</small></div><div><dt>กำไรขั้นต้น</dt><dd class="font-number" :class="{'is-negative':metrics.grossProfit<0}">฿{{ money(metrics.grossProfit) }}</dd><small>{{ money(metrics.margin) }}% ของรายรับหลัง GP</small></div></dl>
   </div>
+  <p class="dashboard-accounting-note">กำไรขั้นต้นตามที่บันทึกในบิล ยังไม่หักค่าเช่า ค่าแรง และค่าใช้จ่ายอื่น</p>
+  <nav class="dashboard-view-tabs" aria-label="มุมมองรายงาน"><button v-for="tab in views" :key="tab.id" type="button" :data-view="tab.id" :aria-pressed="view===tab.id" @click="view=tab.id"><component :is="tab.icon" :size="16" aria-hidden="true" />{{ tab.label }}</button></nav>
+
+  <template v-if="view!=='inventory'">
+   <section v-if="!report.orders.length" class="dashboard-empty"><ChartNoAxesCombined :size="32" aria-hidden="true"/><h3>ยังไม่มีคำสั่งซื้อในช่วงนี้</h3><p>ลองเลือกช่วงวันที่อื่น หรือเริ่มบันทึกการขายที่หน้าแคชเชียร์</p><button type="button" class="dashboard-primary" @click="store.switchTab('pos')">ไปหน้าแคชเชียร์</button></section>
+   <template v-else>
+    <section v-if="view==='overview'" class="dashboard-panel"><DashboardTrend :rows="report.trend" :bucket="report.bucket" /></section>
+    <div v-if="view==='overview'" class="dashboard-two-columns"><section class="dashboard-panel"><DashboardBreakdown title="ยอดขายตามช่องทาง" subtitle="ช่องทางไหนสร้างยอดขายให้ร้าน" :rows="channelRows" allow-donut /></section><section class="dashboard-panel"><DashboardBreakdown title="เมนูขายดี" subtitle="5 อันดับตามจำนวนขาย ไม่รวม Add-on" :rows="menuRows.slice(0,5)" unit="ชิ้น" /><button type="button" class="dashboard-text-button" @click="view='menus'">ดูเมนูทั้งหมด<ArrowRight :size="14" aria-hidden="true"/></button></section></div>
+    <template v-if="view==='channels'">
+     <section class="dashboard-panel"><DashboardBreakdown title="สัดส่วนยอดขายตามช่องทาง" subtitle="สลับรูปแบบแท่งหรือวงแหวนเพื่อเปรียบเทียบ" :rows="channelRows" allow-donut /></section>
+     <section class="dashboard-panel"><div class="dashboard-section-heading"><div><h3>ต้นทุนและกำไรแต่ละช่องทาง</h3><p>ใช้ค่าธรรมเนียมที่บันทึกไว้ในบิล</p></div></div><div class="dashboard-table-wrap"><table><thead><tr><th>ช่องทาง</th><th>บิล</th><th>ยอดขาย</th><th>GP</th><th>ต้นทุนขาย</th><th>กำไรขั้นต้น</th></tr></thead><tbody><tr v-for="channel in report.channels" :key="channel.id"><th>{{ channel.label }}</th><td>{{ channel.orderCount }}</td><td>฿{{ money(channel.totalSales) }}</td><td>฿{{ money(channel.totalGp) }}</td><td>฿{{ money(channel.totalFoodCost) }}</td><td>฿{{ money(channel.grossProfit) }}</td></tr></tbody></table></div></section>
+    </template>
+    <template v-if="view==='menus'"><section class="dashboard-panel"><DashboardBreakdown title="อันดับเมนูขายดี" subtitle="จำนวนเมนูที่ขายได้ในช่วงวันที่เลือก ไม่รวม Add-on" :rows="menuRows" unit="ชิ้น" /></section></template>
+   </template>
+   <section class="dashboard-panel dashboard-orders"><div class="dashboard-section-heading"><div><h3>รายการขายในช่วงนี้</h3><p>{{ report.orders.length }} บิล · เรียงจากล่าสุด</p></div><span v-if="report.orders.length">{{ orderOffset+1 }}–{{ Math.min(orderOffset+8,report.orders.length) }}</span></div><p v-if="!report.orders.length" class="dashboard-empty-small">ยังไม่มีรายการขาย</p><div v-else class="dashboard-table-wrap"><table><thead><tr><th>บิล / วันเวลา</th><th>ช่องทาง / รายการ</th><th>ยอดขาย</th><th>กำไรขั้นต้น</th><th>ใบเสร็จ</th></tr></thead><tbody><tr v-for="order in report.orders.slice(orderOffset,orderOffset+8)" :key="order.orderId"><td><strong>{{ order.orderId }}</strong><small>{{ orderDate(order.createdAt) }}</small></td><td><strong>{{ order.platformName || 'ไม่ระบุช่องทาง' }}</strong><small>{{ (order.items || []).map(i=>`${i.qty} × ${i.menuName}`).join(', ') }}</small><small v-if="order.stockShortages?.length" class="dashboard-shortage">วัตถุดิบขาดค้าง — ดูรายละเอียดในบิล</small></td><td>฿{{ money(order.subtotal) }}</td><td :class="{'is-negative':order.grossProfit<0}">฿{{ money(order.grossProfit) }}</td><td><button type="button" :data-receipt="order.orderId" class="dashboard-receipt" :aria-label="`ดูใบเสร็จ ${order.orderId}`" @click="viewReceipt(order)"><ReceiptText :size="15" aria-hidden="true" />ดูบิล</button></td></tr></tbody></table></div><div v-if="report.orders.length>8" class="dashboard-pagination"><button type="button" :disabled="orderOffset===0" @click="orderOffset-=8">ก่อนหน้า</button><button type="button" :disabled="orderOffset+8>=report.orders.length" @click="orderOffset+=8">ถัดไป</button></div></section>
+  </template>
+  <template v-else>
+   <section class="dashboard-inventory-heading"><div><h3>คลังวัตถุดิบ · ยอดปัจจุบัน</h3><p>มูลค่าคงเหลือตามต้นทุนล่าสุด ไม่เปลี่ยนตามช่วงวันที่รายงานยอดขาย</p></div><button type="button" class="dashboard-primary" @click="store.switchTab('stock')">จัดการคลัง<ArrowRight :size="15" aria-hidden="true" /></button></section>
+   <div class="dashboard-inventory-stats"><section><span>มูลค่าคลัง</span><strong class="font-number">฿{{ money(store.totalInventoryValuation) }}</strong><p v-if="store.draftInventoryValuationDiff">หลังยืนยันแบบร่าง ≈ ฿{{ money(store.projectedInventoryValuation) }}</p><p v-else>{{ store.activeMaterials.length }} รายการที่ใช้งาน</p></section><section><span>งบเติมสต็อกแนะนำ</span><strong class="font-number">฿{{ money(store.reorderBudgetNeeded) }}</strong><p>เติมรายการต่ำกว่าเกณฑ์ให้ถึง 2 เท่าของขั้นต่ำ</p></section><section><span>ควรตรวจสอบ</span><strong class="font-number">{{ store.lowStockMaterials.length }} <small>รายการ</small></strong><p>ในจำนวนนี้หมดสต็อก {{ store.outOfStockMaterials.length }} รายการ</p></section></div>
+   <section class="dashboard-panel"><DashboardBreakdown title="มูลค่าคลังตามหมวดหมู่" :subtitle="store.stockDraftSnapshot ? 'กราฟรวมแบบร่างที่ยังไม่ยืนยัน' : 'ยอดคงเหลือ × ต้นทุนต่อหน่วยล่าสุด'" :rows="inventoryRows" allow-donut /></section>
+  </template>
+ </div>
 </template>
-
 <script setup>
-import { computed } from 'vue'
-import { usePosStore } from '@/stores/posStore'
-
-const store = usePosStore()
-
-const periods = [
-  { id: 'today', label: 'วันนี้' },
-  { id: 'week', label: '7 วันล่าสุด' },
-  { id: 'month', label: '30 วันล่าสุด' },
-  { id: 'all', label: 'ทั้งหมด' }
-]
-
-const metrics = computed(() => store.dashboardMetrics)
-
-function formatTime(isoStr) {
-  if (!isoStr) return ''
-  const d = new Date(isoStr)
-  return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone:'Asia/Bangkok' })
+import {computed,ref,watch,onMounted,onActivated,onUnmounted} from 'vue'
+import {CalendarDays,ChevronDown,ChartNoAxesCombined,Store,Utensils,Package,ArrowRight,ReceiptText} from 'lucide-vue-next'
+import {usePosStore} from '@/stores/posStore'
+import {buildDashboard,dashboardRange,money,dateLabel} from '@/domain/dashboard'
+import {businessDateKey} from '@/domain/businessDate'
+import FilterDropdown from '@/components/ui/FilterDropdown.vue'
+import DashboardTrend from '@/components/dashboard/DashboardTrend.vue'
+import DashboardBreakdown from '@/components/dashboard/DashboardBreakdown.vue'
+import '@/assets/dashboard.css'
+const store=usePosStore()
+const period=ref(store.dashboardPeriod || 'today'),range=ref(dashboardRange(period.value)),view=ref('overview'),datesOpen=ref(false),dateAnchor=ref(null),orderOffset=ref(0)
+let lastDay=businessDateKey(),dayTimer
+function refreshDay(){
+ const today=businessDateKey()
+ if(today===lastDay) return
+ lastDay=today
+ if(period.value!=='custom') range.value=dashboardRange(period.value,today)
 }
-
-function viewReceipt(order) {
-  store.modals.receipt = {
-    isOpen: true,
-    order
-  }
-}
+onMounted(()=>{dayTimer=setInterval(refreshDay,30000)})
+onActivated(refreshDay)
+onUnmounted(()=>clearInterval(dayTimer))
+const periods=[{id:'today',label:'วันนี้'},{id:'week',label:'7 วัน'},{id:'month',label:'30 วัน'},{id:'all',label:'ทั้งหมด'}]
+const views=[{id:'overview',label:'ภาพรวม',icon:ChartNoAxesCombined},{id:'channels',label:'ช่องทางขาย',icon:Store},{id:'menus',label:'เมนูขายดี',icon:Utensils},{id:'inventory',label:'คลังวัตถุดิบ',icon:Package}]
+const report=computed(()=>buildDashboard(store.orders,range.value)),metrics=computed(()=>report.value.metrics)
+const rangeLabel=computed(()=>!range.value.start?'ทุกช่วงเวลา':range.value.start===range.value.end?dateLabel(range.value.start):`${dateLabel(range.value.start)} – ${dateLabel(range.value.end)}`)
+const channelRows=computed(()=>report.value.channels.map(c=>({id:c.id,label:c.label,value:c.totalSales})))
+const menuRows=computed(()=>report.value.menus.map(m=>({id:m.id,label:m.label,value:m.qty})))
+const inventoryRows=computed(()=>store.inventoryValuationByCategory.map(c=>({id:c.category,label:`${c.category} (${c.itemCount})`,value:c.totalValue})))
+watch(report,()=>{orderOffset.value=0})
+function selectPeriod(id){period.value=id;store.dashboardPeriod=id;range.value=dashboardRange(id)}
+function applyRange(value){range.value={start:value.start,end:value.end || value.start};period.value='custom';datesOpen.value=false}
+const percent=(part,total)=>total?(part/total*100).toFixed(1):'0'
+const orderDate=iso=>new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}).format(new Date(iso))
+function viewReceipt(order){store.modals.receipt={isOpen:true,order}}
 </script>
