@@ -44,6 +44,7 @@ Disposable origin: `http://127.0.0.1:3010/Greek_yokk/` using demo data. The orig
 - No captured warning/error console messages during the successful POS/receipt and menu checks.
 - Browser automation subsequently stopped responding: two independent reads/actions each timed out at the tool boundary. Remaining navigation/edit/archive/stock/import/two-tab scenarios were not falsely marked passed. Settings navigation has component evidence only.
 - No test deployment URL was found in source. Only placeholders/legacy bundled references were located; these are not authorization to write to an unknown spreadsheet. A URL bound to a disposable test sheet and running this version is required for Task12.
+- Subsequent live probe (2026-10-10): user supplied an `/exec` URL and explicitly confirmed a disposable test sheet with synthetic writes allowed. Two unauthenticated GET `action=getSnapshot` requests returned HTTP200, `text/html; charset=utf-8`, title `Sign in - Google Accounts` and an accounts.google.com sign-in page rather than JSON. This is a deployment access blocker, not a successful API response. No synthetic POST was sent. Recheck deployment access and the copied active deployment URL, then repeat the browser round-trip; readable acknowledgement remains unproven.
 
 ## Audit coverage
 
