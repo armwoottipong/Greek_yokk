@@ -1,5 +1,5 @@
 <template>
-  <label class="flex items-center justify-between p-3.5 rounded-xl bg-[#FAF9F6] border border-stone-100 hover:border-stone-200/80 cursor-pointer select-none transition-all">
+  <label class="flex items-center justify-between p-3.5 rounded-xl bg-[#FBF5EA] border border-stone-100 hover:border-stone-200/80 cursor-pointer select-none transition-all">
     <div class="pr-2">
       <div class="flex items-center gap-1.5 font-medium text-stone-800 text-xs">
         <span v-if="icon">{{ icon }}</span>
@@ -22,7 +22,7 @@
             ? 'peer-checked:bg-purple-700'
             : color === 'emerald'
             ? 'peer-checked:bg-emerald-600'
-            : 'peer-checked:bg-amber-800'
+            : 'peer-checked:bg-brand-600'
         ]"
       >
         <div class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform transform peer-checked:translate-x-4"></div>

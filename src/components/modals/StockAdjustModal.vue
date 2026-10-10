@@ -34,7 +34,7 @@
               <span>ดูประวัติการเคลื่อนไหว</span>
             </button>
           </div>
-          <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FAF9F6] rounded-xl border border-stone-100">
+          <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FBF5EA] rounded-xl border border-stone-100">
             ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าคลังก่อน
           </div>
           <AppSelect aria-label="เลือกวัตถุดิบ"
@@ -78,14 +78,14 @@
         <!-- Unit Switch Capsule (if material has packUnit) -->
         <div v-if="selectedMaterial?.packUnit && selectedMaterial?.packSize > 1" class="space-y-1.5">
           <label class="block text-xs font-medium text-stone-700">หน่วยที่ใช้นับตรวจนับจริง</label>
-          <div class="flex items-center gap-1.5 p-1 bg-[#F5F4F0] rounded-xl text-xs font-semibold">
+          <div class="flex items-center gap-1.5 p-1 bg-[#F4EBDD] rounded-xl text-xs font-semibold">
             <button
               type="button"
               @click="setUnitMode('pack')"
               :class="[
                 'flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5',
                 unitMode === 'pack'
-                  ? 'bg-amber-900 text-white shadow-xs font-bold'
+                  ? 'bg-brand-600 text-white shadow-xs font-bold'
                   : 'text-stone-600 hover:text-stone-900'
               ]"
             >
@@ -107,7 +107,7 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="px-4 py-3 rounded-xl bg-[#FAF9F6] flex flex-col justify-center">
+          <div class="px-4 py-3 rounded-xl bg-[#FBF5EA] flex flex-col justify-center">
             <span class="block text-[11px] text-stone-500 mb-0.5">ยอดในระบบปัจจุบัน:</span>
             <span class="text-sm font-number font-bold text-stone-900">
               {{ currentStock.toLocaleString() }} {{ selectedMaterial?.unit }}
@@ -172,7 +172,7 @@
         </div>
 
         <!-- Difference Line -->
-        <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FAF9F6] text-xs">
+        <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-[#FBF5EA] text-xs">
           <span class="text-stone-500">ผลต่างที่ปรับ:</span>
           <span
             class="font-number font-bold text-sm"
@@ -222,7 +222,7 @@
         <button
           type="button"
           @click="submit"
-          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+          class="px-6 py-2.5 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
         >
           <Check class="w-4 h-4" />
           <span>บันทึกปรับยอด</span>

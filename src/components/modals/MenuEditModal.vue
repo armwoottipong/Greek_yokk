@@ -26,7 +26,7 @@
             <button
               type="button"
               @click="openEmojiPicker"
-              class="soft-input flex items-center justify-center w-12 h-11 rounded-xl transition-all hover:bg-[#EAE8E1]"
+              class="soft-input flex items-center justify-center w-12 h-11 rounded-xl transition-all hover:bg-[#E8DCCB]"
               title="คลิกเพื่อเปลี่ยนไอคอน"
             >
               <span class="text-2xl leading-none">{{ form.emoji }}</span>
@@ -65,7 +65,7 @@
                 :key="cat.id"
                 type="button"
                 @click="form.category = cat.name"
-                class="px-2 py-0.5 rounded-md bg-[#FAF9F6] hover:bg-[#ECEAE4] text-[10px] text-stone-500 hover:text-stone-900 transition-colors flex items-center gap-1 shrink-0"
+                class="px-2 py-0.5 rounded-md bg-[#FBF5EA] hover:bg-[#F4EBDD] text-[10px] text-stone-500 hover:text-stone-900 transition-colors flex items-center gap-1 shrink-0"
               >
                 <span>{{ cat.icon }}</span>
                 <span>{{ cat.name }}</span>
@@ -96,7 +96,7 @@
             <div
               v-for="p in store.platforms"
               :key="p.id"
-              class="flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F5F4F0] focus-within:bg-[#EAE8E1] focus-within:ring-1 focus-within:ring-stone-400/40 transition-all"
+              class="flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F4EBDD] focus-within:bg-[#E8DCCB] focus-within:ring-1 focus-within:ring-brand-600/40 transition-all"
             >
               <div class="flex items-center gap-1 min-w-0">
                 <span class="text-[11px] font-medium text-stone-700 truncate" :title="p.name">
@@ -157,7 +157,7 @@
             </button>
           </div>
 
-          <div v-if="baseRecipeRows.length === 0" class="text-stone-400 text-xs py-3 text-center bg-[#FAF9F6] rounded-xl italic">
+          <div v-if="baseRecipeRows.length === 0" class="text-stone-400 text-xs py-3 text-center bg-[#FBF5EA] rounded-xl italic">
             ยังไม่มีวัตถุดิบหลัก — คลิก "+ เพิ่มวัตถุดิบ" เพื่อใส่สูตร
           </div>
 
@@ -225,7 +225,7 @@
                 :key="pkg.id"
                 type="button"
                 @click="quickAddPackage(pkg.id)"
-                class="px-2.5 py-1 bg-[#FAF9F6] hover:bg-[#EFECE6] text-stone-600 rounded-full text-[11px] font-medium transition-colors border border-stone-100"
+                class="px-2.5 py-1 bg-[#FBF5EA] hover:bg-[#F4EBDD] text-stone-600 rounded-full text-[11px] font-medium transition-colors border border-stone-100"
               >
                 + {{ pkg.name }}
               </button>
@@ -250,7 +250,7 @@
 
           <!-- Package rows -->
           <div v-else class="space-y-2">
-            <div v-if="packageRecipeRows.length === 0" class="text-stone-400 text-xs py-3 text-center bg-[#FAF9F6] rounded-xl italic">
+            <div v-if="packageRecipeRows.length === 0" class="text-stone-400 text-xs py-3 text-center bg-[#FBF5EA] rounded-xl italic">
               ยังไม่มีบรรจุภัณฑ์ — คลิกปุ่มด้านบน เช่น "+ ถ้วย A" หรือ "+ ช้อนไม้"
             </div>
 
@@ -309,7 +309,7 @@
         <button
           type="button"
           @click="submit"
-          class="px-6 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+          class="px-6 py-2.5 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer"
         >
           <Check class="w-4 h-4" />
           <span>บันทึกข้อมูลเมนู</span>

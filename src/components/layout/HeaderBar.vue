@@ -1,6 +1,6 @@
 <template>
-  <header class="h-20 bg-white border-b border-stone-200/80 px-6 flex items-center justify-between shrink-0 select-none">
-    <div>
+  <header class="brand-page-header bg-white border-b border-stone-200/80 flex items-center justify-between shrink-0 select-none">
+    <div class="min-w-0">
       <h2 class="text-base font-bold text-stone-900 flex items-center gap-2">
         <span>{{ pageTitle.title }}</span>
         <span v-if="pageTitle.badge" class="text-xs px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-normal">
@@ -65,6 +65,10 @@
     </div>
   </header>
 </template>
+<style scoped>
+.brand-page-header{min-height:80px;padding:16px 24px;gap:16px}.brand-page-header h2{letter-spacing:-.3px}.brand-page-header p{margin-top:4px;color:var(--text-muted)}
+@media(max-width:639px){.brand-page-header{padding:12px 16px;gap:8px;align-items:flex-start;flex-wrap:wrap}.brand-page-header h2{font-size:14px}.brand-page-header p{font-size:10px}.brand-page-header>div:last-child{gap:6px;margin-left:auto}}
+</style>
 
 <script setup>
 import { computed } from 'vue'

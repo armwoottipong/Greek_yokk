@@ -48,7 +48,7 @@
           :class="[
             'px-3.5 py-1.5 rounded-xl font-medium whitespace-nowrap transition-colors',
             activeCategory === cat
-              ? 'bg-stone-900 text-white font-semibold'
+              ? 'bg-brand-600 text-white font-semibold'
               : 'bg-white border border-stone-200/80 text-stone-600 hover:bg-stone-50'
           ]"
         >
@@ -70,7 +70,7 @@
           >
             <div>
               <div class="flex items-start justify-between gap-2 mb-2">
-                <span class="text-3xl p-1.5 rounded-xl bg-[#FAF9F6] border border-stone-100">{{ menu.emoji }}</span>
+                <span class="text-3xl p-1.5 rounded-xl bg-[#FBF5EA] border border-stone-100">{{ menu.emoji }}</span>
                 <span v-if="isMenuOutOfStock(menu)" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold flex items-center gap-1" title="วัตถุดิบหมด แต่สามารถกดสั่งขายต่อได้">
                   <span>⚠️</span>
                   <span>ของหมด (ขายต่อได้)</span>
@@ -124,7 +124,7 @@
         <div
           v-for="(item, idx) in store.cart"
           :key="idx"
-          class="p-3 rounded-xl bg-[#FAF9F6] border border-stone-100 space-y-2"
+          class="p-3 rounded-xl bg-[#FBF5EA] border border-stone-100 space-y-2"
         >
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
@@ -221,7 +221,7 @@
             :class="[
               'flex-1 py-1.5 px-2 rounded-xl text-[10px] font-medium transition-all text-center',
               store.paymentMethod === pm
-                ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                ? 'bg-brand-600 text-white font-semibold shadow-xs'
                 : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-100'
             ]"
           >
@@ -261,7 +261,7 @@
             <button
               type="button"
               @click="handleSwitchLot(w)"
-              class="px-2.5 py-1 rounded-lg bg-amber-800 hover:bg-amber-900 active:bg-stone-900 text-white font-semibold text-[10px] shrink-0 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+              class="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-800 active:bg-brand-900 text-white font-semibold text-[10px] shrink-0 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
               title="สลับไปใช้ล็อตถัดไปทันที"
             >
               <span>ย้ายล็อต</span>
@@ -273,7 +273,7 @@
         <!-- Checkout Button -->
         <button
           @click="handleCheckout"
-          class="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-2"
+          class="w-full py-3 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-2"
         >
           <Check class="w-4 h-4" />
           <span>ชำระเงินและตัดสต็อก (฿{{ cartSummary.subtotal }})</span>

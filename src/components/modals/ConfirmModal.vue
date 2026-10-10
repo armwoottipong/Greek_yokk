@@ -70,20 +70,20 @@ const themeClasses = computed(() => {
       return {
         emoji: '💾',
         iconBox: 'bg-emerald-50 text-emerald-800 border-emerald-200/60',
-        confirmBtn: 'bg-stone-900 hover:bg-stone-800 active:bg-stone-950'
+        confirmBtn: 'bg-brand-600 hover:bg-brand-800 active:bg-brand-900'
       }
     case 'info':
       return {
         emoji: 'ℹ️',
         iconBox: 'bg-blue-50 text-blue-800 border-blue-200/60',
-        confirmBtn: 'bg-stone-900 hover:bg-stone-800 active:bg-stone-950'
+        confirmBtn: 'bg-brand-600 hover:bg-brand-800 active:bg-brand-900'
       }
     case 'warning':
     default:
       return {
         emoji: '⚠️',
         iconBox: 'bg-amber-50 text-amber-900 border-amber-200/60',
-        confirmBtn: 'bg-amber-900 hover:bg-amber-950 active:bg-stone-900'
+        confirmBtn: 'bg-brand-600 hover:bg-brand-800 active:bg-brand-900'
       }
   }
 })

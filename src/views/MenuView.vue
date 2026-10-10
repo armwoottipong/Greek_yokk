@@ -2,9 +2,9 @@
   <div class="space-y-4">
     <!-- Header with Search & Add Menu Button -->
     <div class="flex items-center justify-between flex-wrap gap-3">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 w-full min-w-0 sm:w-auto">
         <!-- Search input -->
-        <div class="relative w-64">
+        <div class="relative flex-1 min-w-0 sm:flex-none sm:w-64">
           <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             v-model="searchQuery"
@@ -17,7 +17,7 @@
         <!-- Category filter -->
         <AppSelect aria-label="หมวดหมู่"
           v-model="selectedCategory"
-          class="w-44 shrink-0"
+          class="w-32 sm:w-44 shrink-0"
         >
           <option value="ทั้งหมด">ทุกหมวดหมู่ ({{ store.menus.length }})</option>
           <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
@@ -27,7 +27,7 @@
       <!-- Add Menu Button -->
       <button
         @click="openAddMenu"
-        class="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5"
+        class="px-4 py-2 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5"
       >
         <Plus class="w-4 h-4" />
         <span>เพิ่มเมนูใหม่</span>
@@ -62,7 +62,7 @@
               <!-- Name & Icon -->
               <td class="py-3.5 px-4">
                 <div class="flex items-center gap-2.5">
-                  <span class="text-2xl p-1.5 rounded-xl bg-[#FAF9F6] border border-stone-100">{{ menu.emoji }}</span>
+                  <span class="text-2xl p-1.5 rounded-xl bg-[#FBF5EA] border border-stone-100">{{ menu.emoji }}</span>
                   <div>
                     <div class="font-bold text-stone-900">{{ menu.name }}</div>
                     <div class="text-[10px] text-stone-400 truncate max-w-xs">{{ menu.description }}</div>
@@ -83,7 +83,7 @@
                   <span
                     v-for="p in store.platforms"
                     :key="p.id"
-                    class="bg-[#F5F4F0] px-2 py-0.5 rounded-md text-stone-700 font-number font-medium"
+                    class="bg-[#F4EBDD] px-2 py-0.5 rounded-md text-stone-700 font-number font-medium"
                   >
                     {{ p.name.replace(/\s*\([^)]*\)/g, '') }}: ฿{{ menu.prices?.[p.id] !== undefined ? menu.prices[p.id] : '-' }}
                   </span>
@@ -163,7 +163,7 @@
         <!-- Modal Header -->
         <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
           <div class="flex items-center gap-3">
-            <span class="text-3xl p-1.5 rounded-xl bg-[#FAF9F6] border border-stone-100">
+            <span class="text-3xl p-1.5 rounded-xl bg-[#FBF5EA] border border-stone-100">
               {{ selectedMenuForBom.emoji }}
             </span>
             <div>
@@ -187,7 +187,7 @@
         <!-- Modal Body -->
         <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
           <!-- Cost & Margin Summary Cards -->
-          <div class="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-[#FAF9F6] border border-stone-200/50 text-center">
+          <div class="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50 text-center">
             <div>
               <span class="block text-[10px] text-stone-400 mb-0.5">ต้นทุนวัตถุดิบรวม</span>
               <span class="font-number font-bold text-rose-700 text-sm">
@@ -226,7 +226,7 @@
               <div
                 v-for="(item, idx) in detailedRecipeItems"
                 :key="idx"
-                class="flex items-center justify-between p-3 rounded-xl bg-[#FAF9F6] border border-stone-200/50 hover:bg-[#F5F4F0] transition-colors"
+                class="flex items-center justify-between p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50 hover:bg-[#F4EBDD] transition-colors"
               >
                 <div class="flex items-center gap-2.5 min-w-0">
                   <span class="text-xl shrink-0">{{ item.mat?.emoji || '🥣' }}</span>
@@ -293,7 +293,7 @@
           <button
             type="button"
             @click="editFromBom"
-            class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+            class="px-5 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
           >
             <Edit3 class="w-3.5 h-3.5" />
             <span>แก้ไขเมนู & สูตรนี้</span>

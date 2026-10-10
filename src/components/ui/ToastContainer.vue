@@ -9,7 +9,7 @@
           toast.type === 'error'
             ? 'bg-rose-900 text-rose-50 border border-rose-700 shadow-rose-950/20'
             : toast.type === 'info'
-            ? 'bg-stone-900 text-stone-100 border border-stone-700 shadow-stone-950/20'
+            ? 'bg-brand-600 text-stone-100 border border-stone-700 shadow-stone-950/20'
             : 'bg-emerald-900 text-emerald-50 border border-emerald-700 shadow-emerald-950/20'
         ]"
       >

@@ -44,7 +44,7 @@
             :key="cat"
             @click="selectedCategory = cat"
             class="px-2.5 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer"
-            :class="selectedCategory === cat ? 'bg-stone-900 text-white font-semibold shadow-2xs' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'"
+            :class="selectedCategory === cat ? 'bg-brand-600 text-white font-semibold shadow-2xs' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'"
           >
             {{ cat === 'all' ? 'ทั้งหมด' : cat }}
           </button>
@@ -91,7 +91,7 @@
               <tr
                 v-for="mat in filteredMaterials"
                 :key="mat.id"
-                class="hover:bg-[#FAF9F6] transition-colors"
+                class="hover:bg-[#FBF5EA] transition-colors"
                 :class="getVariance(mat.id) !== 0 ? 'bg-amber-50/20' : ''"
               >
                 <!-- Material Info -->
@@ -128,7 +128,7 @@
                         min="0"
                         :value="counts[mat.id].value" @input="setCountValue(mat.id, $event.target.value)"
                         placeholder="0"
-                        class="w-full text-right font-number font-bold text-xs py-1.5 px-2.5 rounded-xl border border-stone-300 focus:border-stone-900 focus:ring-1 focus:ring-stone-900 transition-all bg-white"
+                        class="w-full text-right font-number font-bold text-xs py-1.5 px-2.5 rounded-xl border border-stone-300 focus:border-brand-600 focus:ring-1 focus:ring-brand-600 transition-all bg-white"
                         :class="getVariance(mat.id) !== 0 ? 'border-amber-400 bg-amber-50/30' : ''"
                       />
                     </div>
@@ -237,7 +237,7 @@
             type="button"
             @click="submitStocktake"
             :disabled="varianceStats.changedCount === 0"
-            class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            class="px-5 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
           >
             <Check class="w-4 h-4" />
             <span>บันทึกผลการตรวจนับ (แบบร่าง)</span>

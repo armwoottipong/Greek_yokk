@@ -37,7 +37,7 @@
               <span>ดูประวัติการรับเข้า/ผลิต</span>
             </button>
           </div>
-          <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FAF9F6] rounded-xl border border-stone-100">
+          <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FBF5EA] rounded-xl border border-stone-100">
             ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าคลังก่อน
           </div>
           <AppSelect aria-label="เลือกวัตถุดิบ"
@@ -151,7 +151,7 @@
           </div>
 
           <!-- Price & Valuation summary -->
-          <div class="grid grid-cols-2 gap-3 items-center p-3 rounded-xl bg-[#FAF9F6] border border-stone-200/50">
+          <div class="grid grid-cols-2 gap-3 items-center p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50">
             <div>
               <label class="block text-[10px] text-stone-500 mb-0.5">ราคาซื้อ (฿ / {{ currentMat?.packUnit || currentMat?.unit }})</label>
               <input
@@ -258,7 +258,7 @@
           </div>
 
           <!-- Deducted Sub-ingredients (Compact list) -->
-          <div class="space-y-1.5 p-3 rounded-xl bg-[#FAF9F6] border border-stone-200/50">
+          <div class="space-y-1.5 p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50">
             <div class="flex items-center justify-between text-[11px] font-medium text-stone-700 mb-1">
               <span>วัตถุดิบรองที่จะถูกหัก:</span>
               <span class="text-[10px] text-stone-400 font-number">สัดส่วน {{ (produceYieldQty / formulaYield).toFixed(2) }}x</span>
@@ -412,7 +412,7 @@
           type="button"
           @click="submit"
           :disabled="isProducedFromRecipe && (!canProduce || produceYieldQty <= 0)"
-          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs disabled:opacity-40 transition-all flex items-center gap-1.5 cursor-pointer"
+          class="px-5 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-xs disabled:opacity-40 transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Check class="w-3.5 h-3.5" />
           <span>{{ isProducedFromRecipe ? 'บันทึกการผลิต' : 'บันทึกรับเข้าสต็อก' }}</span>

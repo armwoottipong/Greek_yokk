@@ -1,6 +1,6 @@
 <template>
   <details data-history-entry class="group border-b border-stone-100 last:border-0">
-    <summary tabindex="0" class="history-summary flex cursor-pointer items-start gap-3 px-4 py-3 sm:px-5 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-emerald-700 focus-visible:outline-offset-[-2px]">
+    <summary tabindex="0" class="history-summary flex cursor-pointer items-start gap-3 px-4 py-3 sm:px-5 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-brand-600 focus-visible:outline-offset-[-2px]">
       <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-base" aria-hidden="true">{{ log.targetEmoji || '•' }}</span>
       <div class="min-w-0 flex-1">
         <p class="text-sm font-semibold text-stone-900 leading-5 break-words">{{ shortTitle }}<span v-if="!itemMode && log.targetName" class="font-normal text-stone-600"> · {{ log.targetName }}</span></p>

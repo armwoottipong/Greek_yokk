@@ -46,7 +46,7 @@
 
         <button
           @click="openCreateMaterial"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-900 hover:bg-amber-950 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           <Plus class="w-4 h-4" />
           <span>เพิ่มวัตถุดิบใหม่</span>
@@ -231,7 +231,7 @@
             >
               <tr
                 :class="[
-                  'hover:bg-[#FAF9F6] transition-colors',
+                  'hover:bg-[#FBF5EA] transition-colors',
                   mat.isDeleted ? 'bg-stone-50/70 text-stone-600' : ''
                 ]"
               >
@@ -273,7 +273,7 @@
                         type="button"
                         @click="toggleExpand(mat.id)"
                         class="px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all inline-flex items-center gap-0.5 shrink-0 cursor-pointer"
-                        :class="isExpanded(mat.id) ? 'bg-amber-900 text-white shadow-2xs' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'"
+                        :class="isExpanded(mat.id) ? 'bg-brand-600 text-white shadow-2xs' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'"
                         title="คลิกเพื่อคลี่/พับดูประวัติแต่ละล็อต"
                       >
                         <span>{{ getActiveLotsCount(mat) }} ล็อต</span>
@@ -483,7 +483,7 @@
                         <col class="w-[9%]" />
                         <col class="w-[9%]" />
                       </colgroup>
-                      <tbody class="divide-y divide-stone-100 bg-[#FAF9F6] border-t border-stone-200/60 border-b border-stone-200/60">
+                      <tbody class="divide-y divide-stone-100 bg-[#FBF5EA] border-t border-stone-200/60 border-b border-stone-200/60">
                         <tr
                           v-for="(lot, lIdx) in getDisplayLots(mat)"
                           :key="lot.id"
@@ -729,7 +729,7 @@
         </transition>
 
         <!-- Main Bar -->
-        <div class="w-full bg-stone-900 text-white rounded-2xl shadow-2xl px-4 sm:px-5 py-3 flex items-center gap-3 border border-stone-800 justify-between">
+        <div class="w-full bg-brand-600 text-white rounded-2xl shadow-2xl px-4 sm:px-5 py-3 flex items-center gap-3 border border-stone-800 justify-between">
           <div class="flex items-center gap-2.5 min-w-0 pr-2">
             <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg shrink-0">
               📝
@@ -762,7 +762,7 @@
             <button
               type="button"
               @click="revertPendingChanges"
-              class="px-3 py-2 rounded-xl text-xs font-medium text-stone-300 hover:text-white hover:bg-stone-800 transition-colors cursor-pointer flex items-center gap-1.5"
+              class="px-3 py-2 rounded-xl text-xs font-medium text-stone-300 hover:text-white hover:bg-brand-800 transition-colors cursor-pointer flex items-center gap-1.5"
               title="ยกเลิกรายการทั้งหมด คืนค่าสต็อกเดิม"
             >
               <Undo2 class="w-3.5 h-3.5" />

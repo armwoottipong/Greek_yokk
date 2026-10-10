@@ -119,7 +119,7 @@
         <button
           type="button"
           @click="onConfirm"
-          class="w-full sm:w-auto px-5 py-2.5 text-xs font-bold rounded-xl text-white bg-amber-900 hover:bg-amber-950 active:bg-stone-900 shadow-sm transition-all cursor-pointer select-none flex items-center justify-center gap-1.5"
+          class="w-full sm:w-auto px-5 py-2.5 text-xs font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-800 active:bg-brand-900 shadow-sm transition-all cursor-pointer select-none flex items-center justify-center gap-1.5"
           ref="confirmButtonRef"
         >
           <span>เปลี่ยนไปล็อตใหม่ (สลับทันที)</span>

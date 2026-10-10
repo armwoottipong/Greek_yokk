@@ -63,7 +63,7 @@
           type="button"
           @click="confirm"
           class="px-5 py-2 text-xs font-semibold text-white rounded-xl shadow-xs transition-all cursor-pointer"
-          :class="store.modals.lowStockWarning.isOutOfStock ? 'bg-rose-700 hover:bg-rose-800' : 'bg-amber-800 hover:bg-amber-900'"
+          :class="store.modals.lowStockWarning.isOutOfStock ? 'bg-rose-700 hover:bg-rose-800' : 'bg-brand-600 hover:bg-brand-800'"
         >
           {{ store.modals.lowStockWarning.isOutOfStock ? 'ยืนยันขายต่อ (Backorder)' : 'ยืนยันและดำเนินการต่อ' }}
         </button>

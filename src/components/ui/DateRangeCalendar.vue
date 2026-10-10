@@ -5,7 +5,7 @@
       <button
         type="button"
         @click="prevMonth"
-        class="w-8 h-8 rounded-md hover:bg-emerald-50 text-stone-600 hover:text-emerald-800 transition-colors flex items-center justify-center cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
+        class="w-8 h-8 rounded-md hover:bg-brand-50 text-stone-600 hover:text-brand-800 transition-colors flex items-center justify-center cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
         aria-label="เดือนก่อนหน้า"
       >
         <ChevronLeft class="w-4 h-4" />
@@ -19,7 +19,7 @@
       <button
         type="button"
         @click="nextMonth"
-        class="w-8 h-8 rounded-md hover:bg-emerald-50 text-stone-600 hover:text-emerald-800 transition-colors flex items-center justify-center cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
+        class="w-8 h-8 rounded-md hover:bg-brand-50 text-stone-600 hover:text-brand-800 transition-colors flex items-center justify-center cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
         aria-label="เดือนถัดไป"
       >
         <ChevronRight class="w-4 h-4" />
@@ -45,7 +45,7 @@
           :aria-label="formatDateLabel(cell.dateString)"
           :aria-pressed="isSelected(cell.dateString)"
           :disabled="!cell.isCurrentMonth"
-          class="w-full h-8 rounded-lg flex items-center justify-center font-number font-medium text-xs transition-colors cursor-pointer relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 focus-visible:outline-offset-1"
+          class="w-full h-8 rounded-lg flex items-center justify-center font-number font-medium text-xs transition-colors cursor-pointer relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700 focus-visible:outline-offset-1"
           :class="[
             getDayButtonClass(cell.dateString, cell.isCurrentMonth, cell.isToday)
           ]"
@@ -53,7 +53,7 @@
           <span>{{ cell.day }}</span>
           <span
             v-if="cell.isToday && !isSelected(cell.dateString)"
-            class="w-1 h-1 rounded-full bg-emerald-600 absolute bottom-0.5"
+            class="w-1 h-1 rounded-full bg-brand-600 absolute bottom-0.5"
           ></span>
         </button>
       </div>
@@ -224,13 +224,13 @@ function isInRange(dateStr) {
 function getRangeBackgroundClass(dateStr) {
   if (!props.startDate || !props.endDate) return ''
   if (isInRange(dateStr)) {
-    return 'bg-emerald-50 text-emerald-900'
+    return 'bg-brand-50 text-brand-900'
   }
   if (dateStr === props.startDate && props.endDate) {
-    return 'bg-emerald-50 rounded-l-lg'
+    return 'bg-brand-50 rounded-l-lg'
   }
   if (dateStr === props.endDate && props.startDate) {
-    return 'bg-emerald-50 rounded-r-lg'
+    return 'bg-brand-50 rounded-r-lg'
   }
   return ''
 }
@@ -244,15 +244,15 @@ function getDayButtonClass(dateStr, isCurrentMonth, isToday) {
   const isEnd = dateStr === props.endDate
 
   if (isStart || isEnd) {
-    return 'bg-emerald-800 text-white font-semibold'
+    return 'bg-brand-800 text-white font-semibold'
   }
 
   if (isInRange(dateStr)) {
-    return 'text-emerald-900 font-medium hover:bg-emerald-100'
+    return 'text-brand-900 font-medium hover:bg-brand-100'
   }
 
   if (isToday) {
-    return 'text-emerald-800 font-semibold hover:bg-emerald-50'
+    return 'text-brand-800 font-semibold hover:bg-brand-50'
   }
 
   return 'text-stone-700 hover:bg-stone-200/70'

@@ -15,7 +15,7 @@
       </div>
 
       <!-- Thermal Receipt Preview (80mm) -->
-      <div class="p-6 overflow-y-auto flex-1 font-mono text-[11px] leading-relaxed text-stone-800 bg-[#FCFBF9]" id="printable-receipt">
+      <div class="p-6 overflow-y-auto flex-1 font-mono text-[11px] leading-relaxed text-stone-800 bg-[#FBF5EA]" id="printable-receipt">
         <div class="text-center pb-4 border-b border-dashed border-stone-300">
           <div class="text-2xl mb-1">🥣</div>
           <div class="font-bold text-sm text-stone-900 font-sans tracking-wide">GREEK YOGG. CAFE</div>
@@ -100,7 +100,7 @@
         </button>
         <button
           @click="printReceipt"
-          class="px-5 py-2.5 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+          class="px-5 py-2.5 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
         >
           <Printer class="w-4 h-4" />
           <span>พิมพ์ใบเสร็จ (Print)</span>

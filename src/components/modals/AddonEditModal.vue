@@ -26,7 +26,7 @@
             <button
               type="button"
               @click="openEmojiPicker"
-              class="soft-input flex items-center justify-center w-11 h-10 rounded-xl hover:bg-[#EAE8E1]"
+              class="soft-input flex items-center justify-center w-11 h-10 rounded-xl hover:bg-[#E8DCCB]"
             >
               <span class="text-xl leading-none">{{ form.emoji }}</span>
             </button>
@@ -72,7 +72,7 @@
             <div
               v-for="p in store.platforms"
               :key="p.id"
-              class="flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F5F4F0] focus-within:bg-[#EAE8E1] focus-within:ring-1 focus-within:ring-stone-400/40"
+              class="flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F4EBDD] focus-within:bg-[#E8DCCB] focus-within:ring-1 focus-within:ring-brand-600/40"
             >
               <span class="text-[11px] font-medium text-stone-700 truncate">{{ p.name.replace(/\s*\([^)]*\)/g, '') }}</span>
               <div class="flex items-center gap-0.5 shrink-0">
@@ -89,7 +89,7 @@
         </div>
 
         <!-- Row 4: Material Linkage (ตัดสต็อกคลัง) -->
-        <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-stone-100 space-y-2">
+        <div class="p-3.5 rounded-xl bg-[#FBF5EA] border border-stone-100 space-y-2">
           <label class="block text-xs font-medium text-stone-800 flex items-center gap-1.5">
             <span>🔗</span>
             <span>ผูกตัดสต็อกวัตถุดิบในคลัง</span>
@@ -142,7 +142,7 @@
         <button
           type="button"
           @click="submit"
-          class="px-5 py-2 text-xs font-semibold bg-stone-900 hover:bg-stone-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+          class="px-5 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <Check class="w-3.5 h-3.5" />
           <span>บันทึก Add-on</span>

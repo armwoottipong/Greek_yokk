@@ -12,8 +12,8 @@
       <button v-for="section in settingsSections" :key="section.id" type="button"
         :aria-controls="`settings-${section.id}`" :aria-pressed="activeSettingsSection === section.id"
         @click="activeSettingsSection = section.id"
-        class="px-4 py-3 rounded-xl text-sm font-semibold text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-        :class="activeSettingsSection === section.id ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'">
+        class="px-4 py-3 rounded-xl text-sm font-semibold text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+        :class="activeSettingsSection === section.id ? 'bg-brand-600 text-white' : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'">
         {{ section.label }}
       </button>
     </nav>
@@ -45,7 +45,7 @@
             />
             <button
               @click="saveGasUrl"
-              class="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold transition-colors shrink-0"
+              class="px-4 py-2 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold transition-colors shrink-0"
             >
               บันทึก URL
             </button>
@@ -98,7 +98,7 @@
         <div
           v-for="plat in store.platforms"
           :key="plat.id"
-          class="p-3.5 rounded-xl border border-stone-100 bg-[#FAF9F6] flex items-center justify-between"
+          class="p-3.5 rounded-xl border border-stone-100 bg-[#FBF5EA] flex items-center justify-between"
         >
           <div class="flex items-center gap-2.5">
             <span class="text-2xl">{{ plat.icon }}</span>
@@ -165,7 +165,7 @@
       </div>
 
       <!-- Add New Category Inline Input -->
-      <div class="p-3.5 rounded-2xl bg-[#FAF9F6] border border-stone-200/60 flex flex-wrap items-center gap-2.5">
+      <div class="p-3.5 rounded-2xl bg-[#FBF5EA] border border-stone-200/60 flex flex-wrap items-center gap-2.5">
         <div class="flex items-center gap-2 flex-1 min-w-[240px]">
           <!-- Emoji button -->
           <button
@@ -229,7 +229,7 @@
 
         <button
           @click="addNewCategory"
-          class="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+          class="px-4 py-2 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
         >
           <Plus class="w-3.5 h-3.5" />
           <span>เพิ่มหมวดหมู่</span>
@@ -325,7 +325,7 @@
           <!-- Normal display mode -->
           <template v-else>
             <div class="flex items-center gap-2.5 min-w-0 flex-1">
-              <span class="w-8 h-8 rounded-lg bg-[#F5F4F0] flex items-center justify-center text-base shrink-0 select-none">
+              <span class="w-8 h-8 rounded-lg bg-[#F4EBDD] flex items-center justify-center text-base shrink-0 select-none">
                 {{ cat.icon || '🏷️' }}
               </span>
               <div class="min-w-0 flex-1">
@@ -393,7 +393,7 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Export Backup -->
-        <div class="p-4 rounded-xl border border-stone-100 bg-[#FAF9F6] flex flex-col justify-between space-y-3">
+        <div class="p-4 rounded-xl border border-stone-100 bg-[#FBF5EA] flex flex-col justify-between space-y-3">
           <div>
             <div class="font-bold text-xs text-stone-900 flex items-center gap-1.5">
               <Download class="w-4 h-4 text-stone-600" />
@@ -412,7 +412,7 @@
         </div>
 
         <!-- Import Backup -->
-        <div class="p-4 rounded-xl border border-stone-100 bg-[#FAF9F6] flex flex-col justify-between space-y-3">
+        <div class="p-4 rounded-xl border border-stone-100 bg-[#FBF5EA] flex flex-col justify-between space-y-3">
           <div>
             <div class="font-bold text-xs text-stone-900 flex items-center gap-1.5">
               <Upload class="w-4 h-4 text-stone-600" />

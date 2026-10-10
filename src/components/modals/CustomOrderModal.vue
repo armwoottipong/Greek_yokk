@@ -7,7 +7,7 @@
       <!-- Header -->
       <div class="p-6 border-b border-stone-100 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-3">
-          <span class="text-3xl p-2 rounded-2xl bg-[#FAF9F6] border border-stone-100">{{ selectedMenu.emoji }}</span>
+          <span class="text-3xl p-2 rounded-2xl bg-[#FBF5EA] border border-stone-100">{{ selectedMenu.emoji }}</span>
           <div>
             <h3 id="CustomOrderModal-title" class="text-base font-bold text-stone-900">{{ selectedMenu.name }}</h3>
             <p class="text-xs text-stone-400 mt-0.5">{{ selectedMenu.description }}</p>
@@ -20,7 +20,7 @@
 
       <!-- Add-ons Selection Body -->
       <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
-        <div v-if="!selectedMenu.hasAddons" class="py-6 text-center text-stone-400 bg-[#FAF9F6] rounded-xl italic">
+        <div v-if="!selectedMenu.hasAddons" class="py-6 text-center text-stone-400 bg-[#FBF5EA] rounded-xl italic">
           เมนูนี้ไม่อนุญาตให้เลือก Add-on เพิ่มเติม
         </div>
 
@@ -47,7 +47,7 @@
                     ? 'bg-purple-50/80 border-purple-300 text-purple-950 font-medium'
                     : isAddonOutOfStock(addon)
                     ? 'bg-amber-50/40 border-amber-200/80 text-stone-800'
-                    : 'bg-[#FAF9F6] border-stone-100 hover:border-stone-200 text-stone-800'
+                    : 'bg-[#FBF5EA] border-stone-100 hover:border-stone-200 text-stone-800'
                 ]"
               >
                 <div class="flex items-center gap-2 min-w-0">
@@ -84,7 +84,7 @@
       </div>
 
       <!-- Footer Summary & Add to Cart -->
-      <div class="p-6 bg-[#FAF9F6] border-t border-stone-200/80 flex items-center justify-between shrink-0">
+      <div class="p-6 bg-[#FBF5EA] border-t border-stone-200/80 flex items-center justify-between shrink-0">
         <div>
           <span class="text-[11px] text-stone-400 block">ราคารวมต่อชาม</span>
           <span class="text-xl font-bold font-number text-stone-900">฿{{ totalBowlPrice }}</span>
@@ -109,7 +109,7 @@
 
           <button
             @click="addToCart"
-            class="px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-2"
+            class="px-6 py-3 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-2"
           >
             <ShoppingBag class="w-4 h-4" />
             <span>เพิ่มลงตะกร้า (฿{{ totalBowlPrice * qty }})</span>

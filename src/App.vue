@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#FAF9F6] font-sans antialiased text-stone-900">
+  <div class="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#FBF5EA] font-sans antialiased text-stone-900">
     <!-- Sidebar Navigation -->
     <Sidebar />
 

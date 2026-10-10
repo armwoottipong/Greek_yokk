@@ -86,21 +86,21 @@ function apply(){emit('apply',{...draft.value,end:draft.value.end || draft.value
 </script>
 
 <style scoped>
-.filter-panel{position:fixed;display:flex;flex-direction:column;overflow:hidden;background:#fff;border:1px solid #d6ded9;border-radius:14px;box-shadow:0 12px 36px #1c302a20,0 2px 6px #1c302a0a;color:#292524;font-size:12px}
-.filter-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #edf0ee;flex-shrink:0}
-.filter-heading{display:flex;align-items:center;gap:9px;color:#16634d}.filter-heading h3{font-size:13px;font-weight:600;color:#292524}
-.filter-close{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;color:#78716c}.filter-close:hover{background:#f5f5f4}
-.filter-body{padding:14px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:#d6ded9 transparent}
+.filter-panel{position:fixed;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:14px;box-shadow:var(--shadow-popup);color:var(--text-main);font-size:12px}
+.filter-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border-subtle);flex-shrink:0}
+.filter-heading{display:flex;align-items:center;gap:9px;color:var(--accent-brand)}.filter-heading h3{font-size:13px;font-weight:600;color:var(--text-main)}
+.filter-close{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;color:var(--text-muted)}.filter-close:hover{background:var(--bg-soft)}
+.filter-body{padding:14px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border-subtle) transparent}
 .filter-config,.filter-dates{min-width:0}
 .filter-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:16px}.single-field{grid-template-columns:1fr}
-.filter-field>span{display:block;margin-bottom:6px;font-size:11px;font-weight:500;color:#57534e}
-.filter-date-heading{display:flex;align-items:center;gap:7px;font-weight:600;margin-bottom:9px;color:#57534e}
-.filter-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:12px}.filter-presets button{height:30px;border:1px solid #e5e9e6;border-radius:6px;color:#57534e;font-size:11px}.filter-presets button:hover{border-color:#86b6a2;background:#f3faf6}.filter-presets button[aria-pressed=true]{color:#16634d;background:#ecf7f0;border-color:#abd5bc;font-weight:600}
-.filter-range{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;margin-bottom:10px;border:1px solid #d6e8de;background:#f5faf7;border-radius:9px}.filter-range>div{flex:1;min-width:0}.filter-range>svg{color:#7b9b8b}.filter-range span{display:block;font-size:10px;color:#6b8175;margin-bottom:3px}.filter-range strong{display:block;font-weight:600;font-size:12px;color:#245840}
-.filter-footer{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:10px 12px;border-top:1px solid #edf0ee;flex-shrink:0;background:#fff}
-.filter-reset{display:flex;gap:5px;align-items:center;color:#78716c;font-size:11px;height:36px}.filter-reset:hover{color:#292524}
-.filter-actions{display:flex;gap:6px}.filter-cancel,.filter-apply{display:flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 10px;border-radius:7px;font-size:12px;font-weight:500}.filter-cancel{border:1px solid #e0e5e2;color:#57534e}.filter-cancel:hover{background:#fafaf9}.filter-apply{background:#16634d;border:1px solid #16634d;color:white}.filter-apply:hover{background:#104f3d}
-button:focus-visible,select:focus-visible{outline:2px solid #047857;outline-offset:2px}
+.filter-field>span{display:block;margin-bottom:6px;font-size:11px;font-weight:500;color:var(--text-muted)}
+.filter-date-heading{display:flex;align-items:center;gap:7px;font-weight:600;margin-bottom:9px;color:var(--text-muted)}
+.filter-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:12px}.filter-presets button{height:30px;border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-muted);font-size:11px}.filter-presets button:hover{border-color:var(--accent-border);background:var(--accent-soft)}.filter-presets button[aria-pressed=true]{color:var(--accent-brand);background:var(--accent-soft);border-color:var(--accent-border);font-weight:600}
+.filter-range{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;margin-bottom:10px;border:1px solid var(--accent-border);background:var(--accent-soft);border-radius:9px}.filter-range>div{flex:1;min-width:0}.filter-range>svg{color:var(--accent-brand)}.filter-range span{display:block;font-size:10px;color:var(--text-muted);margin-bottom:3px}.filter-range strong{display:block;font-weight:600;font-size:12px;color:var(--accent-brand)}
+.filter-footer{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:10px 12px;border-top:1px solid var(--border-subtle);flex-shrink:0;background:var(--bg-card)}
+.filter-reset{display:flex;gap:5px;align-items:center;color:var(--text-muted);font-size:11px;height:36px}.filter-reset:hover{color:var(--text-main)}
+.filter-actions{display:flex;gap:6px}.filter-cancel,.filter-apply{display:flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 10px;border-radius:7px;font-size:12px;font-weight:500}.filter-cancel{border:1px solid var(--border-subtle);color:var(--text-muted)}.filter-cancel:hover{background:var(--bg-primary)}.filter-apply{background:var(--accent-brand);border:1px solid var(--accent-brand);color:white}.filter-apply:hover{background:var(--accent-hover)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}
 @media(max-width:360px){.filter-body{padding:12px}.filter-footer{padding:9px}.filter-apply>svg{display:none}}
-@media(min-width:640px){.filter-body{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px}.filter-config{padding-right:16px;border-right:1px solid #edf0ee}.filter-fields{grid-template-columns:1fr;gap:14px;margin-bottom:24px}.filter-presets{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}}
+@media(min-width:640px){.filter-body{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px}.filter-config{padding-right:16px;border-right:1px solid var(--border-subtle)}.filter-fields{grid-template-columns:1fr;gap:14px;margin-bottom:24px}.filter-presets{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}}
 </style>

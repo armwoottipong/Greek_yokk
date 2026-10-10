@@ -18,7 +18,7 @@
             <button v-if="searchQuery" type="button" @click="searchQuery = ''" aria-label="ล้างข้อความค้นหา" class="absolute right-1 top-1 history-icon-button !h-8 !w-8"><X class="h-3.5 w-3.5" /></button>
           </div>
           <button ref="filterButton" type="button" @click="toggleFilterPopover" aria-controls="history-filters" aria-haspopup="dialog" :aria-expanded="showFilterPopover" class="history-button"
-            :class="hasActiveAdvancedFilter ? 'border-emerald-300 text-emerald-800 bg-emerald-50' : ''">
+            :class="hasActiveAdvancedFilter ? 'border-brand-300 text-brand-800 bg-brand-50' : ''">
             <SlidersHorizontal class="h-4 w-4" /><span>ตัวกรอง</span><span v-if="advancedFilterCount" class="text-xs">{{ advancedFilterCount }}</span><ChevronDown class="h-3.5 w-3.5" :class="showFilterPopover ? 'rotate-180' : ''" />
           </button>
         </div>
@@ -49,7 +49,7 @@
               <button type="button" @click="confirmClearLogs" :disabled="!(store.activityLogs || []).length" class="px-3 py-2 text-xs text-rose-700 hover:bg-rose-50 rounded-md disabled:opacity-40">ล้างประวัติทั้งหมด</button>
             </div>
           </details>
-          <button type="button" @click="close" class="history-button !bg-stone-900 !border-stone-900 !text-white hover:!bg-stone-800 px-5">ปิด</button>
+          <button type="button" @click="close" class="history-button !bg-brand-600 !border-brand-600 !text-white hover:!bg-stone-800 px-5">ปิด</button>
         </div>
       </footer>
     </section>
@@ -387,13 +387,13 @@ async function confirmClearLogs() {
 </script>
 
 <style scoped>
-.history-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; padding:0 12px; border:1px solid #e7e5e4; border-radius:8px; background:#fff; color:#57534e; font-size:12px; font-weight:500; }
-.history-button:hover { background:#fafaf9; color:#292524; }
+.history-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-card); color:var(--text-muted); font-size:12px; font-weight:500; }
+.history-button:hover { background:var(--bg-primary); color:var(--text-main); }
 .history-button:disabled { opacity:.4; cursor:not-allowed; }
-.history-icon-button { display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:8px; color:#78716c; flex-shrink:0; }
-.history-icon-button:hover { background:#f5f5f4; color:#292524; }
-.history-control { height:40px; border:1px solid #e7e5e4; border-radius:8px; background:white; font-size:12px; color:#292524; padding:0 12px; }
-.history-button:focus-visible,.history-icon-button:focus-visible,.history-control:focus-visible { outline:2px solid #047857; outline-offset:2px; }
+.history-icon-button { display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:8px; color:var(--text-muted); flex-shrink:0; }
+.history-icon-button:hover { background:var(--bg-soft); color:var(--text-main); }
+.history-control { height:40px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-card); font-size:12px; color:var(--text-main); padding:0 12px; }
+.history-button:focus-visible,.history-icon-button:focus-visible,.history-control:focus-visible { outline:2px solid var(--accent-brand); outline-offset:2px; }
 input.history-control.pl-9 { padding-left:36px; padding-right:36px; }
 .history-list { scrollbar-gutter:stable; }
 </style>

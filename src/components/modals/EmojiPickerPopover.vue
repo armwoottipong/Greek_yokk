@@ -29,7 +29,7 @@
           @click="activeCategory = cat"
           :class="[
             'px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors',
-            activeCategory === cat ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            activeCategory === cat ? 'bg-brand-600 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
           ]"
         >
           {{ cat }}

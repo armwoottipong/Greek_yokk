@@ -2,8 +2,8 @@
   <div class="space-y-4">
     <!-- Header with Search & Add Addon Button -->
     <div class="flex items-center justify-between flex-wrap gap-3">
-      <div class="flex items-center gap-2">
-        <div class="relative w-64">
+      <div class="flex items-center gap-2 w-full min-w-0 sm:w-auto">
+        <div class="relative flex-1 min-w-0 sm:flex-none sm:w-64">
           <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             v-model="searchQuery"
@@ -15,7 +15,7 @@
 
         <AppSelect aria-label="หมวดหมู่"
           v-model="selectedCategory"
-          class="w-44 shrink-0"
+          class="w-32 sm:w-44 shrink-0"
         >
           <option value="ทั้งหมด">ทุกหมวดหมู่ ({{ store.addons.length }})</option>
           <option
@@ -37,7 +37,7 @@
 
       <button
         @click="openAddAddon"
-        class="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5"
+        class="px-4 py-2 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5"
       >
         <Plus class="w-4 h-4" />
         <span>เพิ่ม Add-on ใหม่</span>
@@ -69,7 +69,7 @@
               class="hover:bg-stone-50/70 transition-colors"
             >
               <td class="py-3.5 px-4 font-semibold text-stone-900 flex items-center gap-2.5">
-                <span class="text-2xl p-1.5 rounded-xl bg-[#FAF9F6] border border-stone-100">{{ addon.emoji || '🍓' }}</span>
+                <span class="text-2xl p-1.5 rounded-xl bg-[#FBF5EA] border border-stone-100">{{ addon.emoji || '🍓' }}</span>
                 <span>{{ addon.name }}</span>
               </td>
 
@@ -84,7 +84,7 @@
                   <span
                     v-for="p in store.platforms"
                     :key="p.id"
-                    class="bg-[#F5F4F0] px-2 py-0.5 rounded-md text-stone-700 font-number font-medium"
+                    class="bg-[#F4EBDD] px-2 py-0.5 rounded-md text-stone-700 font-number font-medium"
                   >
                     {{ p.name.replace(/\s*\([^)]*\)/g, '') }}: ฿{{ addon.prices?.[p.id] !== undefined ? addon.prices[p.id] : '-' }}
                   </span>
