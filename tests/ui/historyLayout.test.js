@@ -1,9 +1,11 @@
-import {it,expect,vi} from 'vitest'
+import {it,expect,vi,beforeEach,afterEach} from 'vitest'
 import {reactive,nextTick} from 'vue'
 import {mount} from '@vue/test-utils'
 const state=vi.hoisted(()=>({store:null}))
 vi.mock('@/stores/posStore',()=>({usePosStore:()=>state.store,formatThaiDate:x=>x}))
 import Activity from '../../src/components/modals/ActivityLogModal.vue'
+beforeEach(()=>{vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-10-10T01:00:00Z'))})
+afterEach(()=>vi.useRealTimers())
 const log={id:'L',timestamp:'2026-10-10T00:00:00Z',module:'stock',action:'stock_in',title:'รับเข้าสต็อก',targetId:'M',targetName:'นมสด',delta:10,beforeStock:20,afterStock:30,unit:'ml',description:'รายละเอียดรับเข้า',note:'หมายเหตุยาวที่ต้องอ่านได้ครบ',reason:'ซื้อเพิ่ม',user:'ผู้ดูแล'}
 function open(mode={}){
  state.store=reactive({modals:{activityLog:{isOpen:true,...mode}},materials:[{id:'M',name:'นมสด',stock:30,unit:'ml'}],matMap:{},activityLogs:[log],closeActivityLog:vi.fn()})
@@ -28,16 +30,82 @@ it('shortens technical activity titles without losing the original record',async
   expect(row.text()).toContain('รับเข้าสต็อก (Stock In)')
   wrapper.unmount()
 })
-it('shows inline date filters with labels and keeps filtering/search/reset working',async()=>{
+it('applies a calendar range from a separate filter dialog and keeps search/reset working',async()=>{
  const wrapper=open()
  await wrapper.get('button[aria-controls="history-filters"]').trigger('click')
+ await nextTick()
  expect(wrapper.get('#history-filters').isVisible()).toBe(true)
- await wrapper.get('#history-date-from').setValue('2026-10-11')
+ expect(wrapper.get('#history-filters').attributes('role')).toBe('dialog')
+ await wrapper.get('button[aria-label="11 ตุลาคม 2569"]').trigger('click')
+ await wrapper.get('button[aria-label="12 ตุลาคม 2569"]').trigger('click')
+ expect(wrapper.vm.filteredLogs).toHaveLength(1)
+ await wrapper.get('[data-apply-filters]').trigger('click')
  expect(wrapper.vm.filteredLogs).toHaveLength(0)
  await wrapper.get('[aria-label="ล้างตัวกรองทั้งหมด"]').trigger('click')
  await wrapper.get('[aria-label="ค้นหาประวัติ"]').setValue('หมายเหตุยาว')
  expect(wrapper.vm.filteredLogs).toHaveLength(1)
  await wrapper.get('[aria-label="ล้างข้อความค้นหา"]').trigger('click')
  expect(wrapper.vm.searchQuery).toBe('')
+ wrapper.unmount()
+})
+it('cancels draft changes and Escape returns focus to the filter opener',async()=>{
+ const wrapper=open()
+ await nextTick()
+ const opener=wrapper.get('button[aria-controls="history-filters"]')
+ opener.element.focus()
+ await opener.trigger('click'); await nextTick()
+ await wrapper.get('button[aria-label="12 ตุลาคม 2569"]').trigger('click')
+ await wrapper.get('#history-filters').trigger('keydown',{key:'Escape'})
+ expect(wrapper.vm.filterStartDate).toBe(null)
+ expect(document.activeElement).toBe(opener.element)
+ expect(state.store.closeActivityLog).not.toHaveBeenCalled()
+ wrapper.unmount()
+})
+it('supports a range across months and preserves applied values when reopening',async()=>{
+ const wrapper=open({module:'stock'})
+ await wrapper.get('button[aria-controls="history-filters"]').trigger('click'); await nextTick()
+ await wrapper.get('button[aria-label="30 ตุลาคม 2569"]').trigger('click')
+ await wrapper.get('button[aria-label="เดือนถัดไป"]').trigger('click')
+ await wrapper.get('button[aria-label="2 พฤศจิกายน 2569"]').trigger('click')
+ await wrapper.get('[data-apply-filters]').trigger('click')
+ expect(wrapper.vm.filterStartDate).toBe('2026-10-30')
+ expect(wrapper.vm.filterEndDate).toBe('2026-11-02')
+ await wrapper.get('button[aria-controls="history-filters"]').trigger('click'); await nextTick()
+ expect(wrapper.get('button[aria-label="30 ตุลาคม 2569"]').attributes('aria-pressed')).toBe('true')
+ const clear=wrapper.findAll('#history-filters button').find(x=>x.text()==='ล้างตัวกรอง')
+ await clear.trigger('click')
+ expect(wrapper.vm.filterStartDate).toBe('2026-10-30')
+ await wrapper.get('[data-apply-filters]').trigger('click')
+ expect(wrapper.vm.filterStartDate).toBe(null)
+ expect(wrapper.vm.filteredLogs).toHaveLength(1)
+ wrapper.unmount()
+})
+it('normalizes a reversed range and includes both boundary days',async()=>{
+ const wrapper=open()
+ state.store.activityLogs=[
+  {...log,id:'before',timestamp:'2026-10-09T16:59:59Z'},
+  {...log,id:'start',timestamp:'2026-10-09T17:00:00Z'},
+  {...log,id:'end',timestamp:'2026-10-12T16:59:59Z'},
+  {...log,id:'after',timestamp:'2026-10-12T17:00:00Z'}
+ ]
+ await wrapper.get('button[aria-controls="history-filters"]').trigger('click'); await nextTick()
+ await wrapper.get('button[aria-label="12 ตุลาคม 2569"]').trigger('click')
+ await wrapper.get('button[aria-label="10 ตุลาคม 2569"]').trigger('click')
+ await wrapper.get('[data-apply-filters]').trigger('click')
+ expect(wrapper.vm.filterStartDate).toBe('2026-10-10')
+ expect(wrapper.vm.filterEndDate).toBe('2026-10-12')
+ expect(wrapper.vm.filteredLogs.map(x=>x.id)).toEqual(['start','end'])
+ wrapper.unmount()
+})
+it('treats one selected date as one day and applies the activity type only on confirmation',async()=>{
+ const wrapper=open({targetMaterialId:'M'})
+ await wrapper.get('button[aria-controls="history-filters"]').trigger('click'); await nextTick()
+ await wrapper.get('button[aria-label="10 ตุลาคม 2569"]').trigger('click')
+ await wrapper.get('[aria-label="ประเภทกิจกรรม"]').setValue('adjust')
+ expect(wrapper.vm.filteredLogs).toHaveLength(1)
+ await wrapper.get('[data-apply-filters]').trigger('click')
+ expect(wrapper.vm.filterStartDate).toBe('2026-10-10')
+ expect(wrapper.vm.filterEndDate).toBe('2026-10-10')
+ expect(wrapper.vm.filteredLogs).toHaveLength(0)
  wrapper.unmount()
 })

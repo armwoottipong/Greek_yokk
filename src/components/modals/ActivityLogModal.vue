@@ -12,32 +12,15 @@
 
       <div class="px-4 py-3 sm:px-5 border-b border-stone-100 shrink-0 space-y-3">
         <div class="flex flex-wrap gap-2">
-          <div class="relative basis-full sm:basis-auto sm:flex-1 min-w-0">
+          <div class="relative flex-1 min-w-0">
             <Search class="absolute left-3 top-3 h-4 w-4 text-stone-400 pointer-events-none" />
             <input v-model="searchQuery" aria-label="ค้นหาประวัติ" placeholder="ค้นหารายการหรือหมายเหตุ" class="history-control pl-9 pr-9 w-full" />
             <button v-if="searchQuery" type="button" @click="searchQuery = ''" aria-label="ล้างข้อความค้นหา" class="absolute right-1 top-1 history-icon-button !h-8 !w-8"><X class="h-3.5 w-3.5" /></button>
           </div>
-          <select v-model="selectedActionFilter" aria-label="ประเภทกิจกรรม" class="history-control flex-1 sm:flex-none sm:w-40 min-w-[140px]">
-            <option v-for="action in availableActionOptions" :key="action.id" :value="action.id">{{ action.label }}</option>
-          </select>
-          <button type="button" @click="toggleFilterPopover" aria-controls="history-filters" :aria-expanded="showFilterPopover" class="history-button"
+          <button type="button" @click="toggleFilterPopover" aria-controls="history-filters" aria-haspopup="dialog" :aria-expanded="showFilterPopover" class="history-button"
             :class="hasActiveAdvancedFilter ? 'border-emerald-300 text-emerald-800 bg-emerald-50' : ''">
             <SlidersHorizontal class="h-4 w-4" /><span>ตัวกรอง</span><span v-if="advancedFilterCount" class="text-xs">{{ advancedFilterCount }}</span>
           </button>
-        </div>
-        <div v-if="showFilterPopover" id="history-filters" class="rounded-xl bg-stone-50 p-3 grid grid-cols-2 gap-3">
-          <label v-if="isGlobalMode" class="col-span-2 text-xs text-stone-600">หมวดกิจกรรม
-            <select v-model="activeModule" class="history-control mt-1 w-full"><option v-for="module in moduleOptions" :key="module.id" :value="module.id">{{ module.label }}</option></select>
-          </label>
-          <label v-if="isStockMode" class="col-span-2 text-xs text-stone-600">วัตถุดิบ
-            <select v-model="selectedMaterialId" class="history-control mt-1 w-full"><option value="all">ทุกวัตถุดิบ</option><option v-for="material in store.materials" :key="material.id" :value="material.id">{{ material.name }}</option></select>
-          </label>
-          <label for="history-date-from" class="text-xs text-stone-600 min-w-0">ตั้งแต่วันที่
-            <input id="history-date-from" type="date" :value="filterStartDate || ''" @input="filterStartDate = $event.target.value || null" :max="filterEndDate || undefined" class="history-control mt-1 w-full min-w-0" />
-          </label>
-          <label for="history-date-to" class="text-xs text-stone-600 min-w-0">ถึงวันที่
-            <input id="history-date-to" type="date" :value="filterEndDate || ''" @input="filterEndDate = $event.target.value || null" :min="filterStartDate || undefined" class="history-control mt-1 w-full min-w-0" />
-          </label>
         </div>
         <div class="flex items-center justify-between gap-2 text-xs">
           <p class="text-stone-500" aria-live="polite">{{ filteredLogs.length }} รายการ<span v-if="filterStartDate || filterEndDate"> · {{ formatDateRangeLabel(filterStartDate, filterEndDate) }}</span></p>
@@ -71,6 +54,39 @@
       </footer>
     </section>
   </ModalShell>
+  <ModalShell id="history-filters" labelled-by="history-filter-title" :open="showFilterPopover && store.modals.activityLog?.isOpen"
+    class="fixed inset-0 z-[60] flex items-center justify-center p-3 bg-stone-900/40" @request-close="showFilterPopover = false">
+    <section class="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[92dvh] flex flex-col overflow-hidden">
+      <header class="flex items-center justify-between px-4 py-3 border-b border-stone-100 shrink-0">
+        <h3 id="history-filter-title" class="text-sm font-semibold text-stone-900">ตัวกรองประวัติ</h3>
+        <button type="button" class="history-icon-button" aria-label="ปิดตัวกรอง" @click="showFilterPopover = false"><X class="h-4 w-4" /></button>
+      </header>
+      <div class="p-4 space-y-4 overflow-y-auto min-h-0">
+        <div class="grid grid-cols-2 gap-3">
+          <label class="text-xs text-stone-600" :class="isItemMode ? 'col-span-2' : ''">ประเภทกิจกรรม
+            <select v-model="draft.action" aria-label="ประเภทกิจกรรม" class="history-control mt-1 w-full"><option v-for="action in availableActionOptions" :key="action.id" :value="action.id">{{ action.label }}</option></select>
+          </label>
+          <label v-if="isGlobalMode" class="text-xs text-stone-600">หมวดกิจกรรม
+            <select v-model="draft.module" class="history-control mt-1 w-full"><option v-for="module in moduleOptions" :key="module.id" :value="module.id">{{ module.label }}</option></select>
+          </label>
+          <label v-if="isStockMode" class="text-xs text-stone-600">วัตถุดิบ
+            <select v-model="draft.material" class="history-control mt-1 w-full"><option value="all">ทุกวัตถุดิบ</option><option v-for="material in store.materials" :key="material.id" :value="material.id">{{ material.name }}</option></select>
+          </label>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-stone-700 mb-2">ช่วงวันที่</p>
+          <DateRangeCalendar v-model:start-date="draft.start" v-model:end-date="draft.end" />
+        </div>
+      </div>
+      <footer class="border-t border-stone-100 p-3 flex items-center justify-between gap-2 shrink-0">
+        <button type="button" class="history-button" @click="clearDraft">ล้างตัวกรอง</button>
+        <div class="flex gap-2">
+          <button type="button" class="history-button" @click="showFilterPopover = false">ยกเลิก</button>
+          <button type="button" data-apply-filters class="history-button !bg-stone-900 !border-stone-900 !text-white" @click="applyFilters">ใช้ตัวกรอง</button>
+        </div>
+      </footer>
+    </section>
+  </ModalShell>
 </template>
 
 <script setup>
@@ -80,6 +96,7 @@ import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore, formatThaiDate } from '@/stores/posStore'
 import HistoryLogEntry from '@/components/ui/HistoryLogEntry.vue'
+import DateRangeCalendar from '@/components/ui/DateRangeCalendar.vue'
 import {
   X,
   Search,
@@ -91,10 +108,23 @@ const store = usePosStore()
 
 // Popover state
 const showFilterPopover = ref(false)
+const draft = ref({action:'all', module:'all', material:'all', start:null, end:null})
 
 
 function toggleFilterPopover() {
-  showFilterPopover.value = !showFilterPopover.value
+  draft.value = {action:selectedActionFilter.value, module:activeModule.value, material:selectedMaterialId.value, start:filterStartDate.value, end:filterEndDate.value}
+  showFilterPopover.value = true
+}
+function clearDraft() {
+  draft.value = {action:'all', module:'all', material:'all', start:null, end:null}
+}
+function applyFilters() {
+  selectedActionFilter.value = draft.value.action
+  activeModule.value = draft.value.module
+  selectedMaterialId.value = draft.value.material
+  filterStartDate.value = draft.value.start
+  filterEndDate.value = draft.value.end || draft.value.start
+  showFilterPopover.value = false
 }
 
 
@@ -189,6 +219,7 @@ function close() {
 
 // Advanced Filter Checks (for the Popover button badge)
 const hasActiveAdvancedFilter = computed(() => {
+  if (selectedActionFilter.value !== 'all') return true
   if (isGlobalMode.value && activeModule.value !== 'all') return true
   if (isStockMode.value && selectedMaterialId.value !== 'all') return true
   if (filterStartDate.value !== null || filterEndDate.value !== null) return true
@@ -197,6 +228,7 @@ const hasActiveAdvancedFilter = computed(() => {
 
 const advancedFilterCount = computed(() => {
   let count = 0
+  if (selectedActionFilter.value !== 'all') count++
   if (isGlobalMode.value && activeModule.value !== 'all') count++
   if (isStockMode.value && selectedMaterialId.value !== 'all') count++
   if (filterStartDate.value !== null || filterEndDate.value !== null) count++

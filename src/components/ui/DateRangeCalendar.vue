@@ -6,7 +6,7 @@
         type="button"
         @click="prevMonth"
         class="w-7 h-7 rounded-lg hover:bg-stone-200/70 text-stone-600 hover:text-stone-900 transition-colors flex items-center justify-center cursor-pointer"
-        title="เดือนก่อนหน้า"
+        aria-label="เดือนก่อนหน้า"
       >
         <ChevronLeft class="w-4 h-4" />
       </button>
@@ -20,7 +20,7 @@
         type="button"
         @click="nextMonth"
         class="w-7 h-7 rounded-lg hover:bg-stone-200/70 text-stone-600 hover:text-stone-900 transition-colors flex items-center justify-center cursor-pointer"
-        title="เดือนถัดไป"
+        aria-label="เดือนถัดไป"
       >
         <ChevronRight class="w-4 h-4" />
       </button>
@@ -42,8 +42,10 @@
         <button
           type="button"
           @click="onDayClick(cell.dateString)"
+          :aria-label="formatDateLabel(cell.dateString)"
+          :aria-pressed="isSelected(cell.dateString)"
           :disabled="!cell.isCurrentMonth"
-          class="w-full h-7 rounded-lg flex items-center justify-center font-number font-medium text-xs transition-all cursor-pointer relative"
+          class="w-full h-9 rounded-lg flex items-center justify-center font-number font-medium text-xs transition-colors cursor-pointer relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 focus-visible:outline-offset-1"
           :class="[
             getDayButtonClass(cell.dateString, cell.isCurrentMonth, cell.isToday)
           ]"
@@ -58,10 +60,10 @@
     </div>
 
     <!-- Footer Range Preview -->
-    <div class="mt-2.5 pt-2 border-t border-stone-200/60 flex items-center justify-between text-[11px] text-stone-600">
-      <div class="flex items-center gap-1.5 truncate">
+    <div class="mt-2.5 pt-2 border-t border-stone-200/60 flex items-center justify-between gap-2 text-[11px] text-stone-600">
+      <div class="flex items-center gap-1.5 min-w-0" aria-live="polite">
         <Calendar class="w-3.5 h-3.5 text-stone-400 shrink-0" />
-        <span class="font-medium truncate text-stone-700">
+        <span class="font-medium text-stone-700">
           {{ formatRangeDisplay() }}
         </span>
       </div>
@@ -79,7 +81,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { businessDateKey } from '@/domain/businessDate'
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -101,9 +104,15 @@ const monthNames = [
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
 ]
 
-const today = new Date()
+const today = new Date(`${businessDateKey()}T12:00:00`)
 const currentYear = ref(today.getFullYear())
 const currentMonth = ref(today.getMonth())
+watch(() => props.startDate, value => {
+  if (!value) return
+  const [year, month] = value.split('-').map(Number)
+  currentYear.value = year
+  currentMonth.value = month - 1
+}, {immediate:true})
 
 function prevMonth() {
   if (currentMonth.value === 0) {
