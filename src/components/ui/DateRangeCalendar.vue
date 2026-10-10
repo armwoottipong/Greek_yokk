@@ -1,11 +1,11 @@
 <template>
-  <div class="select-none bg-stone-50/70 rounded-2xl border border-stone-200/80 p-3">
+  <div class="select-none rounded-lg border border-stone-100 p-2">
     <!-- Calendar Header: Month & Year Navigator -->
     <div class="flex items-center justify-between mb-2 px-0.5">
       <button
         type="button"
         @click="prevMonth"
-        class="w-7 h-7 rounded-lg hover:bg-stone-200/70 text-stone-600 hover:text-stone-900 transition-colors flex items-center justify-center cursor-pointer"
+        class="w-8 h-8 rounded-md hover:bg-emerald-50 text-stone-600 hover:text-emerald-800 transition-colors flex items-center justify-center cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
         aria-label="เดือนก่อนหน้า"
       >
         <ChevronLeft class="w-4 h-4" />
@@ -19,7 +19,7 @@
       <button
         type="button"
         @click="nextMonth"
-        class="w-7 h-7 rounded-lg hover:bg-stone-200/70 text-stone-600 hover:text-stone-900 transition-colors flex items-center justify-center cursor-pointer"
+        class="w-8 h-8 rounded-md hover:bg-emerald-50 text-stone-600 hover:text-emerald-800 transition-colors flex items-center justify-center cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
         aria-label="เดือนถัดไป"
       >
         <ChevronRight class="w-4 h-4" />
@@ -53,14 +53,14 @@
           <span>{{ cell.day }}</span>
           <span
             v-if="cell.isToday && !isSelected(cell.dateString)"
-            class="w-1 h-1 rounded-full bg-amber-600 absolute bottom-0.5"
+            class="w-1 h-1 rounded-full bg-emerald-600 absolute bottom-0.5"
           ></span>
         </button>
       </div>
     </div>
 
     <!-- Footer Range Preview -->
-    <div class="mt-2.5 pt-2 border-t border-stone-200/60 flex items-center justify-between gap-2 text-[11px] text-stone-600">
+    <div v-if="showPreview" class="mt-2.5 pt-2 border-t border-stone-200/60 flex items-center justify-between gap-2 text-[11px] text-stone-600">
       <div class="flex items-center gap-1.5 min-w-0" aria-live="polite">
         <Calendar class="w-3.5 h-3.5 text-stone-400 shrink-0" />
         <span class="font-medium text-stone-700">
@@ -86,6 +86,7 @@ import { businessDateKey } from '@/domain/businessDate'
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-vue-next'
 
 const props = defineProps({
+  showPreview: {type:Boolean,default:true},
   startDate: {
     type: String,
     default: null
@@ -223,13 +224,13 @@ function isInRange(dateStr) {
 function getRangeBackgroundClass(dateStr) {
   if (!props.startDate || !props.endDate) return ''
   if (isInRange(dateStr)) {
-    return 'bg-amber-100/70 text-amber-950'
+    return 'bg-emerald-50 text-emerald-900'
   }
   if (dateStr === props.startDate && props.endDate) {
-    return 'bg-amber-100/70 rounded-l-lg'
+    return 'bg-emerald-50 rounded-l-lg'
   }
   if (dateStr === props.endDate && props.startDate) {
-    return 'bg-amber-100/70 rounded-r-lg'
+    return 'bg-emerald-50 rounded-r-lg'
   }
   return ''
 }
@@ -243,15 +244,15 @@ function getDayButtonClass(dateStr, isCurrentMonth, isToday) {
   const isEnd = dateStr === props.endDate
 
   if (isStart || isEnd) {
-    return 'bg-stone-900 text-white font-bold shadow-xs'
+    return 'bg-emerald-800 text-white font-semibold'
   }
 
   if (isInRange(dateStr)) {
-    return 'text-amber-950 font-bold hover:bg-amber-200/60'
+    return 'text-emerald-900 font-medium hover:bg-emerald-100'
   }
 
   if (isToday) {
-    return 'bg-amber-50 text-amber-900 font-bold hover:bg-amber-100'
+    return 'text-emerald-800 font-semibold hover:bg-emerald-50'
   }
 
   return 'text-stone-700 hover:bg-stone-200/70'

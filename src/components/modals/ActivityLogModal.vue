@@ -54,49 +54,17 @@
       </footer>
     </section>
   </ModalShell>
-  <ModalShell id="history-filters" labelled-by="history-filter-title" :open="showFilterPopover && store.modals.activityLog?.isOpen"
-    class="fixed inset-0 z-[60]" @request-close="showFilterPopover = false">
-    <section data-filter-dropdown :style="dropdownStyle" class="fixed bg-white rounded-xl border border-stone-200 shadow-xl flex flex-col overflow-hidden">
-      <header class="flex items-center justify-between px-3 py-1.5 border-b border-stone-100 shrink-0">
-        <h3 id="history-filter-title" class="text-sm font-semibold text-stone-900">ตัวกรองประวัติ</h3>
-        <button type="button" class="history-icon-button" aria-label="ปิดตัวกรอง" @click="showFilterPopover = false"><X class="h-4 w-4" /></button>
-      </header>
-      <div class="p-3 space-y-2 overflow-y-auto min-h-0">
-        <div class="grid grid-cols-2 gap-3">
-          <label class="text-xs text-stone-600" :class="isItemMode ? 'col-span-2' : ''">ประเภทกิจกรรม
-            <select v-model="draft.action" aria-label="ประเภทกิจกรรม" class="history-control mt-1 w-full"><option v-for="action in availableActionOptions" :key="action.id" :value="action.id">{{ action.label }}</option></select>
-          </label>
-          <label v-if="isGlobalMode" class="text-xs text-stone-600">หมวดกิจกรรม
-            <select v-model="draft.module" class="history-control mt-1 w-full"><option v-for="module in moduleOptions" :key="module.id" :value="module.id">{{ module.label }}</option></select>
-          </label>
-          <label v-if="isStockMode" class="text-xs text-stone-600">วัตถุดิบ
-            <select v-model="draft.material" class="history-control mt-1 w-full"><option value="all">ทุกวัตถุดิบ</option><option v-for="material in store.materials" :key="material.id" :value="material.id">{{ material.name }}</option></select>
-          </label>
-        </div>
-        <div>
-          <p class="text-xs font-medium text-stone-700 mb-2">ช่วงวันที่</p>
-          <DateRangeCalendar v-model:start-date="draft.start" v-model:end-date="draft.end" />
-        </div>
-      </div>
-      <footer class="border-t border-stone-100 p-2 flex items-center justify-between gap-2 shrink-0">
-        <button type="button" class="history-button" @click="clearDraft">ล้างตัวกรอง</button>
-        <div class="flex gap-2">
-          <button type="button" class="history-button" @click="showFilterPopover = false">ยกเลิก</button>
-          <button type="button" data-apply-filters class="history-button !bg-stone-900 !border-stone-900 !text-white" @click="applyFilters">ใช้ตัวกรอง</button>
-        </div>
-      </footer>
-    </section>
-  </ModalShell>
+  <FilterDropdown id="history-filters" title="ตัวกรองประวัติ" :open="showFilterPopover && store.modals.activityLog?.isOpen" :anchor="filterButton" :values="filterValues" :fields="filterFields" @close="showFilterPopover = false" @apply="applyFilters" />
 </template>
 
 <script setup>
 import { businessDateKey } from '@/domain/businessDate'
 import { csvField } from '@/domain/csv'
 import ModalShell from '@/components/ui/ModalShell.vue'
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { usePosStore, formatThaiDate } from '@/stores/posStore'
 import HistoryLogEntry from '@/components/ui/HistoryLogEntry.vue'
-import DateRangeCalendar from '@/components/ui/DateRangeCalendar.vue'
+import FilterDropdown from '@/components/ui/FilterDropdown.vue'
 import {
   X,
   Search,
@@ -109,48 +77,21 @@ const store = usePosStore()
 // Popover state
 const showFilterPopover = ref(false)
 const filterButton = ref(null)
-const dropdownStyle = ref({})
-const draft = ref({action:'all', module:'all', material:'all', start:null, end:null})
-function positionDropdown() {
-  if (!filterButton.value) return
-  const anchor = filterButton.value.getBoundingClientRect()
-  const margin = 8
-  const width = Math.min(360, window.innerWidth - margin * 2)
-  const below = window.innerHeight - anchor.bottom - margin * 2
-  const above = anchor.top - margin * 2
-  const useAbove = below < 240 && above > below
-  const height = Math.min(560, Math.max(120, useAbove ? above : below))
-  dropdownStyle.value = {
-    left:`${Math.max(margin, Math.min(anchor.right - width, window.innerWidth - width - margin))}px`,
-    top:`${useAbove ? Math.max(margin, anchor.top - height - margin) : anchor.bottom + margin}px`,
-    width:`${width}px`, maxHeight:`${height}px`
-  }
-}
-watch(showFilterPopover, open => {
-  if (open) window.addEventListener('resize', positionDropdown)
-  else window.removeEventListener('resize', positionDropdown)
+const filterValues = computed(() => ({action:selectedActionFilter.value,module:activeModule.value,material:selectedMaterialId.value,start:filterStartDate.value,end:filterEndDate.value}))
+const filterFields = computed(() => {
+  const fields = [{key:'action',label:'ประเภทกิจกรรม',options:availableActionOptions.value}]
+  if(isGlobalMode.value) fields.push({key:'module',label:'หมวดกิจกรรม',options:moduleOptions})
+  if(isStockMode.value) fields.push({key:'material',label:'วัตถุดิบ',options:[{id:'all',label:'ทุกวัตถุดิบ'},...store.materials.map(material=>({id:material.id,label:material.name}))]})
+  return fields
 })
-onUnmounted(() => window.removeEventListener('resize', positionDropdown))
-
-function toggleFilterPopover() {
-  positionDropdown()
-  draft.value = {action:selectedActionFilter.value, module:activeModule.value, material:selectedMaterialId.value, start:filterStartDate.value, end:filterEndDate.value}
-  showFilterPopover.value = true
+function toggleFilterPopover() { showFilterPopover.value = true }
+function applyFilters(values) {
+  selectedActionFilter.value = values.action
+  activeModule.value = values.module
+  selectedMaterialId.value = values.material
+  filterStartDate.value = values.start
+  filterEndDate.value = values.end
 }
-function clearDraft() {
-  draft.value = {action:'all', module:'all', material:'all', start:null, end:null}
-}
-function applyFilters() {
-  selectedActionFilter.value = draft.value.action
-  activeModule.value = draft.value.module
-  selectedMaterialId.value = draft.value.material
-  filterStartDate.value = draft.value.start
-  filterEndDate.value = draft.value.end || draft.value.start
-  showFilterPopover.value = false
-}
-
-
-
 // Filter States
 const searchQuery = ref('')
 const activeModule = ref('all') // 'all' | 'stock' | 'pos' | 'menu' | 'system'
