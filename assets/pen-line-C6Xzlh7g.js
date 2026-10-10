@@ -1,4 +1,4 @@
-import{k as e}from"./index-Deate_IR.js";/**
+import{k as e}from"./index-CYqL-zDD.js";/**
  * @license lucide-vue-next v0.477.0 - ISC
  *
  * This source code is licensed under the ISC license.
