@@ -1,263 +1,81 @@
 <template>
   <ModalShell labelled-by="StocktakeModal-title" @request-close="close" :open="store.modals.stocktake?.isOpen"
-    class="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-  >
-    <div
-      class="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-4xl w-full h-[90vh] max-h-[820px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
-      @click.stop
-    >
-      <!-- 1. Header Bar -->
-      <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/70 shrink-0">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-amber-100/80 text-amber-900 flex items-center justify-center text-xl shrink-0 shadow-2xs">
-            📋
-          </div>
-          <div>
-            <h3 id="StocktakeModal-title" class="text-sm font-bold text-stone-900 flex items-center gap-2">
-              <span>ตรวจนับสต็อกปิดร้าน (Stocktake Sheet)</span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold">
-                {{ activeMaterials.length }} รายการ
-              </span>
-            </h3>
-            <p class="text-[11px] text-stone-500">
-              กรอกยอดจริงที่นับได้ ระบบคำนวณผลต่าง (ดิฟ) และจัดสรรล็อต FIFO ให้อัตโนมัติ
-            </p>
-          </div>
+    class="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-5 bg-stone-900/60">
+    <section class="stocktake-sheet" @click.stop>
+      <header class="stocktake-header">
+        <div class="stocktake-heading">
+          <span class="stocktake-icon"><ClipboardCheck :size="21" aria-hidden="true" /></span>
+          <div><h3 id="StocktakeModal-title">ตรวจนับสต็อกปิดร้าน</h3><p>กรอกยอดจริง แล้วตรวจผลต่างก่อนบันทึก</p></div>
         </div>
+        <button type="button" @click="close" class="stocktake-close" aria-label="ปิดหน้าต่าง"><X :size="19" /></button>
+      </header>
 
-        <button
-          type="button"
-          @click="close"
-          class="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-xl transition-colors cursor-pointer"
-         aria-label="ปิดหน้าต่าง">
-          <X class="w-5 h-5" />
-        </button>
-      </div>
-
-      <!-- 2. Controls & Filter Bar -->
-      <div class="px-6 py-3 border-b border-stone-100 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0">
-        <!-- Category Filters -->
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full text-xs">
-          <button
-            type="button"
-            v-for="cat in categories"
-            :key="cat"
-            @click="selectedCategory = cat"
-            class="px-2.5 py-1.5 rounded-xl font-medium whitespace-nowrap transition-all cursor-pointer"
-            :class="selectedCategory === cat ? 'bg-brand-600 text-white font-semibold shadow-2xs' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'"
-          >
-            {{ cat === 'all' ? 'ทั้งหมด' : cat }}
-          </button>
+      <div class="stocktake-toolbar">
+        <div class="stocktake-controls">
+          <div class="stocktake-search"><Search :size="16" aria-hidden="true" /><input v-model="searchQuery" type="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาวัตถุดิบหรือหมวดหมู่" /></div>
+          <AppSelect v-model="selectedCategory" aria-label="หมวดหมู่ตรวจนับ" class="stocktake-category"><option v-for="cat in categories" :key="cat" :value="cat">{{ cat === 'all' ? 'ทุกหมวดหมู่' : cat }}</option></AppSelect>
+          <label class="stocktake-diff-filter"><input v-model="onlyDifferences" type="checkbox" aria-label="เฉพาะยอดต่าง" />เฉพาะยอดต่าง</label>
         </div>
-
-        <!-- Search & Quick Action -->
-        <div class="flex items-center gap-2.5 ml-auto">
-          <div class="relative w-44 sm:w-56">
-            <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="ค้นหาวัตถุดิบ..."
-              class="soft-input w-full pl-8 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium"
-            />
-          </div>
-
-          <button
-            type="button"
-            @click="matchAllSystemStock"
-            class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
-            title="ตั้งค่ายอดนับจริงของทุกรายการเท่ากับยอดในระบบ เพื่อความสะดวกรวดเร็วในการนับเฉพาะตัวที่ดิฟ"
-          >
-            <CheckCheck class="w-3.5 h-3.5 text-amber-800" />
-            <span>ยอดเท่าเดิมทั้งหมด</span>
-          </button>
+        <div class="stocktake-list-meta">
+          <p>{{ filteredMaterials.length }} จาก {{ activeMaterials.length }} รายการ <span class="stocktake-keyboard-hint">· กด <kbd>Enter</kbd> เพื่อไปช่องถัดไป</span></p>
+          <button type="button" @click="matchAllSystemStock" class="stocktake-reset-all" :disabled="varianceStats.changedCount === 0" title="คืนยอดนับจริงทุกรายการให้เท่ากับยอดระบบ"><RotateCcw :size="13" aria-hidden="true" />คืนยอดทั้งหมด</button>
         </div>
       </div>
 
-      <!-- 3. Counting Table (Scrollable Body) -->
-      <div class="flex-1 overflow-y-auto px-6 py-4">
-        <div class="border border-stone-200/80 rounded-2xl overflow-hidden shadow-2xs bg-white">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-stone-50 border-b border-stone-200/80 text-[11px] font-semibold text-stone-600 sticky top-0 z-10">
-              <tr>
-                <th class="py-3 px-4">วัตถุดิบ</th>
-                <th class="py-3 px-3 text-center">ยอดในระบบ</th>
-                <th class="py-3 px-4 text-center w-56">ยอดนับจริง</th>
-                <th class="py-3 px-3 text-right">ผลต่าง (Variance)</th>
-                <th class="py-3 px-4 text-right">มูลค่ากระทบ</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-stone-100">
-              <tr
-                v-for="mat in filteredMaterials"
-                :key="mat.id"
-                class="hover:bg-[#FBF5EA] transition-colors"
-                :class="getVariance(mat.id) !== 0 ? 'bg-amber-50/20' : ''"
-              >
-                <!-- Material Info -->
-                <td class="py-3 px-4">
-                  <div class="flex items-center gap-2.5 min-w-0">
-                    <span class="text-xl shrink-0">{{ mat.emoji }}</span>
-                    <div class="min-w-0">
-                      <div class="font-bold text-stone-900 truncate">{{ mat.name }}</div>
-                      <div class="text-[10px] text-stone-400 font-number truncate">
-                        {{ mat.category }} • ต้นทุน ~฿{{ (mat.unitCost || 0).toFixed(2) }}/{{ mat.unit }}
-                        <span v-if="mat.packUnit && mat.packSize > 1"> (1 {{ mat.packUnit }} = {{ mat.packSize }} {{ mat.unit }})</span>
-                      </div>
-                    </div>
+      <div class="stocktake-body">
+        <table class="stocktake-table">
+          <thead><tr><th>วัตถุดิบ</th><th>ยอดในระบบ</th><th>ยอดนับจริง</th><th class="stocktake-variance-heading">ผลต่าง</th></tr></thead>
+          <tbody>
+            <tr v-for="mat in filteredMaterials" :key="mat.id" :class="{'stocktake-row-changed':getVariance(mat.id) !== 0}">
+              <td class="stocktake-material">
+                <div class="stocktake-material-info"><span class="stocktake-emoji" aria-hidden="true">{{ mat.emoji || '📦' }}</span><div><strong>{{ mat.name }}</strong><small>{{ mat.category || 'ไม่ระบุหมวดหมู่' }}</small></div></div>
+              </td>
+              <td class="stocktake-expected"><span class="stocktake-mobile-label">ยอดในระบบ</span><strong>{{ (mat.stock || 0).toLocaleString() }} <span>{{ mat.unit }}</span></strong><small v-if="mat.packUnit && mat.packSize > 1">≈ {{ ((mat.stock || 0) / mat.packSize).toLocaleString(undefined,{maximumFractionDigits:2}) }} {{ mat.packUnit }}</small></td>
+              <td class="stocktake-count">
+                <span class="stocktake-mobile-label">ยอดนับจริง</span>
+                <div class="stocktake-count-control">
+                  <input data-count-input type="number" inputmode="decimal" step="any" min="0" :aria-label="`ยอดนับจริง ${mat.name}`" :aria-describedby="mat.packUnit && mat.packSize > 1 ? `stocktake-unit-${mat.id}` : undefined"
+                    :value="counts[mat.id].value" @focus="editingMaterialId = mat.id" @blur="editingMaterialId = null" @input="setCountValue(mat.id,$event.target.value)" @keydown.enter.prevent="focusNextCount($event)" />
+                  <div v-if="mat.packUnit && mat.packSize > 1" class="stocktake-units" :aria-label="`หน่วยนับ ${mat.name}`">
+                    <button type="button" :aria-label="`นับ ${mat.name} เป็น ${mat.unit}`" :aria-pressed="counts[mat.id].unitMode === 'base'" @click="counts[mat.id].unitMode !== 'base' && toggleCountUnit(mat.id)">{{ mat.unit }}</button>
+                    <button type="button" :aria-label="`นับ ${mat.name} เป็น ${mat.packUnit}`" :aria-pressed="counts[mat.id].unitMode === 'pack'" @click="counts[mat.id].unitMode !== 'pack' && toggleCountUnit(mat.id)">{{ mat.packUnit }}</button>
                   </div>
-                </td>
-
-                <!-- System Expected Stock -->
-                <td class="py-3 px-3 text-center font-number tabular-nums">
-                  <div class="font-bold text-stone-900 text-xs">
-                    {{ (mat.stock || 0).toLocaleString() }} <span class="text-stone-400 font-normal text-[10px]">{{ mat.unit }}</span>
-                  </div>
-                  <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400">
-                    ≈ {{ ((mat.stock || 0) / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
-                  </div>
-                </td>
-
-                <!-- Actual Count Input (Support Base Unit & Pack Unit toggle) -->
-                <td class="py-2.5 px-4">
-                  <div class="flex items-center gap-1.5 justify-center">
-                    <div class="relative w-28">
-                      <input
-                        type="number"
-                        step="any"
-                        min="0"
-                        :value="counts[mat.id].value" @input="setCountValue(mat.id, $event.target.value)"
-                        placeholder="0"
-                        class="w-full text-right font-number font-bold text-xs py-1.5 px-2.5 rounded-xl border border-stone-300 focus:border-brand-600 focus:ring-1 focus:ring-brand-600 transition-all bg-white"
-                        :class="getVariance(mat.id) !== 0 ? 'border-amber-400 bg-amber-50/30' : ''"
-                      />
-                    </div>
-
-                    <!-- Unit Selector (Base vs Pack) -->
-                    <button
-                      v-if="mat.packUnit && mat.packSize > 1"
-                      type="button"
-                      @click="toggleCountUnit(mat.id)"
-                      class="px-2 py-1.5 rounded-xl text-[10px] font-bold border transition-colors shrink-0 cursor-pointer"
-                      :class="counts[mat.id].unitMode === 'pack' ? 'bg-amber-100 border-amber-300 text-amber-900' : 'bg-stone-100 border-stone-200 text-stone-600 hover:bg-stone-200'"
-                      :title="counts[mat.id].unitMode === 'pack' ? `สลับเป็นหน่วยย่อย (${mat.unit})` : `สลับเป็นหน่วยแพ็ค (${mat.packUnit})`"
-                    >
-                      {{ counts[mat.id].unitMode === 'pack' ? mat.packUnit : mat.unit }}
-                    </button>
-                    <span v-else class="text-[11px] font-medium text-stone-500 shrink-0 w-8">
-                      {{ mat.unit }}
-                    </span>
-
-                    <!-- Quick Match System Button -->
-                    <button
-                      type="button"
-                      @click="matchSystemStock(mat)"
-                      class="p-1 text-stone-400 hover:text-stone-800 hover:bg-stone-200/60 rounded-lg transition-colors cursor-pointer shrink-0"
-                      title="กำหนดยอดเท่ากับในระบบ"
-                    >
-                      <RotateCcw class="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </td>
-
-                <!-- Variance (Difference) -->
-                <td class="py-3 px-3 text-right font-number tabular-nums">
-                  <div
-                    class="font-bold text-xs"
-                    :class="[
-                      getVariance(mat.id) > 0 ? 'text-emerald-600' : getVariance(mat.id) < 0 ? 'text-rose-600' : 'text-stone-400'
-                    ]"
-                  >
-                    {{ getVariance(mat.id) > 0 ? `+${getVariance(mat.id).toLocaleString()}` : getVariance(mat.id).toLocaleString() }}
-                    <span class="text-[10px] font-normal text-stone-400 ml-0.5">{{ mat.unit }}</span>
-                  </div>
-                  <div v-if="getVariance(mat.id) !== 0 && mat.packUnit && mat.packSize > 1" class="text-[9px] text-stone-400">
-                    (≈ {{ (getVariance(mat.id) / mat.packSize).toFixed(1) }} {{ mat.packUnit }})
-                  </div>
-                </td>
-
-                <!-- Valuation Cost Impact -->
-                <td class="py-3 px-4 text-right font-number tabular-nums">
-                  <span
-                    class="font-bold text-xs"
-                    :class="[
-                      getCostImpact(mat) > 0 ? 'text-emerald-700' : getCostImpact(mat) < 0 ? 'text-rose-700' : 'text-stone-400'
-                    ]"
-                  >
-                    {{ getCostImpact(mat) > 0 ? `+฿${getCostImpact(mat).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : getCostImpact(mat) < 0 ? `-฿${Math.abs(getCostImpact(mat)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '฿0.00' }}
-                  </span>
-                </td>
-              </tr>
-
-              <tr v-if="filteredMaterials.length === 0">
-                <td colspan="5" class="py-12 text-center text-stone-400 text-xs">
-                  🔍 ไม่พบวัตถุดิบตามเงื่อนไขที่เลือก
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                  <span v-else class="stocktake-fixed-unit">{{ mat.unit }}</span>
+                </div>
+                <div class="stocktake-count-help"><small v-if="mat.packUnit && mat.packSize > 1" :id="`stocktake-unit-${mat.id}`">1 {{ mat.packUnit }} = {{ mat.packSize.toLocaleString() }} {{ mat.unit }}</small><button v-if="getVariance(mat.id) !== 0" type="button" @click="matchSystemStock(mat)" :aria-label="`คืนยอด ${mat.name} ให้เท่าระบบ`">เท่าระบบ</button></div>
+              </td>
+              <td class="stocktake-variance">
+                <span class="stocktake-mobile-label">ผลต่าง</span>
+                <template v-if="getVariance(mat.id) !== 0"><strong :class="getVariance(mat.id)>0 ? 'text-emerald-700' : 'text-rose-700'">{{ getVariance(mat.id)>0 ? '+' : '' }}{{ getVariance(mat.id).toLocaleString() }} <span>{{ mat.unit }}</span></strong><small :class="getCostImpact(mat)>0 ? 'text-emerald-700' : getCostImpact(mat)<0 ? 'text-rose-700' : ''">{{ formatImpact(getCostImpact(mat)) }}</small></template>
+                <span v-else class="stocktake-matched"><Check :size="13" aria-hidden="true" />ตรงระบบ</span>
+              </td>
+            </tr>
+            <tr v-if="filteredMaterials.length === 0"><td colspan="4" class="stocktake-empty"><Search :size="24" aria-hidden="true" /><strong>{{ onlyDifferences ? 'ไม่พบรายการที่ยอดต่างตามตัวกรอง' : 'ไม่พบวัตถุดิบตามตัวกรอง' }}</strong><span>ลองเปลี่ยนคำค้นหรือหมวดหมู่</span></td></tr>
+          </tbody>
+        </table>
       </div>
 
-      <!-- 4. Footer Summary & Confirm Button -->
-      <div class="px-6 py-4 border-t border-stone-200 bg-stone-50/80 flex flex-wrap items-center justify-between gap-4 shrink-0">
-        <!-- Summary Stats -->
-        <div class="flex items-center gap-4 text-xs font-number">
-          <div class="flex items-center gap-1.5">
-            <span class="text-stone-400">รายการที่ยอดดิฟ:</span>
-            <span class="font-bold" :class="varianceStats.changedCount > 0 ? 'text-amber-800' : 'text-stone-700'">
-              {{ varianceStats.changedCount }} / {{ activeMaterials.length }} รายการ
-            </span>
-          </div>
-
-          <div class="h-3.5 w-px bg-stone-300"></div>
-
-          <div class="flex items-center gap-1.5">
-            <span class="text-stone-400">กระทบมูลค่าสต็อก:</span>
-            <span
-              class="font-bold"
-              :class="varianceStats.netCostImpact > 0 ? 'text-emerald-700' : varianceStats.netCostImpact < 0 ? 'text-rose-700' : 'text-stone-700'"
-            >
-              {{ varianceStats.netCostImpact > 0 ? `+฿${varianceStats.netCostImpact.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : varianceStats.netCostImpact < 0 ? `-฿${Math.abs(varianceStats.netCostImpact).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '฿0.00' }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-2.5">
-          <button
-            type="button"
-            @click="close"
-            class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-200/60 transition-colors cursor-pointer"
-          >
-            ยกเลิก
-          </button>
-
-          <button
-            type="button"
-            @click="submitStocktake"
-            :disabled="varianceStats.changedCount === 0"
-            class="px-5 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Check class="w-4 h-4" />
-            <span>บันทึกผลการตรวจนับ (แบบร่าง)</span>
-          </button>
-        </div>
-      </div>
-    </div>
+      <footer class="stocktake-footer">
+        <div class="stocktake-summary" aria-live="polite"><p>ยอดต่างทั้งหมด <strong>{{ varianceStats.changedCount }} รายการ</strong><span class="stocktake-impact" :class="varianceStats.netCostImpact>0 ? 'text-emerald-700' : varianceStats.netCostImpact<0 ? 'text-rose-700' : ''">{{ formatImpact(varianceStats.netCostImpact) }}</span></p><small>ยังไม่ปรับสต็อกจนกว่าจะยืนยันแบบร่าง</small></div>
+        <div class="stocktake-actions"><button type="button" @click="close" class="stocktake-cancel">ยกเลิก</button><button type="button" data-stage-stocktake @click="submitStocktake" :disabled="varianceStats.changedCount === 0" class="stocktake-submit"><Check :size="16" aria-hidden="true" />เพิ่มเข้าแบบร่าง<span v-if="varianceStats.changedCount">({{ varianceStats.changedCount }})</span></button></div>
+      </footer>
+    </section>
   </ModalShell>
 </template>
 
 <script setup>
 import ModalShell from '@/components/ui/ModalShell.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { X, Check, Search, RotateCcw, CheckCheck } from 'lucide-vue-next'
+import { X, Check, Search, RotateCcw, ClipboardCheck } from 'lucide-vue-next'
 
 const store = usePosStore()
 
 const searchQuery = ref('')
 const selectedCategory = ref('all')
+const onlyDifferences = ref(false)
+const editingMaterialId = ref(null)
 
 // Local count map: { [matId]: { value: Number, unitMode: 'base' | 'pack' } }
 const counts = ref({})
@@ -273,6 +91,7 @@ const activeMaterials = computed(() => {
 
 const filteredMaterials = computed(() => {
   return activeMaterials.value.filter(m => {
+    if (onlyDifferences.value && getVariance(m.id) === 0 && editingMaterialId.value !== m.id) return false
     if (selectedCategory.value !== 'all' && m.category !== selectedCategory.value) {
       return false
     }
@@ -292,6 +111,8 @@ watch(() => store.modals.stocktake?.isOpen, (isOpen) => {
   if (isOpen) {
     searchQuery.value = ''
     selectedCategory.value = 'all'
+    onlyDifferences.value = false
+    editingMaterialId.value = null
     const newCounts = {}
     activeMaterials.value.forEach(m => {
       newCounts[m.id] = {
@@ -354,6 +175,17 @@ function matchAllSystemStock() {
   activeMaterials.value.forEach(mat => {
     matchSystemStock(mat)
   })
+}
+
+function focusNextCount(event) {
+  const inputs = [...event.target.closest('table').querySelectorAll('[data-count-input]')]
+  const next = inputs[inputs.indexOf(event.target) + 1]
+  next?.focus()
+  next?.select()
+}
+
+function formatImpact(value) {
+  return `${value < 0 ? '-' : value > 0 ? '+' : ''}฿${Math.abs(value).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`
 }
 
 const varianceStats = computed(() => {
@@ -420,3 +252,14 @@ function submitStocktake() {
   close()
 }
 </script>
+<style scoped>
+.stocktake-sheet{display:flex;flex-direction:column;width:100%;max-width:980px;height:90dvh;max-height:820px;overflow:hidden;border:1px solid var(--border-subtle);border-radius:24px;background:var(--bg-card);box-shadow:var(--shadow-popup);color:var(--text-main);font-size:12px}
+.stocktake-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-bottom:1px solid var(--border-subtle);flex-shrink:0}.stocktake-heading{display:flex;align-items:center;gap:12px;min-width:0}.stocktake-icon{display:grid;place-items:center;width:42px;height:42px;flex-shrink:0;border-radius:14px 20px 14px 14px;color:var(--accent-brand);background:var(--accent-soft)}.stocktake-heading h3{font-size:16px;font-weight:600;line-height:1.5}.stocktake-heading p{margin-top:3px;color:var(--text-muted);font-size:11px}.stocktake-close{display:grid;place-items:center;width:34px;height:34px;flex-shrink:0;border-radius:10px;color:var(--text-muted)}.stocktake-close:hover{background:var(--bg-soft);color:var(--accent-brand)}
+.stocktake-toolbar{padding:16px 24px 12px;border-bottom:1px solid var(--border-subtle);flex-shrink:0}.stocktake-controls{display:flex;align-items:center;gap:10px}.stocktake-search{display:flex;align-items:center;gap:8px;min-width:0;flex:1;height:40px;padding:0 12px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--bg-card);color:var(--text-muted)}.stocktake-search input{width:100%;min-width:0;background:transparent;outline:0;font-size:12px;color:var(--text-main)}.stocktake-search:focus-within{border-color:var(--accent-brand);box-shadow:0 0 0 2px var(--focus-ring)}.stocktake-category{width:180px;flex-shrink:0}.stocktake-diff-filter{display:flex;align-items:center;gap:7px;white-space:nowrap;color:var(--text-muted);cursor:pointer}.stocktake-diff-filter input{width:15px;height:15px;accent-color:var(--accent-brand)}
+.stocktake-list-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;font-size:11px;color:var(--text-muted)}.stocktake-keyboard-hint{margin-left:6px;color:var(--text-muted)}kbd{padding:1px 4px;border:1px solid var(--border-subtle);border-radius:4px;font:inherit;font-size:10px;background:var(--bg-primary)}.stocktake-reset-all{display:flex;align-items:center;gap:5px;white-space:nowrap;color:var(--text-muted);padding:3px 0}.stocktake-reset-all:hover:not(:disabled){color:var(--accent-brand)}.stocktake-reset-all:disabled{opacity:.45;cursor:default}
+.stocktake-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}.stocktake-table{width:100%;border-collapse:separate;border-spacing:0;text-align:left}.stocktake-table thead{position:sticky;top:0;z-index:1;background:var(--bg-primary)}.stocktake-table th{padding:12px 16px;border-bottom:1px solid var(--border-subtle);font-size:11px;font-weight:500;color:var(--text-muted)}.stocktake-table th:first-child{padding-left:24px;width:40%}.stocktake-table th:nth-child(2){width:16%}.stocktake-table th:nth-child(3){width:28%}.stocktake-table th:last-child{padding-right:24px;text-align:right;width:16%}.stocktake-table td{padding:14px 16px;border-bottom:1px solid var(--border-subtle);vertical-align:middle}.stocktake-table td:first-child{padding-left:24px}.stocktake-table td:last-child{padding-right:24px}.stocktake-row-changed{background:#fbf0e94d}.stocktake-material-info{display:flex;align-items:center;gap:10px;min-width:0}.stocktake-emoji{display:grid;place-items:center;flex-shrink:0;width:34px;height:34px;font-size:20px;background:var(--bg-primary);border-radius:10px}.stocktake-material-info strong{display:block;font-size:12px;font-weight:500;line-height:1.6;overflow-wrap:anywhere}.stocktake-material-info small{display:block;color:var(--text-muted);font-size:10px;margin-top:3px}.stocktake-expected strong{display:block;font-family:'Plus Jakarta Sans','Prompt',sans-serif;font-size:13px;font-weight:600;white-space:nowrap}.stocktake-expected strong span,.stocktake-variance strong span{font-family:'Prompt',sans-serif;font-size:10px;color:var(--text-muted);font-weight:400}.stocktake-expected small{display:block;color:var(--text-muted);font-size:10px;margin-top:4px}
+.stocktake-count-control{display:flex;align-items:center;gap:6px;min-width:0}.stocktake-count-control input{width:100%;min-width:48px;flex:1;height:42px;border:1px solid #d2c2b0;border-radius:9px;padding:0 10px;background:var(--bg-card);color:var(--text-main);font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:600;text-align:right}.stocktake-count-control input:focus-visible{outline:2px solid var(--accent-border);outline-offset:1px;border-color:var(--accent-brand)}.stocktake-units{display:flex;align-items:center;gap:2px;min-width:0;padding:3px;border-radius:8px;background:var(--bg-soft);flex-shrink:0}.stocktake-units button{min-width:28px;max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 6px;border-radius:5px;color:var(--text-muted);font-size:10px;line-height:20px}.stocktake-units button[aria-pressed=true]{background:var(--bg-card);color:var(--accent-brand);font-weight:600;box-shadow:0 1px 3px #35252210}.stocktake-fixed-unit{font-size:11px;color:var(--text-muted);padding-left:2px}.stocktake-count-help{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:16px;margin-top:4px}.stocktake-count-help small{font-size:9px;color:var(--text-muted)}.stocktake-count-help button{font-size:10px;color:var(--accent-brand);margin-left:auto;white-space:nowrap}.stocktake-count-help button:hover{text-decoration:underline}.stocktake-variance{text-align:right;white-space:nowrap}.stocktake-variance strong{display:block;font-family:'Plus Jakarta Sans','Prompt',sans-serif;font-size:13px;font-weight:600}.stocktake-variance small{display:block;font-size:10px;margin-top:4px}.stocktake-matched{display:inline-flex;align-items:center;gap:4px;color:var(--text-muted);font-size:10px}.stocktake-mobile-label{display:none}
+.stocktake-table .stocktake-empty{text-align:center;padding:64px 20px;color:var(--text-muted)}.stocktake-empty>svg{display:block;margin:0 auto 12px;color:#d2c2b0}.stocktake-empty strong{display:block;font-weight:500;color:var(--text-main)}.stocktake-empty>span{display:block;margin-top:5px;font-size:11px}
+.stocktake-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 24px;border-top:1px solid var(--border-subtle);background:var(--bg-card);flex-shrink:0}.stocktake-summary p{font-size:11px;color:var(--text-muted)}.stocktake-summary strong{color:var(--text-main);font-size:12px;font-weight:600;margin-left:6px}.stocktake-impact{font-family:'Plus Jakarta Sans','Prompt',sans-serif;padding-left:10px;margin-left:10px;border-left:1px solid var(--border-subtle);font-weight:600;white-space:nowrap}.stocktake-summary small{display:block;margin-top:5px;font-size:10px;color:var(--text-muted)}.stocktake-actions{display:flex;gap:8px;flex-shrink:0}.stocktake-cancel,.stocktake-submit{display:flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0 14px;border-radius:10px;font-size:12px;font-weight:500}.stocktake-cancel{border:1px solid var(--border-subtle);color:var(--text-muted)}.stocktake-cancel:hover{background:var(--bg-primary)}.stocktake-submit{background:var(--accent-brand);color:var(--bg-card)}.stocktake-submit:hover:not(:disabled){background:var(--accent-hover)}.stocktake-submit:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:639px){.stocktake-sheet{height:94dvh;border-radius:18px}.stocktake-header{padding:14px 16px;gap:8px}.stocktake-icon{width:34px;height:34px;border-radius:10px}.stocktake-heading{gap:9px}.stocktake-heading h3{font-size:14px}.stocktake-heading p{font-size:10px}.stocktake-toolbar{padding:12px 14px 10px}.stocktake-controls{flex-wrap:wrap;gap:8px}.stocktake-search{flex-basis:100%}.stocktake-category{flex:1;width:auto;min-width:0}.stocktake-diff-filter{font-size:11px}.stocktake-list-meta{font-size:10px}.stocktake-keyboard-hint{display:none}.stocktake-reset-all{font-size:10px}.stocktake-table{display:block}.stocktake-table thead{display:none}.stocktake-table tbody{display:grid;gap:10px;padding:12px}.stocktake-table tr{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);border:1px solid var(--border-subtle);border-radius:12px;background:var(--bg-card);overflow:hidden}.stocktake-table tr.stocktake-row-changed{border-color:var(--accent-border)}.stocktake-table td,.stocktake-table td:first-child,.stocktake-table td:last-child{display:block;border:0;padding:10px 12px}.stocktake-table .stocktake-material{grid-column:1/-1;border-bottom:1px solid var(--border-subtle);padding:12px}.stocktake-mobile-label{display:block;color:var(--text-muted);font-size:10px;margin-bottom:6px}.stocktake-count-control{gap:4px}.stocktake-count-control input{padding:0 7px}.stocktake-units{padding:2px;gap:1px}.stocktake-units button{min-width:23px;max-width:46px;padding:4px;font-size:9px}.stocktake-count-help{flex-wrap:wrap;gap:2px}.stocktake-variance{grid-column:1/-1;display:flex!important;align-items:center;gap:8px;text-align:left;background:var(--bg-primary)}.stocktake-variance .stocktake-mobile-label{margin:0 auto 0 0}.stocktake-variance strong{font-size:12px}.stocktake-variance small{margin:0;font-size:10px}.stocktake-table .stocktake-empty{grid-column:1/-1;padding:40px 15px}.stocktake-footer{flex-wrap:wrap;gap:12px;padding:12px 14px}.stocktake-summary{width:100%}.stocktake-actions{width:100%}.stocktake-cancel{flex:1}.stocktake-submit{flex:2}}
+</style>
