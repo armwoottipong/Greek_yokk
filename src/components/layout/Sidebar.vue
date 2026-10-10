@@ -97,8 +97,8 @@ const navItems = computed(() => [
 </script>
 <style scoped>
 .brand-sidebar{background:var(--bg-card);border-right:1px solid var(--border-subtle)}
-.brand-lockup{height:var(--sidebar-header-height,var(--panel-header-height));background:var(--accent-brand)}
-.brand-mascot{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
+.brand-lockup{display:flex;align-items:flex-end;justify-content:flex-end;height:var(--sidebar-header-height,var(--panel-header-height));background:#5b0205}
+.brand-mascot{display:block;width:90%;height:90%;object-fit:contain;object-position:right bottom}
 .brand-navigation{padding-top:18px}.brand-nav-item{border-radius:12px 20px 20px 12px;min-height:44px}.brand-nav-item:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}
 @media(max-width:767px){.brand-sidebar{border-right:0;border-bottom:1px solid var(--border-subtle)}.brand-navigation{padding-top:6px}.brand-nav-item{min-height:38px;padding:8px 12px}.brand-nav-item>div{gap:7px}}
 </style>
