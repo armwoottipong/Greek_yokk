@@ -10,7 +10,7 @@
 
 **Spec:** [Full Project Audit](C:/Users/user/.codex/visualizations/2026/10/09/01a1217c-5703-79d1-ad7e-725beb8120f4/Full-Project-Audit.md). รหัส A/D/B/C/U ด้านล่างตรงกับรายงาน
 
-**Status (2026-10-10):** ผู้ใช้อนุมัติ “แก้ตาม plan” แล้ว โค้ดอยู่บน `codex/audit-remediation`; งาน 12 ยังรอ live test-deployment proof และงาน 14 ยังมี browser checks ค้าง ดูผลแต่ละงานและหลักฐานใน [verification report](../verification/2026-10-09-remediation.md). ช่อง checklist ด้านล่างเป็นขั้นตอนเดิม; รายงานสถานะจริงอยู่ในตาราง verification เพื่อไม่ทำเครื่องหมายผ่านขั้นที่ยังไม่มีหลักฐาน
+**Status (2026-10-10):** ผู้ใช้อนุมัติ “แก้ตาม plan” แล้ว โค้ดอยู่บน `codex/audit-remediation`; งาน 12 ผ่าน live browser transport/readback และงาน 14 ตรวจ browser workflows/export-import/two-tab stale writer แล้ว ดูผล14งานและข้อจำกัดก่อน release ใน [verification report](../verification/2026-10-09-remediation.md). ช่อง checklist ด้านล่างเป็นขั้นตอนเดิม; รายงานสถานะจริงอยู่ในตาราง verification เพื่อไม่ทำเครื่องหมายผ่านขั้นที่ยังไม่มีหลักฐาน
 
 ## Global Constraints
 

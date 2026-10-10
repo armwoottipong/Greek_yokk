@@ -8,20 +8,20 @@ Updated 2026-10-10 (Asia/Bangkok). Branch `codex/audit-remediation`, based on `m
 |---|---|---|
 | 1 Startup preservation | Implemented; startup regressions | None locally |
 | 2 Validated atomic database | Implemented; validation, persistence and revision tests | Simultaneous cross-tab writes have a race beyond sequential revision checks |
-| 3 Replacement and recovery | Implemented; import/reset backups and failure regressions | Browser file chooser round-trip not completed |
-| 4 Isolated drafts | Implemented; save/discard, sale rebase and conflict tests | Full browser draft workflow not completed |
+| 3 Replacement and recovery | Implemented; import/reset backups and failure regressions; browser export/import exact data round-trip passed | None locally |
+| 4 Isolated drafts | Implemented; save/discard, sale rebase and conflict tests; browser production draft -> sale -> discard passed | None locally |
 | 5 Inventory allocation | Implemented; aggregated requirements and rejection tests | None locally |
-| 6 Material edits/production | Implemented; production and metadata tests | Full browser receive/produce/waste/stocktake workflow not completed |
+| 6 Material edits/production | Implemented; production and metadata tests; browser production staging, receive/waste/stocktake commits passed | None locally |
 | 7 Atomic checkout | Implemented; checkout failure and shortage tests | Physical receipt printing not tested |
-| 8 Stock forms | Implemented; lot selection, unit conversion and archive tests | Full browser archive/restore workflow not completed |
-| 9 Dialogs/mobile | Implemented; dialog, keyboard and Add-on tests; mobile browser evidence | New Settings visual changes await browser verification |
+| 8 Stock forms | Implemented; lot selection, unit conversion and archive tests; browser archive/restore passed | None locally |
+| 9 Dialogs/mobile | Implemented; dialog, keyboard and Add-on tests; mobile browser evidence; Settings groups and screenshots verified | New Settings was rendered at actual widths758/1280; viewport override did not produce390 in this resumed session |
 | 10 Bangkok dates/CSV | Implemented; date, expiry and CSV regressions | None locally |
 | 11 GAS recovery | Implemented; 68 VM-backed recovery tests | Actual Sheets cell semantics, quotas and runtime not proven |
-| 12 Snapshot sync | Implemented; 5 frontend/backend adapter tests | Mandatory live test-deployment transport/redirect/readback proof pending |
+| 12 Snapshot sync | Implemented; 5 frontend/backend adapter tests; live browser send/replay/exact readback passed | Representative production dataset capacity remains a release check |
 | 13 Release checks | Test/lint/build gates and deployment documentation implemented | Remote Pages settings require checking before release |
-| 14 Handoff | Review fixes, whole-suite verification and this report recorded | Remaining browser workflow checks and live deployment proof listed above |
+| 14 Handoff | Review fixes, whole-suite verification, browser workflows, two-tab stale writer and this report recorded | Physical printer and deployment settings remain release checks |
 
-The plan has 14 tasks. Code changes address all 14, but Tasks 12 and 14 are not accepted as fully complete. Automated/component evidence must not be presented as live deployment or full browser evidence.
+The plan has 14 tasks. Local implementation and handoff work address all14. The previously blocking Task12 live transport proof and Task14 core browser workflows were completed in the resumed verification below. This is completion of the local remediation scope, not production deployment or proof of every operating environment. Remaining practical limits are explicit in the table and release actions.
 
 ## Verification evidence
 
@@ -46,6 +46,23 @@ Disposable origin: `http://127.0.0.1:3010/Greek_yokk/` using demo data. The orig
 - No test deployment URL was found in source. Only placeholders/legacy bundled references were located; these are not authorization to write to an unknown spreadsheet. A URL bound to a disposable test sheet and running this version is required for Task12.
 - Subsequent live probe (2026-10-10): user supplied an `/exec` URL and explicitly confirmed a disposable test sheet with synthetic writes allowed. Two unauthenticated GET `action=getSnapshot` requests returned HTTP200, `text/html; charset=utf-8`, title `Sign in - Google Accounts` and an accounts.google.com sign-in page rather than JSON. This is a deployment access blocker, not a successful API response. No synthetic POST was sent. Recheck deployment access and the copied active deployment URL, then repeat the browser round-trip; readable acknowledgement remains unproven.
 
+## Resumed browser and live deployment verification (2026-10-10)
+
+After resetting the browser automation session, controls responded again. No product code changed in this resumed run.
+
+Fresh final run after resumed checks:20 files /138 tests passed (exit0), lint passed (exit0), build passed (exit0). Only this verification document and plan status changed afterward.
+
+- New user-confirmed test deployment returned readable JSON. Initial GET `action=getSnapshot` reported `No committed snapshot`, correctly reflecting an empty backup.
+- A temporary local probe imported the actual `src/services/gasClient.js` and normalization module. It used a synthetic schema3 snapshot containing Thai/emoji text, a fractional stock lot, menu recipe, Addon link, order financial snapshot, activity log with quotes/newline, categories, platforms, URL field and shortages collection. It did not access localStorage/shop data.
+- Browser origin `http://127.0.0.1:3010` sent request `audit-probe-9ca7467a-ffc0-42c6-8ca6-17b5bf731044`, revision1, checksum `5522bc26`. POST returned matching `committed` acknowledgement. Repeating the same request returned the identical acknowledgement. GET by requestId returned HTTP200; redirect to `script.googleusercontent.com` was readable. Entire snapshot JSON and computed checksum matched exactly. This proves the deployed version supports this browser transport and this small payload; it does not establish production capacity.
+- Proof images/data are saved under `C:/Users/user/.codex/visualizations/2026/10/09/01a1217c-5703-79d1-ad7e-725beb8120f4/`: `gas-transport-proof.jpg`, `gas-transport-proof.json`, `settings-desktop-proof.jpg`, and `settings-mobile-proof.jpg` (the latter is actual width758, not390).
+- Menu create/edit passed; Addon view rendered. Stock production staged +1200g output, -5000ml milk, -300g starter. A Size S sale deducted100g from committed inventory. Working output rebased to4500g. Discard retained sale with3300g output and returned raw inputs to15000ml/2500g.
+- Receiving one1200ml milk bottle committed16200ml; waste10ml committed16190ml. Archive and Restore retained quantities/lots. Stocktake changed output3300g to3299g with staged-1g, then committed. Stock reloaded correctly. No captured console warn/error messages in resumed workflows.
+- Settings all four groups switched correctly; backup controls were initially shown. UI download -> file chooser import -> confirmation -> second download succeeded. Comparison excluding `revision` and export-only `exportDate` was exact for the full database, including13 activity logs and4 orders.
+- Two browser tabs loaded the same revision. The newer tab added `Audit Newer Tab`; the older attempted `Audit Stale Tab`. Older save produced the explicit revision conflict message. Reload showed newer category present and stale category absent. This verifies sequential stale-writer rejection, not simultaneous atomic cross-tab coordination.
+- Existing390/768 mobile evidence from earlier checks is retained. New Settings screenshots/DOM were checked at actual widths758/1280; the viewport capability returned without producing requested390 in this session, so no new390 screenshot is claimed. Native save-button Enter worked, and earlier Cancel+Enter check retained data.
+- Temporary probe/peer/mobile tabs were closed; viewport override reset. Original user tabs retained. Probe source preserved outside the repository with the verification artifacts. No test URL was saved into the user's app configuration and no production data was sent.
+
 ## Audit coverage
 
 | Findings | Evidence/change |
@@ -60,7 +77,7 @@ Disposable origin: `http://127.0.0.1:3010/Greek_yokk/` using demo data. The orig
 | U01/U03/U05/U06 | `dialogs.test.js`, `addons.test.js`, shared ModalShell, native controls and responsive navigation |
 | C02/C03 | `datesAndCsv.test.js`, `activityDates.test.js`, `expiryBusinessDate.test.js` |
 | B06-B10 | `backend.test.js`, seed/idempotency/prevalidation/PREPARED recovery/date query fixes |
-| B05 | `sync.test.js`, readable matching committed acknowledgement; live transport pending |
+| B05 | `sync.test.js`, readable matching committed acknowledgement; live browser replay/exact snapshot readback proof above |
 | A01-A04/check gaps | Domain/service modules, lazy views, CI regression gates and corrected Pages documentation; no broad legacy deletion |
 
 ## Decisions and changed contracts
@@ -78,9 +95,8 @@ Disposable origin: `http://127.0.0.1:3010/Greek_yokk/` using demo data. The orig
 
 ## Remaining release actions
 
-1. Restore working browser automation and finish the unchecked browser workflows, including exported-file restore and two-tab stale writer.
-2. Use a disposable Apps Script deployment running this Code.gs. Send synthetic schema3 data through the browser and read back matching requestId/revision/checksum; record readable response and redirect behavior. Do not send shop data for the probe.
-3. Check Apps Script runtime/Sheets quotas on representative data, remote GitHub Pages branch settings and physical receipt printing.
-4. Choose integration of `codex/audit-remediation` into `main` or a PR. Retain the worktree until that decision; no production data replacement is part of integration.
+1. Check Apps Script runtime/Sheets quotas on representative data, remote GitHub Pages branch settings and physical receipt printing.
+2. Check new Settings on a physical/natively sized390px mobile viewport; browser override was ineffective in the resumed session. Simultaneous editing across tabs/devices is outside the demonstrated sequential revision guard.
+3. Choose integration of `codex/audit-remediation` into `main` or a PR. Retain the worktree until that decision; no production data replacement is part of integration.
 
 These external/blocked checks remain visible. No claim of production-ready completion is made.
