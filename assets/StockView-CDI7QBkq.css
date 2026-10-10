@@ -1,1 +1,0 @@
-.accordion-grid[data-v-0be12061]{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.4,0,.2,1),opacity .26s ease-in-out;opacity:0}.accordion-grid.is-expanded[data-v-0be12061]{grid-template-rows:1fr;opacity:1}.accordion-content[data-v-0be12061]{overflow:hidden}
