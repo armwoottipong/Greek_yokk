@@ -4,17 +4,21 @@
   <div class="dashboard-legend"><span v-for="s in series" :key="s.key"><i :style="{background:s.color}"></i>{{ s.label }}</span></div>
   <div v-if="mode==='table'" class="dashboard-table-wrap"><table><caption class="sr-only">ยอดขายรายช่วง</caption><thead><tr><th>ช่วงเวลา</th><th>บิล</th><th v-for="s in series" :key="s.key">{{ s.label }}</th></tr></thead><tbody><tr v-for="row in rows" :key="row.date"><th>{{ dateLabel(row.date) }}</th><td>{{ row.orderCount }}</td><td v-for="s in series" :key="s.key">฿{{ money(row[s.key]) }}</td></tr></tbody></table></div>
   <figure v-else :key="mode" class="dashboard-chart-reveal">
-   <svg :viewBox="`0 0 ${chartWidth} 270`" :style="{'--chart-baseline':`${y(0)}px`}" role="img" :aria-label="`กราฟ${mode==='line'?'เส้น':'แท่ง'}ยอดขาย ต้นทุน และกำไรขั้นต้น`">
+   <svg :viewBox="`0 0 ${chartWidth} 270`" :class="{'has-active-point':active!==null}" :style="{'--chart-baseline':`${y(0)}px`}" role="img" :aria-label="`กราฟ${mode==='line'?'เส้น':'แท่ง'}ยอดขาย ต้นทุน และกำไรขั้นต้น`">
+    <rect v-if="active!==null" class="dashboard-hover-band" :x="x(active)-hitWidth/2" y="14" :width="hitWidth" height="217" rx="8" fill="var(--accent-soft)" aria-hidden="true" />
     <g v-for="tick in ticks" :key="tick"><line x1="62" :x2="chartWidth-22" :y1="y(tick)" :y2="y(tick)" stroke="var(--border-subtle)" :stroke-dasharray="tick===0?undefined:'3 5'"/><text x="52" :y="y(tick)+4" text-anchor="end" class="chart-axis">{{ compact(tick) }}</text></g>
     <template v-for="s in series" :key="s.key">
      <path v-if="mode==='line' && rows.length>1" class="dashboard-chart-line" pathLength="1" :d="path(s.key)" fill="none" :stroke="s.color" stroke-width="2.5" stroke-linejoin="round" />
      <template v-for="(row,index) in rows" :key="row.date">
-      <circle v-if="mode==='line'" :cx="x(index)" :cy="y(row[s.key])" r="4" :fill="s.color"><title>{{ dateLabel(row.date) }} · {{ s.label }} ฿{{ money(row[s.key]) }}</title></circle>
-      <rect v-else class="dashboard-chart-bar" :x="x(index)+(series.indexOf(s)-1)*barWidth-barWidth/2" :y="Math.min(y(0),y(row[s.key]))" :width="Math.max(0.5,barWidth-1)" :height="Math.abs(y(0)-y(row[s.key]))" rx="2" :fill="s.color"><title>{{ dateLabel(row.date) }} · {{ s.label }} ฿{{ money(row[s.key]) }}</title></rect>
+      <template v-if="mode==='line'">
+       <circle v-if="active===index" class="dashboard-point-halo" :cx="x(index)" :cy="y(row[s.key])" r="11" :fill="s.color" aria-hidden="true" />
+       <circle class="dashboard-chart-point" :class="{'is-active':active===index}" :cx="x(index)" :cy="y(row[s.key])" r="4" :fill="s.color"><title>{{ dateLabel(row.date) }} · {{ s.label }} ฿{{ money(row[s.key]) }}</title></circle>
+      </template>
+      <rect v-else class="dashboard-chart-bar" :class="{'is-active':active===index}" :x="x(index)+(series.indexOf(s)-1)*barWidth-barWidth/2" :y="Math.min(y(0),y(row[s.key]))" :width="Math.max(0.5,barWidth-1)" :height="Math.abs(y(0)-y(row[s.key]))" rx="2" :fill="s.color"><title>{{ dateLabel(row.date) }} · {{ s.label }} ฿{{ money(row[s.key]) }}</title></rect>
      </template>
     </template>
     <text v-for="index in labels" :key="index" :x="x(index)" y="255" text-anchor="middle" class="chart-axis">{{ shortDate(rows[index].date) }}</text>
-    <g v-for="(row,index) in rows" :key="`hit-${row.date}`" tabindex="0" role="button" :aria-label="`${dateLabel(row.date)} ยอดขาย ${money(row.totalSales)} ต้นทุน ${money(row.totalFoodCost)} กำไร ${money(row.grossProfit)}`" @focus="active=index" @mouseenter="active=index" @mouseleave="active=null" @blur="active=null" @click="active=index" @keydown.enter="active=index" @keydown.space.prevent="active=index"><rect :x="x(index)-hitWidth/2" y="14" :width="hitWidth" height="217" fill="transparent" /></g>
+    <g v-for="(row,index) in rows" :key="`hit-${row.date}`" tabindex="0" role="button" :aria-label="`${dateLabel(row.date)} ยอดขาย ${money(row.totalSales)} ต้นทุน ${money(row.totalFoodCost)} กำไร ${money(row.grossProfit)}`" @focus="active=index" @mouseenter="active=index" @mouseleave="active=null" @blur="active=null" @click="active=index" @keydown.enter="active=index" @keydown.space.prevent="active=index"><rect :x="x(index)-targetWidth/2" y="14" :width="targetWidth" height="217" fill="transparent" /></g>
    </svg>
    <figcaption class="dashboard-chart-detail" aria-live="polite"><template v-if="active!==null && rows[active]"><strong>{{ dateLabel(rows[active].date) }}</strong><span v-for="s in series" :key="s.key">{{ s.label }} <b>฿{{ money(rows[active][s.key]) }}</b></span></template><span v-else>แตะกราฟเพื่อดูยอดแต่ละช่วง หรือเลือกรูปแบบตาราง</span></figcaption>
   </figure>
@@ -42,6 +46,7 @@ const bounds=computed(()=>{const values=props.rows.flatMap(r=>series.map(s=>r[s.
 const y=value=>225-(value-bounds.value.min)/(bounds.value.max-bounds.value.min)*200
 const x=index=>props.rows.length===1?(chartWidth.value+56)/2:78+index*(chartWidth.value-116)/Math.max(1,props.rows.length-1)
 const hitWidth=computed(()=>Math.min(64,(chartWidth.value-116)/Math.max(1,props.rows.length)))
+const targetWidth=computed(()=>props.rows.length>1?(chartWidth.value-116)/(props.rows.length-1):64)
 const barWidth=computed(()=>Math.min(18,hitWidth.value/3))
 const ticks=computed(()=>Array.from({length:5},(_,i)=>bounds.value.min+(bounds.value.max-bounds.value.min)*i/4))
 const labels=computed(()=>[...new Set([0,Math.floor((props.rows.length-1)/3),Math.floor((props.rows.length-1)*2/3),props.rows.length-1])].filter(i=>i>=0))

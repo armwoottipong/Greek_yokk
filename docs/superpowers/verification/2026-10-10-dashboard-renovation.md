@@ -25,3 +25,10 @@
 - SVG bars grow from computed zero baseline, preserving negative values. Mode changes replay the graph's reveal.
 - Browser confirmed bar animation400ms with origin0/225px matching baseline225px, donut260ms, no console warnings/errors. Static review found no blockers.
 - Fresh full suite169 tests, lint and production build pass. Evidence: dashboard-animation.jpg.
+
+## Hover follow-up
+
+- Line points gain a cream-edged marker and a brief soft halo; a date band follows pointer/focus. Trend bars brighten without moving or resizing their data geometry. Continuous hit areas cover the line between dates.
+- Donut segments thicken slightly and link to the matching ranking row and numerical detail. Ranking rows also respond to hover/focus/tap. Selection resets on incoming data.
+- Added two red/green interaction regressions: geometry preserved, linked selection and reset. Full suite, lint and build pass; total test count171.
+- Browser verified three active trend points with280ms halo; donut GrabFood228/57.4% and29px active stroke. Read-only elementFromPoint checks east/west identify the correct donut segments. Clean reload verified; console empty. Review found no blockers. Evidence: dashboard-hover.jpg.
