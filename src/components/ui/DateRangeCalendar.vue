@@ -32,7 +32,7 @@
     </div>
 
     <!-- Calendar Days Grid -->
-    <div class="grid grid-cols-7 gap-y-1 gap-x-0.5 text-center text-xs">
+    <div class="grid grid-cols-7 gap-y-0.5 gap-x-0.5 text-center text-xs">
       <div
         v-for="(cell, idx) in calendarDays"
         :key="idx"
@@ -45,7 +45,7 @@
           :aria-label="formatDateLabel(cell.dateString)"
           :aria-pressed="isSelected(cell.dateString)"
           :disabled="!cell.isCurrentMonth"
-          class="w-full h-9 rounded-lg flex items-center justify-center font-number font-medium text-xs transition-colors cursor-pointer relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 focus-visible:outline-offset-1"
+          class="w-full h-8 rounded-lg flex items-center justify-center font-number font-medium text-xs transition-colors cursor-pointer relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 focus-visible:outline-offset-1"
           :class="[
             getDayButtonClass(cell.dateString, cell.isCurrentMonth, cell.isToday)
           ]"

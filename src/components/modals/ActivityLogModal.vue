@@ -17,9 +17,9 @@
             <input v-model="searchQuery" aria-label="ค้นหาประวัติ" placeholder="ค้นหารายการหรือหมายเหตุ" class="history-control pl-9 pr-9 w-full" />
             <button v-if="searchQuery" type="button" @click="searchQuery = ''" aria-label="ล้างข้อความค้นหา" class="absolute right-1 top-1 history-icon-button !h-8 !w-8"><X class="h-3.5 w-3.5" /></button>
           </div>
-          <button type="button" @click="toggleFilterPopover" aria-controls="history-filters" aria-haspopup="dialog" :aria-expanded="showFilterPopover" class="history-button"
+          <button ref="filterButton" type="button" @click="toggleFilterPopover" aria-controls="history-filters" aria-haspopup="dialog" :aria-expanded="showFilterPopover" class="history-button"
             :class="hasActiveAdvancedFilter ? 'border-emerald-300 text-emerald-800 bg-emerald-50' : ''">
-            <SlidersHorizontal class="h-4 w-4" /><span>ตัวกรอง</span><span v-if="advancedFilterCount" class="text-xs">{{ advancedFilterCount }}</span>
+            <SlidersHorizontal class="h-4 w-4" /><span>ตัวกรอง</span><span v-if="advancedFilterCount" class="text-xs">{{ advancedFilterCount }}</span><ChevronDown class="h-3.5 w-3.5" :class="showFilterPopover ? 'rotate-180' : ''" />
           </button>
         </div>
         <div class="flex items-center justify-between gap-2 text-xs">
@@ -55,13 +55,13 @@
     </section>
   </ModalShell>
   <ModalShell id="history-filters" labelled-by="history-filter-title" :open="showFilterPopover && store.modals.activityLog?.isOpen"
-    class="fixed inset-0 z-[60] flex items-center justify-center p-3 bg-stone-900/40" @request-close="showFilterPopover = false">
-    <section class="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[92dvh] flex flex-col overflow-hidden">
-      <header class="flex items-center justify-between px-4 py-3 border-b border-stone-100 shrink-0">
+    class="fixed inset-0 z-[60]" @request-close="showFilterPopover = false">
+    <section data-filter-dropdown :style="dropdownStyle" class="fixed bg-white rounded-xl border border-stone-200 shadow-xl flex flex-col overflow-hidden">
+      <header class="flex items-center justify-between px-3 py-1.5 border-b border-stone-100 shrink-0">
         <h3 id="history-filter-title" class="text-sm font-semibold text-stone-900">ตัวกรองประวัติ</h3>
         <button type="button" class="history-icon-button" aria-label="ปิดตัวกรอง" @click="showFilterPopover = false"><X class="h-4 w-4" /></button>
       </header>
-      <div class="p-4 space-y-4 overflow-y-auto min-h-0">
+      <div class="p-3 space-y-2 overflow-y-auto min-h-0">
         <div class="grid grid-cols-2 gap-3">
           <label class="text-xs text-stone-600" :class="isItemMode ? 'col-span-2' : ''">ประเภทกิจกรรม
             <select v-model="draft.action" aria-label="ประเภทกิจกรรม" class="history-control mt-1 w-full"><option v-for="action in availableActionOptions" :key="action.id" :value="action.id">{{ action.label }}</option></select>
@@ -78,7 +78,7 @@
           <DateRangeCalendar v-model:start-date="draft.start" v-model:end-date="draft.end" />
         </div>
       </div>
-      <footer class="border-t border-stone-100 p-3 flex items-center justify-between gap-2 shrink-0">
+      <footer class="border-t border-stone-100 p-2 flex items-center justify-between gap-2 shrink-0">
         <button type="button" class="history-button" @click="clearDraft">ล้างตัวกรอง</button>
         <div class="flex gap-2">
           <button type="button" class="history-button" @click="showFilterPopover = false">ยกเลิก</button>
@@ -93,7 +93,7 @@
 import { businessDateKey } from '@/domain/businessDate'
 import { csvField } from '@/domain/csv'
 import ModalShell from '@/components/ui/ModalShell.vue'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { usePosStore, formatThaiDate } from '@/stores/posStore'
 import HistoryLogEntry from '@/components/ui/HistoryLogEntry.vue'
 import DateRangeCalendar from '@/components/ui/DateRangeCalendar.vue'
@@ -101,17 +101,39 @@ import {
   X,
   Search,
   Download,
-  SlidersHorizontal, MoreHorizontal
+  SlidersHorizontal, MoreHorizontal, ChevronDown
 } from 'lucide-vue-next'
 
 const store = usePosStore()
 
 // Popover state
 const showFilterPopover = ref(false)
+const filterButton = ref(null)
+const dropdownStyle = ref({})
 const draft = ref({action:'all', module:'all', material:'all', start:null, end:null})
-
+function positionDropdown() {
+  if (!filterButton.value) return
+  const anchor = filterButton.value.getBoundingClientRect()
+  const margin = 8
+  const width = Math.min(360, window.innerWidth - margin * 2)
+  const below = window.innerHeight - anchor.bottom - margin * 2
+  const above = anchor.top - margin * 2
+  const useAbove = below < 240 && above > below
+  const height = Math.min(560, Math.max(120, useAbove ? above : below))
+  dropdownStyle.value = {
+    left:`${Math.max(margin, Math.min(anchor.right - width, window.innerWidth - width - margin))}px`,
+    top:`${useAbove ? Math.max(margin, anchor.top - height - margin) : anchor.bottom + margin}px`,
+    width:`${width}px`, maxHeight:`${height}px`
+  }
+}
+watch(showFilterPopover, open => {
+  if (open) window.addEventListener('resize', positionDropdown)
+  else window.removeEventListener('resize', positionDropdown)
+})
+onUnmounted(() => window.removeEventListener('resize', positionDropdown))
 
 function toggleFilterPopover() {
+  positionDropdown()
   draft.value = {action:selectedActionFilter.value, module:activeModule.value, material:selectedMaterialId.value, start:filterStartDate.value, end:filterEndDate.value}
   showFilterPopover.value = true
 }
