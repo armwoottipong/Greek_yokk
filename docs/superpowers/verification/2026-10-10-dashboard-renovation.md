@@ -18,3 +18,10 @@
 - Mobile360px: dashboard width322 equals scrollWidth322, date popup left8/right352/bottom836 within844px frame. Responsive graph viewBox288 keeps labels readable. Escape closes date popup.
 - Read-only reviewer findings fixed: midnight preset refresh; negative narrow bar widths. No remaining known blockers.
 - Screenshots stored outside repo: dashboard-channels.jpg, dashboard-mobile.jpg, dashboard-mobile-graph.jpg, dashboard-overview.jpg.
+
+## Gentle motion follow-up
+
+- Added finite 220–480ms chart reveal/draw/growth, 260ms donut arrival, 360ms ranking growth and 140ms press feedback. No repeating animations. All motion is gated by `prefers-reduced-motion: no-preference`.
+- SVG bars grow from computed zero baseline, preserving negative values. Mode changes replay the graph's reveal.
+- Browser confirmed bar animation400ms with origin0/225px matching baseline225px, donut260ms, no console warnings/errors. Static review found no blockers.
+- Fresh full suite169 tests, lint and production build pass. Evidence: dashboard-animation.jpg.
