@@ -7,7 +7,7 @@ it('highlights line points and bars on hover without changing data geometry',asy
  const w=mount(DashboardTrend,{props:{rows}})
  await w.get('[data-mark="0-totalSales"]').trigger('mouseenter')
  expect(w.findAll('.dashboard-point-halo')).toHaveLength(1)
- expect(w.get('.dashboard-chart-detail').text()).toContain('100')
+ expect(document.querySelector('[role="tooltip"]')).toBeNull()
  await w.get('[data-chart-mode="bar"]').trigger('click')
  const before=w.findAll('.dashboard-chart-bar').map(b=>b.attributes('height'))
  await w.get('[data-mark="0-totalSales"]').trigger('mouseenter')

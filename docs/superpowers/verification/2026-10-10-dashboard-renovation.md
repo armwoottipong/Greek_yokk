@@ -48,3 +48,9 @@
 - Tooltip has no border, uses a soft shadow and a cream arrow whose horizontal position follows the pointer and reverses for below placement. Aggregate card lists all three colored metrics.
 - Red/green test verifies aggregate, specific selection, arrow and no click activation. Full suite174 tests, lint and build pass. Browser verified397/93.7/234.9 together and93.7 alone, arrow present and computed border0px. Evidence: dashboard-tooltip-bubble.jpg.
 - Reviewer identified sparse-date hit areas extending beyond plot bounds. Both boundaries now clamp to plot62…width-22; regression covers two-day history. Final full suite175 tests, lint/build pass.
+
+## Click-only bounded tooltip targets
+
+- Hover/focus only highlights; click/Enter/Space opens a persistent value popup. Chart blank clicks close without opening. Date click rectangles and visible highlight share the exact cluster bounds around three bars (up to66px wide), actual vertical bar extent plus6px padding; no full-date or full-plot target remains.
+- Endpoint centers are inset so every bar sits inside its click frame. Regression verifies both first/last clusters. Hover highlight follows the current cluster even when a prior popup is open.
+- Updated behavior tests first fail on the hover-only version, then pass. Full suite176 tests plus final focused7 tests, lint/build pass. Browser confirmed frame62px wide atx377, own cost93.7 tooltip; read-only hit test outside frame resolves to SVG, not a click target. Evidence: dashboard-click-tooltip.jpg.
