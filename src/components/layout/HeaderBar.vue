@@ -1,5 +1,5 @@
 <template>
-  <header class="brand-page-header bg-white border-b border-stone-200/80 flex items-center justify-between shrink-0 select-none">
+  <header ref="panelHeader" class="brand-page-header bg-white border-b border-stone-200/80 flex items-center justify-between shrink-0 select-none">
     <div class="min-w-0">
       <h2 class="text-base font-bold text-stone-900 flex items-center gap-2">
         <span>{{ pageTitle.title }}</span>
@@ -66,16 +66,33 @@
   </header>
 </template>
 <style scoped>
-.brand-page-header{min-height:80px;padding:16px 24px;gap:16px}.brand-page-header h2{letter-spacing:-.3px}.brand-page-header p{margin-top:4px;color:var(--text-muted)}
+.brand-page-header{min-height:var(--panel-header-height);padding:16px 24px;gap:16px}.brand-page-header h2{letter-spacing:-.3px}.brand-page-header p{margin-top:4px;color:var(--text-muted)}
 @media(max-width:639px){.brand-page-header{padding:12px 16px;gap:8px;align-items:flex-start;flex-wrap:wrap}.brand-page-header h2{font-size:14px}.brand-page-header p{font-size:10px}.brand-page-header>div:last-child{gap:6px;margin-left:auto}}
 </style>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { RotateCcw, RefreshCw as CloudSync, Trash2, History } from 'lucide-vue-next'
 
 const store = usePosStore()
+const panelHeader = ref(null)
+let headerObserver
+function syncHeaderHeight() {
+  const height = panelHeader.value?.getBoundingClientRect().height
+  if (height > 0) document.documentElement.style.setProperty('--sidebar-header-height', `${height}px`)
+}
+onMounted(() => {
+  syncHeaderHeight()
+  if (typeof ResizeObserver !== 'undefined') {
+    headerObserver = new ResizeObserver(syncHeaderHeight)
+    headerObserver.observe(panelHeader.value)
+  }
+})
+onUnmounted(() => {
+  headerObserver?.disconnect()
+  document.documentElement.style.removeProperty('--sidebar-header-height')
+})
 
 async function confirmClearAll() {
   const ok = await store.confirmDialog({

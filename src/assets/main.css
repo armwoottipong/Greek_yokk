@@ -5,6 +5,7 @@
 @tailwind utilities;
 
 :root {
+  --panel-header-height: 80px;
   --bg-primary: #FBF5EA;
   --bg-card: #FFFCF6;
   --bg-soft: #F4EBDD;

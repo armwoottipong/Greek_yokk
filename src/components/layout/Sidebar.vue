@@ -2,11 +2,8 @@
   <aside class="brand-sidebar w-full md:w-64 flex flex-col shrink-0 z-20 select-none">
     <!-- Brand Header -->
     <div class="brand-lockup shrink-0">
-      <img :src="mascotUrl" alt="มาสคอต Greek Yogg ยิ้มบนพื้นแดงเข้ม" class="brand-mascot" width="64" height="64" />
-      <div class="min-w-0">
-        <h1 class="brand-wordmark">Greek Yogg.</h1>
-        <p class="brand-tagline">โยเกิร์ตดี ๆ ทุกวัน</p>
-      </div>
+      <h1 class="sr-only">Greek Yogg.</h1>
+      <img :src="mascotUrl" alt="มาสคอต Greek Yogg ยิ้มบนพื้นแดงเข้ม" class="brand-mascot" width="1774" height="887" />
     </div>
 
     <!-- Navigation Items -->
@@ -87,7 +84,7 @@ import {
 } from 'lucide-vue-next'
 
 const store = usePosStore()
-const mascotUrl = `${import.meta.env.BASE_URL}brand/mascot.png`
+const mascotUrl = `${import.meta.env.BASE_URL}brand/sidebar-header.png`
 
 const navItems = computed(() => [
   { id: 'dashboard', label: 'ภาพรวม & งบต้นทุน', icon: LayoutDashboard },
@@ -100,10 +97,8 @@ const navItems = computed(() => [
 </script>
 <style scoped>
 .brand-sidebar{background:var(--bg-card);border-right:1px solid var(--border-subtle)}
-.brand-lockup{display:flex;align-items:center;gap:12px;padding:26px 18px 28px;background:var(--accent-brand);color:var(--bg-card);border-radius:0 0 32px 0}
-.brand-mascot{width:64px;height:64px;object-fit:cover;object-position:right bottom;border-radius:44% 56% 48% 52%;border:1px solid #fbf5ea44;flex-shrink:0}
-.brand-wordmark{font-size:20px;font-weight:700;letter-spacing:-.7px;line-height:1.3;font-family:'Plus Jakarta Sans','Prompt',sans-serif}
-.brand-tagline{font-size:10px;margin-top:6px;color:#f5e0d6}
+.brand-lockup{height:var(--sidebar-header-height,var(--panel-header-height));background:var(--accent-brand)}
+.brand-mascot{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
 .brand-navigation{padding-top:18px}.brand-nav-item{border-radius:12px 20px 20px 12px;min-height:44px}.brand-nav-item:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}
-@media(max-width:767px){.brand-sidebar{border-right:0;border-bottom:1px solid var(--border-subtle)}.brand-lockup{padding:8px 14px;gap:9px;border-radius:0 0 20px 0}.brand-mascot{width:32px;height:32px}.brand-wordmark{font-size:16px}.brand-tagline{display:none}.brand-navigation{padding-top:6px}.brand-nav-item{min-height:38px;padding:8px 12px}.brand-nav-item>div{gap:7px}}
+@media(max-width:767px){.brand-sidebar{border-right:0;border-bottom:1px solid var(--border-subtle)}.brand-navigation{padding-top:6px}.brand-nav-item{min-height:38px;padding:8px 12px}.brand-nav-item>div{gap:7px}}
 </style>
