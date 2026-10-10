@@ -32,7 +32,22 @@ function highlight(id){hovered.value=id}
 function clearHover(){hovered.value=null}
 watch([()=>props.rows,mode],clearSelection)
 const formattedValue=row=>props.unit==='บาท'?`฿${money(row.value)}`:`${money(row.value)} ${props.unit}`
-function selectRow(event,row,index){hovered.value=null;showTooltip(event,{selection:row.id,heading:props.title,label:row.label,value:formattedValue(row),note:props.allowDonut?`${share(row).toFixed(1)}% ของทั้งหมด`:null,color:color(index)})}
+function donutAnchor(event,row,index){
+ const svg=event.currentTarget?.ownerSVGElement
+ if(!svg)return undefined
+ const rect=svg.getBoundingClientRect(),scale=Math.min(rect.width,rect.height)/180
+ const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2
+ const start=offset(index)*Math.PI/50,end=start+share(row)*Math.PI/50
+ let angle=(start+end)/2
+ if(event.type==='click' && (event.clientX || event.clientY)){
+  const pointerAngle=(Math.atan2(event.clientY-cy,event.clientX-cx)+Math.PI/2+Math.PI*2)%(Math.PI*2)
+  const candidates=[pointerAngle-Math.PI*2,pointerAngle,pointerAngle+Math.PI*2]
+  const nearest=candidates.sort((a,b)=>Math.abs(a-angle)-Math.abs(b-angle))[0]
+  angle=Math.max(start,Math.min(end,nearest))
+ }
+ return {x:cx+65*scale*Math.sin(angle),y:cy-65*scale*Math.cos(angle)}
+}
+function selectRow(event,row,index){hovered.value=null;showTooltip(event,{selection:row.id,heading:props.title,label:row.label,value:formattedValue(row),note:props.allowDonut?`${share(row).toFixed(1)}% ของทั้งหมด`:null,color:color(index)},donutAnchor(event,row,index))}
 const total=computed(()=>props.rows.reduce((sum,row)=>sum+Math.max(0,row.value),0))
 const maximum=computed(()=>Math.max(1,...props.rows.map(r=>r.value)))
 const share=row=>total.value?Math.max(0,row.value)/total.value*100:0

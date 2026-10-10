@@ -30,8 +30,10 @@
 .dashboard-chart-point.is-active{r:6px;stroke:var(--bg-card);stroke-width:2}
 .dashboard-chart-bar.is-active{filter:brightness(1.16) drop-shadow(0 0 4px #78060830)}
 .has-active-point .dashboard-chart-bar:not(.is-active){opacity:.65}
-.dashboard-donut-slice{cursor:pointer;pointer-events:stroke}
-.dashboard-donut-slice.is-active{stroke-width:29;filter:drop-shadow(0 1px 3px #78060824)}
+.dashboard-donut-slice{cursor:pointer;pointer-events:stroke;outline:none}
+.dashboard .dashboard-donut-slice:focus{outline:none}
+.dashboard-donut-slice.is-active{filter:brightness(1.12)}
+.dashboard-donut-slice:focus-visible{filter:brightness(1.2)}
 .dashboard-ranking li{border-radius:9px;outline-offset:5px}
 .dashboard-ranking li.is-active{background:var(--accent-soft);box-shadow:0 0 0 7px var(--accent-soft)}
 .dashboard-ranking li:focus-visible{outline:2px solid var(--accent-brand)}

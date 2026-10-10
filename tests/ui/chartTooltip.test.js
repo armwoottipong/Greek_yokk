@@ -2,6 +2,32 @@ import {it,expect} from 'vitest'
 import {mount} from '@vue/test-utils'
 import DashboardTrend from '../../src/components/dashboard/DashboardTrend.vue'
 import DashboardBreakdown from '../../src/components/dashboard/DashboardBreakdown.vue'
+it('anchors donut tooltips at the middle of the selected arc',async()=>{
+ const w=mount(DashboardBreakdown,{props:{title:'ช่องทาง',allowDonut:true,rows:[{id:'A',label:'A',value:50},{id:'B',label:'B',value:50}]}})
+ try{
+  await w.findAll('.dashboard-segments button')[1].trigger('click')
+  w.get('svg').element.getBoundingClientRect=()=>({left:100,top:200,width:180,height:180})
+  await w.get('[data-donut-id="A"]').trigger('click')
+  expect(document.querySelector('[role="tooltip"]').style.left).toBe('145px')
+  await w.get('[data-donut-id="B"]').trigger('keydown',{key:'Enter'})
+  expect(document.querySelector('[role="tooltip"]').style.left).toBe('15px')
+  await w.get('[data-donut-id="A"]').trigger('click',{clientX:236,clientY:244})
+  const left=Number.parseFloat(document.querySelector('[role="tooltip"]').style.left)
+  expect(left).toBeCloseTo(80+65/Math.sqrt(2),1)
+ }finally{w.unmount()}
+})
+it('prevents scrolling while a tooltip is open and restores it after closing or unmount',async()=>{
+ const w=mount(DashboardTrend,{props:{rows:[{date:'2026-10-10',totalSales:100,totalFoodCost:30,grossProfit:70}]}})
+ const previous=document.body.style.overflow
+ try{
+  await w.get('[data-mark="0-totalSales"]').trigger('click')
+  expect(document.body.style.overflow).toBe('hidden')
+  const wheel=new Event('wheel',{cancelable:true,bubbles:true});document.body.dispatchEvent(wheel);expect(wheel.defaultPrevented).toBe(true)
+  await w.get('[data-mark="0-totalSales"]').trigger('click');expect(document.body.style.overflow).toBe(previous)
+  await w.get('[data-mark="0-totalSales"]').trigger('click')
+ }finally{w.unmount()}
+ expect(document.body.style.overflow).toBe(previous)
+})
 it('shows only the hovered metric, supports focus/Escape and preserves loss values',async()=>{
  const w=mount(DashboardTrend,{props:{rows:[{date:'2026-10-10',totalSales:100,totalFoodCost:30,grossProfit:-10,orderCount:1}]}})
  try{
