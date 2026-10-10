@@ -6,8 +6,8 @@
     <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
       
       <!-- 1. Header with Dynamic Title & Sub-Recipe Switch (Requirement 4) -->
-      <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
-        <div class="min-w-0 flex-1 pr-3">
+      <div class="px-4 sm:px-6 py-4 border-b border-stone-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-y-3 bg-white shrink-0">
+        <div class="min-w-0 w-full sm:w-auto sm:flex-1 sm:pr-3">
           <div class="flex items-center gap-2">
             <h3 id="MaterialEditModal-title" class="text-sm font-semibold text-stone-900 truncate">
               {{ isEditing 
@@ -30,35 +30,25 @@
           </p>
         </div>
 
-        <div class="flex items-center gap-3 shrink-0">
+        <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0 w-full sm:w-auto">
           <!-- Switch Button: ผลิตจากวัตถุดิบอื่น (Header toggle, only for main materials) -->
-          <label 
+          <AppCheckbox v-model="form.hasSubRecipe" variant="switch" label="ผลิตจากวัตถุดิบอื่น"
             v-if="!form.isSubIngredient"
             class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border cursor-pointer select-none transition-all"
-            :class="form.hasSubRecipe ? 'bg-amber-50/70 border-amber-300 text-amber-950' : 'bg-stone-50 border-stone-200/80 text-stone-700 hover:border-stone-300'"
+            :class="form.hasSubRecipe ? 'bg-brand-50 border-brand-200 text-brand-600' : 'bg-stone-50 border-stone-200/80 text-stone-700 hover:border-stone-300'"
             title="เปิดหากเป็นวัตถุดิบที่ต้องปรุง/ผลิตจากวัตถุดิบอื่น"
           >
             <span class="text-[11px] font-semibold flex items-center gap-1.5">
               <span class="text-xs">🥣</span>
               <span>ผลิตจากวัตถุดิบอื่น</span>
             </span>
-            <div class="relative inline-flex items-center">
-              <input
-                type="checkbox"
-                v-model="form.hasSubRecipe"
-                class="sr-only peer"
-              />
-              <div class="w-8 h-4.5 bg-stone-300 peer-checked:bg-brand-600 rounded-full transition-colors relative">
-                <div class="absolute top-0.5 left-0.5 bg-white w-3.5 h-3.5 rounded-full shadow-xs transition-transform transform peer-checked:translate-x-3.5"></div>
-              </div>
-            </div>
-          </label>
+          </AppCheckbox>
 
           <!-- Close Modal Button -->
           <button 
             type="button"
             @click="requestClose(close)" 
-            class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+            class="ml-auto text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
            aria-label="ปิดหน้าต่าง">
             <X class="w-4 h-4" />
           </button>
@@ -575,6 +565,7 @@
 
 <script setup>
 import AppSelect from '@/components/ui/AppSelect.vue'
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'

@@ -185,18 +185,13 @@
           />
         </div>
 
-        <label
+        <AppCheckbox v-model="showDeleted" :label="`รายการจัดเก็บ (${deletedCount})`"
           class="text-[11px] cursor-pointer select-none flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-xl border transition-all"
-          :class="showDeleted ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold shadow-2xs' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'"
+          :class="showDeleted ? 'bg-brand-50 border-brand-200 text-brand-600 font-semibold' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'"
         >
-          <input
-            type="checkbox"
-            v-model="showDeleted"
-            class="rounded border-stone-300 text-amber-900 focus:ring-0 w-3.5 h-3.5"
-          />
-          <Archive class="w-3.5 h-3.5 text-stone-500" :class="showDeleted ? 'text-amber-700' : ''" />
+          <Archive aria-hidden="true" class="w-3.5 h-3.5 text-stone-500" :class="showDeleted ? 'text-brand-600' : ''" />
           <span>รายการจัดเก็บ ({{ deletedCount }})</span>
-        </label>
+        </AppCheckbox>
       </div>
     </div>
 
@@ -999,6 +994,7 @@
 
 <script setup>
 import AppSelect from '@/components/ui/AppSelect.vue'
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   usePosStore,

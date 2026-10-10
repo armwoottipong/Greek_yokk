@@ -1,38 +1,20 @@
 <template>
-  <label class="flex items-center justify-between p-3.5 rounded-xl bg-[#FBF5EA] border border-stone-100 hover:border-stone-200/80 cursor-pointer select-none transition-all">
+  <AppCheckbox :model-value="modelValue" @update:modelValue="$emit('update:modelValue',$event)" :label="label" :disabled="disabled" variant="switch" class="p-3.5 rounded-xl bg-[#FBF5EA] border border-stone-100 hover:border-stone-200/80">
     <div class="pr-2">
       <div class="flex items-center gap-1.5 font-medium text-stone-800 text-xs">
-        <span v-if="icon">{{ icon }}</span>
+        <span v-if="icon" aria-hidden="true">{{ icon }}</span>
         <span>{{ label }}</span>
       </div>
       <p v-if="description" class="text-[10px] text-stone-400 mt-0.5">{{ description }}</p>
     </div>
     
-    <div class="relative inline-flex items-center shrink-0">
-      <input
-        type="checkbox"
-        :checked="modelValue"
-        @change="$emit('update:modelValue', $event.target.checked)"
-        class="sr-only peer"
-      >
-      <div
-        :class="[
-          'w-10 h-6 bg-stone-200 rounded-full transition-colors relative',
-          color === 'purple'
-            ? 'peer-checked:bg-purple-700'
-            : color === 'emerald'
-            ? 'peer-checked:bg-emerald-600'
-            : 'peer-checked:bg-brand-600'
-        ]"
-      >
-        <div class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform transform peer-checked:translate-x-4"></div>
-      </div>
-    </div>
-  </label>
+  </AppCheckbox>
 </template>
 
 <script setup>
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 defineProps({
+  disabled:Boolean,
   modelValue: {
     type: Boolean,
     default: true
