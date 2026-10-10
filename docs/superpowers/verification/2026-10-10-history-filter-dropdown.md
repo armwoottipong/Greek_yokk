@@ -9,4 +9,5 @@ TDD: new anchoring/no-second-dimming/outside-dismiss test observed failing befor
 Browser verification on disposable Demo origin localhost:3013: desktop dropdown appears under button, range preview and footer visible. Outside click closes only filters and returns focus to trigger. No console warnings/errors captured. At320x640 responsive iframe, panel spans x8..312, y169..632, footer clientWidth=scrollWidth=302; form scrolls while footer remains visible. Screenshots saved outside repository.
 
 Prior explicit push-to-deploy authorization persists for this UI follow-up. Direct requested correction and existing redesign authorization cover bounded design without repeated confirmation.
-`nFinal local verification: 21 test files / 148 tests passed, lint and production build passed, git diff --check passed.
+
+Final local verification: 21 test files / 148 tests passed, lint and production build passed, git diff --check passed. Repeated verification on merged main also passed.
