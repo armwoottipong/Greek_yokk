@@ -40,3 +40,11 @@
 - Donut/ranking tooltips show the selected label, recorded value and percentage where applicable. Mode/data changes clear stale values. Accessible descriptions link each focused mark to its unique tooltip.
 - Red/green tests cover single-metric values, losses, Escape and segment percentage/reset. Existing hover tests updated to assert a single selected point/bar. Full suite173 tests; lint/build checked.
 - Browser verified cost93.7, profit234.9 independently, Escape removes tooltip, donut GrabFood228/57.4%. At360px tooltip is220px wide atx132/right352, within viewport. Reviewer agent could not complete because of its usage limit; local code and browser checks completed.
+
+## Hover-only and speech bubbles
+
+- Removed chart click/Enter/Space actions and button roles. Hover and keyboard focus reveal values; graph/ranking cursor is pointer.
+- Background date bands sit beneath individual marks: hover blank plot area for all three metrics, or a specific line/point/bar for one metric. Data geometry unchanged.
+- Tooltip has no border, uses a soft shadow and a cream arrow whose horizontal position follows the pointer and reverses for below placement. Aggregate card lists all three colored metrics.
+- Red/green test verifies aggregate, specific selection, arrow and no click activation. Full suite174 tests, lint and build pass. Browser verified397/93.7/234.9 together and93.7 alone, arrow present and computed border0px. Evidence: dashboard-tooltip-bubble.jpg.
+- Reviewer identified sparse-date hit areas extending beyond plot bounds. Both boundaries now clamp to plot62…width-22; regression covers two-day history. Final full suite175 tests, lint/build pass.

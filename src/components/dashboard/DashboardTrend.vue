@@ -6,13 +6,14 @@
   <figure v-else :key="mode" class="dashboard-chart-reveal">
    <svg :viewBox="`0 0 ${chartWidth} 270`" :class="{'has-active-point':active!==null}" :style="{'--chart-baseline':`${y(0)}px`}" role="group" :aria-label="`กราฟ${mode==='line'?'เส้น':'แท่ง'}ยอดขาย ต้นทุน และกำไรขั้นต้น`">
     <rect v-if="active!==null" class="dashboard-hover-band" :x="x(active.index)-hitWidth/2" y="14" :width="hitWidth" height="217" rx="8" fill="var(--accent-soft)" aria-hidden="true" />
-    <g v-for="tick in ticks" :key="tick" aria-hidden="true"><line x1="62" :x2="chartWidth-22" :y1="y(tick)" :y2="y(tick)" stroke="var(--border-subtle)" :stroke-dasharray="tick===0?undefined:'3 5'"/><text x="52" :y="y(tick)+4" text-anchor="end" class="chart-axis">{{ compact(tick) }}</text></g>
+    <g v-for="(row,index) in rows" :key="`date-${row.date}`" :data-date-hover="index" tabindex="0" role="group" :aria-label="`${dateLabel(row.date)} ดูทั้งสามค่า`" @mouseenter="selectDate($event,index)" @mousemove="selectDate($event,index)" @mouseleave="clearSelection" @focus="selectDate($event,index)" @blur="clearSelection"><rect :x="dateLeft(index)" y="14" :width="dateRight(index)-dateLeft(index)" height="217" fill="transparent" /></g>
+    <g v-for="tick in ticks" :key="tick" aria-hidden="true" pointer-events="none"><line x1="62" :x2="chartWidth-22" :y1="y(tick)" :y2="y(tick)" stroke="var(--border-subtle)" :stroke-dasharray="tick===0?undefined:'3 5'"/><text x="52" :y="y(tick)+4" text-anchor="end" class="chart-axis">{{ compact(tick) }}</text></g>
     <template v-for="s in series" :key="s.key">
      <template v-if="mode==='line' && rows.length>1">
       <path class="dashboard-chart-line" pathLength="1" :d="path(s.key)" fill="none" :stroke="s.color" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true" />
       <path :d="path(s.key)" fill="none" stroke="transparent" stroke-width="12" pointer-events="stroke" @mousemove="selectLine($event,s)" @mouseleave="clearSelection" />
      </template>
-     <g v-for="(row,index) in rows" :key="row.date" :data-mark="`${index}-${s.key}`" tabindex="0" role="button" :aria-label="`${dateLabel(row.date)} ${s.label} ฿${money(row[s.key])}`" :aria-describedby="isSelected(index,s.key)?tooltipId:undefined" @mouseenter="selectMark($event,index,s)" @mousemove="selectMark($event,index,s)" @mouseleave="clearSelection" @focus="selectMark($event,index,s)" @blur="clearSelection" @click="selectMark($event,index,s)" @keydown.enter="selectMark($event,index,s)" @keydown.space.prevent="selectMark($event,index,s)">
+     <g v-for="(row,index) in rows" :key="row.date" :data-mark="`${index}-${s.key}`" tabindex="0" role="group" :aria-label="`${dateLabel(row.date)} ${s.label} ฿${money(row[s.key])}`" :aria-describedby="isSelected(index,s.key)?tooltipId:undefined" @mouseenter="selectMark($event,index,s)" @mousemove="selectMark($event,index,s)" @mouseleave="clearSelection" @focus="selectMark($event,index,s)" @blur="clearSelection">
       <template v-if="mode==='line'">
        <circle v-if="isSelected(index,s.key)" class="dashboard-point-halo" :cx="x(index)" :cy="y(row[s.key])" r="11" :fill="s.color" aria-hidden="true" />
        <circle class="dashboard-chart-point" :class="{'is-active':isSelected(index,s.key)}" :cx="x(index)" :cy="y(row[s.key])" r="4" :fill="s.color" />
@@ -23,7 +24,7 @@
     </template>
     <text v-for="index in labels" :key="index" :x="x(index)" y="255" text-anchor="middle" class="chart-axis" aria-hidden="true">{{ shortDate(rows[index].date) }}</text>
    </svg>
-   <figcaption class="dashboard-chart-detail" aria-live="polite"><template v-if="tooltip"><strong>{{ tooltip.heading }}</strong><span>{{ tooltip.label }} <b>{{ tooltip.value }}</b></span></template><span v-else>ชี้หรือแตะแต่ละจุด / แท่งเพื่อดูค่า หรือเลือกรูปแบบตาราง</span></figcaption>
+   <figcaption class="dashboard-chart-detail" aria-live="polite"><template v-if="tooltip"><strong>{{ tooltip.heading }}</strong><template v-if="tooltip.items"><span v-for="item in tooltip.items" :key="item.label">{{ item.label }} <b>{{ item.value }}</b></span></template><span v-else>{{ tooltip.label }} <b>{{ tooltip.value }}</b></span></template><span v-else>ชี้พื้นที่กราฟเพื่อดูทั้ง 3 ค่า หรือชี้แท่ง / เส้นเพื่อดูค่าเดียว</span></figcaption>
   </figure>
   <ChartTooltip :id="tooltipId" :value="tooltip" />
  </div>
@@ -45,7 +46,8 @@ function clearSelection(){active.value=null;hideTooltip()}
 watch([()=>props.rows,mode],clearSelection)
 const modes=[{id:'line',label:'เส้น',icon:ChartNoAxesCombined},{id:'bar',label:'แท่ง',icon:ChartNoAxesColumn},{id:'table',label:'ตาราง',icon:Table2}]
 const series=[{key:'totalSales',label:'ยอดขาย',color:'#780608'},{key:'totalFoodCost',label:'ต้นทุนขาย',color:'#B68B55'},{key:'grossProfit',label:'กำไรขั้นต้น',color:'#497464'}]
-const isSelected=(index,key)=>active.value?.index===index && active.value?.key===key
+const isSelected=(index,key)=>active.value?.index===index && (active.value?.key===key || active.value?.key==='all')
+function selectDate(event,index){const row=props.rows[index];if(!row)return;active.value={index,key:'all'};showTooltip(event,{heading:dateLabel(row.date),items:series.map(s=>({label:s.label,value:`฿${money(row[s.key])}`,color:s.color}))})}
 function selectMark(event,index,s){const row=props.rows[index];if(!row)return;active.value={index,key:s.key};showTooltip(event,{heading:dateLabel(row.date),label:s.label,value:`฿${money(row[s.key])}`,color:s.color})}
 function selectLine(event,s){const rect=event.currentTarget.closest('svg').getBoundingClientRect(),px=(event.clientX-rect.left)/rect.width*chartWidth.value;const index=Math.max(0,Math.min(props.rows.length-1,Math.round((px-78)/(chartWidth.value-116)*(props.rows.length-1))));selectMark(event,index,s)}
 const bucketLabel=computed(()=>({day:'รายวัน',week:'ราย 7 วัน',month:'รายเดือน'}[props.bucket]))
@@ -53,6 +55,9 @@ const bounds=computed(()=>{const values=props.rows.flatMap(r=>series.map(s=>r[s.
 const y=value=>225-(value-bounds.value.min)/(bounds.value.max-bounds.value.min)*200
 const x=index=>props.rows.length===1?(chartWidth.value+56)/2:78+index*(chartWidth.value-116)/Math.max(1,props.rows.length-1)
 const hitWidth=computed(()=>Math.min(64,(chartWidth.value-116)/Math.max(1,props.rows.length)))
+const dateWidth=computed(()=>props.rows.length>1?(chartWidth.value-116)/(props.rows.length-1):chartWidth.value-116)
+const dateLeft=index=>Math.max(62,x(index)-dateWidth.value/2)
+const dateRight=index=>Math.min(chartWidth.value-22,x(index)+dateWidth.value/2)
 const barWidth=computed(()=>Math.min(18,hitWidth.value/3))
 const barX=(index,s)=>x(index)+(series.indexOf(s)-1)*barWidth.value-barWidth.value/2
 const ticks=computed(()=>Array.from({length:5},(_,i)=>bounds.value.min+(bounds.value.max-bounds.value.min)*i/4))

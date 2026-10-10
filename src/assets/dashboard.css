@@ -49,3 +49,6 @@
 }
 @keyframes dashboard-halo-pop{from{opacity:0;transform:scale(.55)}60%{opacity:.24;transform:scale(1.12)}to{opacity:.17;transform:scale(1)}}
 @keyframes dashboard-marker-pop{from{transform:scale(1)}50%{transform:scale(1.3)}to{transform:scale(1)}}
+
+.dashboard-trend [data-mark],.dashboard-trend [data-date-hover],.dashboard-trend path[pointer-events="stroke"],.dashboard-ranking [data-ranking-id]{cursor:pointer}
+.dashboard-chart-line{pointer-events:none}
