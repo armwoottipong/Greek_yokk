@@ -167,9 +167,9 @@
               :key="idx"
               class="flex items-center gap-2.5 text-xs"
             >
-              <select
+              <AppSelect aria-label="วัตถุดิบในสูตร"
                 v-model="row.materialId"
-                class="soft-input flex-1 px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
+                class="flex-1"
               >
                 <optgroup
                   v-for="(mats, catName) in recipeMaterialsByCategory"
@@ -184,7 +184,7 @@
                     {{ m.emoji }} {{ m.name }} ({{ m.unit }})
                   </option>
                 </optgroup>
-              </select>
+              </AppSelect>
 
               <div class="w-28 shrink-0 flex items-center gap-1.5">
                 <input
@@ -259,9 +259,9 @@
               :key="idx"
               class="flex items-center gap-2.5 text-xs"
             >
-              <select
+              <AppSelect aria-label="วัตถุดิบในสูตร"
                 v-model="row.materialId"
-                class="soft-input flex-1 px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
+                class="flex-1"
               >
                 <option
                   v-for="m in packagingMaterials"
@@ -270,7 +270,7 @@
                 >
                   {{ m.emoji }} {{ m.name }}
                 </option>
-              </select>
+              </AppSelect>
 
               <div class="w-28 shrink-0 flex items-center gap-1.5">
                 <input
@@ -320,6 +320,7 @@
 </template>
 
 <script setup>
+import AppSelect from '@/components/ui/AppSelect.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'

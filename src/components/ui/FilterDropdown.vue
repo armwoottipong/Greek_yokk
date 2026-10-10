@@ -10,7 +10,7 @@
         <div class="filter-fields" :class="fields.length === 1 ? 'single-field' : ''">
           <label v-for="field in fields" :key="field.key" class="filter-field">
             <span>{{ field.label }}</span>
-            <div class="filter-select"><select v-model="draft[field.key]" :aria-label="field.label"><option v-for="option in field.options" :key="option.id" :value="option.id">{{ option.label }}</option></select><ChevronDown :size="14" aria-hidden="true" /></div>
+            <AppSelect v-model="draft[field.key]" :aria-label="field.label" class="w-full"><option v-for="option in field.options" :key="option.id" :value="option.id">{{ option.label }}</option></AppSelect>
           </label>
         </div>
         <div class="filter-date-heading"><CalendarDays :size="15" aria-hidden="true" /><span>ช่วงเวลาลัด</span></div>
@@ -37,8 +37,9 @@
 </template>
 
 <script setup>
+import AppSelect from '@/components/ui/AppSelect.vue'
 import {ref,watch,onUnmounted} from 'vue'
-import {SlidersHorizontal,X,ChevronDown,CalendarDays,ArrowRight,RotateCcw,Check} from 'lucide-vue-next'
+import {SlidersHorizontal,X,CalendarDays,ArrowRight,RotateCcw,Check} from 'lucide-vue-next'
 import {businessDateKey} from '@/domain/businessDate'
 import ModalShell from './ModalShell.vue'
 import DateRangeCalendar from './DateRangeCalendar.vue'
@@ -93,8 +94,6 @@ function apply(){emit('apply',{...draft.value,end:draft.value.end || draft.value
 .filter-config,.filter-dates{min-width:0}
 .filter-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:16px}.single-field{grid-template-columns:1fr}
 .filter-field>span{display:block;margin-bottom:6px;font-size:11px;font-weight:500;color:#57534e}
-.filter-select{position:relative}.filter-select>svg{position:absolute;right:10px;top:13px;pointer-events:none;color:#78716c}
-.filter-select select{appearance:none;width:100%;height:40px;border:1px solid #e0e5e2;border-radius:8px;padding:0 28px 0 10px;background:#fff;font:inherit;color:#292524;text-overflow:ellipsis}.filter-select select:hover{border-color:#9cafa5}
 .filter-date-heading{display:flex;align-items:center;gap:7px;font-weight:600;margin-bottom:9px;color:#57534e}
 .filter-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:12px}.filter-presets button{height:30px;border:1px solid #e5e9e6;border-radius:6px;color:#57534e;font-size:11px}.filter-presets button:hover{border-color:#86b6a2;background:#f3faf6}.filter-presets button[aria-pressed=true]{color:#16634d;background:#ecf7f0;border-color:#abd5bc;font-weight:600}
 .filter-range{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;margin-bottom:10px;border:1px solid #d6e8de;background:#f5faf7;border-radius:9px}.filter-range>div{flex:1;min-width:0}.filter-range>svg{color:#7b9b8b}.filter-range span{display:block;font-size:10px;color:#6b8175;margin-bottom:3px}.filter-range strong{display:block;font-weight:600;font-size:12px;color:#245840}

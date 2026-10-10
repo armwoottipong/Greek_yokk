@@ -37,10 +37,10 @@
           <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FAF9F6] rounded-xl border border-stone-100">
             ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าคลังก่อน
           </div>
-          <select
+          <AppSelect aria-label="เลือกวัตถุดิบ"
             v-else
             v-model="selectedMatId"
-            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900"
+            class="w-full"
           >
             <option
               v-for="m in store.activeMaterials"
@@ -49,7 +49,7 @@
             >
               {{ m.emoji }} {{ m.name }} (ในระบบ: {{ m.stock.toLocaleString() }} {{ m.unit }} {{ m.packSize > 1 ? `≈ ${(m.stock / m.packSize).toFixed(1)} ${m.packUnit}` : '' }})
             </option>
-          </select>
+          </AppSelect>
         </div>
 
         <!-- Lot Selection Strip (If material has multiple lots) -->
@@ -58,9 +58,9 @@
             <label class="block text-xs font-medium text-stone-700">ขอบเขตล็อตที่ต้องการตรวจนับ/ปรับยอด</label>
             <span class="text-[10px] text-stone-400">มีทั้งหมด {{ selectedMaterial.lots.length }} ล็อต</span>
           </div>
-          <select
+          <AppSelect aria-label="เลือกล็อต"
             v-model="selectedLotId"
-            class="soft-input w-full px-3.5 py-2 rounded-xl text-xs font-medium text-stone-900"
+            class="w-full"
           >
             <option value="all">
               📦 ปรับยอดรวมคลังทั้งหมด (ตัด/เพิ่มที่ล็อตกำลังใช้งานก่อน)
@@ -72,7 +72,7 @@
             >
               {{ l.isInUse ? '⭐ [กำลังใช้งาน] ' : '• ' }}ล็อตวันที่ {{ formatThaiDate(l.receiveDate) }} (คงเหลือ: {{ Number(l.qty || 0).toLocaleString() }} {{ selectedMaterial.unit }})
             </option>
-          </select>
+          </AppSelect>
         </div>
 
         <!-- Unit Switch Capsule (if material has packUnit) -->
@@ -187,16 +187,16 @@
 
         <div>
           <label class="block text-xs font-medium text-stone-700 mb-1.5">สาเหตุการปรับยอด</label>
-          <select
+          <AppSelect aria-label="เหตุผลที่ปรับสต็อก"
             v-model="reason"
-            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900"
+            class="w-full"
           >
             <option value="นับสต็อกจริงรายวัน">📋 นับสต็อกจริงรายวัน / ตรวจสอบรอบ</option>
             <option value="ของเสีย/หมดอายุ">🗑️ ของเสีย / หมดอายุ / คุณภาพไม่ผ่าน</option>
             <option value="ทำหก/แตกเสียหาย">💥 ทำหก / ตกแตก / เสียหายหน้างาน</option>
             <option value="ชิม/เทรนนิ่ง">🧑‍🍳 ตักชิม / ทดลองสูตร / เทรนพนักงาน</option>
             <option value="อื่นๆ">✏️ อื่นๆ (ระบุในหมายเหตุ)</option>
-          </select>
+          </AppSelect>
         </div>
 
         <div>
@@ -233,6 +233,7 @@
 </template>
 
 <script setup>
+import AppSelect from '@/components/ui/AppSelect.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore, formatThaiDate } from '@/stores/posStore'

@@ -122,9 +122,9 @@
           </div>
           <div class="w-44 shrink-0">
             <label class="block text-[11px] font-medium text-stone-600 mb-1">หมวดหมู่</label>
-            <select
+            <AppSelect aria-label="หมวดหมู่"
               v-model="form.category"
-              class="soft-input w-full px-2.5 py-2 rounded-xl text-xs font-medium text-stone-900 cursor-pointer"
+              class="w-full"
             >
               <option
                 v-for="cat in store.materialCategories"
@@ -139,7 +139,7 @@
               >
                 📦 {{ form.category }}
               </option>
-            </select>
+            </AppSelect>
           </div>
         </div>
 
@@ -307,9 +307,9 @@
             >
               <!-- Primary Line: Material, Qty, Cost, Delete -->
               <div class="flex items-center gap-2">
-                <select
+                <AppSelect aria-label="วัตถุดิบในสูตร"
                   v-model="row.materialId"
-                  class="flex-1 bg-stone-50/70 border border-stone-200/70 px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-900 focus:outline-none cursor-pointer"
+                  class="flex-1"
                 >
                   <option
                     v-for="sub in availableSubMaterials"
@@ -318,7 +318,7 @@
                   >
                     {{ sub.emoji }} {{ sub.name }} ({{ sub.unit }})
                   </option>
-                </select>
+                </AppSelect>
 
                 <div class="flex items-center gap-1 bg-stone-50/70 px-2 py-1 rounded-lg border border-stone-200/70">
                   <span class="text-[10px] text-stone-400">ใช้</span>
@@ -574,6 +574,7 @@
 </template>
 
 <script setup>
+import AppSelect from '@/components/ui/AppSelect.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'

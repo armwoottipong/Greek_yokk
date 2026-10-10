@@ -166,14 +166,14 @@
 
       <!-- Category Filter Dropdown + Search + Hidden Checkbox -->
       <div class="flex items-center gap-2 flex-1 max-w-xl justify-end">
-        <select
+        <AppSelect aria-label="หมวดหมู่"
           v-model="selectedCategory"
-          class="soft-input px-3 py-1.5 rounded-xl text-xs font-medium text-stone-800 shrink-0 cursor-pointer"
+          class="w-44 shrink-0"
         >
           <option v-for="cat in categories" :key="cat.id" :value="cat.id">
             {{ cat.label }}
           </option>
-        </select>
+        </AppSelect>
 
         <div class="relative flex-1 min-w-[140px]">
           <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
@@ -998,6 +998,7 @@
 </template>
 
 <script setup>
+import AppSelect from '@/components/ui/AppSelect.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   usePosStore,

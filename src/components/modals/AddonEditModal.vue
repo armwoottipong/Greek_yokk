@@ -45,9 +45,9 @@
         <!-- Row 2: Category -->
         <div>
           <label class="block text-xs font-medium text-stone-700 mb-1.5">หมวดหมู่ Add-on</label>
-          <select
+          <AppSelect aria-label="หมวดหมู่"
             v-model="form.category"
-            class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900"
+            class="w-full"
           >
             <option
               v-for="cat in store.addonCategories"
@@ -62,7 +62,7 @@
             >
               ✨ {{ form.category }}
             </option>
-          </select>
+          </AppSelect>
         </div>
 
         <!-- Row 3: Platform Prices (Compact capsules) -->
@@ -97,9 +97,9 @@
           <div class="grid grid-cols-2 gap-2.5">
             <div>
               <label class="block text-[11px] text-stone-500 mb-1">วัตถุดิบที่ตัด:</label>
-              <select
+              <AppSelect aria-label="วัตถุดิบที่ตัด"
                 v-model="form.materialId"
-                class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-medium text-stone-900"
+                class="w-full"
               >
                 <option value="">-- ไม่ตัดวัตถุดิบ --</option>
                 <option
@@ -109,7 +109,7 @@
                 >
                   {{ m.emoji }} {{ m.name }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
             <div>
               <label class="block text-[11px] text-stone-500 mb-1">ปริมาณที่ตัดต่อที่:</label>
@@ -153,6 +153,7 @@
 </template>
 
 <script setup>
+import AppSelect from '@/components/ui/AppSelect.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'

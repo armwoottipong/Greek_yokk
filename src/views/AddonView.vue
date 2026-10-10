@@ -13,9 +13,9 @@
           />
         </div>
 
-        <select
+        <AppSelect aria-label="หมวดหมู่"
           v-model="selectedCategory"
-          class="soft-input px-3 py-2 rounded-xl text-xs text-stone-700 font-medium"
+          class="w-44 shrink-0"
         >
           <option value="ทั้งหมด">ทุกหมวดหมู่ ({{ store.addons.length }})</option>
           <option
@@ -32,7 +32,7 @@
           >
             ✨ {{ catName }}
           </option>
-        </select>
+        </AppSelect>
       </div>
 
       <button
@@ -126,6 +126,7 @@
 </template>
 
 <script setup>
+import AppSelect from '@/components/ui/AppSelect.vue'
 import { ref, computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { Search, Plus, Trash2 } from 'lucide-vue-next'

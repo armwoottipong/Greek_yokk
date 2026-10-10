@@ -129,7 +129,7 @@ it('treats one selected date as one day and applies the activity type only on co
  const wrapper=open({targetMaterialId:'M'})
  await wrapper.get('button[aria-controls="history-filters"]').trigger('click'); await nextTick()
  await wrapper.get('button[aria-label="10 ตุลาคม 2569"]').trigger('click')
- await wrapper.get('[aria-label="ประเภทกิจกรรม"]').setValue('adjust')
+ await wrapper.get('select[aria-label="ประเภทกิจกรรม"]').setValue('adjust')
  expect(wrapper.vm.filteredLogs).toHaveLength(1)
  await wrapper.get('[data-apply-filters]').trigger('click')
  expect(wrapper.vm.filterStartDate).toBe('2026-10-10')
