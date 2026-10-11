@@ -1,6 +1,7 @@
 <template>
+  <div v-if="isTablet && mobileOpen" class="sidebar-rail-placeholder" aria-hidden="true"></div>
   <div v-if="mobileOpen" class="mobile-menu-backdrop" aria-hidden="true" @click="$emit('close')"></div>
-  <aside id="main-sidebar" ref="sidebar" :class="{'is-mobile-open':mobileOpen}" :inert="isMobile && !mobileOpen" :role="isMobile && mobileOpen?'dialog':undefined" :aria-modal="isMobile && mobileOpen?'true':undefined" aria-label="เมนูหลัก Greek Yogg." class="brand-sidebar w-full md:w-64 flex flex-col shrink-0 z-20 select-none">
+  <aside id="main-sidebar" ref="sidebar" :class="{'is-mobile-open':mobileOpen,'is-tablet-rail':isTablet&&!mobileOpen}" :inert="isMobile && !mobileOpen ? true : undefined" :role="isCompact && mobileOpen?'dialog':undefined" :aria-modal="isCompact && mobileOpen?'true':undefined" aria-label="เมนูหลัก Greek Yogg." class="brand-sidebar w-full md:w-64 flex flex-col shrink-0 z-20 select-none">
     <!-- Brand Header -->
     <div class="brand-lockup shrink-0">
       <h1 class="sr-only">Greek Yogg.</h1>
@@ -12,6 +13,7 @@
       <button
         v-for="item in navItems"
         :key="item.id"
+        :aria-label="item.label + (item.badge ? ' ' + item.badge : '')" :title="item.label"
         @click="navigate(item.id)"
         :aria-current="store.currentTab === item.id ? 'page' : undefined"
         :class="[
@@ -74,6 +76,8 @@
 
 <script setup>
 import { computed,ref,watch,nextTick,onMounted,onUnmounted } from 'vue'
+import {useMediaQuery} from '@/composables/useMediaQuery'
+import {useOverlayScrollLock} from '@/composables/useOverlayScrollLock'
 import { usePosStore } from '@/stores/posStore'
 import {
   LayoutDashboard,
@@ -87,12 +91,14 @@ import {
 const store = usePosStore()
 const props=defineProps({mobileOpen:Boolean})
 const emit=defineEmits(['close'])
-const sidebar=ref(null),isMobile=ref(false)
-let media
+const sidebar=ref(null)
+const isMobile=useMediaQuery('(max-width:767px)'),isCompact=useMediaQuery('(max-width:1199px)')
+const isTablet=computed(()=>isCompact.value&&!isMobile.value)
+useOverlayScrollLock(computed(()=>props.mobileOpen&&isCompact.value),sidebar)
+watch(isCompact,value=>{if(!value)emit('close')})
 function navigate(id){store.switchTab(id);emit('close')}
-function updateMobile(){isMobile.value=media.matches;if(!media.matches)emit('close')}
 function handleKeys(event){
- if(!props.mobileOpen || !isMobile.value)return
+ if(!props.mobileOpen || !isCompact.value)return
  if(event.key==='Escape'){event.preventDefault();emit('close')}
  if(event.key==='Tab'){
   const trigger=document.getElementById('mobile-menu-toggle')
@@ -103,8 +109,8 @@ function handleKeys(event){
  }
 }
 watch(()=>props.mobileOpen,async open=>{if(open){await nextTick();sidebar.value?.querySelector('button[aria-current="page"],button')?.focus()}})
-onMounted(()=>{media=window.matchMedia('(max-width:767px)');updateMobile();media.addEventListener('change',updateMobile);document.addEventListener('keydown',handleKeys)})
-onUnmounted(()=>{media?.removeEventListener('change',updateMobile);document.removeEventListener('keydown',handleKeys)})
+onMounted(()=>document.addEventListener('keydown',handleKeys))
+onUnmounted(()=>document.removeEventListener('keydown',handleKeys))
 const mascotUrl = `${import.meta.env.BASE_URL}brand/sidebar-header.png`
 
 const navItems = computed(() => [
@@ -133,4 +139,15 @@ const navItems = computed(() => [
 }
 @media(prefers-reduced-motion:no-preference) and (max-width:767px){.brand-sidebar{transition:transform 230ms cubic-bezier(.2,.8,.3,1),visibility 230ms}.mobile-menu-backdrop{animation:drawer-backdrop-in 180ms ease-out}}
 @keyframes drawer-backdrop-in{from{opacity:0}to{opacity:1}}
+
+.sidebar-rail-placeholder{width:72px;flex-shrink:0}
+@media(min-width:768px) and (max-width:1199px){
+ .brand-sidebar{width:72px}.brand-sidebar.is-tablet-rail .brand-navigation{padding:12px 8px}
+ .brand-sidebar.is-tablet-rail .brand-nav-item{justify-content:center;padding:12px;width:56px}
+ .brand-sidebar.is-tablet-rail .brand-nav-item>div>span,.brand-sidebar.is-tablet-rail .brand-nav-item>span,.brand-sidebar.is-tablet-rail>div:last-child{display:none}
+ .brand-sidebar.is-mobile-open{position:fixed;inset:0 auto 0 0;width:min(300px,85vw);height:100dvh;z-index:60;box-shadow:12px 0 40px #58040618}
+ .brand-sidebar.is-mobile-open .brand-navigation{display:block;flex:1;overflow-y:auto}.brand-sidebar.is-mobile-open .brand-nav-item{width:100%}
+ .mobile-menu-backdrop{display:block;position:fixed;inset:0;background:#35252255;z-index:50}
+}
 </style>
+

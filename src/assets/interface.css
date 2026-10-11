@@ -15,3 +15,4 @@
 @media(max-width:1199px){.ui-button--compact{min-height:44px}.interface-page-heading{align-items:flex-start;flex-wrap:wrap}}
 @media(prefers-reduced-motion:no-preference){.ui-button{transition:background-color 150ms ease,color 150ms ease}.ui-button-spinner{animation:interface-spin .75s linear infinite}}
 @keyframes interface-spin{to{transform:rotate(360deg)}}
+#app[inert] .mobile-menu-toggle{visibility:hidden}

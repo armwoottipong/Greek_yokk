@@ -28,6 +28,7 @@ function touchMove(event){
 }
 function keydown(event){
  if(!scrollingKeys.includes(event.key)||event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return
+ if(event.key===' '&&event.target?.closest?.('button,[role="combobox"],summary,a[href]'))return
  const root=rootOf(locks.at(-1)||{})
  if(!root||!root.contains(event.target))event.preventDefault()
 }

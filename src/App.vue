@@ -6,14 +6,14 @@
     <!-- Main Content Layout -->
     <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
       <!-- Dynamic Header -->
-      <HeaderBar :mobile-menu-open="mobileMenuOpen" @toggle-menu="mobileMenuOpen=!mobileMenuOpen" />
+      <HeaderBar :mobile-menu-open="mobileMenuOpen" @toggle-menu="mobileMenuOpen=!mobileMenuOpen" @request-close-navigation="mobileMenuOpen=false" />
 
       <div v-if="store.storageError" role="alert" class="mx-4 mt-3 rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-900">
         {{ store.storageError.message || store.storageError }}
       </div>
 
       <!-- Active View Content -->
-      <main :inert="mobileMenuOpen" class="flex-1 overflow-y-auto p-4 md:p-6">
+      <main :inert="mobileMenuOpen ? true : undefined" class="flex-1 overflow-y-auto p-4 md:p-6">
         <KeepAlive>
           <component :is="currentViewComponent" />
         </KeepAlive>

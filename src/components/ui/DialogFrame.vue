@@ -1,6 +1,6 @@
 <template>
  <Teleport to="body">
-  <ModalShell :open="present" :labelled-by="`${id}-title`" class="dialog-frame-shell" :style="viewportStyle" @request-close="requestClose">
+  <ModalShell :id="id" :open="present" :labelled-by="`${id}-title`" class="dialog-frame-shell" :style="viewportStyle" @request-close="requestClose">
    <Transition name="dialog-frame" @after-leave="finishLeave">
     <section v-if="open" class="dialog-frame-panel" :class="`dialog-frame-panel--${presentation}`" :aria-busy="busy||undefined">
      <header class="dialog-frame-header"><slot name="header"><div><h3 :id="`${id}-title`">{{ title }}</h3><p v-if="description">{{ description }}</p></div></slot><IconButton label="ปิดหน้าต่าง" :disabled="busy" @click="requestClose"><X aria-hidden="true" /></IconButton></header>
