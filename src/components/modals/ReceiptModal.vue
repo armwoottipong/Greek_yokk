@@ -112,9 +112,8 @@
 
 <script setup>
 import ModalShell from '@/components/ui/ModalShell.vue'
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import confetti from 'canvas-confetti'
 import { X, Printer } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -129,20 +128,6 @@ const orderGpPercent = computed(() => {
 const formattedDate = computed(() => {
   if (!order.value?.createdAt) return ''
   return new Date(order.value.createdAt).toLocaleString('th-TH', {timeZone:'Asia/Bangkok'})
-})
-
-watch(() => store.modals.receipt.isOpen, (open) => {
-  if (open) {
-    try {
-      confetti({
-        particleCount: 60,
-        spread: 60,
-        origin: { y: 0.7 }
-      })
-    } catch {
-      // Ignored if confetti fails
-    }
-  }
 })
 
 function close() {
