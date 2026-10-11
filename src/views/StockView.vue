@@ -892,9 +892,10 @@
 
     <!-- Modal ยืนยันการลบถาวร (Permanent Delete Confirmation Modal) -->
     <Teleport to="body">
-      <div
-        v-if="showDeleteModal && materialToDelete"
+      <ModalShell label="ยืนยันการลบวัตถุดิบ"
+        :open="showDeleteModal && Boolean(materialToDelete)"
         class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+        @request-close="closeDeleteModal"
       >
         <div
           class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden animate-in zoom-in-95 duration-150"
@@ -987,12 +988,13 @@
             </button>
           </div>
         </div>
-      </div>
+      </ModalShell>
     </Teleport>
   </div>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'

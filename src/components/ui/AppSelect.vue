@@ -21,6 +21,8 @@ let closeCurrent = null
 </script>
 <script setup>
 import {ref,computed,useAttrs,useId,onMounted,onUpdated,onUnmounted,nextTick,watch} from 'vue'
+import {topOverlayLayer} from '@/composables/overlayState'
+import {useOverlayScrollLock} from '@/composables/useOverlayScrollLock'
 import {ChevronDown,Check} from 'lucide-vue-next'
 defineOptions({inheritAttrs:false})
 const props=defineProps({modelValue:{type:[String,Number],default:''},disabled:Boolean,placeholder:{type:String,default:'เลือกรายการ'}})
@@ -28,6 +30,7 @@ const emit=defineEmits(['update:modelValue','change'])
 const attrs=useAttrs(),menuId=`app-select-${useId()}`
 const root=ref(null),source=ref(null),trigger=ref(null),menu=ref(null)
 const options=ref([]),isOpen=ref(false),active=ref(-1),position=ref({})
+useOverlayScrollLock(isOpen,menu)
 let prefix='',prefixTimer
 const selection=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)})
 const selected=computed(()=>options.value.find(option=>option.value===String(props.modelValue)))
@@ -45,7 +48,7 @@ function positionMenu(){
   const margin=8,width=Math.min(Math.max(anchor.width,220),window.innerWidth-margin*2)
   const below=window.innerHeight-anchor.bottom-margin*2,above=anchor.top-margin*2,useAbove=below<160 && above>below
   const height=Math.min(300,Math.max(80,useAbove?above:below))
-  position.value={left:`${Math.max(margin,Math.min(anchor.left,window.innerWidth-width-margin))}px`,top:useAbove?undefined:`${anchor.bottom+6}px`,bottom:useAbove?`${window.innerHeight-anchor.top+6}px`:undefined,width:`${width}px`,maxHeight:`${height}px`}
+  position.value={zIndex:topOverlayLayer()+10,left:`${Math.max(margin,Math.min(anchor.left,window.innerWidth-width-margin))}px`,top:useAbove?undefined:`${anchor.bottom+6}px`,bottom:useAbove?`${window.innerHeight-anchor.top+6}px`:undefined,width:`${width}px`,maxHeight:`${height}px`}
 }
 function outside(event){if(!root.value?.contains(event.target) && !menu.value?.contains(event.target)) close(false)}
 function scroll(event){if(!menu.value?.contains(event.target)) positionMenu()}
@@ -108,3 +111,4 @@ onUnmounted(()=>close(false))
 .app-select-option{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 10px;min-height:37px;border-radius:6px;line-height:1.6;cursor:pointer}.app-select-option>span{min-width:0;overflow-wrap:anywhere}.app-select-option>svg{flex-shrink:0}.app-select-option.is-selected{color:var(--accent-brand);font-weight:500}.app-select-option.is-active{background:var(--accent-soft);color:var(--accent-brand)}.app-select-option.is-disabled{opacity:.4;cursor:not-allowed}
 @media(prefers-reduced-motion:reduce){.app-select-trigger,.app-select-chevron{transition:none}}
 </style>
+

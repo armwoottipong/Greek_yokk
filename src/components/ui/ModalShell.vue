@@ -1,19 +1,26 @@
 <template>
  <div v-if="open" ref="root" role="dialog" aria-modal="true" :aria-labelledby="labelledBy || undefined" :aria-label="labelledBy ? undefined : label" tabindex="-1" @keydown="handleKey" @click.self="$emit('request-close')"><slot /></div>
 </template>
-<script>
-const stack = []
-</script>
 <script setup>
-import { ref, watch, nextTick, onUnmounted } from 'vue'
-const props = defineProps({ open:Boolean, labelledBy:String, label:{type:String,default:'Dialog'}, initialFocus:String })
+import { ref, watch, nextTick, onUnmounted,computed } from 'vue'
+import {overlayStack as stack} from '@/composables/overlayState'
+import {useOverlayScrollLock} from '@/composables/useOverlayScrollLock'
+const props = defineProps({ open:Boolean, labelledBy:String, label:{type:String,default:'Dialog'}, initialFocus:String,lockScroll:{type:Boolean,default:true} })
 const emit = defineEmits(['request-close'])
 const root = ref(null)
+useOverlayScrollLock(computed(()=>props.open&&props.lockScroll),root)
 const token = { node: null }
 let opener = null
-const controls = () => [...(root.value?.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex="0"]') || [])].filter(el => !el.closest('[inert]') && el.getAttribute('aria-hidden') !== 'true')
+function visibleControl(el){
+ if(el.closest('[inert],[hidden]')||el.getAttribute('aria-hidden')==='true')return false
+ if(el.closest('details:not([open])')&&!el.closest('summary'))return false
+ for(let node=el;node&&node!==root.value;node=node.parentElement){const style=getComputedStyle(node);if(style.display==='none'||style.visibility==='hidden')return false}
+ return true
+}
+const controls = () => [...(root.value?.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,a[href],[tabindex="0"]') || [])].filter(visibleControl)
 function updateLayers() {
  stack.forEach((entry,index) => {
+  if(entry.node)entry.node.style.zIndex=String(60+index*20)
   if(index === stack.length - 1) entry.node?.removeAttribute('inert')
   else entry.node?.setAttribute('inert','')
  })
@@ -25,7 +32,8 @@ function release() {
  stack.splice(index,1)
  updateLayers()
  if (!stack.length) document.getElementById('app')?.removeAttribute('inert')
- if (top && opener?.isConnected) opener.focus()
+ if (top && opener?.isConnected && !opener.closest('[inert]')) opener.focus()
+ else if(top&&!stack.length)document.querySelector('main input,main button,[data-focus-fallback]')?.focus()
 }
 watch(() => props.open, async open => {
  if (!open) { release(); return }

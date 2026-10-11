@@ -154,10 +154,10 @@
     <!-- POPUP MODAL: รายละเอียดสูตรวัตถุดิบ & บรรจุภัณฑ์ (BOM)       -->
     <!-- ======================================================== -->
     <Teleport to="body">
-      <div
-        v-if="isBomModalOpen && selectedMenuForBom"
+      <ModalShell labelled-by="menu-recipe-title"
+        :open="isBomModalOpen && Boolean(selectedMenuForBom)"
         class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-stone-900/50 backdrop-blur-xs"
-        @click.self="closeBomModal"
+        @request-close="closeBomModal"
       >
       <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <!-- Modal Header -->
@@ -168,7 +168,7 @@
             </span>
             <div>
               <div class="flex items-center gap-2">
-                <h3 class="text-sm font-bold text-stone-900">{{ selectedMenuForBom.name }}</h3>
+                <h3 id="menu-recipe-title" class="text-sm font-bold text-stone-900">{{ selectedMenuForBom.name }}</h3>
                 <span class="px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[10px] font-medium">
                   {{ selectedMenuForBom.category }}
                 </span>
@@ -300,12 +300,13 @@
           </button>
         </div>
       </div>
-    </div>
+    </ModalShell>
     </Teleport>
   </div>
 </template>
 
 <script setup>
+import ModalShell from '@/components/ui/ModalShell.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import { ref, computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
