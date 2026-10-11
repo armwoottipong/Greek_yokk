@@ -27,28 +27,28 @@
 
       <!-- Action Buttons -->
       <div class="pt-3 flex items-center justify-end gap-2 border-t border-stone-100">
-        <button
+        <Button variant="secondary"
           type="button"
           @click="onCancel"
           class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer select-none"
         >
           {{ modal.cancelText || 'ยกเลิก' }}
-        </button>
-        <button
+        </Button>
+        <Button :variant="modal.type === 'danger' ? 'danger' : 'primary'"
           type="button"
           @click="onConfirm"
           class="px-5 py-2 text-xs font-semibold rounded-xl text-white shadow-xs transition-all cursor-pointer select-none"
-          :class="themeClasses.confirmBtn"
           ref="confirmButtonRef"
         >
           {{ modal.confirmText || 'ยืนยัน' }}
-        </button>
+        </Button>
       </div>
     </div>
   </ModalShell>
 </template>
 
 <script setup>
+import Button from '@/components/ui/Button.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { computed, ref } from 'vue'
 import { usePosStore } from '@/stores/posStore'
