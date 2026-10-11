@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-11T04:20:00Z",
+  "title": "Design System: Greek Yogg.",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Mascot burgundy",
+        "canonical": "#780608",
+        "tonalRamp": [
+          "#2C0203",
+          "#440305",
+          "#580406",
+          "#780608",
+          "#9D3533",
+          "#BE665C",
+          "#E8BEB0",
+          "#FBF0E9"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Thai operations",
+        "purpose": "Readable shop UI"
+      }
+    },
+    "shadows": [
+      {
+        "name": "popup",
+        "value": "0 18px 48px #58040618, 0 2px 8px #35252208",
+        "purpose": "Floating overlays"
+      }
+    ],
+    "motion": [
+      {
+        "name": "enter",
+        "value": "200ms cubic-bezier(.2,.8,.3,1)",
+        "purpose": "Action response; reduced motion disables it"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "768px"
+      },
+      {
+        "name": "desktop",
+        "value": "1200px"
+      },
+      {
+        "name": "pos-container",
+        "value": "696px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary button for shop operations",
+      "html": "<button class=\"ds-button-0\">บันทึก</button>",
+      "css": ".ds-button-0{font:500 14px Prompt,sans-serif;min-height:44px;padding:10px 16px;border:0;border-radius:10px;background:#780608;color:#FFFCF6;cursor:pointer}.ds-button-0:hover{filter:brightness(.96)}.ds-button-0:focus-visible{outline:2px solid #780608;outline-offset:3px}.ds-button-0:active{filter:brightness(.92)}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary button for shop operations",
+      "html": "<button class=\"ds-button-1\">ยกเลิก</button>",
+      "css": ".ds-button-1{font:500 14px Prompt,sans-serif;min-height:44px;padding:10px 16px;border:0;border-radius:10px;background:#F4EBDD;color:#352522;cursor:pointer}.ds-button-1:hover{filter:brightness(.96)}.ds-button-1:focus-visible{outline:2px solid #780608;outline-offset:3px}.ds-button-1:active{filter:brightness(.92)}"
+    },
+    {
+      "name": "Quiet button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Quiet button for shop operations",
+      "html": "<button class=\"ds-button-2\">ดูรายละเอียด</button>",
+      "css": ".ds-button-2{font:500 14px Prompt,sans-serif;min-height:44px;padding:10px 16px;border:0;border-radius:10px;background:transparent;color:#780608;cursor:pointer}.ds-button-2:hover{filter:brightness(.96)}.ds-button-2:focus-visible{outline:2px solid #780608;outline-offset:3px}.ds-button-2:active{filter:brightness(.92)}"
+    },
+    {
+      "name": "Danger button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Danger button for shop operations",
+      "html": "<button class=\"ds-button-3\">ลบรายการ</button>",
+      "css": ".ds-button-3{font:500 14px Prompt,sans-serif;min-height:44px;padding:10px 16px;border:0;border-radius:10px;background:#FBF0E9;color:#B91C1C;cursor:pointer}.ds-button-3:hover{filter:brightness(.96)}.ds-button-3:focus-visible{outline:2px solid #780608;outline-offset:3px}.ds-button-3:active{filter:brightness(.92)}"
+    },
+    {
+      "name": "Named field",
+      "kind": "input",
+      "description": "Visible label paired with the control",
+      "html": "<label for=\"ds-name\">ชื่อรายการ</label><input id=\"ds-name\" class=\"ds-input\" placeholder=\"ชื่อรายการ\">",
+      "css": ".ds-input{display:block;width:100%;min-height:44px;border:1px solid #E8DCCB;border-radius:10px;padding:8px 12px;font:14px Prompt,sans-serif;background:#FFFCF6;color:#352522}.ds-input:focus-visible{outline:2px solid #780608;outline-offset:2px}"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "description": "Active route and touch-friendly rail item",
+      "html": "<nav><button class=\"ds-nav\" aria-current=\"page\">คลังวัตถุดิบ</button></nav>",
+      "css": ".ds-nav{border:0;background:#780608;color:#FFFCF6;border-radius:12px;padding:12px 16px;min-height:44px;font:500 14px Prompt,sans-serif}.ds-nav:focus-visible{outline:2px solid #780608;outline-offset:3px}"
+    },
+    {
+      "name": "Status",
+      "kind": "chip",
+      "description": "Status always includes text",
+      "html": "<span class=\"ds-status\">รอบันทึก</span>",
+      "css": ".ds-status{display:inline-flex;border-radius:8px;background:#F4EBDD;color:#92400E;padding:4px 8px;font:500 12px Prompt,sans-serif}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Calm shop workspace",
+    "overview": "Desktop and iPad operate the shop. Phone management keeps essential work close while details remain available.",
+    "keyCharacteristics": [
+      "Cream and mascot burgundy",
+      "Named controls",
+      "Contextual detail",
+      "One business state across devices"
+    ],
+    "rules": [
+      {
+        "name": "One transaction",
+        "body": "Presentation changes never duplicate checkout or commit a draft.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Preserve the mascot and business truth"
+    ],
+    "donts": [
+      "Require hover or make a missing value look like zero"
+    ]
+  }
+}
