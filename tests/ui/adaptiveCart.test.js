@@ -1,0 +1,45 @@
+import {it,expect,vi} from 'vitest'
+import {mount,flushPromises} from '@vue/test-utils'
+import {createTestStore} from '../helpers/createStore'
+import Pos from '../../src/views/PosView.vue'
+import CartPanel from '../../src/components/pos/CartPanel.vue'
+import DialogFrame from '../../src/components/ui/DialogFrame.vue'
+import IconButton from '../../src/components/ui/IconButton.vue'
+it('does not discard an order draft until clearing is confirmed',async()=>{
+ const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],1);store.orderNote='แยกชาม'
+ const w=mount(CartPanel,{props:{presentation:'panel'}})
+ try{
+  await w.findAll('button').find(b=>b.text()==='ล้างตะกร้า').trigger('click')
+  expect(store.cart).toHaveLength(1);expect(store.modals.confirm.isOpen).toBe(true)
+  store.modals.confirm.onCancel();await flushPromises();expect(store.orderNote).toBe('แยกชาม')
+ }finally{w.unmount()}
+})
+it('retains one shared cart, note and payment when review closes or rotates to split mode',async()=>{
+ let resize
+ vi.stubGlobal('ResizeObserver',class{constructor(cb){resize=cb}observe(){resize([{contentRect:{width:340}}])}disconnect(){}})
+ const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],2)
+ store.orderNote='แยกท็อปปิ้ง';store.paymentMethod='เงินสด'
+ const w=mount(Pos,{attachTo:document.body})
+ try{
+  await flushPromises();await w.get('[data-cart-open]').trigger('click');await flushPromises()
+  expect(w.findAllComponents(CartPanel)).toHaveLength(1)
+  await w.getComponent(DialogFrame).findAllComponents(IconButton)[0].get('button').trigger('click');await flushPromises()
+  expect(store.cart[0].qty).toBe(2);expect(store.orderNote).toBe('แยกท็อปปิ้ง');expect(store.paymentMethod).toBe('เงินสด')
+  resize([{contentRect:{width:850}}]);await flushPromises()
+  expect(w.findAllComponents(CartPanel)).toHaveLength(1)
+  expect(w.getComponent(CartPanel).props('presentation')).toBe('panel')
+  expect(store.cart[0].qty).toBe(2)
+ }finally{w.unmount();vi.unstubAllGlobals()}
+})
+it('shows quantity rather than row count and an empty review cannot checkout',async()=>{
+ const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],2);store.addToCart(store.menus[1],[],3)
+ const checkout=vi.spyOn(store,'checkout')
+ const w=mount(Pos,{attachTo:document.body})
+ try{
+  await flushPromises();expect(w.get('[data-cart-open]').text()).toContain('5 ชาม')
+  expect(w.get('[data-cart-open]').text()).toContain('฿435')
+  store.clearCart();await flushPromises();await w.get('[data-cart-open]').trigger('click');await flushPromises()
+  expect(document.getElementById('pos-cart-review').textContent).toContain('เลือกเมนู')
+  expect(checkout).not.toHaveBeenCalled()
+ }finally{w.unmount()}
+})

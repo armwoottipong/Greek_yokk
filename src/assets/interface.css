@@ -16,3 +16,4 @@
 @media(prefers-reduced-motion:no-preference){.ui-button{transition:background-color 150ms ease,color 150ms ease}.ui-button-spinner{animation:interface-spin .75s linear infinite}}
 @keyframes interface-spin{to{transform:rotate(360deg)}}
 #app[inert] .mobile-menu-toggle{visibility:hidden}
+:root{--navigation-width:256px}@media(max-width:1199px){:root{--navigation-width:72px}}@media(max-width:767px){:root{--navigation-width:0px}}

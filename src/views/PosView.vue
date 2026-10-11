@@ -2,208 +2,29 @@
   <div ref="workspace" class="pos-workspace" :class="{'is-split':split}">
     <PosCatalog :menus="filteredMenus" :platforms="store.platforms" :platform-id="store.currentPlatformId" v-model:search="searchQuery" v-model:category="activeCategory" :categories="categories" :price-for="getMenuPrice" :unavailable-for="isMenuOutOfStock" @platform="store.setPlatform($event)" @select-menu="selectMenu" />
 
-    <!-- Right: POS Order Cart Sidebar -->
-    <div class="pos-cart-legacy w-full lg:w-96 bg-white border border-stone-200/80 rounded-2xl flex flex-col shrink-0 shadow-sm overflow-hidden">
-      <!-- Cart Header -->
-      <div class="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50 shrink-0">
-        <div class="flex items-center gap-2">
-          <ShoppingBag class="w-4 h-4 text-stone-800" />
-          <span class="text-xs font-bold text-stone-900">รายการสั่งซื้อปัจจุบัน</span>
-        </div>
-        <button
-          v-if="store.cart.length > 0"
-          @click="store.clearCart()"
-          class="text-[11px] text-rose-600 hover:underline"
-        >
-          ล้างตะกร้า
-        </button>
-      </div>
-
-      <!-- Cart Items List -->
-      <div class="flex-1 p-4 overflow-y-auto space-y-2.5 text-xs">
-        <div v-if="store.cart.length === 0" class="h-full flex flex-col items-center justify-center text-stone-400 space-y-2 py-12">
-          <span class="text-4xl opacity-50">🥣</span>
-          <p class="text-xs">ยังไม่มีรายการในออเดอร์</p>
-          <p class="text-[11px] text-stone-400">คลิกที่เมนูด้านซ้ายเพื่อสั่งซื้อ</p>
-        </div>
-
-        <div
-          v-for="(item, idx) in store.cart"
-          :key="idx"
-          class="p-3 rounded-xl bg-[#FBF5EA] border border-stone-100 space-y-2"
-        >
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="text-xl">{{ item.menu.emoji }}</span>
-              <div class="min-w-0">
-                <div class="font-bold text-stone-900 truncate flex items-center gap-1.5">
-                  <span class="truncate">{{ item.menu.name }}</span>
-                  <span v-if="item.isBackorder" class="text-[9px] px-1.5 py-0.2 rounded-md bg-amber-100 text-amber-900 font-medium shrink-0">
-                    ของหมด (ขายต่อ)
-                  </span>
-                </div>
-                <div class="text-[10px] text-stone-400 font-number">฿{{ getItemBasePrice(item) }} / ชาม</div>
-              </div>
-            </div>
-            <span class="font-number font-bold text-xs text-stone-900">
-              ฿{{ getItemTotalPrice(item) }}
-            </span>
-          </div>
-
-          <!-- Addons list in cart -->
-          <div v-if="item.selectedAddons && item.selectedAddons.length > 0" class="pl-7 space-y-0.5 text-[10px] text-stone-500 border-l border-stone-200 ml-2">
-            <div v-for="addon in item.selectedAddons" :key="addon.id" class="flex justify-between">
-              <span>+ {{ addon.name }}</span>
-              <span class="font-number">+฿{{ getAddonPrice(addon) }}</span>
-            </div>
-          </div>
-
-          <!-- Quantity Stepper -->
-          <div class="flex items-center justify-between pt-1">
-            <div class="flex items-center gap-1.5 bg-white border border-stone-200 rounded-lg px-2 py-0.5">
-              <button
-                @click="store.updateCartQty(idx, item.qty - 1)"
-                class="w-5 h-5 flex items-center justify-center text-stone-500 hover:text-stone-900 font-bold"
-              >
-                -
-              </button>
-              <span class="font-number font-bold text-xs w-4 text-center">{{ item.qty }}</span>
-              <button
-                @click="store.updateCartQty(idx, item.qty + 1)"
-                class="w-5 h-5 flex items-center justify-center text-stone-500 hover:text-stone-900 font-bold"
-              >
-                +
-              </button>
-            </div>
-
-            <button
-              @click="store.removeFromCart(idx)"
-              class="text-[11px] text-stone-400 hover:text-rose-600 transition-colors"
-            >
-              ลบ
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Cart Summary & Checkout -->
-      <div v-if="store.cart.length > 0" class="p-4 bg-stone-50/80 border-t border-stone-200/80 space-y-3 shrink-0 text-xs">
-        <!-- Order Note -->
-        <div>
-          <input aria-label="หมายเหตุออเดอร์"
-            v-model="store.orderNote"
-            type="text"
-            placeholder="หมายเหตุออเดอร์ เช่น หวานน้อย, แยกท็อปปิ้ง..."
-            class="soft-input w-full px-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-          />
-        </div>
-
-        <!-- Breakdown summary -->
-        <div class="space-y-1 text-[11px] text-stone-500">
-          <div class="flex justify-between">
-            <span>ยอดรวม (Subtotal):</span>
-            <span class="font-number font-semibold text-stone-800">฿{{ cartSummary.subtotal }}</span>
-          </div>
-          <div v-if="cartSummary.gpAmount > 0" class="flex justify-between text-amber-800">
-            <span>หักค่าธรรมเนียม GP ({{ cartSummary.gpPercent }}%):</span>
-            <span class="font-number">-฿{{ cartSummary.gpAmount }}</span>
-          </div>
-          <div v-if="cartSummary.gpAmount > 0" class="flex justify-between text-emerald-800 font-medium">
-            <span>รายรับสุทธิ (Net Revenue):</span>
-            <span class="font-number font-bold">฿{{ cartSummary.netRevenue }}</span>
-          </div>
-          <div class="flex justify-between text-stone-400 pt-0.5 border-t border-stone-200/60">
-            <span>ต้นทุนวัตถุดิบชาม (COGS):</span>
-            <span class="font-number">~฿{{ Math.round(cartSummary.totalFoodCost) }} (กำไร ~฿{{ Math.round(cartSummary.grossProfit) }})</span>
-          </div>
-        </div>
-
-        <!-- Payment Method -->
-        <div class="flex gap-1.5 pt-1">
-          <button
-            v-for="pm in paymentMethods"
-            :key="pm"
-            @click="store.paymentMethod = pm"
-            :class="[
-              'flex-1 py-1.5 px-2 rounded-xl text-[10px] font-medium transition-all text-center',
-              store.paymentMethod === pm
-                ? 'bg-brand-600 text-white font-semibold shadow-xs'
-                : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-100'
-            ]"
-          >
-            {{ pm }}
-          </button>
-        </div>
-
-        <!-- Lot Warnings in Cart (Near depleted or low stock) -->
-        <div v-if="store.cartLotWarnings && store.cartLotWarnings.length > 0" class="p-2.5 bg-amber-50 border border-amber-200/90 rounded-2xl space-y-2 text-xs">
-          <div class="flex items-center justify-between text-amber-900 font-bold text-[11px] px-0.5">
-            <span class="flex items-center gap-1.5">
-              <span>⚠️</span>
-              <span>ล็อตวัตถุดิบใกล้หมด / สต็อกไม่พอ</span>
-            </span>
-            <span class="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-200/80 text-amber-950 font-bold">
-              {{ store.cartLotWarnings.length }} รายการ
-            </span>
-          </div>
-
-          <div
-            v-for="w in store.cartLotWarnings"
-            :key="w.material.id"
-            class="flex items-center justify-between gap-2 bg-white/90 p-2 rounded-xl border border-amber-200/60 shadow-2xs"
-          >
-            <div class="min-w-0 flex-1 truncate">
-              <div class="font-bold text-stone-900 truncate text-[11px]">
-                {{ w.material.emoji }} {{ w.material.name }}
-              </div>
-              <div class="text-[10px] text-stone-500 font-number truncate flex items-center gap-1">
-                <span>มีในล็อตนี้: {{ w.availableInCurrent.toLocaleString() }} {{ w.material.unit }}</span>
-                <span>•</span>
-                <span :class="w.willDeplete ? 'text-rose-600 font-bold' : 'text-amber-700 font-medium'">
-                  {{ w.shortageQty > 0 ? `ขาดอีก ${w.shortageQty} ${w.material.unit}` : (w.willDeplete ? 'สต็อกจะหมด' : 'ใกล้หมด') }}
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              @click="handleSwitchLot(w)"
-              class="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-800 active:bg-brand-900 text-white font-semibold text-[10px] shrink-0 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
-              title="สลับไปใช้ล็อตถัดไปทันที"
-            >
-              <span>ย้ายล็อต</span>
-              <span>⚡</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Checkout Button -->
-        <button
-          @click="handleCheckout"
-          class="w-full py-3 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-2"
-        >
-          <Check class="w-4 h-4" />
-          <span>ชำระเงินและตัดสต็อก (฿{{ cartSummary.subtotal }})</span>
-        </button>
-      </div>
-    </div>
+    <CartPanel :presentation="split?'panel':'sheet'" :open="cartOpen" :checkout-pending="checkoutPending" @request-close="cartOpen=false" @checkout="handleCheckout" @switch-lot="handleSwitchLot"/>
+    <CartReviewBar v-if="!split" :quantity="cartQuantity" :subtotal="Number(cartSummary.subtotal)" :open="cartOpen" @open="cartOpen=true"/>
   </div>
 </template>
 
 <script setup>
 import PosCatalog from '@/components/pos/PosCatalog.vue'
 import {useElementWidth} from '@/composables/useElementWidth'
-import { ref, computed } from 'vue'
+import { ref, computed,watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { ShoppingBag, Check } from 'lucide-vue-next'
+import CartPanel from '@/components/pos/CartPanel.vue'
+import CartReviewBar from '@/components/pos/CartReviewBar.vue'
 
 const store = usePosStore()
 const workspace=ref(null),width=useElementWidth(workspace)
 const split=computed(()=>width.value>=696)
+const cartOpen=ref(false),checkoutPending=ref(false)
+const cartQuantity=computed(()=>store.cart.reduce((n,item)=>n+item.qty,0))
+watch(split,value=>{if(value)cartOpen.value=false})
 function selectMenu(id){const menu=store.menus.find(m=>m.id===id);if(menu)handleMenuClick(menu)}
 
 const searchQuery = ref('')
 const activeCategory = ref('ทั้งหมด')
-const paymentMethods = ['QR PromptPay', 'เงินสด', 'Platform Delivery']
 
 const categories = computed(() => {
   const set = new Set(['ทั้งหมด'])
@@ -227,21 +48,6 @@ const cartSummary = computed(() => store.cartSummary)
 function getMenuPrice(menu) {
   const platId = store.currentPlatformId
   return (menu.prices && menu.prices[platId] !== undefined) ? Number(menu.prices[platId]) : 0
-}
-
-function getAddonPrice(addon) {
-  const platId = store.currentPlatformId
-  return (addon.prices && addon.prices[platId] !== undefined) ? Number(addon.prices[platId]) : 0
-}
-
-function getItemBasePrice(item) {
-  return getMenuPrice(item.menu)
-}
-
-function getItemTotalPrice(item) {
-  const base = getItemBasePrice(item)
-  const addonTotal = (item.selectedAddons || []).reduce((sum, a) => sum + getAddonPrice(a), 0)
-  return (base + addonTotal) * item.qty
 }
 
 function isMenuOutOfStock(menu) {
@@ -285,6 +91,6 @@ function handleCheckout() {
 <style scoped>
 .pos-workspace{display:flex;flex-direction:column;gap:16px;min-width:0}
 .pos-workspace.is-split{flex-direction:row;height:calc(100dvh - var(--sidebar-header-height,var(--panel-header-height)) - 48px);min-height:480px;overflow:hidden}
-.pos-workspace.is-split>.pos-cart-legacy{width:320px}
+.pos-workspace:not(.is-split){padding-bottom:84px}
 .pos-workspace.is-split :deep(.pos-catalog-scroll){overflow-y:auto;padding-right:2px;overscroll-behavior:contain}
 </style>
