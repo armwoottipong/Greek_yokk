@@ -6,7 +6,7 @@
         <!-- Search input -->
         <div class="relative flex-1 min-w-0 sm:flex-none sm:w-64">
           <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
+          <input aria-label="ค้นหาเมนู"
             v-model="searchQuery"
             type="text"
             placeholder="ค้นหาชื่อเมนู, วัตถุดิบ..."
@@ -177,7 +177,7 @@
             </div>
           </div>
           <button
-            @click="closeBomModal"
+            aria-label="ปิดรายละเอียดสูตร" @click="closeBomModal"
             class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors"
           >
             <X class="w-4 h-4" />

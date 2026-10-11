@@ -263,7 +263,7 @@
                 {{ editCatForm.icon }}
               </button>
               <div class="flex-1 min-w-0 space-y-1">
-                <input
+                <input aria-label="ชื่อหมวดหมู่ที่แก้ไข"
                   v-model="editCatForm.name"
                   type="text"
                   placeholder="ชื่อหมวดหมู่"
@@ -272,7 +272,7 @@
                   @keyup.esc="cancelEditingCategory"
                   autofocus
                 />
-                <input
+                <input aria-label="ชื่อภาษาไทยของหมวดหมู่"
                   v-if="activeCategoryTab === 'material'"
                   v-model="editCatForm.label"
                   type="text"

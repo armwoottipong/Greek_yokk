@@ -30,7 +30,7 @@
         <!-- Search input -->
         <div class="relative w-48 shrink-0">
           <Search class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <input
+          <input aria-label="ค้นหาเมนู"
             v-model="searchQuery"
             type="text"
             placeholder="ค้นหาเมนู..."
@@ -184,7 +184,7 @@
       <div v-if="store.cart.length > 0" class="p-4 bg-stone-50/80 border-t border-stone-200/80 space-y-3 shrink-0 text-xs">
         <!-- Order Note -->
         <div>
-          <input
+          <input aria-label="หมายเหตุออเดอร์"
             v-model="store.orderNote"
             type="text"
             placeholder="หมายเหตุออเดอร์ เช่น หวานน้อย, แยกท็อปปิ้ง..."

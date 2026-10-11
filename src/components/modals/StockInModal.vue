@@ -103,7 +103,7 @@
               </button>
 
               <div class="relative flex-1">
-                <input
+                <input aria-label="จำนวนแพ็คที่รับเข้า"
                   v-if="unitMode === 'pack'"
                   v-model.number="inputPackQty"
                   @input="syncFromPackQty"
@@ -113,7 +113,7 @@
                   placeholder="0"
                   class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-stone-900"
                 />
-                <input
+                <input aria-label="จำนวนหน่วยที่รับเข้า"
                   v-else
                   v-model.number="inputBaseQty"
                   @input="syncFromBaseQty"
@@ -154,7 +154,7 @@
           <div class="grid grid-cols-2 gap-3 items-center p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50">
             <div>
               <label class="block text-[10px] text-stone-500 mb-0.5">ราคาซื้อ (฿ / {{ currentMat?.packUnit || currentMat?.unit }})</label>
-              <input
+              <input aria-label="ราคาซื้อ"
                 v-model.number="inputPackCost"
                 type="number"
                 step="any"
@@ -215,7 +215,7 @@
               </button>
 
               <div class="relative flex-1">
-                <input
+                <input aria-label="จำนวนรอบผลิต"
                   v-if="produceUnitMode === 'batch'"
                   v-model.number="produceBatchCount"
                   @input="syncProduceFromBatch"
@@ -224,7 +224,7 @@
                   step="any"
                   class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-amber-950"
                 />
-                <input
+                <input aria-label="จำนวนที่ต้องการผลิต"
                   v-else
                   v-model.number="produceYieldQty"
                   @input="syncProduceFromYield"
@@ -313,7 +313,7 @@
               <label class="block text-[11px] font-medium text-stone-600 mb-1">
                 {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
               </label>
-              <input
+              <input aria-label="วันที่รับเข้า"
                 v-model="receiveDate"
                 @change="onReceiveDateChange"
                 type="date"
@@ -344,7 +344,7 @@
                   </button>
                 </div>
               </div>
-              <input
+              <input aria-label="วันหมดอายุ"
                 v-model="expiryDate"
                 type="date"
                 class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
@@ -357,7 +357,7 @@
           <label class="block text-[11px] font-medium text-stone-600">
             {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
           </label>
-          <input
+          <input aria-label="วันที่รับเข้า"
             v-model="receiveDate"
             type="date"
             class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
@@ -390,7 +390,7 @@
         <!-- Note (Unified) -->
         <div>
           <label class="block text-[11px] font-medium text-stone-600 mb-1">หมายเหตุ (ถ้ามี)</label>
-          <input
+          <input aria-label="หมายเหตุ"
             v-model="note"
             type="text"
             :placeholder="isProducedFromRecipe ? 'เช่น หมักนมสด Meiji + หัวเชื้อ 16 ชม.' : 'เช่น ซื้อจากแม็คโคร, ล็อต 25/10'"

@@ -133,7 +133,7 @@
               </button>
 
               <div class="relative flex-1">
-                <input
+                <input aria-label="ยอดนับจริงเป็นแพ็ค"
                   v-if="unitMode === 'pack'"
                   v-model.number="actualPackStock"
                   @input="onPackStockInput"
@@ -143,7 +143,7 @@
                   placeholder="0"
                   class="soft-input w-full px-3.5 py-2.5 rounded-xl text-center text-xs font-number font-semibold text-stone-900"
                 />
-                <input
+                <input aria-label="ยอดนับจริงเป็นหน่วยใช้"
                   v-else
                   v-model.number="actualStock"
                   @input="onBaseStockInput"
@@ -201,7 +201,7 @@
 
         <div>
           <label class="block text-xs font-medium text-stone-700 mb-1.5">หมายเหตุเพิ่มเติม</label>
-          <input
+          <input aria-label="หมายเหตุ"
             v-model="note"
             type="text"
             placeholder="เช่น ปรับยอดหลังปิดกะรอบเย็น"

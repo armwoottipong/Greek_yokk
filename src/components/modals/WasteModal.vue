@@ -87,7 +87,7 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <input
+            <input aria-label="จำนวนที่ตัดทิ้ง"
               v-model.number="wasteQty"
               type="number"
               min="0.1"
@@ -126,7 +126,7 @@
         <!-- Optional Note -->
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-stone-800 block">หมายเหตุเพิ่มเติม (ถ้ามี)</label>
-          <input
+          <input aria-label="หมายเหตุของเสีย"
             v-model="wasteNote"
             type="text"
             placeholder="เช่น ผลช้ำที่ก้นลัง, ลืมแช่ตู้เย็นข้ามคืน..."

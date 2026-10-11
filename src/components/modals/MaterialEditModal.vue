@@ -103,7 +103,7 @@
             <label class="block text-[11px] font-medium text-stone-600 mb-1">
               ชื่อ{{ form.hasSubRecipe ? 'สูตร / วัตถุดิบผลิต' : 'วัตถุดิบ' }} <span class="text-rose-500">*</span>
             </label>
-            <input
+            <input aria-label="ชื่อรายการ"
               v-model="form.name"
               type="text"
               :placeholder="form.hasSubRecipe ? 'เช่น กรีกโยเกิร์ต รสธรรมชาติ' : 'เช่น นมสดพาสเจอร์ไรส์, ถ้วยกระดาษ'"
@@ -176,7 +176,7 @@
             <!-- 1. หน่วยซื้อเข้า -->
             <div>
               <label class="block text-[10px] text-stone-500 mb-1">หน่วยสั่งซื้อเข้า</label>
-              <input
+              <input aria-label="หน่วยสั่งซื้อ"
                 v-model="form.packUnit"
                 type="text"
                 placeholder="เช่น ถุง, ขวด, ลัง, แพ็ค"
@@ -190,7 +190,7 @@
                 1 {{ form.packUnit || 'แพ็ค' }} บรรจุ
               </label>
               <div class="flex items-center soft-input px-2.5 py-1.5 rounded-lg bg-white">
-                <input
+                <input aria-label="จำนวนหน่วยใช้ต่อแพ็ค"
                   v-model.number="form.packSize"
                   type="number"
                   min="0.001"
@@ -209,7 +209,7 @@
               </label>
               <div class="flex items-center soft-input px-2.5 py-1.5 rounded-lg bg-white">
                 <span class="text-[10px] text-stone-400 mr-0.5">฿</span>
-                <input
+                <input aria-label="ราคาซื้อต่อแพ็ค"
                   v-model.number="form.packCost"
                   type="number"
                   min="0"
@@ -277,7 +277,7 @@
               <span class="text-[10px] text-stone-400">ปริมาณเนื้อวัตถุดิบที่ได้ต่อ 1 หม้อ/รอบ</span>
             </div>
             <div class="flex items-center soft-input px-3 py-1 rounded-lg bg-stone-50">
-              <input
+              <input aria-label="ปริมาณผลิตได้ต่อสูตร"
                 v-model.number="form.yieldQty"
                 type="number"
                 min="1"
@@ -312,7 +312,7 @@
 
                 <div class="flex items-center gap-1 bg-stone-50/70 px-2 py-1 rounded-lg border border-stone-200/70">
                   <span class="text-[10px] text-stone-400">ใช้</span>
-                  <input
+                  <input :aria-label="`ปริมาณ ${store.matMap[row.materialId]?.name || 'วัตถุดิบในสูตร'}`"
                     v-model.number="row.qty"
                     type="number"
                     min="0.01"
@@ -334,7 +334,7 @@
                   @click="removeSubRecipeRow(idx)"
                   class="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
                   title="ลบส่วนผสมนี้"
-                 aria-label="ปิดหน้าต่าง">
+                 aria-label="ลบวัตถุดิบจากสูตร">
                   <X class="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -421,7 +421,7 @@
                 <Minus class="w-3.5 h-3.5" />
               </button>
               <div class="flex-1 flex items-center bg-white border border-stone-200 px-2.5 py-1.5 rounded-lg justify-center focus-within:border-brand-600">
-                <input
+                <input aria-label="สต็อกปัจจุบันเป็นแพ็ค"
                   :value="displayStockPacks"
                   @input="onStockPacksInput($event.target.value)"
                   type="number"
@@ -469,7 +469,7 @@
                 <Minus class="w-3.5 h-3.5" />
               </button>
               <div class="flex-1 flex items-center bg-white border border-stone-200 px-2.5 py-1.5 rounded-lg justify-center focus-within:border-brand-600">
-                <input
+                <input aria-label="ระดับเตือนสต็อกเป็นแพ็ค"
                   :value="displayMinAlertPacks"
                   @input="onMinAlertPacksInput($event.target.value)"
                   type="number"
@@ -504,7 +504,7 @@
             </span>
           </div>
           <div class="flex items-center gap-1.5 w-28">
-            <input
+            <input aria-label="อายุการเก็บรักษาเป็นวัน"
               v-model.number="form.shelfLifeDays"
               type="number"
               min="0"

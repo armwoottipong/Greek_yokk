@@ -5,7 +5,7 @@
       <div class="flex items-center gap-2 w-full min-w-0 sm:w-auto">
         <div class="relative flex-1 min-w-0 sm:flex-none sm:w-64">
           <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
+          <input aria-label="ค้นหาท็อปปิ้ง"
             v-model="searchQuery"
             type="text"
             placeholder="ค้นหาชื่อ Add-on..."

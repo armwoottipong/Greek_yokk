@@ -177,7 +177,7 @@
 
         <div class="relative flex-1 min-w-[140px]">
           <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
-          <input
+          <input aria-label="ค้นหาวัตถุดิบ"
             v-model="searchQuery"
             type="text"
             placeholder="ค้นหาวัตถุดิบ..."

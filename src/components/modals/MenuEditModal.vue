@@ -33,13 +33,12 @@
             </button>
           </div>
           <div class="flex-1">
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">ชื่อเมนู <span class="text-rose-500">*</span></label>
-            <input
+            <FormField id="menu-name" label="ชื่อเมนู" required v-slot="{controlId,describedBy}"><input :id="controlId" :aria-describedby="describedBy" aria-required="true"
               v-model="form.name"
               type="text"
               placeholder="เช่น Greek Yogurt Bowl (M)"
               class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
-            />
+            /></FormField>
           </div>
         </div>
 
@@ -48,7 +47,7 @@
           <div>
             <label class="block text-xs font-medium text-stone-700 mb-1.5">หมวดหมู่</label>
             <div class="relative">
-              <input
+              <input aria-label="หมวดหมู่"
                 v-model="form.category"
                 type="text"
                 list="menu-categories-list"
@@ -74,7 +73,7 @@
           </div>
           <div>
             <label class="block text-xs font-medium text-stone-700 mb-1.5">คำอธิบายสั้น</label>
-            <input
+            <input aria-label="คำอธิบายเมนู"
               v-model="form.description"
               type="text"
               placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด"
@@ -111,7 +110,7 @@
               </div>
               <div class="flex items-center gap-0.5 shrink-0">
                 <span class="text-stone-400 text-xs font-number">฿</span>
-                <input
+                <input :aria-label="`ราคา ${p.name}`"
                   v-model.number="form.prices[p.id]"
                   type="number"
                   placeholder="0"
@@ -187,7 +186,7 @@
               </AppSelect>
 
               <div class="w-28 shrink-0 flex items-center gap-1.5">
-                <input
+                <input :aria-label="`ปริมาณ ${store.matMap[row.materialId]?.name || 'วัตถุดิบในสูตร'}`"
                   v-model.number="row.qty"
                   type="number"
                   step="any"
@@ -273,7 +272,7 @@
               </AppSelect>
 
               <div class="w-28 shrink-0 flex items-center gap-1.5">
-                <input
+                <input :aria-label="`ปริมาณ ${store.matMap[row.materialId]?.name || 'วัตถุดิบในสูตร'}`"
                   v-model.number="row.qty"
                   type="number"
                   min="1"
@@ -320,6 +319,7 @@
 </template>
 
 <script setup>
+import FormField from '@/components/ui/FormField.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
@@ -536,3 +536,4 @@ async function submit() {
   if (result?.ok || result?.success) close()
 }
 </script>
+

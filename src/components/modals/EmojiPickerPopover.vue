@@ -8,7 +8,7 @@
       <div class="flex items-center justify-between gap-2 border-b border-stone-100 pb-2.5">
         <div class="flex-1 relative">
           <Search class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <input
+          <input aria-label="ค้นหาไอคอน"
             v-model="searchQuery"
             type="text"
             placeholder="ค้นหาไอคอน เช่น สตรอว์เบอร์รี, ถ้วย..."

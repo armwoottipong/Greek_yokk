@@ -32,13 +32,12 @@
             </button>
           </div>
           <div class="flex-1">
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">ชื่อ Add-on / ท็อปปิ้ง <span class="text-rose-500">*</span></label>
-            <input
+            <FormField id="addon-name" label="ชื่อท็อปปิ้ง" required v-slot="{controlId,describedBy}"><input :id="controlId" :aria-describedby="describedBy" aria-required="true"
               v-model="form.name"
               type="text"
               placeholder="เช่น สตรอว์เบอร์รีสด (30g)"
               class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
-            />
+            /></FormField>
           </div>
         </div>
 
@@ -77,7 +76,7 @@
               <span class="text-[11px] font-medium text-stone-700 truncate">{{ p.name.replace(/\s*\([^)]*\)/g, '') }}</span>
               <div class="flex items-center gap-0.5 shrink-0">
                 <span class="text-stone-400 text-xs font-number">฿</span>
-                <input
+                <input :aria-label="`ราคา ${p.name}`"
                   v-model.number="form.prices[p.id]"
                   type="number"
                   placeholder="0"
@@ -114,7 +113,7 @@
             <div>
               <label class="block text-[11px] text-stone-500 mb-1">ปริมาณที่ตัดต่อที่:</label>
               <div class="flex items-center gap-1.5">
-                <input
+                <input aria-label="ปริมาณวัตถุดิบต่อครั้ง"
                   v-model.number="form.amountUsed"
                   type="number"
                   step="any"
@@ -153,6 +152,7 @@
 </template>
 
 <script setup>
+import FormField from '@/components/ui/FormField.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch, nextTick } from 'vue'
@@ -244,3 +244,4 @@ async function submit() {
   if (result?.ok || result?.success) close()
 }
 </script>
+
