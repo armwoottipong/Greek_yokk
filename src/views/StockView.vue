@@ -2,8 +2,13 @@
   <div class="space-y-6">
     <StockSummary :valuation="store.totalInventoryValuation" :draft-diff="store.draftInventoryValuationDiff" :projected="store.projectedInventoryValuation" :budget="store.reorderBudgetNeeded" :low-count="store.lowStockMaterials.length" :out-count="store.outOfStockMaterials.length" />
     <StockToolbar v-model:search="searchQuery" :role="selectedRole" :category="selectedCategory" :show-deleted="showDeleted" :categories="categories" :deleted-count="deletedCount" @apply-filters="applyStockFilters" @receive="openStockIn()" @stocktake="openStocktake" @adjust="openStockAdjust()" @create="openCreateMaterial" @history="store.openActivityLog('stock')" />
+    <div class="adaptive-material-list editorial-card">
+      <StockMaterialCard v-for="mat in filteredMaterials" :key="mat.id" :material="mat" @details="detailMaterialId=$event" @receive="openStockIn" />
+      <p v-if="!filteredMaterials.length" class="p-6 text-sm">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก ลองเปลี่ยนตัวกรองหรือคำค้นหา</p>
+    </div>
+    <MaterialDetails :open="Boolean(detailMaterialId)" :material="detailMaterial" :lots="detailMaterial?getDisplayLots(detailMaterial):[]" :tracking-mode="detailMaterial?store.getMaterialTrackingMode(detailMaterial):'none'" :pack-cost="detailMaterial?getDisplayPackCost(detailMaterial):0" :draft-diff="detailMaterial?getDraftDiff(detailMaterial):0" @close="detailMaterialId=null" @adjust="onActionStockAdjustLot" @waste="onActionWasteLot" @switch="onActionSwitchLot" @restore="onActionRestore" @edit="openEditMaterial" @receive="openStockIn" />
     <!-- Material Inventory Table -->
-    <div class="editorial-card bg-white pb-12">
+    <div class="desktop-material-table editorial-card bg-white pb-12">
       <div class="overflow-x-auto">
         <table class="w-full min-w-[1120px] table-fixed text-left text-xs">
           <colgroup>
@@ -43,7 +48,7 @@
                   <span class="text-xl shrink-0">{{ mat.emoji }}</span>
                   <div class="min-w-0 flex-1 truncate">
                     <div class="font-bold text-stone-900 flex items-center gap-1.5 truncate">
-                      <span class="truncate">{{ mat.name }}</span>
+                      <button type="button" :data-material-details="mat.id" :aria-label="`ดูรายละเอียด ${mat.name}`" class="text-left underline-offset-4 hover:underline focus-visible:underline" @click="detailMaterialId=mat.id">{{ mat.name }}</button>
 
                       <!-- Special Role Badges (Only shown for sub-ingredients or self-produced bases) -->
                       <span
@@ -801,6 +806,8 @@
 </template>
 
 <script setup>
+import StockMaterialCard from '@/components/inventory/StockMaterialCard.vue'
+import MaterialDetails from '@/components/inventory/MaterialDetails.vue'
 import StockToolbar from '@/components/inventory/StockToolbar.vue'
 import StockSummary from '@/components/inventory/StockSummary.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
@@ -841,6 +848,8 @@ import {
 const store = usePosStore()
 function applyStockFilters(values){selectedRole.value=values.role;selectedCategory.value=values.category;showDeleted.value=values.showDeleted}
 
+const detailMaterialId=ref(null)
+const detailMaterial=computed(()=>store.materials.find(m=>m.id===detailMaterialId.value)||null)
 const searchQuery = ref('')
 const selectedRole = ref('all') // 'all' | 'main' | 'sub'
 const selectedCategory = ref('all')
@@ -1152,6 +1161,9 @@ function getDisplayPackCost(mat) {
 </script>
 
 <style scoped>
+.adaptive-material-list{display:none}
+@media(max-width:1199px){.adaptive-material-list{display:block;overflow:hidden}.desktop-material-table{display:none}}
+
 .accordion-grid {
   display: grid;
   grid-template-rows: 0fr;
