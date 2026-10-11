@@ -1,39 +1,6 @@
 <template>
   <div class="space-y-4">
-    <!-- Header with Search & Add Menu Button -->
-    <div class="flex items-center justify-between flex-wrap gap-3">
-      <div class="flex items-center gap-2 w-full min-w-0 sm:w-auto">
-        <!-- Search input -->
-        <div class="relative flex-1 min-w-0 sm:flex-none sm:w-64">
-          <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input aria-label="ค้นหาเมนู"
-            v-model="searchQuery"
-            type="text"
-            placeholder="ค้นหาชื่อเมนู, วัตถุดิบ..."
-            class="soft-input w-full pl-9 pr-3 py-2 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-          />
-        </div>
-
-        <!-- Category filter -->
-        <AppSelect aria-label="หมวดหมู่"
-          v-model="selectedCategory"
-          class="w-32 sm:w-44 shrink-0"
-        >
-          <option value="ทั้งหมด">ทุกหมวดหมู่ ({{ store.menus.length }})</option>
-          <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-        </AppSelect>
-      </div>
-
-      <!-- Add Menu Button -->
-      <button
-        @click="openAddMenu"
-        class="px-4 py-2 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5"
-      >
-        <Plus class="w-4 h-4" />
-        <span>เพิ่มเมนูใหม่</span>
-      </button>
-    </div>
-
+    <CatalogToolbar id="menu-catalog" label="เมนู" v-model:search="searchQuery" placeholder="ค้นหาชื่อหรือคำอธิบายเมนู" :category="selectedCategory" :platform="displayPlatformId" :categories="categories" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddMenu" />
     <!-- Menus Management Table -->
     <div class="editorial-card overflow-hidden">
       <div class="overflow-x-auto">
@@ -79,15 +46,7 @@
 
               <!-- Platform Prices -->
               <td class="py-3.5 px-4">
-                <div class="flex flex-wrap gap-1.5 text-[11px]">
-                  <span
-                    v-for="p in store.platforms"
-                    :key="p.id"
-                    class="bg-[#F4EBDD] px-2 py-0.5 rounded-md text-stone-700 font-number font-medium"
-                  >
-                    {{ p.name.replace(/\s*\([^)]*\)/g, '') }}: ฿{{ menu.prices?.[p.id] !== undefined ? menu.prices[p.id] : '-' }}
-                  </span>
-                </div>
+                <PlatformPriceSummary :prices="menu.prices||{}" :platforms="store.platforms" :selected-id="displayPlatformId" />
               </td>
 
               <!-- BOM Recipe Collapsed Button (ยุบเป็นปุ่มกดเพื่อเปิด popup) -->
@@ -308,7 +267,9 @@
 <script setup>
 import ModalShell from '@/components/ui/ModalShell.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
-import { ref, computed } from 'vue'
+import CatalogToolbar from '@/components/catalog/CatalogToolbar.vue'
+import PlatformPriceSummary from '@/components/catalog/PlatformPriceSummary.vue'
+import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { Search, Plus, Trash2, Eye, X, Edit3 } from 'lucide-vue-next'
 
@@ -316,6 +277,10 @@ const store = usePosStore()
 
 const searchQuery = ref('')
 const selectedCategory = ref('ทั้งหมด')
+const displayPlatformId=ref(store.platforms[0]?.id||'')
+watch(()=>store.platforms.map(p=>p.id),ids=>{if(!ids.includes(displayPlatformId.value))displayPlatformId.value=ids[0]||''})
+function applyCatalogFilters(values){selectedCategory.value=values.category;displayPlatformId.value=values.platform}
+
 
 // BOM Modal State
 const isBomModalOpen = ref(false)
