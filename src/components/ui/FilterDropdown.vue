@@ -1,24 +1,27 @@
 <template>
+  <Teleport to="body" :disabled="!teleport">
   <ModalShell :id="id" :labelled-by="`${id}-title`" :open="open" class="fixed inset-0 z-[60]" @request-close="$emit('close')">
     <section data-filter-dropdown :style="position" class="filter-panel">
       <header class="filter-header">
         <div class="filter-heading"><SlidersHorizontal aria-hidden="true" :size="16" /><h3 :id="`${id}-title`">{{ title }}</h3></div>
         <button type="button" class="filter-close" aria-label="ปิดตัวกรอง" @click="$emit('close')"><X :size="16" /></button>
       </header>
-      <div class="filter-body">
+      <div class="filter-body" :class="{'without-dates':!includeDates}">
         <div class="filter-config">
         <div class="filter-fields" :class="fields.length === 1 ? 'single-field' : ''">
-          <label v-for="field in fields" :key="field.key" class="filter-field">
+          <div v-for="field in fields" :key="field.key" class="filter-field">
+            <AppCheckbox v-if="field.type === 'checkbox'" v-model="draft[field.key]" :label="field.label" />
+            <template v-else>
             <span>{{ field.label }}</span>
             <AppSelect v-model="draft[field.key]" :aria-label="field.label" class="w-full"><option v-for="option in field.options" :key="option.id" :value="option.id">{{ option.label }}</option></AppSelect>
-          </label>
+          </template></div>
         </div>
-        <div class="filter-date-heading"><CalendarDays :size="15" aria-hidden="true" /><span>ช่วงเวลาลัด</span></div>
-        <div class="filter-presets" aria-label="เลือกช่วงเวลาลัด">
+        <div v-if="includeDates" class="filter-date-heading"><CalendarDays :size="15" aria-hidden="true" /><span>ช่วงเวลาลัด</span></div>
+        <div v-if="includeDates" class="filter-presets" aria-label="เลือกช่วงเวลาลัด">
           <button v-for="preset in presets" :key="preset.days" type="button" :aria-pressed="presetMatches(preset.days)" @click="selectPreset(preset.days)">{{ preset.label }}</button>
         </div>
         </div>
-        <div class="filter-dates">
+        <div v-if="includeDates" class="filter-dates">
         <div class="filter-date-heading">เลือกช่วงวันที่</div>
         <div class="filter-range" aria-live="polite">
           <div><span>วันเริ่มต้น</span><strong data-range-start>{{ dateLabel(draft.start) }}</strong></div>
@@ -34,9 +37,11 @@
       </footer>
     </section>
   </ModalShell>
+  </Teleport>
 </template>
 
 <script setup>
+import AppCheckbox from './AppCheckbox.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import {ref,watch,onUnmounted} from 'vue'
 import {SlidersHorizontal,X,CalendarDays,ArrowRight,RotateCcw,Check} from 'lucide-vue-next'
@@ -46,7 +51,7 @@ import DateRangeCalendar from './DateRangeCalendar.vue'
 
 const props=defineProps({
   id:{type:String,required:true},title:{type:String,default:'ตัวกรอง'},open:Boolean,
-  anchor:{type:Object,default:null},values:{type:Object,required:true},fields:{type:Array,default:()=>[]}
+  teleport:Boolean,includeDates:{type:Boolean,default:true},anchor:{type:Object,default:null},values:{type:Object,required:true},fields:{type:Array,default:()=>[]}
 })
 const emit=defineEmits(['close','apply'])
 const draft=ref({})
@@ -67,7 +72,7 @@ watch(()=>props.open,open=>{
 },{immediate:true})
 onUnmounted(()=>window.removeEventListener('resize',positionPanel))
 function reset(){
-  draft.value={...props.values,start:null,end:null}
+  draft.value={...props.values,...(props.includeDates?{start:null,end:null}:{})}
   props.fields.forEach(field=>{draft.value[field.key]=field.defaultValue ?? 'all'})
 }
 function presetRange(days){
@@ -82,7 +87,7 @@ function dateLabel(value){
   if(!value) return 'เลือกวันที่'
   return new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'2-digit',timeZone:'Asia/Bangkok'}).format(new Date(`${value}T12:00:00+07:00`))
 }
-function apply(){emit('apply',{...draft.value,end:draft.value.end || draft.value.start});emit('close')}
+function apply(){emit('apply',{...draft.value,...(props.includeDates?{end:draft.value.end || draft.value.start}:{})});emit('close')}
 </script>
 
 <style scoped>
@@ -103,5 +108,7 @@ function apply(){emit('apply',{...draft.value,end:draft.value.end || draft.value
 button:focus-visible,select:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}
 @media(max-width:360px){.filter-body{padding:12px 8px}.filter-footer{padding:9px}.filter-apply>svg{display:none}}
 @media(min-width:640px){.filter-body{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px}.filter-config{padding-right:16px;border-right:1px solid var(--border-subtle)}.filter-fields{grid-template-columns:1fr;gap:14px;margin-bottom:24px}.filter-presets{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}}
+.filter-body.without-dates{display:block}.without-dates .filter-config{padding:0;border:0}.without-dates .filter-fields{margin-bottom:0}
 </style>
+
 

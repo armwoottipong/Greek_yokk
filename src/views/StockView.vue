@@ -1,200 +1,7 @@
 <template>
   <div class="space-y-6">
-    <!-- Top Header: Title & Quick Actions -->
-    <div class="flex items-center justify-between flex-wrap gap-4">
-      <div>
-        <h2 class="text-xl font-bold text-stone-900 tracking-tight">คลังวัตถุดิบและบรรจุภัณฑ์ (Inventory & Stock)</h2>
-        <p class="text-xs text-stone-400 mt-0.5">
-          จัดการสต็อกวัตถุดิบหลัก (หน้าร้าน) & วัตถุดิบรอง (ผลิตเบสโยเกิร์ต), รับเข้า และตรวจนับยอดจริง
-        </p>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <button
-          @click="store.openActivityLog('stock')"
-          class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-          title="ดูประวัติการเคลื่อนไหวสต็อกและการตรวจนับทั้งหมด"
-        >
-          <History class="w-4 h-4 text-sky-700" />
-          <span>ประวัติสต็อก</span>
-        </button>
-
-        <button
-          @click="openStockIn()"
-          class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-        >
-          <ArrowDownToLine class="w-4 h-4 text-emerald-600" />
-          <span>รับเข้าสต็อก</span>
-        </button>
-
-        <button
-          @click="openStockAdjust()"
-          class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-        >
-          <SlidersHorizontal class="w-4 h-4 text-amber-600" />
-          <span>ปรับยอดนับจริง</span>
-        </button>
-
-        <button
-          @click="openStocktake()"
-          class="inline-flex items-center gap-2 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-950 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-          title="โหมดตรวจนับสต็อกปิดร้าน (Quick Stocktake Sheet) บันทึกยอดจริงทั้งหมดพร้อมกัน"
-        >
-          <ClipboardCheck class="w-4 h-4 text-amber-800" />
-          <span>ตรวจนับสต็อก</span>
-        </button>
-
-        <button
-          @click="openCreateMaterial"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-        >
-          <Plus class="w-4 h-4" />
-          <span>เพิ่มวัตถุดิบใหม่</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Summary KPI Cards: Clean, Compact 4-Card Strip -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <!-- Total Valuation Card -->
-      <div class="editorial-card p-4 bg-white">
-        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
-          <span>มูลค่าคลังรวม</span>
-          <span>💰</span>
-        </div>
-        <div class="flex items-baseline gap-2 font-number">
-          <span class="text-xl font-bold text-amber-950">
-            ฿{{ store.totalInventoryValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-          </span>
-          <span
-            v-if="store.draftInventoryValuationDiff !== 0"
-            class="text-xs font-bold tabular-nums"
-            :class="store.draftInventoryValuationDiff > 0 ? 'text-emerald-600' : 'text-orange-500'"
-            title="ส่วนต่างมูลค่าที่รอยืนยัน"
-          >
-            {{ store.draftInventoryValuationDiff > 0 ? `+${Math.round(store.draftInventoryValuationDiff).toLocaleString()}` : Math.round(store.draftInventoryValuationDiff).toLocaleString() }}
-          </span>
-        </div>
-        <div class="text-[10px] mt-1 flex items-center justify-between gap-1">
-          <span class="text-stone-400 truncate">หลัก: {{ store.mainMaterials.length }} • รอง: {{ store.subMaterials.length }} ชนิด</span>
-          <span
-            v-if="store.draftInventoryValuationDiff !== 0"
-            class="font-number font-medium shrink-0"
-            :class="store.draftInventoryValuationDiff > 0 ? 'text-emerald-700' : 'text-orange-700'"
-            title="มูลค่าคลังหลังยืนยันบันทึก"
-          >
-            หลังบันทึก: ≈ ฿{{ store.projectedInventoryValuation.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Reorder Budget Needed Card -->
-      <div class="editorial-card p-4 bg-white">
-        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
-          <span>งบเติมสต็อกแนะนำ</span>
-          <span>📦</span>
-        </div>
-        <div class="text-xl font-bold font-number text-rose-800">
-          ฿{{ store.reorderBudgetNeeded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-        </div>
-        <div class="text-[10px] text-stone-400 mt-1">
-          เติมให้ถึงระดับ 2x Min
-        </div>
-      </div>
-
-      <!-- Low Stock Items Card -->
-      <div class="editorial-card p-4 bg-white">
-        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
-          <span>สต็อกใกล้หมด</span>
-          <span>⚠️</span>
-        </div>
-        <div class="text-xl font-bold font-number text-amber-800">
-          {{ store.lowStockMaterials.length }} <span class="text-xs font-normal text-stone-400">รายการ</span>
-        </div>
-        <div class="text-[10px] text-stone-400 mt-1">
-          ควรสั่งซื้อเพิ่ม
-        </div>
-      </div>
-
-      <!-- Out of Stock Items Card -->
-      <div class="editorial-card p-4 bg-white">
-        <div class="flex items-center justify-between text-[11px] text-stone-400 mb-1">
-          <span>หมดสต็อก</span>
-          <span>🚫</span>
-        </div>
-        <div class="text-xl font-bold font-number text-stone-800">
-          {{ store.outOfStockMaterials.length }} <span class="text-xs font-normal text-stone-400">รายการ</span>
-        </div>
-        <div class="text-[10px] text-stone-400 mt-1">
-          ระงับขายเมนูที่เกี่ยวข้อง
-        </div>
-      </div>
-    </div>
-
-    <!-- Filters & Search Toolbar (Single Compact Row) -->
-    <div class="editorial-card p-3 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
-      <!-- Role Tabs (ทั้งหมด / หลัก / รอง) -->
-      <div class="flex items-center gap-1 p-0.5 bg-stone-100 rounded-xl text-xs font-semibold shrink-0">
-        <button
-          @click="selectedRole = 'all'"
-          :class="[
-            'px-3 py-1.5 rounded-lg transition-all cursor-pointer',
-            selectedRole === 'all' ? 'bg-white text-stone-900 shadow-2xs' : 'text-stone-500 hover:text-stone-900'
-          ]"
-        >
-          ทั้งหมด ({{ store.activeMaterials.length }})
-        </button>
-        <button
-          @click="selectedRole = 'main'"
-          :class="[
-            'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
-            selectedRole === 'main' ? 'bg-emerald-800 text-white shadow-2xs' : 'text-stone-500 hover:text-emerald-800'
-          ]"
-        >
-          <span>🥣 หลัก ({{ store.mainMaterials.length }})</span>
-        </button>
-        <button
-          @click="selectedRole = 'sub'"
-          :class="[
-            'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer',
-            selectedRole === 'sub' ? 'bg-purple-800 text-white shadow-2xs' : 'text-stone-500 hover:text-purple-800'
-          ]"
-        >
-          <span>🥛 รอง ({{ store.subMaterials.length }})</span>
-        </button>
-      </div>
-
-      <!-- Category Filter Dropdown + Search + Hidden Checkbox -->
-      <div class="flex items-center gap-2 flex-1 max-w-xl justify-end">
-        <AppSelect aria-label="หมวดหมู่"
-          v-model="selectedCategory"
-          class="w-44 shrink-0"
-        >
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-            {{ cat.label }}
-          </option>
-        </AppSelect>
-
-        <div class="relative flex-1 min-w-[140px]">
-          <Search class="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
-          <input aria-label="ค้นหาวัตถุดิบ"
-            v-model="searchQuery"
-            type="text"
-            placeholder="ค้นหาวัตถุดิบ..."
-            class="soft-input w-full pl-8 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 font-medium"
-          />
-        </div>
-
-        <AppCheckbox v-model="showDeleted" :label="`รายการจัดเก็บ (${deletedCount})`"
-          class="text-[11px] cursor-pointer select-none flex items-center gap-1.5 shrink-0 px-2.5 py-1.5 rounded-xl border transition-all"
-          :class="showDeleted ? 'bg-brand-50 border-brand-200 text-brand-600 font-semibold' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50'"
-        >
-          <Archive aria-hidden="true" class="w-3.5 h-3.5 text-stone-500" :class="showDeleted ? 'text-brand-600' : ''" />
-          <span>รายการจัดเก็บ ({{ deletedCount }})</span>
-        </AppCheckbox>
-      </div>
-    </div>
-
+    <StockSummary :valuation="store.totalInventoryValuation" :draft-diff="store.draftInventoryValuationDiff" :projected="store.projectedInventoryValuation" :budget="store.reorderBudgetNeeded" :low-count="store.lowStockMaterials.length" :out-count="store.outOfStockMaterials.length" />
+    <StockToolbar v-model:search="searchQuery" :role="selectedRole" :category="selectedCategory" :show-deleted="showDeleted" :categories="categories" :deleted-count="deletedCount" @apply-filters="applyStockFilters" @receive="openStockIn()" @stocktake="openStocktake" @adjust="openStockAdjust()" @create="openCreateMaterial" @history="store.openActivityLog('stock')" />
     <!-- Material Inventory Table -->
     <div class="editorial-card bg-white pb-12">
       <div class="overflow-x-auto">
@@ -994,6 +801,8 @@
 </template>
 
 <script setup>
+import StockToolbar from '@/components/inventory/StockToolbar.vue'
+import StockSummary from '@/components/inventory/StockSummary.vue'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
@@ -1030,6 +839,7 @@ import {
 } from 'lucide-vue-next'
 
 const store = usePosStore()
+function applyStockFilters(values){selectedRole.value=values.role;selectedCategory.value=values.category;showDeleted.value=values.showDeleted}
 
 const searchQuery = ref('')
 const selectedRole = ref('all') // 'all' | 'main' | 'sub'
