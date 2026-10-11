@@ -980,16 +980,16 @@ function handleArchiveToggle() {
   }
 }
 
-function handlePermanentDelete() {
+async function handlePermanentDelete() {
   if (!form.value.id) return
   const usage = store.getMaterialUsage(form.value.id)
   if (usage.isInUse) {
     const list = [...usage.usedInMenus, ...usage.usedInAddons, ...usage.usedInMaterials].join(', ')
-    alert(`ไม่สามารถลบถาวรได้ เนื่องจากวัตถุดิบนี้ถูกใช้งานในสูตร: ${list}\nกรุณานำออกจากสูตรก่อน หรือเลือก 'จัดเก็บ' แทน`)
+    store.showToast(`ยังลบไม่ได้: ใช้ในสูตร ${list} กรุณาจัดเก็บแทน`, 'error')
     return
   }
 
-  if (confirm(`ยืนยันลบวัตถุดิบ "${form.value.name}" อย่างถาวรหรือไม่?\n⚠️ ข้อมูลทั้งหมดจะถูกลบออกจากระบบและไม่สามารถกู้คืนได้`)) {
+  if (await store.confirmDialog({title:'ลบวัตถุดิบถาวร?',message:form.value.name+' · '+form.value.id+'\nข้อมูลวัตถุดิบและล็อตจะถูกลบและกู้คืนไม่ได้',confirmText:'ลบถาวร',cancelText:'ยกเลิก',type:'danger'})) {
     store.deleteMaterialPermanently(form.value.id)
     close()
   }

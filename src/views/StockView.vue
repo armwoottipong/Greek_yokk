@@ -478,10 +478,9 @@
     <StockDraftReview :open="showDraftDetails" :has-drafts="store.hasStockDrafts" :items="store.stockDraftSummary.items" :snapshot="store.stockDraftSnapshot" :materials="store.materials" @open="showDraftDetails=true" @close="showDraftDetails=false" @commit="savePendingChanges" @discard="revertPendingChanges" />
     <!-- Teleported Floating Action Menu (Never clipped by table rows or overflow-x container) -->
     <Teleport to="body">
-      <div
-        v-if="activeActionMenuId && activeMenuMat"
-        class="fixed inset-0 z-[9999]"
-        @click="closeActionMenu"
+      <ModalShell label="งานวัตถุดิบ" :open="Boolean(activeActionMenuId && activeMenuMat)"
+        class="fixed inset-0"
+        @request-close="closeActionMenu"
       >
         <div
           class="fixed w-52 bg-white rounded-2xl shadow-2xl border border-stone-200/95 py-1.5 text-xs text-left text-stone-800 animate-in fade-in zoom-in-95 duration-100 divide-y divide-stone-100"
@@ -585,113 +584,23 @@
             </button>
           </div>
         </div>
-      </div>
-    </Teleport>
-
-    <!-- Modal ยืนยันการลบถาวร (Permanent Delete Confirmation Modal) -->
-    <Teleport to="body">
-      <ModalShell label="ยืนยันการลบวัตถุดิบ"
-        :open="showDeleteModal && Boolean(materialToDelete)"
-        class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-        @request-close="closeDeleteModal"
-      >
-        <div
-          class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden animate-in zoom-in-95 duration-150"
-          @click.stop
-        >
-          <!-- Header -->
-          <div class="p-6 pb-4">
-            <div
-              class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3"
-              :class="deleteUsageWarning?.isInUse ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'"
-            >
-              <AlertTriangle v-if="deleteUsageWarning?.isInUse" class="w-6 h-6 stroke-[2.2]" />
-              <Trash2 v-else class="w-6 h-6 stroke-[2.2]" />
-            </div>
-
-            <h3 class="text-base font-bold text-stone-900">
-              {{ deleteUsageWarning?.isInUse ? 'ไม่แนะนำให้ลบถาวร (วัตถุดิบผูกกับสูตรอยู่)' : 'ยืนยันลบวัตถุดิบอย่างถาวร' }}
-            </h3>
-
-            <p class="text-xs text-stone-500 mt-1">
-              วัตถุดิบ: <span class="font-bold text-stone-800">{{ materialToDelete.emoji }} {{ materialToDelete.name }}</span> (รหัส: {{ materialToDelete.id }})
-            </p>
-          </div>
-
-          <!-- Body -->
-          <div class="px-6 pb-6 text-xs text-stone-600 space-y-3">
-            <div
-              v-if="deleteUsageWarning?.isInUse"
-              class="p-3.5 bg-amber-50 rounded-2xl border border-amber-200/80 space-y-2"
-            >
-              <p class="font-semibold text-amber-900">
-                วัตถุดิบนี้กำลังถูกใช้งานในระบบ:
-              </p>
-              <ul class="list-disc list-inside space-y-1 text-amber-800 pl-1">
-                <li v-for="menu in deleteUsageWarning.usedInMenus" :key="menu">
-                  สูตรเมนู: <strong>{{ menu }}</strong>
-                </li>
-                <li v-for="addon in deleteUsageWarning.usedInAddons" :key="addon">
-                  ท็อปปิ้ง/Add-on: <strong>{{ addon }}</strong>
-                </li>
-                <li v-for="sub in deleteUsageWarning.usedInMaterials" :key="sub">
-                  สูตรวัตถุดิบหลัก: <strong>{{ sub }}</strong>
-                </li>
-              </ul>
-              <p class="text-[11px] text-amber-700 pt-1.5 border-t border-amber-200/60">
-                💡 แนะนำให้เลือก <strong>"จัดเก็บแทน"</strong> เพื่อซ่อนจากหน้าขายโดยไม่ทำให้สูตรเมนูเกิดข้อผิดพลาด
-              </p>
-            </div>
-
-            <div
-              v-else
-              class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-stone-600 space-y-1.5"
-            >
-              <p class="text-stone-700">
-                รายการนี้ไม่มีการผูกสูตรกับเมนูใดๆ (สามารถลบออกได้กรณีสร้างมาผิดหรือไม่ต้องการใช้งานแล้ว)
-              </p>
-              <p class="text-rose-600 font-semibold">
-                ⚠️ เมื่อลบแล้ว ข้อมูลสต็อก ประวัติล็อต และรายการนี้จะหายไปจากระบบอย่างถาวรและไม่สามารถกู้คืนได้
-              </p>
-            </div>
-          </div>
-
-          <!-- Footer Actions -->
-          <div class="px-6 py-4 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-2.5">
-            <button
-              type="button"
-              @click="closeDeleteModal"
-              class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-200/60 transition-colors cursor-pointer"
-            >
-              ยกเลิก
-            </button>
-
-            <button
-              v-if="deleteUsageWarning?.isInUse"
-              type="button"
-              @click="confirmArchiveInstead"
-              class="px-4 py-2 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Archive class="w-3.5 h-3.5" />
-              <span>จัดเก็บแทน (แนะนำ)</span>
-            </button>
-
-            <button
-              type="button"
-              @click="confirmDeletePermanently"
-              class="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Trash2 class="w-3.5 h-3.5" />
-              <span>{{ deleteUsageWarning?.isInUse ? 'ยืนยันลบถาวรต่อไป' : 'ลบถาวร' }}</span>
-            </button>
-          </div>
-        </div>
       </ModalShell>
     </Teleport>
+
+    <DialogFrame id="stock-delete-material" title="ยืนยันลบวัตถุดิบถาวร" :open="showDeleteModal" width="440px" initial-focus="[data-delete-cancel]" @request-close="closeDeleteModal">
+      <template v-if="materialToDelete">
+        <p class="font-semibold">{{ materialToDelete.name }} · {{ materialToDelete.id }}</p>
+        <template v-if="deleteUsageWarning?.isInUse"><p class="mt-3">รายการนี้ยังอยู่ในสูตร จัดเก็บแทนเพื่อรักษาข้อมูลสูตร</p><ul class="mt-3 space-y-2"><li v-for="name in [...deleteUsageWarning.usedInMenus,...deleteUsageWarning.usedInAddons,...deleteUsageWarning.usedInMaterials]" :key="name">{{ name }}</li></ul></template>
+        <p v-else class="mt-3 text-sm">ข้อมูลวัตถุดิบและล็อตจะถูกลบอย่างถาวร และกู้คืนไม่ได้</p>
+      </template>
+      <template #footer><Button variant="secondary" data-delete-cancel @click="closeDeleteModal">ยกเลิก</Button><Button v-if="deleteUsageWarning?.isInUse" @click="confirmArchiveInstead">จัดเก็บแทน</Button><Button v-else variant="danger" data-delete-material @click="confirmDeletePermanently">ลบถาวร</Button></template>
+    </DialogFrame>
   </div>
 </template>
 
 <script setup>
+import DialogFrame from '@/components/ui/DialogFrame.vue'
+import Button from '@/components/ui/Button.vue'
 import StockDraftReview from '@/components/inventory/StockDraftReview.vue'
 import StockMaterialCard from '@/components/inventory/StockMaterialCard.vue'
 import MaterialDetails from '@/components/inventory/MaterialDetails.vue'
@@ -917,6 +826,7 @@ function confirmArchiveInstead() {
 }
 
 function confirmDeletePermanently() {
+  if(!showDeleteModal.value || deleteUsageWarning.value?.isInUse)return
   if (materialToDelete.value) {
     store.deleteMaterialPermanently(materialToDelete.value.id)
   }

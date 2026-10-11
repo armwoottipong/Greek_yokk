@@ -396,4 +396,5 @@ async function confirmClearLogs() {
 .history-button:focus-visible,.history-icon-button:focus-visible,.history-control:focus-visible { outline:2px solid var(--accent-brand); outline-offset:2px; }
 input.history-control.pl-9 { padding-left:36px; padding-right:36px; }
 .history-list { scrollbar-gutter:stable; }
+.history-button,.history-icon-button{min-height:44px;min-width:44px}.history-modal summary,.history-modal details button{min-height:44px}
 </style>

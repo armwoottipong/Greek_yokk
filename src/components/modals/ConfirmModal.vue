@@ -1,5 +1,5 @@
 <template>
-  <ModalShell labelled-by="ConfirmModal-title" :open="modal.isOpen"
+  <ModalShell initial-focus="[data-confirm-cancel]" labelled-by="ConfirmModal-title" :open="modal.isOpen"
     class="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
     @request-close="handleBackdropClick"
     tabindex="-1"
@@ -27,7 +27,7 @@
 
       <!-- Action Buttons -->
       <div class="pt-3 flex items-center justify-end gap-2 border-t border-stone-100">
-        <Button variant="secondary"
+        <Button data-confirm-cancel variant="secondary"
           type="button"
           @click="onCancel"
           class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer select-none"
@@ -93,6 +93,11 @@ function handleBackdropClick() {
 }
 
 function onConfirm() {
+  if(!modal.value.isOpen)return
+  const callback=modal.value.onConfirm
+  store.modals.confirm.isOpen=false
+  store.modals.confirm.onConfirm=null
+  if(typeof callback==='function'){callback();return}
   if (typeof modal.value.onConfirm === 'function') {
     modal.value.onConfirm()
   } else {
@@ -101,6 +106,11 @@ function onConfirm() {
 }
 
 function onCancel() {
+  if(!modal.value.isOpen)return
+  const callback=modal.value.onCancel
+  store.modals.confirm.isOpen=false
+  store.modals.confirm.onCancel=null
+  if(typeof callback==='function'){callback();return}
   if (typeof modal.value.onCancel === 'function') {
     modal.value.onCancel()
   } else {
