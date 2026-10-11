@@ -475,121 +475,7 @@
       </div>
     </div>
 
-    <!-- Floating Bottom Save Bar (Pops up from bottom when changes/drafts are made) -->
-    <transition
-      enter-active-class="transition duration-300 ease-out"
-      enter-from-class="transform translate-y-24 opacity-0"
-      enter-to-class="transform translate-y-0 opacity-100"
-      leave-active-class="transition duration-200 ease-in"
-      leave-from-class="transform translate-y-0 opacity-100"
-      leave-to-class="transform translate-y-24 opacity-0"
-    >
-      <div
-        v-if="store.hasStockDrafts"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center max-w-2xl w-[94vw]"
-      >
-        <!-- Expanded Draft Details Drawer (pops up above the bar) -->
-        <transition
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="transform translate-y-4 opacity-0 scale-95"
-          enter-to-class="transform translate-y-0 opacity-100 scale-100"
-          leave-active-class="transition duration-150 ease-in"
-          leave-from-class="transform translate-y-0 opacity-100 scale-100"
-          leave-to-class="transform translate-y-4 opacity-0 scale-95"
-        >
-          <div
-            v-if="showDraftDetails"
-            class="w-full mb-2 bg-stone-900/95 backdrop-blur-md text-white rounded-2xl border border-stone-700/80 shadow-2xl p-4 max-h-60 overflow-y-auto"
-          >
-            <div class="flex items-center justify-between pb-2 border-b border-stone-800 text-xs">
-              <span class="font-bold flex items-center gap-1.5 text-amber-400">
-                <span>📋</span> รายการที่รอยืนยัน ({{ store.stockDraftSummary.count }} รายการ)
-              </span>
-              <span class="text-[11px] text-stone-400">ยังไม่บันทึกจริงจนกว่าจะกดปุ่มบันทึก</span>
-            </div>
-            <div class="divide-y divide-stone-800/60 mt-2">
-              <div
-                v-for="item in store.stockDraftSummary.items"
-                :key="item.id"
-                class="py-2 flex items-center justify-between text-xs"
-              >
-                <div class="flex items-center gap-2 min-w-0 pr-2">
-                  <span class="text-base shrink-0">{{ item.emoji || '📦' }}</span>
-                  <div class="min-w-0">
-                    <div class="font-semibold text-stone-200 truncate">{{ item.name }}</div>
-                    <div class="text-[10px] text-stone-400 truncate">{{ item.description }}</div>
-                  </div>
-                </div>
-                <div class="shrink-0 font-number font-bold text-xs text-right">
-                  <span
-                    :class="[
-                      item.delta > 0 ? 'text-emerald-400' : item.delta < 0 ? 'text-orange-400' : 'text-stone-300'
-                    ]"
-                  >
-                    {{ item.delta > 0 ? `+${item.delta.toLocaleString()}` : item.delta ? item.delta.toLocaleString() : 'สลับล็อต' }}
-                  </span>
-                  <span v-if="item.unit" class="text-[10px] text-stone-400 ml-1">{{ item.unit }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </transition>
-
-        <!-- Main Bar -->
-        <div class="w-full bg-brand-600 text-white rounded-2xl shadow-2xl px-4 sm:px-5 py-3 flex items-center gap-3 border border-stone-800 justify-between">
-          <div class="flex items-center gap-2.5 min-w-0 pr-2">
-            <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg shrink-0">
-              📝
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <h4 class="text-xs font-bold text-white flex items-center gap-1.5 truncate">
-                  <span>รายการรอการบันทึก</span>
-                  <span class="px-1.5 py-0.2 rounded-md bg-amber-500/30 text-amber-300 font-number text-[11px] font-bold">
-                    {{ store.stockDraftSummary.count }} รายการ
-                  </span>
-                </h4>
-                <button
-                  type="button"
-                  @click="showDraftDetails = !showDraftDetails"
-                  class="text-[10px] text-amber-400 hover:text-amber-300 underline cursor-pointer flex items-center gap-0.5 shrink-0"
-                >
-                  <span>{{ showDraftDetails ? 'ซ่อน' : 'ดูรายละเอียด' }}</span>
-                  <ChevronUp v-if="showDraftDetails" class="w-3 h-3" />
-                  <ChevronDown v-else class="w-3 h-3" />
-                </button>
-              </div>
-              <p class="text-[11px] text-stone-400 truncate mt-0.5 font-number">
-                {{ store.stockDraftSummary.text }}
-              </p>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              @click="revertPendingChanges"
-              class="px-3 py-2 rounded-xl text-xs font-medium text-stone-300 hover:text-white hover:bg-brand-800 transition-colors cursor-pointer flex items-center gap-1.5"
-              title="ยกเลิกรายการทั้งหมด คืนค่าสต็อกเดิม"
-            >
-              <Undo2 class="w-3.5 h-3.5" />
-              <span>ยกเลิก</span>
-            </button>
-
-            <button
-              type="button"
-              @click="savePendingChanges"
-              class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-md transition-all cursor-pointer flex items-center gap-1.5"
-              title="บันทึกขั้นตอนสุดท้ายอย่างเป็นทางการ"
-            >
-              <Check class="w-4 h-4 stroke-[2.5]" />
-              <span>บันทึกขั้นตอนสุดท้าย</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </transition>
-
+    <StockDraftReview :open="showDraftDetails" :has-drafts="store.hasStockDrafts" :items="store.stockDraftSummary.items" :snapshot="store.stockDraftSnapshot" :materials="store.materials" @open="showDraftDetails=true" @close="showDraftDetails=false" @commit="savePendingChanges" @discard="revertPendingChanges" />
     <!-- Teleported Floating Action Menu (Never clipped by table rows or overflow-x container) -->
     <Teleport to="body">
       <div
@@ -806,6 +692,7 @@
 </template>
 
 <script setup>
+import StockDraftReview from '@/components/inventory/StockDraftReview.vue'
 import StockMaterialCard from '@/components/inventory/StockMaterialCard.vue'
 import MaterialDetails from '@/components/inventory/MaterialDetails.vue'
 import StockToolbar from '@/components/inventory/StockToolbar.vue'
@@ -1057,11 +944,14 @@ function onActionSwitchLot(matId, lotId) {
 const showDraftDetails = ref(false)
 
 function savePendingChanges() {
-  store.commitStockDrafts()
-  showDraftDetails.value = false
+  const result=store.commitStockDrafts()
+  if(result?.ok || result?.success)showDraftDetails.value = false
+  else store.showToast(result?.message||'บันทึกไม่สำเร็จ แบบร่างยังอยู่ กรุณาลองอีกครั้ง','error')
 }
 
-function revertPendingChanges() {
+async function revertPendingChanges() {
+  const discard=await store.confirmDialog({title:'ยกเลิกแบบร่างทั้งหมด?',message:'ยอดในแบบร่างจะกลับไปเป็นยอดที่บันทึกไว้ก่อนหน้า',type:'danger',confirmText:'ยกเลิกแบบร่าง',cancelText:'เก็บแบบร่างไว้'})
+  if(!discard)return
   store.discardStockDrafts()
   showDraftDetails.value = false
 }
