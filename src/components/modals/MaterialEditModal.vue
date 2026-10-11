@@ -1,12 +1,6 @@
 <template>
-  <ModalShell labelled-by="MaterialEditModal-title" :open="store.modals.materialEdit.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @request-close="requestClose(close)"
-  >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      
-      <!-- 1. Header with Dynamic Title & Sub-Recipe Switch (Requirement 4) -->
-      <div class="px-4 sm:px-6 py-4 border-b border-stone-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-y-3 bg-white shrink-0">
+ <DialogFrame :open="store.modals.materialEdit.isOpen" id="MaterialEditModal" title="ข้อมูลวัตถุดิบ" :teleport="false" @request-close="requestClose(close)">
+ <template #header><div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-y-3 bg-white">
         <div class="min-w-0 w-full sm:w-auto sm:flex-1 sm:pr-3">
           <div class="flex items-center gap-2">
             <h3 id="MaterialEditModal-title" class="text-sm font-semibold text-stone-900 truncate">
@@ -45,18 +39,10 @@
           </AppCheckbox>
 
           <!-- Close Modal Button -->
-          <button 
-            type="button"
-            @click="requestClose(close)" 
-            class="ml-auto text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
-           aria-label="ปิดหน้าต่าง">
-            <X class="w-4 h-4" />
-          </button>
+          
         </div>
-      </div>
-
-      <!-- 2. Modal Body -->
-      <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+      </div></template>
+ <div class="space-y-4 text-sm">
         
         <!-- Ingredient Role: Top, compact, prominent (Requirement 3) -->
         <div 
@@ -516,9 +502,7 @@
         </div>
 
       </div>
-
-      <!-- 3. Clean Modal Footer -->
-      <div class="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-between shrink-0">
+ <template #footer><div class="bg-white flex items-center justify-between">
         <div v-if="isEditing" class="flex items-center gap-2">
           <button
             type="button"
@@ -558,15 +542,14 @@
             <span>บันทึก</span>
           </button>
         </div>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
-import ModalShell from '@/components/ui/ModalShell.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'

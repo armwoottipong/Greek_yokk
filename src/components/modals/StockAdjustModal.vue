@@ -1,11 +1,6 @@
 <template>
-  <ModalShell labelled-by="StockAdjustModal-title" :open="store.modals.stockAdjust.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @request-close="requestClose(close)"
-  >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      <!-- Calm Header -->
-      <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
+ <DialogFrame :open="store.modals.stockAdjust.isOpen" id="StockAdjustModal" title="ปรับยอดนับจริง" :teleport="false" @request-close="requestClose(close)">
+ <template #header><div class="flex items-center justify-between bg-white">
         <div>
           <h3 id="StockAdjustModal-title" class="text-base font-semibold text-stone-900 flex items-center gap-2">
             <span>⚖️</span>
@@ -13,13 +8,9 @@
           </h3>
           <p class="text-[11px] text-stone-500 mt-0.5">เทียบยอดนับจริงกับระบบและบันทึกเหตุผลผลต่าง</p>
         </div>
-        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
-          <X class="w-5 h-5" />
-        </button>
-      </div>
-
-      <!-- Pure Flat Body -->
-      <div class="p-7 space-y-5 overflow-y-auto flex-1 text-xs">
+        
+      </div></template>
+ <div class="space-y-5 text-sm">
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <label class="block text-xs font-medium text-stone-700">เลือกวัตถุดิบ <span class="text-rose-500">*</span></label>
@@ -133,7 +124,7 @@
               </button>
 
               <div class="relative flex-1">
-                <input aria-label="ยอดนับจริงเป็นแพ็ค"
+                <input aria-label="ยอดนับจริงเป็นแพ็ค" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockAdjustModal-error':undefined"
                   v-if="unitMode === 'pack'"
                   v-model.number="actualPackStock"
                   @input="onPackStockInput"
@@ -143,7 +134,7 @@
                   placeholder="0"
                   class="soft-input w-full px-3.5 py-2.5 rounded-xl text-center text-xs font-number font-semibold text-stone-900"
                 />
-                <input aria-label="ยอดนับจริงเป็นหน่วยใช้"
+                <input aria-label="ยอดนับจริงเป็นหน่วยใช้" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockAdjustModal-error':undefined"
                   v-else
                   v-model.number="actualStock"
                   @input="onBaseStockInput"
@@ -209,9 +200,8 @@
           />
         </div>
       </div>
-
-      <!-- Spacious Calm Footer -->
-      <div class="px-7 py-4 border-t border-stone-100 bg-white flex items-center justify-end gap-3 shrink-0">
+ <p v-if="formError" id="StockAdjustModal-error" role="alert" class="stock-form-error">{{ formError }}</p>
+ <template #footer><div class="bg-white flex items-center justify-end gap-3">
         <button
           type="button"
           @click="requestClose(close)"
@@ -227,21 +217,21 @@
           <Check class="w-4 h-4" />
           <span>บันทึกปรับยอด</span>
         </button>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
 import AppSelect from '@/components/ui/AppSelect.vue'
-import ModalShell from '@/components/ui/ModalShell.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore, formatThaiDate } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
-import { X, Check, Plus, Minus, History } from 'lucide-vue-next'
+import { Check, Plus, Minus, History } from 'lucide-vue-next'
 
 const store = usePosStore()
 
+const formError=ref('')
 const selectedMatId = ref('')
 const selectedLotId = ref('all')
 const unitMode = ref('base') // 'base' | 'pack'
@@ -308,6 +298,7 @@ function stepAdjustStock(delta) {
 }
 
 function initForMaterial(mat, targetLotId = 'all') {
+  formError.value=''
   if (!mat) return
   const pSize = mat.packSize > 0 ? mat.packSize : 1
   selectedLotId.value = targetLotId || 'all'
@@ -369,12 +360,14 @@ function close() {
 }
 
 async function submit() {
+  formError.value=''
   if (!selectedMatId.value || !selectedMaterial.value) {
     store.showToast('กรุณาเลือกวัตถุดิบ', 'error')
     return
   }
   if (actualStock.value < 0) {
-    store.showToast('ยอดนับจริงต้องไม่ติดลบ', 'error')
+    formError.value='ยอดนับจริงต้องไม่ติดลบ ระบุจำนวนตั้งแต่ 0 ขึ้นไป'
+    store.showToast(formError.value, 'error')
     return
   }
 

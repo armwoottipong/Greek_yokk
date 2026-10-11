@@ -17,3 +17,4 @@
 @keyframes interface-spin{to{transform:rotate(360deg)}}
 #app[inert] .mobile-menu-toggle{visibility:hidden}
 :root{--navigation-width:256px}@media(max-width:1199px){:root{--navigation-width:72px}}@media(max-width:767px){:root{--navigation-width:0px}}
+.stock-form-error{padding:12px 16px;color:var(--state-error);background:#FEF2F2;border-radius:var(--control-radius);font-size:13px;line-height:1.6}.dialog-frame-body .soft-input{min-height:44px;font-size:14px}.dialog-frame-body button:has(>svg:only-child){min-width:44px;min-height:44px}

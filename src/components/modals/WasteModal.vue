@@ -1,11 +1,6 @@
 <template>
-  <ModalShell labelled-by="WasteModal-title" :open="store.modals.waste.isOpen && Boolean(currentMaterial)"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @request-close="close"
-  >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      <!-- Header -->
-      <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
+ <DialogFrame :open="store.modals.waste.isOpen && Boolean(currentMaterial)" id="WasteModal" title="บันทึกของเสีย" :teleport="false" @request-close="requestWasteClose">
+ <template #header><div class="flex items-center justify-between bg-white">
         <div>
           <h3 id="WasteModal-title" class="text-sm font-semibold text-rose-900 flex items-center gap-2">
             <span>🗑️</span>
@@ -15,16 +10,9 @@
             ตัดสต็อกจากล็อตที่เสียหาย พร้อมคำนวณมูลค่าขาดทุนจริง
           </p>
         </div>
-        <button
-          @click="close"
-          class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
-         aria-label="ปิดหน้าต่าง">
-          <X class="w-4 h-4" />
-        </button>
-      </div>
-
-      <!-- Body -->
-      <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+        
+      </div></template>
+ <div class="space-y-4 text-sm">
         <!-- Target Material & Lot Info Card -->
         <div class="p-3.5 rounded-xl bg-stone-50 border border-stone-200/70 space-y-2">
           <div class="flex items-center justify-between">
@@ -86,8 +74,10 @@
             </button>
           </div>
 
+          <FormField id="waste-quantity" label="จำนวนที่ตัดทิ้ง" :error="wasteQty<0 || wasteQty>currentLotQty?'ระบุจำนวนตั้งแต่ 0 ถึง '+currentLotQty+' '+currentMaterial.unit:''">
+          <template #default="{controlId,describedBy,invalid}">
           <div class="flex items-center gap-2">
-            <input aria-label="จำนวนที่ตัดทิ้ง"
+            <input :id="controlId" :aria-describedby="describedBy" :aria-invalid="invalid" aria-label="จำนวนที่ตัดทิ้ง"
               v-model.number="wasteQty"
               type="number"
               min="0.1"
@@ -99,7 +89,7 @@
             <span class="text-xs font-medium text-stone-600 shrink-0 w-12 text-center">
               {{ currentMaterial.unit }}
             </span>
-          </div>
+          </div></template></FormField>
         </div>
 
         <!-- Quick Reason Tags -->
@@ -147,12 +137,10 @@
           </div>
         </div>
       </div>
-
-      <!-- Footer Actions -->
-      <div class="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-end gap-2.5 shrink-0">
+ <template #footer><div class="bg-stone-50 flex items-center justify-end gap-2.5">
         <button
           type="button"
-          @click="close"
+          @click="requestWasteClose"
           class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-200 transition-colors cursor-pointer"
         >
           ยกเลิก
@@ -166,22 +154,25 @@
           <Trash2 class="w-3.5 h-3.5" />
           <span>บันทึกตัดของเสีย</span>
         </button>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
-import ModalShell from '@/components/ui/ModalShell.vue'
+import FormField from '@/components/ui/FormField.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
+import {useModalForm} from '@/composables/useModalForm'
 import { ref, computed, watch } from 'vue'
 import { usePosStore, formatThaiDate, getReceiveAgeStatus } from '@/stores/posStore'
-import { X, Trash2 } from 'lucide-vue-next'
+import { Trash2 } from 'lucide-vue-next'
 
 const store = usePosStore()
 
 const wasteQty = ref(0)
 const selectedReason = ref('ผลไม้ช้ำ/ขึ้นรา')
 const wasteNote = ref('')
+const {saveSnapshot,requestClose}=useModalForm(()=>({wasteQty:wasteQty.value,reason:selectedReason.value,note:wasteNote.value}))
+function requestWasteClose(){return requestClose(close)}
 
 const reasonPresets = [
   'ผลไม้ช้ำ/ขึ้นรา',
@@ -238,6 +229,7 @@ watch(() => store.modals.waste.isOpen, (open) => {
     wasteQty.value = 0
     wasteNote.value = ''
     selectedReason.value = 'ผลไม้ช้ำ/ขึ้นรา'
+    saveSnapshot()
   }
 })
 

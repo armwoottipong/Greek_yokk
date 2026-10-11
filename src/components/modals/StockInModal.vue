@@ -1,11 +1,6 @@
 <template>
-  <ModalShell labelled-by="StockInModal-title" :open="store.modals.stockIn.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @request-close="requestClose(close)"
-  >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      <!-- Calm Clean Header -->
-      <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
+ <DialogFrame :open="store.modals.stockIn.isOpen" id="StockInModal" title="รับเข้า / ผลิตวัตถุดิบ" :teleport="false" @request-close="requestClose(close)">
+ <template #header><div class="flex items-center justify-between bg-white">
         <div>
           <h3 id="StockInModal-title" class="text-sm font-semibold text-stone-900 flex items-center gap-1.5">
             <span>📥</span>
@@ -15,13 +10,9 @@
             {{ isProducedFromRecipe ? 'ผลิตตามสูตร (หักวัตถุดิบรองอัตโนมัติ)' : 'รับซื้อวัตถุดิบเข้าคลัง' }}
           </p>
         </div>
-        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
-          <X class="w-4 h-4" />
-        </button>
-      </div>
-
-      <!-- Pure Minimal Body -->
-      <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+        
+      </div></template>
+ <div class="space-y-4 text-sm">
         <!-- 1. Select Material -->
         <div>
           <div class="flex items-center justify-between mb-1">
@@ -103,7 +94,7 @@
               </button>
 
               <div class="relative flex-1">
-                <input aria-label="จำนวนแพ็คที่รับเข้า"
+                <input aria-label="จำนวนแพ็คที่รับเข้า" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined"
                   v-if="unitMode === 'pack'"
                   v-model.number="inputPackQty"
                   @input="syncFromPackQty"
@@ -113,7 +104,7 @@
                   placeholder="0"
                   class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-stone-900"
                 />
-                <input aria-label="จำนวนหน่วยที่รับเข้า"
+                <input aria-label="จำนวนหน่วยที่รับเข้า" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined"
                   v-else
                   v-model.number="inputBaseQty"
                   @input="syncFromBaseQty"
@@ -215,7 +206,7 @@
               </button>
 
               <div class="relative flex-1">
-                <input aria-label="จำนวนรอบผลิต"
+                <input aria-label="จำนวนรอบผลิต" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined"
                   v-if="produceUnitMode === 'batch'"
                   v-model.number="produceBatchCount"
                   @input="syncProduceFromBatch"
@@ -398,9 +389,8 @@
           />
         </div>
       </div>
-
-      <!-- Clean Footer -->
-      <div class="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-end gap-2.5 shrink-0">
+ <p v-if="formError" id="StockInModal-error" role="alert" class="stock-form-error">{{ formError }}</p>
+ <template #footer><div class="bg-white flex items-center justify-end gap-2.5">
         <button
           type="button"
           @click="requestClose(close)"
@@ -417,21 +407,21 @@
           <Check class="w-3.5 h-3.5" />
           <span>{{ isProducedFromRecipe ? 'บันทึกการผลิต' : 'บันทึกรับเข้าสต็อก' }}</span>
         </button>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
 import AppSelect from '@/components/ui/AppSelect.vue'
-import ModalShell from '@/components/ui/ModalShell.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore, getTodayString, addDays, formatThaiDate } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
-import { X, Check, Plus, Minus, History } from 'lucide-vue-next'
+import { Check, Plus, Minus, History } from 'lucide-vue-next'
 
 const store = usePosStore()
 
+const formError=ref('')
 const selectedMatId = ref('')
 const unitMode = ref('pack') // 'pack' | 'base'
 const inputPackQty = ref(1)
@@ -573,6 +563,7 @@ const totalProduceCost = computed(() => {
 })
 
 function initForMaterial(mat) {
+  formError.value=''
   if (!mat) return
   const pSize = mat.packSize > 0 ? mat.packSize : 1
   const pCost = Number(mat.packCost) || ((Number(mat.unitCost) || 0) * pSize)
@@ -623,6 +614,7 @@ function close() {
 }
 
 async function submit() {
+  formError.value=''
   const mat = currentMat.value
   if (!mat) {
     store.showToast('กรุณาเลือกวัตถุดิบ', 'error')
@@ -636,11 +628,13 @@ async function submit() {
 
   if (isProducedFromRecipe.value) {
     if (!produceYieldQty.value || produceYieldQty.value <= 0) {
-      store.showToast('กรุณาระบุปริมาณที่ต้องการผลิต', 'error')
+      formError.value='กรุณาระบุปริมาณที่ต้องการผลิตให้มากกว่า 0'
+      store.showToast(formError.value, 'error')
       return
     }
     if (!canProduce.value) {
-      store.showToast('สต็อกวัตถุดิบรองไม่พอ', 'error')
+      formError.value='วัตถุดิบรองไม่พอหรือไม่พบในระบบ ตรวจสอบสูตรและรับเข้าวัตถุดิบก่อนผลิต'
+      store.showToast(formError.value, 'error')
       return
     }
 
@@ -679,7 +673,8 @@ async function submit() {
   }
 
   if (!inputBaseQty.value || inputBaseQty.value <= 0) {
-    store.showToast('กรุณาระบุจำนวนที่รับเข้า', 'error')
+    formError.value='กรุณาระบุจำนวนที่รับเข้าให้มากกว่า 0'
+    store.showToast(formError.value, 'error')
     return
   }
 
