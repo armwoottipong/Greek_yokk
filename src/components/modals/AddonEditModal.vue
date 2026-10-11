@@ -1,24 +1,15 @@
 <template>
-  <ModalShell labelled-by="AddonEditModal-title" :open="store.modals.addonEdit.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
-    @request-close="requestClose(close)"
-  >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-      <!-- Header -->
-      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+ <DialogFrame :open="store.modals.addonEdit.isOpen" id="AddonEditModal" title="ข้อมูล Add-on" :teleport="false" @request-close="requestClose(close)">
+ <template #header><div class="flex items-center justify-between">
         <div>
           <h3 id="AddonEditModal-title" class="text-base font-semibold text-stone-900">
             {{ isEditing ? `แก้ไข Add-on: ${form.name}` : 'เพิ่ม Add-on / ท็อปปิ้ง' }}
           </h3>
           <p class="text-[11px] text-stone-400 mt-0.5">กำหนดราคาตามแพลตฟอร์มและการผูกตัดวัตถุดิบในคลัง</p>
         </div>
-        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
-          <X class="w-4 h-4" />
-        </button>
-      </div>
-
-      <!-- Body -->
-      <div class="space-y-4 text-xs">
+        
+      </div></template>
+ <div class="space-y-4 text-xs">
         <!-- Row 1: Emoji & Name -->
         <div class="flex items-start gap-3">
           <div class="shrink-0">
@@ -32,7 +23,7 @@
             </button>
           </div>
           <div class="flex-1">
-            <FormField id="addon-name" label="ชื่อท็อปปิ้ง" required v-slot="{controlId,describedBy}"><input :id="controlId" :aria-describedby="describedBy" aria-required="true"
+            <FormField id="addon-name" label="ชื่อท็อปปิ้ง" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><input :id="controlId" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true"
               v-model="form.name"
               type="text"
               placeholder="เช่น สตรอว์เบอร์รีสด (30g)"
@@ -73,7 +64,7 @@
               :key="p.id"
               class="flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F4EBDD] focus-within:bg-[#E8DCCB] focus-within:ring-1 focus-within:ring-brand-600/40"
             >
-              <span class="text-[11px] font-medium text-stone-700 truncate">{{ p.name.replace(/\s*\([^)]*\)/g, '') }}</span>
+              <span class="text-xs font-medium text-stone-700">{{ p.name }}</span>
               <div class="flex items-center gap-0.5 shrink-0">
                 <span class="text-stone-400 text-xs font-number">฿</span>
                 <input :aria-label="`ราคา ${p.name}`"
@@ -87,13 +78,14 @@
           </div>
         </div>
 
+        <p v-if="form.materialId && !store.matMap[form.materialId]" role="status" class="stock-form-error">ไม่พบวัตถุดิบที่ผูกไว้ กรุณาเลือกใหม่ หรือเลือกไม่ตัดวัตถุดิบ</p>
         <!-- Row 4: Material Linkage (ตัดสต็อกคลัง) -->
         <div class="p-3.5 rounded-xl bg-[#FBF5EA] border border-stone-100 space-y-2">
           <label class="block text-xs font-medium text-stone-800 flex items-center gap-1.5">
             <span>🔗</span>
             <span>ผูกตัดสต็อกวัตถุดิบในคลัง</span>
           </label>
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-[11px] text-stone-500 mb-1">วัตถุดิบที่ตัด:</label>
               <AppSelect aria-label="วัตถุดิบที่ตัด"
@@ -120,7 +112,7 @@
                   placeholder="0"
                   class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-semibold text-stone-900"
                 />
-                <span class="text-[11px] text-stone-400 shrink-0 w-6">
+                <span class="text-xs text-stone-400 shrink-0">
                   {{ selectedMaterialUnit }}
                 </span>
               </div>
@@ -128,9 +120,7 @@
           </div>
         </div>
       </div>
-
-      <!-- Footer -->
-      <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-stone-100">
+ <template #footer><div class="flex items-center justify-end gap-2.5">
         <button
           type="button"
           @click="requestClose(close)"
@@ -146,21 +136,21 @@
           <Check class="w-3.5 h-3.5" />
           <span>บันทึก Add-on</span>
         </button>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
 import FormField from '@/components/ui/FormField.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
-import ModalShell from '@/components/ui/ModalShell.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
-import { X, Check } from 'lucide-vue-next'
+import { Check } from 'lucide-vue-next'
 
 const store = usePosStore()
+const nameError=ref('')
 
 const form = ref({
   id: '',
@@ -178,11 +168,12 @@ const isEditing = computed(() => Boolean(store.modals.addonEdit.addonId))
 
 const selectedMaterialUnit = computed(() => {
   const m = store.matMap[form.value.materialId]
-  return m ? m.unit : 'g'
+  return m ? m.unit : 'ไม่ระบุหน่วย'
 })
 
 watch(() => store.modals.addonEdit.isOpen, (open) => {
   if (open) {
+    nameError.value=''
     const id = store.modals.addonEdit.addonId
     const addon = id ? store.addons.find(a => a.id === id) : null
 
@@ -223,8 +214,10 @@ function close() {
 }
 
 async function submit() {
+  nameError.value=''
   if (!form.value.name.trim()) {
-    store.showToast('กรุณากรอกชื่อ Add-on', 'error')
+    nameError.value='กรุณากรอกชื่อ Add-on ก่อนบันทึก'
+    store.showToast(nameError.value, 'error')
     return
   }
 
@@ -244,4 +237,5 @@ async function submit() {
   if (result?.ok || result?.success) close()
 }
 </script>
+
 
