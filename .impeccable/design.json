@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-11T04:20:00Z",
+  "generatedAt": "2026-10-11T06:36:10Z",
   "title": "Design System: Greek Yogg.",
   "extensions": {
     "colorMeta": {
@@ -21,98 +21,175 @@
       }
     },
     "typographyMeta": {
+      "title": {
+        "purpose": "Shared page headings",
+        "displayName": "Page title"
+      },
       "body": {
-        "displayName": "Thai operations",
-        "purpose": "Readable shop UI"
+        "purpose": "Dialog content and ordinary body copy",
+        "displayName": "Thai operations"
+      },
+      "caption": {
+        "purpose": "Shared badges; hints use a more open line height",
+        "displayName": "Status caption"
+      },
+      "label": {
+        "purpose": "Shared button labels and FormField labels",
+        "displayName": "Control label"
       }
     },
     "shadows": [
       {
-        "name": "popup",
         "value": "0 18px 48px #58040618, 0 2px 8px #35252208",
-        "purpose": "Floating overlays"
+        "purpose": "Floating select menus and dialog panels",
+        "name": "popup"
+      },
+      {
+        "value": "0 2px 5px #58040604",
+        "purpose": "Existing editorial card treatment; catalog and settings cards remain flat",
+        "name": "editorial-card"
+      },
+      {
+        "value": "12px 0 40px #58040618",
+        "purpose": "Compact full-name navigation drawer",
+        "name": "drawer"
       }
     ],
     "motion": [
       {
-        "name": "enter",
+        "value": "150ms ease",
+        "purpose": "Shared button background and text color transitions",
+        "name": "button-response"
+      },
+      {
         "value": "200ms cubic-bezier(.2,.8,.3,1)",
-        "purpose": "Action response; reduced motion disables it"
+        "purpose": "Dialog transform with 200ms opacity ease; 12px offset",
+        "name": "dialog-enter"
+      },
+      {
+        "value": "160ms ease",
+        "purpose": "Dialog opacity and transform exit",
+        "name": "dialog-leave"
+      },
+      {
+        "value": "230ms cubic-bezier(.2,.8,.3,1)",
+        "purpose": "Phone navigation transform; backdrop enters over 180ms ease-out",
+        "name": "drawer-enter"
+      },
+      {
+        "value": "750ms linear infinite",
+        "purpose": "Shared loading spinner; reduced motion disables animations",
+        "name": "loading-spin"
       }
     ],
     "breakpoints": [
       {
-        "name": "phone",
-        "value": "768px"
+        "value": "768px",
+        "name": "shell-phone"
       },
       {
-        "name": "desktop",
-        "value": "1200px"
+        "value": "1200px",
+        "name": "shell-desktop"
       },
       {
-        "name": "pos-container",
-        "value": "696px"
+        "value": "696px",
+        "name": "pos-container"
+      },
+      {
+        "value": "640px",
+        "name": "catalog-single-column"
+      },
+      {
+        "value": "1100px",
+        "name": "dashboard-summary"
+      },
+      {
+        "value": "640px",
+        "name": "dashboard-small"
+      },
+      {
+        "value": "1000px",
+        "name": "settings-narrow"
+      },
+      {
+        "value": "760px",
+        "name": "settings-phone"
+      },
+      {
+        "value": "440px",
+        "name": "settings-backup-stack"
       }
     ]
   },
   "components": [
     {
-      "name": "Primary button",
-      "kind": "button",
+      "name": "primary button",
+      "description": "Shared touch action; minimum height rather than fixed height",
+      "html": "<button class=\"ds-button-primary\">บันทึก</button>",
+      "css": ".ds-button-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--action-primary);color:var(--bg-card)}.ds-button-(:disabled){background:var(--accent-hover)}.ds-button--visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-primary{transition:background-color 150ms ease,color 150ms ease}}",
       "refersTo": "button-primary",
-      "description": "Primary button for shop operations",
-      "html": "<button class=\"ds-button-0\">บันทึก</button>",
-      "css": ".ds-button-0{font:500 14px Prompt,sans-serif;min-height:44px;padding:10px 16px;border:0;border-radius:10px;background:#780608;color:#FFFCF6;cursor:pointer}.ds-button-0:hover{filter:brightness(.96)}.ds-button-0:focus-visible{outline:2px solid #780608;outline-offset:3px}.ds-button-0:active{filter:brightness(.92)}"
+      "kind": "button"
     },
     {
-      "name": "Secondary button",
-      "kind": "button",
+      "name": "secondary button",
+      "description": "Shared touch action; minimum height rather than fixed height",
+      "html": "<button class=\"ds-button-secondary\">ยกเลิก</button>",
+      "css": ".ds-button-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid var(--border-subtle);border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--bg-soft);color:var(--text-main)}.ds-button-(:disabled){background:var(--border-subtle)}.ds-button--visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-secondary{transition:background-color 150ms ease,color 150ms ease}}",
       "refersTo": "button-secondary",
-      "description": "Secondary button for shop operations",
-      "html": "<button class=\"ds-button-1\">ยกเลิก</button>",
-      "css": ".ds-button-1{font:500 14px Prompt,sans-serif;min-height:44px;padding:10px 16px;border:0;border-radius:10px;background:#F4EBDD;color:#352522;cursor:pointer}.ds-button-1:hover{filter:brightness(.96)}.ds-button-1:focus-visible{outline:2px solid #780608;outline-offset:3px}.ds-button-1:active{filter:brightness(.92)}"
+      "kind": "button"
     },
     {
-      "name": "Quiet button",
-      "kind": "button",
+      "name": "quiet button",
+      "description": "Shared touch action; minimum height rather than fixed height",
+      "html": "<button class=\"ds-button-quiet\">ดูรายละเอียด</button>",
+      "css": ".ds-button-quiet{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:transparent;color:var(--accent-brand)}.ds-button-(:disabled){background:var(--accent-soft)}.ds-button--visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-quiet{transition:background-color 150ms ease,color 150ms ease}}",
       "refersTo": "button-quiet",
-      "description": "Quiet button for shop operations",
-      "html": "<button class=\"ds-button-2\">ดูรายละเอียด</button>",
-      "css": ".ds-button-2{font:500 14px Prompt,sans-serif;min-height:44px;padding:10px 16px;border:0;border-radius:10px;background:transparent;color:#780608;cursor:pointer}.ds-button-2:hover{filter:brightness(.96)}.ds-button-2:focus-visible{outline:2px solid #780608;outline-offset:3px}.ds-button-2:active{filter:brightness(.92)}"
+      "kind": "button"
     },
     {
-      "name": "Danger button",
-      "kind": "button",
+      "name": "danger button",
+      "description": "Shared touch action; minimum height rather than fixed height",
+      "html": "<button class=\"ds-button-danger\">ลบรายการ</button>",
+      "css": ".ds-button-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--state-error);color:var(--bg-card)}.ds-button-(:disabled){background:#991B1B}.ds-button--visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-danger{transition:background-color 150ms ease,color 150ms ease}}",
       "refersTo": "button-danger",
-      "description": "Danger button for shop operations",
-      "html": "<button class=\"ds-button-3\">ลบรายการ</button>",
-      "css": ".ds-button-3{font:500 14px Prompt,sans-serif;min-height:44px;padding:10px 16px;border:0;border-radius:10px;background:#FBF0E9;color:#B91C1C;cursor:pointer}.ds-button-3:hover{filter:brightness(.96)}.ds-button-3:focus-visible{outline:2px solid #780608;outline-offset:3px}.ds-button-3:active{filter:brightness(.92)}"
+      "kind": "button"
     },
     {
-      "name": "Named field",
-      "kind": "input",
-      "description": "Visible label paired with the control",
-      "html": "<label for=\"ds-name\">ชื่อรายการ</label><input id=\"ds-name\" class=\"ds-input\" placeholder=\"ชื่อรายการ\">",
-      "css": ".ds-input{display:block;width:100%;min-height:44px;border:1px solid #E8DCCB;border-radius:10px;padding:8px 12px;font:14px Prompt,sans-serif;background:#FFFCF6;color:#352522}.ds-input:focus-visible{outline:2px solid #780608;outline-offset:2px}"
+      "name": "Named soft field",
+      "description": "Visible label with the existing soft field treatment",
+      "html": "<label class=\"ds-label\" for=\"ds-name\">ชื่อรายการ</label><input id=\"ds-name\" class=\"ds-input\" placeholder=\"ชื่อรายการ\">",
+      "css": ".ds-label{display:block;margin-bottom:6px;font:500 .8125rem/1.5 Prompt,sans-serif;color:var(--text-main)}.ds-input{display:block;min-height:44px;padding:8px 12px;border:0;border-radius:14px;font:500 14px/1.5 Prompt,sans-serif;background:var(--bg-soft);color:var(--text-main);outline:none;transition:background-color .15s ease,box-shadow .15s ease}.ds-input:focus{background:var(--bg-card);box-shadow:0 0 0 2px var(--accent-border)}@media(prefers-reduced-motion:reduce){.ds-input{transition:none}}",
+      "refersTo": "input-soft",
+      "kind": "input"
     },
     {
-      "name": "Navigation",
-      "kind": "nav",
-      "description": "Active route and touch-friendly rail item",
-      "html": "<nav><button class=\"ds-nav\" aria-current=\"page\">คลังวัตถุดิบ</button></nav>",
-      "css": ".ds-nav{border:0;background:#780608;color:#FFFCF6;border-radius:12px;padding:12px 16px;min-height:44px;font:500 14px Prompt,sans-serif}.ds-nav:focus-visible{outline:2px solid #780608;outline-offset:3px}"
+      "name": "Active navigation",
+      "description": "Asymmetric active route; tablet rail retains its accessible full name",
+      "html": "<nav aria-label=\"เมนูหลัก\"><button class=\"ds-nav\" aria-current=\"page\">คลังวัตถุดิบ</button></nav>",
+      "css": ".ds-nav{border:0;background:var(--accent-brand);color:var(--bg-card);border-radius:12px 20px 20px 12px;padding:12px 14px;min-height:44px;font:600 12px/1.5 Prompt,sans-serif;cursor:pointer;text-align:left}.ds-nav:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}",
+      "refersTo": "navigation-active",
+      "kind": "nav"
     },
     {
-      "name": "Status",
-      "kind": "chip",
-      "description": "Status always includes text",
+      "name": "Warning status",
+      "description": "Semantic pale fill with named warning text",
       "html": "<span class=\"ds-status\">รอบันทึก</span>",
-      "css": ".ds-status{display:inline-flex;border-radius:8px;background:#F4EBDD;color:#92400E;padding:4px 8px;font:500 12px Prompt,sans-serif}"
+      "css": ".ds-status{display:inline-flex;align-items:center;gap:5px;border-radius:8px;background:#FFFBEB;color:#92400E;padding:4px 8px;font:400 .75rem/1.4 Prompt,sans-serif}",
+      "refersTo": "status-warning",
+      "kind": "chip"
+    },
+    {
+      "name": "Catalog card",
+      "description": "Adaptive catalog surface with wrapped name and explicit unset price",
+      "html": "<article class=\"ds-card\"><strong>เมนูกรีกโยเกิร์ต</strong><small>ยังไม่กำหนดราคา</small></article>",
+      "css": ".ds-card{display:grid;gap:12px;min-width:0;padding:16px;background:var(--bg-card);color:var(--text-main);border:1px solid var(--border-subtle);border-radius:var(--surface-radius,16px);font-family:Prompt,sans-serif}.ds-card strong{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.ds-card small{font-size:12px;color:var(--text-muted)}",
+      "refersTo": "catalog-card",
+      "kind": "card"
     }
   ],
   "narrative": {
     "northStar": "Calm shop workspace",
-    "overview": "Desktop and iPad operate the shop. Phone management keeps essential work close while details remain available.",
+    "overview": "Confirmed direction A: workspace with contextual details. Desktop and iPad are the main shop tools; phones prioritize quick management with full details on request. Keep the smiling cream mascot and burgundy identity. User approved this direction on 11 October 2026.\n\nThis is an Operate interface. Familiar controls, readable quantities and dependable feedback carry the work. Brand belongs in the shell and deliberate accents, not in extra decoration on every data row.",
     "keyCharacteristics": [
       "Cream and mascot burgundy",
       "Named controls",
@@ -121,16 +198,26 @@
     ],
     "rules": [
       {
-        "name": "One transaction",
+        "body": "Status always carries text; color supports the label.",
+        "name": "The Named State Rule",
+        "section": "colors"
+      },
+      {
         "body": "Presentation changes never duplicate checkout or commit a draft.",
-        "section": "components"
+        "name": "The One Transaction Rule",
+        "section": "layout"
       }
     ],
     "dos": [
-      "Preserve the mascot and business truth"
+      "Do preserve price, GP, COGS, stock allocation and checkout semantics.",
+      "Do provide keyboard and touch access without requiring hover.",
+      "Do keep draft values when hiding sections, closing review panels or rotating the device.",
+      "Do honor reduced motion in CSS and canvas; celebration is optional sale-success feedback."
     ],
     "donts": [
-      "Require hover or make a missing value look like zero"
+      "Don't expose global reset commands as equal peers of everyday selling actions.",
+      "Don't change fonts or mascot colors merely to clear detector heuristics.",
+      "Don't certify physical Safari, keyboard, zoom or screen-reader behavior from desktop viewport emulation alone."
     ]
   }
 }

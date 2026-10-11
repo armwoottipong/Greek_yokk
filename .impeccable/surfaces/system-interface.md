@@ -17,3 +17,11 @@ Settings: preserve the existing category structure; fix edit-field labels, conne
 States: default, empty, no-results, dirty, loading, error, success, disabled and long content where real. Physical iPad/Safari/keyboard/zoom remain explicit manual QA gates.
 
 Anti-goals: no backend changes, new auth, new payment processor, new report formulas, schema migration or data writes to the real shop during verification.
+
+## Implemented direction promises
+THESIS: A shop workspace with essential actions first and contextual details on demand.
+OWN-WORLD: Cream yogurt surfaces, burgundy #5E0205 mascot identity, rounded touch controls and restrained motion.
+STORY: Choose, review, act, then receive explicit feedback; preserve business drafts across device layouts.
+FIRST VIEWPORT: Desktop and iPad expose shop work; phone prioritizes quick management over analytical density.
+FORM: Shared named fields and viewport-bounded dialogs; compact touch lists reveal detailed lots, recipes and channel data.
+Evidence boundary: These promises describe the user-approved A direction and implemented code. No separate FORM seed or QUALITYBAR card was supplied or approved; no retrospective concept approval is claimed.

@@ -6,7 +6,7 @@
       <StockMaterialCard v-for="mat in filteredMaterials" :key="mat.id" :material="mat" @details="detailMaterialId=$event" @receive="openStockIn" />
       <p v-if="!filteredMaterials.length" class="p-6 text-sm">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก ลองเปลี่ยนตัวกรองหรือคำค้นหา</p>
     </div>
-    <MaterialDetails :open="Boolean(detailMaterialId)" :material="detailMaterial" :lots="detailMaterial?getDisplayLots(detailMaterial):[]" :tracking-mode="detailMaterial?store.getMaterialTrackingMode(detailMaterial):'none'" :pack-cost="detailMaterial?getDisplayPackCost(detailMaterial):0" :draft-diff="detailMaterial?getDraftDiff(detailMaterial):0" @close="detailMaterialId=null" @adjust="onActionStockAdjustLot" @waste="onActionWasteLot" @switch="onActionSwitchLot" @restore="onActionRestore" @edit="openEditMaterial" @receive="openStockIn" />
+    <MaterialDetails :open="Boolean(detailMaterialId)" :material="detailMaterial" :lots="detailMaterial?getDisplayLots(detailMaterial):[]" :tracking-mode="detailMaterial?store.getMaterialTrackingMode(detailMaterial):'none'" :pack-cost="detailMaterial?getDisplayPackCost(detailMaterial):0" :draft-diff="detailMaterial?getDraftDiff(detailMaterial):0" @close="detailMaterialId=null" @adjust="onActionStockAdjustLot" @waste="onActionWasteLot" @switch="onActionSwitchLot" @restore="onActionRestore" @delete="onActionPermanentDelete" @edit="openEditMaterial" @receive="openStockIn" />
     <!-- Material Inventory Table -->
     <div class="desktop-material-table editorial-card bg-white pb-12">
       <div class="overflow-x-auto">
@@ -53,7 +53,7 @@
                       <!-- Special Role Badges (Only shown for sub-ingredients or self-produced bases) -->
                       <span
                         v-if="mat.isSubIngredient"
-                        class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800 shrink-0"
+                        class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-purple-100 text-purple-800 shrink-0"
                         title="วัตถุดิบรอง สำหรับหมัก/ผลิตกรีกโยเกิร์ต"
                       >
                         <span>🥛</span>
@@ -61,7 +61,7 @@
                       </span>
                       <span
                         v-else-if="mat.hasSubRecipe"
-                        class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 shrink-0"
+                        class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-amber-100 text-amber-800 shrink-0"
                         title="วัตถุดิบหลัก ผลิตจากวัตถุดิบรอง"
                       >
                         <span>🥣</span>
@@ -70,7 +70,7 @@
 
                       <span
                         v-if="mat.isDeleted"
-                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-200/90 text-stone-700 shrink-0"
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-stone-200/90 text-stone-700 shrink-0"
                       >
                         <Archive class="w-3 h-3" />
                         <span>จัดเก็บแล้ว</span>
@@ -79,7 +79,7 @@
                         v-if="hasMultipleLots(mat)"
                         type="button"
                         @click="toggleExpand(mat.id)"
-                        class="px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all inline-flex items-center gap-0.5 shrink-0 cursor-pointer"
+                        class="px-2 py-0.5 rounded-full text-[12px] font-semibold transition-all inline-flex items-center gap-0.5 shrink-0 cursor-pointer"
                         :class="isExpanded(mat.id) ? 'bg-brand-600 text-white shadow-2xs' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'"
                         title="คลิกเพื่อคลี่/พับดูประวัติแต่ละล็อต"
                       >
@@ -90,9 +90,9 @@
                     <div class="text-[11px] text-stone-500 flex items-center gap-1.5 mt-1 font-number whitespace-nowrap overflow-hidden">
                       <!-- วันที่รับ -->
                       <span v-if="mat.lastStockInDate && store.getMaterialTrackingMode(mat) !== 'none'" class="inline-flex items-center gap-1 shrink-0">
-                        <span class="text-stone-400 font-sans">รับล่าสุด :</span>
+                        <span class="text-stone-500 font-sans">รับล่าสุด :</span>
                         <span class="text-stone-700 font-medium">{{ formatDisplayDate(mat.lastStockInDate) }}</span>
-                        <span v-if="store.getMaterialTrackingMode(mat) === 'receive_only' && getReceiveAgeStatus(mat.lastStockInDate).daysAgo !== null" class="text-[10px] text-stone-400 font-sans">
+                        <span v-if="store.getMaterialTrackingMode(mat) === 'receive_only' && getReceiveAgeStatus(mat.lastStockInDate).daysAgo !== null" class="text-[12px] text-stone-500 font-sans">
                           ({{ getReceiveAgeStatus(mat.lastStockInDate).shortText }})
                         </span>
                       </span>
@@ -106,18 +106,18 @@
                         class="inline-flex items-center gap-1 shrink-0"
                         :class="isExpired(mat) ? 'text-rose-600 font-bold' : 'text-stone-700 font-medium'"
                       >
-                        <span class="font-sans" :class="isExpired(mat) ? 'text-rose-600 font-semibold' : 'text-stone-400'">หมดอายุ :</span>
+                        <span class="font-sans" :class="isExpired(mat) ? 'text-rose-600 font-semibold' : 'text-stone-500'">หมดอายุ :</span>
                         <span>{{ formatDisplayDate(mat.expiryDate) }}</span>
                         <span
                           v-if="isExpired(mat)"
-                          class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1"
+                          class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[12px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1"
                         >
                           หมดอายุ
                         </span>
                       </span>
 
                       <!-- กรณีไม่มีการบันทึกวันที่หรือหมวดหมู่ none -->
-                      <span v-if="store.getMaterialTrackingMode(mat) === 'none'" class="text-stone-400 font-sans text-[10px] shrink-0">ไม่ระบุวันที่</span>
+                      <span v-if="store.getMaterialTrackingMode(mat) === 'none'" class="text-stone-500 font-sans text-[12px] shrink-0">ไม่ระบุวันที่</span>
                       <span v-else-if="!mat.lastStockInDate && !mat.expiryDate" class="text-stone-300 shrink-0">-</span>
                     </div>
                   </div>
@@ -126,7 +126,7 @@
 
               <!-- Category (Borderless Pill Badge) -->
               <td class="py-3.5 px-4">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-600 truncate max-w-full">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-stone-100 text-stone-600 truncate max-w-full">
                   {{ mat.category || 'อื่นๆ' }}
                 </span>
               </td>
@@ -159,7 +159,7 @@
                       >
                         {{ mat.stock.toLocaleString() }}
                       </span>
-                      <span class="text-xs font-normal text-stone-400 shrink-0">{{ mat.unit }}</span>
+                      <span class="text-xs font-normal text-stone-500 shrink-0">{{ mat.unit }}</span>
                     </div>
 
                     <!-- Draft quantity text (Clean text, no badge: Green for increase, Orange for decrease) -->
@@ -172,10 +172,10 @@
                       <span>{{ getDraftDiff(mat) > 0 ? `+${getDraftDiff(mat).toLocaleString()}` : getDraftDiff(mat).toLocaleString() }}</span>
                     </div>
 
-                    <div v-if="mat.packUnit && mat.packSize > 1" class="text-[10px] text-stone-400 font-number tabular-nums truncate">
+                    <div v-if="mat.packUnit && mat.packSize > 1" class="text-[12px] text-stone-500 font-number tabular-nums truncate">
                       ≈ {{ (mat.stock / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
                     </div>
-                    <div v-else class="text-[10px] text-stone-300 font-number">
+                    <div v-else class="text-[12px] text-stone-300 font-number">
                       -
                     </div>
                   </div>
@@ -211,7 +211,7 @@
                   ฿{{ getDisplayPackCost(mat).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) }}
                   <span class="font-medium text-stone-500 text-[11px]">/{{ mat.packUnit || mat.unit }}</span>
                 </div>
-                <div v-if="(mat.packSize && mat.packSize > 1) || mat.hasSubRecipe" class="text-[10px] text-stone-400 mt-0.5 tabular-nums truncate">
+                <div v-if="(mat.packSize && mat.packSize > 1) || mat.hasSubRecipe" class="text-[12px] text-stone-500 mt-0.5 tabular-nums truncate">
                   (≈ ฿{{ Number(mat.unitCost || 0).toFixed(2) }}/{{ mat.unit }})
                 </div>
               </td>
@@ -227,32 +227,32 @@
               <td class="py-3.5 px-4 text-center">
                 <span
                   v-if="mat.isDeleted"
-                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200 shrink-0"
+                  class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-stone-100 text-stone-600 border border-stone-200 shrink-0"
                 >
                   <Archive class="w-3 h-3 text-stone-500" />
                   <span>จัดเก็บแล้ว</span>
                 </span>
                 <span
                   v-else-if="isExpired(mat)"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 shrink-0"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-semibold bg-rose-100 text-rose-700 shrink-0"
                 >
                   หมดอายุแล้ว
                 </span>
                 <span
                   v-else-if="mat.stock <= 0"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 shrink-0"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-semibold bg-rose-100 text-rose-700 shrink-0"
                 >
                   หมดสต็อก
                 </span>
                 <span
                   v-else-if="mat.stock <= mat.minAlert"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 shrink-0"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-semibold bg-amber-100 text-amber-800 shrink-0"
                 >
                   ใกล้หมด
                 </span>
                 <span
                   v-else
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
                 >
                   ปกติ
                 </span>
@@ -263,7 +263,7 @@
                 <button
                   type="button"
                   @click.stop="toggleActionMenu(mat.id, $event)"
-                  class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
+                  class="p-1.5 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
                   :class="activeActionMenuId === mat.id ? 'bg-stone-200 text-stone-900 shadow-2xs' : ''"
                   title="การจัดการเพิ่มเติม"
                 >
@@ -304,14 +304,14 @@
                               <div class="min-w-0 flex-1 truncate">
                                 <div class="font-bold text-stone-800 flex items-center gap-1.5 truncate text-[11px]">
                                   <span>ล็อตที่ {{ lIdx + 1 }}</span>
-                                  <span v-if="lot.note" class="text-[10px] text-stone-400 font-normal truncate" :title="lot.note">({{ lot.note }})</span>
+                                  <span v-if="lot.note" class="text-[12px] text-stone-500 font-normal truncate" :title="lot.note">({{ lot.note }})</span>
                                 </div>
-                                <div class="text-[10px] text-stone-500 flex items-center gap-1.5 mt-1 font-number whitespace-nowrap overflow-hidden">
+                                <div class="text-[12px] text-stone-500 flex items-center gap-1.5 mt-1 font-number whitespace-nowrap overflow-hidden">
                                   <!-- วันที่รับ -->
                                   <span v-if="lot.receiveDate" class="inline-flex items-center gap-1 shrink-0">
-                                    <span class="text-stone-400 font-sans">รับ :</span>
+                                    <span class="text-stone-500 font-sans">รับ :</span>
                                     <span class="text-stone-700 font-medium">{{ formatDisplayDate(lot.receiveDate) }}</span>
-                                    <span v-if="getLotAge(lot)" class="text-stone-400 font-sans text-[9px]">({{ getLotAge(lot).shortText }})</span>
+                                    <span v-if="getLotAge(lot)" class="text-stone-500 font-sans text-[12px]">({{ getLotAge(lot).shortText }})</span>
                                   </span>
 
                                   <span v-if="lot.receiveDate && lot.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'" class="text-stone-300 mx-0.5 shrink-0">•</span>
@@ -322,9 +322,9 @@
                                     class="inline-flex items-center gap-1 shrink-0"
                                     :class="isLotExpired(lot) ? 'text-rose-600 font-bold' : ''"
                                   >
-                                    <span class="font-sans" :class="isLotExpired(lot) ? 'text-rose-600 font-semibold' : 'text-stone-400'">หมดอายุ :</span>
+                                    <span class="font-sans" :class="isLotExpired(lot) ? 'text-rose-600 font-semibold' : 'text-stone-500'">หมดอายุ :</span>
                                     <span>{{ formatDisplayDate(lot.expiryDate) }}</span>
-                                    <span v-if="isLotExpired(lot)" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1">หมดอายุ</span>
+                                    <span v-if="isLotExpired(lot)" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[12px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1">หมดอายุ</span>
                                   </span>
                                 </div>
                               </div>
@@ -340,9 +340,9 @@
                               <div class="text-right shrink-0 tabular-nums min-w-[85px]">
                                 <div class="font-bold font-number text-xs flex items-center justify-end gap-1 text-stone-800">
                                   <span>{{ lot.qty.toLocaleString() }}</span>
-                                  <span class="text-[10px] font-normal text-stone-400">{{ mat.unit }}</span>
+                                  <span class="text-[12px] font-normal text-stone-500">{{ mat.unit }}</span>
                                 </div>
-                                <div v-if="mat.packUnit && mat.packSize > 1" class="text-[9px] text-stone-400 font-number tabular-nums">
+                                <div v-if="mat.packUnit && mat.packSize > 1" class="text-[12px] text-stone-500 font-number tabular-nums">
                                   ≈ {{ (lot.qty / mat.packSize).toFixed(1) }} {{ mat.packUnit }}
                                 </div>
                               </div>
@@ -354,9 +354,9 @@
                           <td class="py-3 px-4 font-number text-stone-700 text-xs tabular-nums text-right">
                             <div class="font-bold text-stone-800 text-xs tabular-nums">
                               ฿{{ (lot.packCost || Math.round((lot.unitCost || mat.unitCost || 0) * (mat.packSize || 1) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) }}
-                              <span class="font-normal text-stone-400 text-[10px]">/{{ mat.packUnit || mat.unit }}</span>
+                              <span class="font-normal text-stone-500 text-[12px]">/{{ mat.packUnit || mat.unit }}</span>
                             </div>
-                            <div v-if="mat.packSize > 1" class="text-[9px] text-stone-400 tabular-nums mt-0.5">
+                            <div v-if="mat.packSize > 1" class="text-[12px] text-stone-500 tabular-nums mt-0.5">
                               (≈ ฿{{ Number(lot.unitCost || mat.unitCost || 0).toFixed(2) }}/{{ mat.unit }})
                             </div>
                           </td>
@@ -370,20 +370,20 @@
                           <td class="py-3 px-4 text-center">
                             <span
                               v-if="isLotExpired(lot)"
-                              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800 shrink-0"
+                              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-rose-100 text-rose-800 shrink-0"
                             >
                               <span>🔴</span>
                               <span>หมดอายุ</span>
                             </span>
                             <span
                               v-else-if="lot.isInUse"
-                              class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
+                              class="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-semibold bg-emerald-100 text-emerald-800 shrink-0"
                             >
                               กำลังใช้งาน
                             </span>
                             <span
                               v-else-if="lot.qty <= 0"
-                              class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-400 shrink-0"
+                              class="inline-flex items-center px-2 py-0.5 rounded-full text-[12px] font-semibold bg-stone-100 text-stone-500 shrink-0"
                             >
                               หมดสต็อก
                             </span>
@@ -391,7 +391,7 @@
                               v-else
                               type="button"
                               @click="onActionSwitchLot(mat.id, lot.id)"
-                              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-stone-100 hover:bg-emerald-100 text-stone-600 hover:text-emerald-800 text-[10px] font-semibold transition-colors cursor-pointer"
+                              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-stone-100 hover:bg-emerald-100 text-stone-600 hover:text-emerald-800 text-[12px] font-semibold transition-colors cursor-pointer"
                               title="สลับให้ระบบ POS และการขายดึงจากล็อตนี้ก่อน"
                             >
                               <Zap class="w-3 h-3 text-amber-500" />
@@ -404,7 +404,7 @@
                             <button
                               type="button"
                               @click.stop="toggleActionMenu(lot.id)"
-                              class="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-200/60 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
+                              class="p-1.5 text-stone-500 hover:text-stone-800 hover:bg-stone-200/60 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shrink-0"
                               :class="activeActionMenuId === lot.id ? 'bg-stone-200/70 text-stone-900' : ''"
                               title="การจัดการล็อตนี้"
                             >
@@ -465,7 +465,7 @@
 
             <!-- Empty Row -->
             <tr v-if="filteredMaterials.length === 0">
-              <td colspan="7" class="py-12 text-center text-stone-400">
+              <td colspan="7" class="py-12 text-center text-stone-500">
                 <div class="text-3xl mb-2">🔍</div>
                 <p class="text-xs font-medium">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก</p>
               </td>
@@ -495,7 +495,7 @@
             </div>
             <span
               v-if="activeMenuMat.isDeleted"
-              class="text-[9px] px-1.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-semibold shrink-0"
+              class="text-[12px] px-1.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-semibold shrink-0"
             >
               จัดเก็บ
             </span>

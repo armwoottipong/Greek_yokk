@@ -12,7 +12,7 @@
  </Teleport>
 </template>
 <script setup>
-import {ref,watch,computed,onMounted,onUnmounted} from 'vue'
+import {ref,watch,computed,onMounted,onUnmounted,onDeactivated,onActivated} from 'vue'
 import {X} from 'lucide-vue-next'
 import ModalShell from './ModalShell.vue'
 import IconButton from './IconButton.vue'
@@ -20,6 +20,8 @@ const props=defineProps({open:Boolean,id:{type:String,required:true},title:{type
 const emit=defineEmits(['request-close'])
 const present=ref(props.open),viewport=ref({height:768,top:0})
 watch(()=>props.open,open=>{if(open)present.value=true})
+onDeactivated(()=>{present.value=false;emit('request-close')})
+onActivated(()=>{present.value=props.open})
 function requestClose(){if(!props.busy)emit('request-close')}
 function finishLeave(){if(!props.open)present.value=false}
 function resize(){viewport.value={height:window.visualViewport?.height||window.innerHeight,top:window.visualViewport?.offsetTop||0}}

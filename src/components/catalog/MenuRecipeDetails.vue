@@ -3,7 +3,7 @@
   <template v-if="menu">
    <p class="recipe-description">{{ menu.description }}</p>
    <PlatformPriceSummary all :prices="menu.prices||{}" :platforms="platforms" :selected-id="selectedId" />
-   <dl class="recipe-summary"><div><dt>ต้นทุนวัตถุดิบ</dt><dd>฿{{ foodCost.toFixed(2) }}</dd></div><div><dt>ราคาขายหน้าร้าน</dt><dd>฿{{ storePrice }}</dd></div><div><dt>อัตรากำไรขั้นต้น</dt><dd>{{ margin.toFixed(1) }}%</dd></div></dl>
+   <dl class="recipe-summary"><div><dt>ต้นทุนวัตถุดิบ</dt><dd>฿{{ foodCost.toFixed(2) }}</dd></div><div><dt>ราคาขายหน้าร้าน</dt><dd>{{ storePrice===null?'ยังไม่กำหนดราคา':`฿${storePrice}` }}</dd></div><div><dt>อัตรากำไรขั้นต้น</dt><dd>{{ margin===null?'ยังคำนวณไม่ได้':`${margin.toFixed(1)}%` }}</dd></div></dl>
    <p class="recipe-help">คำนวณจากราคาหน้าร้านและต้นทุนวัตถุดิบ ยังไม่หักค่าธรรมเนียมช่องทาง</p>
    <h4 class="mt-6 font-semibold">สูตรต่อ 1 เสิร์ฟ</h4>
    <article v-for="(item,index) in items" :key="index" class="recipe-item"><strong>{{ item.mat?.name||'ไม่พบวัตถุดิบ' }}</strong><p>{{ item.qty }} {{ item.mat?.unit||'' }} · ฿{{ item.cost.toFixed(2) }}</p><small v-if="!item.mat">รหัส {{ item.materialId }} · แก้ไขสูตรเพื่อเลือกวัตถุดิบใหม่</small><small v-else-if="item.servingsAvailable!==null">สต็อกพอ {{ item.servingsAvailable }} เสิร์ฟ</small><small v-else>ยังไม่ระบุจำนวนที่ใช้</small></article>

@@ -1,4 +1,4 @@
-import {ref,onMounted,onUnmounted,computed} from 'vue'
+import {ref,onMounted,onUnmounted,onDeactivated,computed} from 'vue'
 import {useOverlayScrollLock} from './useOverlayScrollLock'
 
 export function useChartTooltip(){
@@ -7,6 +7,8 @@ export function useChartTooltip(){
  useOverlayScrollLock(computed(()=>!!tooltip.value))
  const contentKey=content=>JSON.stringify([content.selection,content.heading,content.label,content.items?.map(item=>item.label)])
  const hideTooltip=()=>{tooltip.value=null;trigger=null}
+ onDeactivated(hideTooltip)
+ onDeactivated(hideTooltip)
  function showTooltip(event,content,anchor){
   if(tooltip.value && contentKey(tooltip.value)===contentKey(content)){hideTooltip();return}
   const rect=event.currentTarget?.getBoundingClientRect()

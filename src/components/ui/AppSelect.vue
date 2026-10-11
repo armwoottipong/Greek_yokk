@@ -20,7 +20,7 @@
 let closeCurrent = null
 </script>
 <script setup>
-import {ref,computed,useAttrs,useId,onMounted,onUpdated,onUnmounted,nextTick,watch} from 'vue'
+import {ref,computed,useAttrs,useId,onMounted,onUpdated,onUnmounted,onDeactivated,nextTick,watch} from 'vue'
 import {topOverlayLayer} from '@/composables/overlayState'
 import {useOverlayScrollLock} from '@/composables/useOverlayScrollLock'
 import {ChevronDown,Check} from 'lucide-vue-next'
@@ -99,6 +99,7 @@ function handleKey(event){
   }
 }
 watch(()=>props.disabled,value=>{if(value) close(false)})
+onDeactivated(()=>close(false))
 onUnmounted(()=>close(false))
 </script>
 <style scoped>

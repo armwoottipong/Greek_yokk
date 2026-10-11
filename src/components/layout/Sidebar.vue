@@ -57,7 +57,7 @@
           </span>
         </div>
       </div>
-      <div class="flex items-center justify-between text-[11px] text-stone-400">
+      <div class="flex items-center justify-between text-[12px] text-stone-500">
         <span class="flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full" :class="store.gasApiUrl ? 'bg-emerald-500' : 'bg-stone-300'"></span>
           {{ store.gasApiUrl ? 'Google Sheets (ตั้งค่าแล้ว)' : 'Offline / Local' }}

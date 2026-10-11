@@ -1,7 +1,7 @@
 <template>
   <section class="stock-toolbar" aria-label="จัดการคลังสต็อก">
     <div class="stock-actions">
-      <Button data-stock-receive @click="$emit('receive')"><ArrowDownToLine :size="16" />รับเข้าสต็อก</Button>
+      <Button data-stock-receive aria-label="รับเข้าสต็อก" @click="$emit('receive')"><ArrowDownToLine :size="16" /><span class="receive-full">รับเข้าสต็อก</span><span class="receive-short">รับเข้า</span></Button>
       <Button variant="secondary" data-stocktake-open @click="$emit('stocktake')"><ClipboardCheck :size="16" />ตรวจนับ</Button>
       <IconButton label="งานอื่นในคลังสต็อก" @click="moreOpen=true"><MoreHorizontal :size="20" /></IconButton>
     </div>
@@ -39,8 +39,9 @@ const fields=computed(()=>[
 function run(action){moreOpen.value=false;emit(action)}
 </script>
 <style scoped>
+.receive-short{display:none}.stock-actions .ui-button{white-space:nowrap}
 .stock-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-width:0}
 .stock-actions,.stock-search{display:flex;align-items:center;gap:8px;min-width:0}.stock-search{flex:1;max-width:520px}.stock-search>svg{flex-shrink:0;color:var(--text-muted)}
 .stock-search input{min-width:0;flex:1;height:44px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;padding:0 12px;font-size:13px}.stock-search input:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}.stock-more{display:grid;gap:10px}
-@media(max-width:767px){.stock-toolbar{gap:12px}.stock-actions,.stock-search{width:100%;max-width:none}.stock-actions>:first-child{flex:1}.stock-search>svg{display:none}.stock-search input{width:0}.stock-search .ui-button{flex-shrink:0}}
+@media(max-width:767px){.receive-full{display:none}.receive-short{display:inline}.stock-toolbar{gap:12px}.stock-actions,.stock-search{width:100%;max-width:none}.stock-actions>:first-child{flex:1}.stock-search>svg{display:none}.stock-search input{width:0}.stock-search .ui-button{flex-shrink:0}}
 </style>

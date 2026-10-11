@@ -11,7 +11,9 @@
   <template #footer>
    <template v-if="material">
     <Button v-if="material.isDeleted" data-detail-restore @click="$emit('restore',material)">กู้คืนรายการ</Button>
-    <template v-else><Button variant="quiet" @click="$emit('edit',material.id)">แก้ไขข้อมูล</Button><Button data-detail-receive @click="$emit('receive',material.id)">{{ material.hasSubRecipe?'ผลิตตามสูตร':'รับเข้าสต็อก' }}</Button></template>
+    <Button data-detail-edit variant="quiet" @click="$emit('edit',material.id)">แก้ไขข้อมูล</Button>
+    <Button v-if="material.isDeleted" data-detail-delete variant="danger" @click="$emit('delete',material)">ลบถาวร</Button>
+    <template v-else><Button data-detail-receive @click="$emit('receive',material.id)">{{ material.hasSubRecipe?'ผลิตตามสูตร':'รับเข้าสต็อก' }}</Button></template>
    </template>
   </template>
  </DialogFrame>
@@ -23,7 +25,7 @@ import StatusBadge from '../ui/StatusBadge.vue'
 import StockLotList from './StockLotList.vue'
 import {useMediaQuery} from '@/composables/useMediaQuery'
 defineProps({open:Boolean,material:Object,lots:Array,trackingMode:String,packCost:{type:Number,default:0},draftDiff:Number})
-defineEmits(['close','adjust','waste','switch','restore','edit','receive'])
+defineEmits(['close','adjust','waste','switch','restore','edit','receive','delete'])
 const phone=useMediaQuery('(max-width: 767px)')
 </script>
 <style scoped>

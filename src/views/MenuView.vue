@@ -200,14 +200,15 @@ const selectedMenuFoodCost = computed(() => {
 })
 
 const selectedMenuStorePrice = computed(() => {
-  if (!selectedMenuForBom.value) return 0
-  return Number(selectedMenuForBom.value.prices?.['PLAT01']) || 0
+  const value=selectedMenuForBom.value?.prices?.PLAT01
+  if(value===undefined||value===null||value==='')return null
+  return Number.isFinite(Number(value))?Number(value):null
 })
 
 const selectedMenuGpPercent = computed(() => {
   const price = selectedMenuStorePrice.value
   const cost = selectedMenuFoodCost.value
-  if (price <= 0) return 0
+  if (price === null || price <= 0) return null
   return Math.max(0, ((price - cost) / price) * 100)
 })
 

@@ -1,97 +1,19 @@
 <template>
-  <ModalShell initial-focus="[data-confirm-cancel]" labelled-by="ConfirmModal-title" :open="modal.isOpen"
-    class="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-    @request-close="handleBackdropClick"
-    tabindex="-1"
-  >
-    <div
-      class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-sm w-full p-6 space-y-4 animate-in zoom-in-95 duration-150 relative"
-    >
-      <!-- Icon & Title Header -->
-      <div class="flex items-start gap-3.5">
-        <div
-          class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-xl border"
-          :class="themeClasses.iconBox"
-        >
-          <span>{{ themeClasses.emoji }}</span>
-        </div>
-        <div class="min-w-0 flex-1 pt-0.5">
-          <h3 id="ConfirmModal-title" class="text-sm font-bold text-stone-900 leading-snug">
-            {{ modal.title || 'ยืนยันการดำเนินการ' }}
-          </h3>
-          <p class="text-xs text-stone-500 mt-1 leading-relaxed whitespace-pre-line">
-            {{ modal.message }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="pt-3 flex items-center justify-end gap-2 border-t border-stone-100">
-        <Button data-confirm-cancel variant="secondary"
-          type="button"
-          @click="onCancel"
-          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer select-none"
-        >
-          {{ modal.cancelText || 'ยกเลิก' }}
-        </Button>
-        <Button :variant="modal.type === 'danger' ? 'danger' : 'primary'"
-          type="button"
-          @click="onConfirm"
-          class="px-5 py-2 text-xs font-semibold rounded-xl text-white shadow-xs transition-all cursor-pointer select-none"
-          ref="confirmButtonRef"
-        >
-          {{ modal.confirmText || 'ยืนยัน' }}
-        </Button>
-      </div>
-    </div>
-  </ModalShell>
+ <DialogFrame id="ConfirmModal" :teleport="false" :open="modal.isOpen" :title="modal.title || 'ยืนยันการดำเนินการ'" width="440px" initial-focus="[data-confirm-cancel]" @request-close="onCancel">
+  <p class="whitespace-pre-line leading-relaxed">{{ modal.message }}</p>
+  <template #footer>
+   <Button data-confirm-cancel variant="secondary" @click="onCancel">{{ modal.cancelText || 'ยกเลิก' }}</Button>
+   <Button :variant="modal.type === 'danger' ? 'danger' : 'primary'" @click="onConfirm">{{ modal.confirmText || 'ยืนยัน' }}</Button>
+  </template>
+ </DialogFrame>
 </template>
-
 <script setup>
 import Button from '@/components/ui/Button.vue'
-import ModalShell from '@/components/ui/ModalShell.vue'
-import { computed, ref } from 'vue'
-import { usePosStore } from '@/stores/posStore'
-
-const store = usePosStore()
-const modal = computed(() => store.modals.confirm || {})
-const confirmButtonRef = ref(null)
-
-const themeClasses = computed(() => {
-  const type = modal.value.type || 'warning'
-  switch (type) {
-    case 'danger':
-      return {
-        emoji: '🗑️',
-        iconBox: 'bg-rose-50 text-rose-700 border-rose-200/60',
-        confirmBtn: 'bg-rose-600 hover:bg-rose-700 active:bg-rose-800'
-      }
-    case 'save':
-      return {
-        emoji: '💾',
-        iconBox: 'bg-emerald-50 text-emerald-800 border-emerald-200/60',
-        confirmBtn: 'bg-brand-600 hover:bg-brand-800 active:bg-brand-900'
-      }
-    case 'info':
-      return {
-        emoji: 'ℹ️',
-        iconBox: 'bg-blue-50 text-blue-800 border-blue-200/60',
-        confirmBtn: 'bg-brand-600 hover:bg-brand-800 active:bg-brand-900'
-      }
-    case 'warning':
-    default:
-      return {
-        emoji: '⚠️',
-        iconBox: 'bg-amber-50 text-amber-900 border-amber-200/60',
-        confirmBtn: 'bg-brand-600 hover:bg-brand-800 active:bg-brand-900'
-      }
-  }
-})
-
-function handleBackdropClick() {
-  onCancel()
-}
-
+import DialogFrame from '@/components/ui/DialogFrame.vue'
+import {computed} from 'vue'
+import {usePosStore} from '@/stores/posStore'
+const store=usePosStore()
+const modal=computed(()=>store.modals.confirm||{})
 function onConfirm() {
   if(!modal.value.isOpen)return
   const callback=modal.value.onConfirm

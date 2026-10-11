@@ -1,14 +1,16 @@
 <template>
- <div v-if="open" ref="root" role="dialog" aria-modal="true" :aria-labelledby="labelledBy || undefined" :aria-label="labelledBy ? undefined : label" tabindex="-1" @keydown="handleKey" @click.self="$emit('request-close')"><slot /></div>
+ <div v-if="shown" ref="root" role="dialog" aria-modal="true" :aria-labelledby="labelledBy || undefined" :aria-label="labelledBy ? undefined : label" tabindex="-1" @keydown="handleKey" @click.self="$emit('request-close')"><slot /></div>
 </template>
 <script setup>
-import { ref, watch, nextTick, onUnmounted,computed } from 'vue'
+import { ref, watch, nextTick, onUnmounted,onActivated,onDeactivated,computed } from 'vue'
 import {overlayStack as stack} from '@/composables/overlayState'
 import {useOverlayScrollLock} from '@/composables/useOverlayScrollLock'
 const props = defineProps({ open:Boolean, labelledBy:String, label:{type:String,default:'Dialog'}, initialFocus:String,lockScroll:{type:Boolean,default:true} })
 const emit = defineEmits(['request-close'])
 const root = ref(null)
-useOverlayScrollLock(computed(()=>props.open&&props.lockScroll),root)
+const hostActive=ref(true)
+const shown=computed(()=>props.open&&hostActive.value)
+useOverlayScrollLock(computed(()=>shown.value&&props.lockScroll),root)
 const token = { node: null }
 let opener = null
 function visibleControl(el){
@@ -35,15 +37,16 @@ function release() {
  if (top && opener?.isConnected && !opener.closest('[inert]')) opener.focus()
  else if(top&&!stack.length)document.querySelector('main input,main button,[data-focus-fallback]')?.focus()
 }
-watch(() => props.open, async open => {
+watch(shown, async open => {
  if (!open) { release(); return }
  opener = document.activeElement
  stack.push(token)
  document.getElementById('app')?.setAttribute('inert','')
  await nextTick()
+ if(!shown.value)return
  token.node = root.value
  updateLayers()
- if (props.open && stack.at(-1) === token) (root.value?.querySelector(props.initialFocus || '[data-initial-focus]') || controls()[0] || root.value)?.focus()
+ if (shown.value && stack.at(-1) === token) (root.value?.querySelector(props.initialFocus || '[data-initial-focus]') || controls()[0] || root.value)?.focus()
 }, {immediate:true})
 function handleKey(event) {
  if (stack.at(-1) !== token) return
@@ -54,5 +57,7 @@ function handleKey(event) {
  if (event.shiftKey && (document.activeElement === first || document.activeElement === root.value)) {event.preventDefault();last.focus()}
  else if (!event.shiftKey && (document.activeElement === last || document.activeElement === root.value)) {event.preventDefault();first.focus()}
 }
+onDeactivated(()=>{hostActive.value=false;release();emit('request-close')})
+onActivated(()=>{hostActive.value=true})
 onUnmounted(release)
 </script>

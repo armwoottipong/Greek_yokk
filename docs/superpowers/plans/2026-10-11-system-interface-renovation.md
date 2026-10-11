@@ -23,7 +23,7 @@
 ## Global constraints
 
 - คงmascotและpalettecream/burgundy; typographyPrompt/PlusJakartaเดิมเป็นฐาน ไม่เปลี่ยนเพราะdetectorบอกว่าoverused
-- Navigationfullsidebar>=1200, tablet rail/drawer768–1199, phonehamburger<768 **เป็นข้อเสนอที่รอconfirm**
+- Navigationfullsidebar>=1200, tablet rail/drawer768–1199, phonehamburger<768 **ยืนยันในแนวทาง A และนำไปใช้แล้ว**
 - POSsplitตามcontainer≥696px ไม่ใช้sm:grid-cols-3แบบviewportอย่างเดียว
 - Businessstore/schema/localStorage/GASpayload/GP/COGS/stockallocation/checkoutsemanticsคงเดิม
 - Touchactions44px+, calendar320pxexception40×44px; body14pxบนtouchและcaption≥11pxที่เป็นข้อมูลจำเป็น
@@ -363,3 +363,11 @@
 - [x] บอกmissingbetter-*และmanualQAที่ยังไม่verified
 - [x] ยังไม่มีproductUIchanges/deployในรอบauditนี้
 
+
+## Execution status — 2026-10-11
+
+Tasks1–23: implementation complete, covering checks PASS; detailed task/commit/test evidence in `.impeccable/review/execution-ledger.txt` and the verification report. Original detailed checklists remain as the requested scope; physical-device checklist items do not become verified through emulation.
+
+Task24: local final correction/review complete (250tests/lint/build PASS); final integration/deployment outcome recorded in `docs/superpowers/verification/2026-10-11-system-interface-renovation.md`.
+
+Physical iPad/Safari/keyboard/screenreader/zoom/paper gates: Not verified; concrete manual follow-up steps in the report.

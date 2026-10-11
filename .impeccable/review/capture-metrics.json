@@ -1,0 +1,249 @@
+[
+  {
+    "device": "desktop",
+    "route": "pos",
+    "heading": "ช่องทางขายหน้าร้าน (Storefront)GrabFoodLINE MANคนรู้จัก",
+    "height": 1000,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1440
+  },
+  {
+    "device": "desktop",
+    "route": "stock",
+    "heading": "มูลค่าคลังรวม฿5,698.85ตามสต็อกที่บันทึกแล้วงบเติมสต็อกแ",
+    "height": 1000,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1440
+  },
+  {
+    "device": "desktop",
+    "route": "menu",
+    "heading": "ตัวกรองเพิ่มเมนู🥣Greek Yogurt Bowl (Size S)Classic Bow",
+    "height": 1000,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1440
+  },
+  {
+    "device": "desktop",
+    "route": "addon",
+    "heading": "ตัวกรองเพิ่มAdd-on🍓สตรอว์เบอร์รีสด (30g)ผลไม้สดหน้าร้า",
+    "height": 1000,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1440
+  },
+  {
+    "device": "desktop",
+    "route": "dashboard",
+    "heading": "ยอดขาย ต้นทุน และสิ่งที่ควรดูแลวันนี้วันนี้7 วัน30 วันท",
+    "height": 1000,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1440
+  },
+  {
+    "device": "desktop",
+    "route": "settings",
+    "heading": "ตั้งค่าร้านให้ลงตัว ข้อมูลหลักเก็บในเครื่องนี้ จัดหมวดห",
+    "height": 1000,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1440
+  },
+  {
+    "device": "ipad-portrait",
+    "route": "pos",
+    "heading": "ช่องทางขายหน้าร้าน (Storefront)GrabFoodLINE MANคนรู้จัก",
+    "height": 1194,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 834
+  },
+  {
+    "device": "ipad-portrait",
+    "route": "stock",
+    "height": 1194,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 834
+  },
+  {
+    "device": "ipad-portrait",
+    "route": "menu",
+    "height": 1194,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 834
+  },
+  {
+    "device": "ipad-portrait",
+    "route": "addon",
+    "height": 1194,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 834
+  },
+  {
+    "device": "ipad-portrait",
+    "route": "dashboard",
+    "height": 1194,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 834
+  },
+  {
+    "device": "ipad-portrait",
+    "route": "settings",
+    "height": 1194,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 834
+  },
+  {
+    "device": "ipad-landscape",
+    "route": "pos",
+    "height": 834,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1194
+  },
+  {
+    "device": "ipad-landscape",
+    "route": "stock",
+    "height": 834,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1194
+  },
+  {
+    "device": "ipad-landscape",
+    "route": "menu",
+    "height": 834,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1194
+  },
+  {
+    "device": "ipad-landscape",
+    "route": "addon",
+    "height": 834,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1194
+  },
+  {
+    "device": "ipad-landscape",
+    "route": "dashboard",
+    "height": 834,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1194
+  },
+  {
+    "device": "ipad-landscape",
+    "route": "settings",
+    "height": 834,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 1194
+  },
+  {
+    "device": "phone-390",
+    "route": "pos",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 390
+  },
+  {
+    "device": "phone-390",
+    "route": "stock",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 390
+  },
+  {
+    "device": "phone-390",
+    "route": "menu",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 390
+  },
+  {
+    "device": "phone-390",
+    "route": "addon",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 390
+  },
+  {
+    "device": "phone-390",
+    "route": "dashboard",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 390
+  },
+  {
+    "device": "phone-390",
+    "route": "settings",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 390
+  },
+  {
+    "device": "phone-320",
+    "route": "pos",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 320
+  },
+  {
+    "device": "phone-320",
+    "route": "stock",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 320
+  },
+  {
+    "device": "phone-320",
+    "route": "menu",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 320
+  },
+  {
+    "device": "phone-320",
+    "route": "addon",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 320
+  },
+  {
+    "device": "phone-320",
+    "route": "dashboard",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 320
+  },
+  {
+    "device": "phone-320",
+    "route": "settings",
+    "height": 844,
+    "overflow": 0,
+    "scrollY": 0,
+    "width": 320
+  }
+]
