@@ -123,14 +123,14 @@ const navItems = computed(() => [
 ])
 </script>
 <style scoped>
-.brand-sidebar{background:var(--bg-card);border-right:1px solid var(--border-subtle)}
+.brand-sidebar{background:var(--bg-card);border-right:1px solid transparent}
 .brand-lockup{display:flex;align-items:flex-end;justify-content:flex-end;height:var(--sidebar-header-height,var(--panel-header-height));background:#5E0205}
 .brand-mascot{display:block;width:90%;height:90%;object-fit:contain;object-position:right bottom}
 .brand-navigation{padding-top:18px}.brand-nav-item{border-radius:12px 20px 20px 12px;min-height:44px}.brand-nav-item:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}
 .mobile-menu-backdrop{display:none}
 @media(max-width:767px){
  .mobile-menu-backdrop{display:block;position:fixed;inset:0;background:#35252255;backdrop-filter:blur(3px);z-index:50}
- .brand-sidebar{position:fixed;inset:0 auto 0 0;width:min(300px,85vw);height:100dvh;z-index:60;transform:translateX(-100%);visibility:hidden;border-right:1px solid var(--border-subtle);box-shadow:12px 0 40px #58040618}
+ .brand-sidebar{position:fixed;inset:0 auto 0 0;width:min(300px,85vw);height:100dvh;z-index:60;transform:translateX(-100%);visibility:hidden;border-right:1px solid transparent;box-shadow:12px 0 40px #58040618}
  .brand-sidebar.is-mobile-open{transform:translateX(0);visibility:visible}
  .brand-lockup{height:96px;min-height:96px}
  .brand-navigation{display:block;flex:1;overflow-x:hidden;overflow-y:auto;padding:18px 12px}

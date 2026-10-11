@@ -22,7 +22,7 @@
  </DialogFrame>
 </template>
 <style scoped>
-.brand-page-header{min-height:var(--panel-header-height);display:flex;align-items:center;justify-content:space-between;padding:16px 24px;gap:16px;border-bottom:1px solid var(--border-subtle);background:var(--bg-card);flex-shrink:0}
+.brand-page-header{min-height:var(--panel-header-height);display:flex;align-items:center;justify-content:space-between;padding:16px 24px;gap:16px;border-bottom:1px solid transparent;background:var(--bg-card);flex-shrink:0}
 .header-page-title{min-width:0}.header-page-title h2{font-size:1rem;font-weight:600;line-height:1.5;letter-spacing:-.3px}.header-page-title p{font-size:.75rem;line-height:1.6;color:var(--text-muted);margin-top:3px}.header-page-title small{margin-left:8px}
 .header-quick-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}.header-more{display:grid;place-items:center;width:44px;height:44px;border-radius:10px;color:var(--accent-brand);background:transparent}.header-more:hover{background:var(--bg-soft)}
 .header-system-actions{display:grid;gap:12px}.header-system-actions>.ui-button{justify-content:flex-start;text-align:left}.header-system-actions p{font-size:.75rem;color:var(--text-muted);line-height:1.7}.header-action-divider{height:1px;background:var(--border-subtle);margin:8px 0}

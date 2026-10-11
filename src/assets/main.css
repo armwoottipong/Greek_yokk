@@ -79,8 +79,8 @@ body {
 /* Subtle elevation card */
 .editorial-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  box-shadow: 0 2px 5px #58040604;
+  border: 1px solid transparent;
+  box-shadow: none;
   border-radius: 20px;
 }
 

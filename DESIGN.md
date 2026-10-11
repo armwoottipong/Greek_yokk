@@ -165,7 +165,7 @@ Desktop navigation occupies 256px; tablet rail occupies 72px. Compact drawers ar
 
 ## Elevation & Depth
 
-Resting catalog surfaces use a subtle border. Legacy editorial cards add a very faint shadow; settings cards explicitly remove it. Floating menus and dialogs use the shared popup shadow. Compact navigation drawers use a lateral shadow. The sidecar records their exact values.
+Resting catalog, dashboard, inventory summary and editorial surfaces use cream fills and spacing without visible perimeter borders or editorial shadows. Decorative nesting should not repeat outlines; table separators and control boundaries remain functional. Floating menus and dialogs use the shared popup shadow. Compact navigation drawers use a lateral shadow. The sidecar records their exact values.
 
 Buttons and native fields use a burgundy focus outline; soft fields also use a burgundy focus ring. Expanded selects add a pale ring alongside their burgundy border, while keyboard focus retains a burgundy outline. Checkbox focus combines that outline with a supplemental pale ring. Focus treatment is functional. Reduced motion removes CSS transitions and animations; dialog entry otherwise uses a short fade and downward offset.
 
@@ -181,7 +181,7 @@ Use Button/IconButton for action hierarchy, FormField for real label/control ass
 
 ### Buttons
 
-Primary is burgundy, secondary has a warm fill and subtle border, quiet is transparent, and danger is filled red. Hover uses deeper burgundy, divider fill, soft burgundy and deeper red respectively. Shared buttons have a minimum height (44px), label typography, an 8px icon gap and the frontmatter padding. Icon buttons are 44px square with 20px SVGs. Disabled/loading actions suppress clicks; loading carries aria-busy and a spinner.
+Primary is burgundy, secondary has a warm fill without a visible perimeter border, quiet is transparent, and danger is filled red. Hover uses deeper burgundy, divider fill, soft burgundy and deeper red respectively. Shared buttons have a minimum height (44px), label typography, an 8px icon gap and the frontmatter padding. Icon buttons are 44px square with 20px SVGs. Disabled/loading actions suppress clicks; loading carries aria-busy and a spinner.
 
 ### Inputs / Fields
 
@@ -193,11 +193,11 @@ Menu and Add-on editors show the full platform name beside a named numeric price
 
 ### Chips / Cards / Navigation
 
-StatusBadge uses named semantic states. Catalog cards have a subtle border, 12px internal grid gap and wrapped names; their selected platform price becomes prominent on compact layouts. Missing price is explicitly labeled, while a real zero remains zero. Navigation preserves the mascot lockup, shows a rail on tablet and opens full names in a drawer.
+StatusBadge uses named semantic states. Catalog cards have a cream fill without a visible perimeter border, 12px internal grid gap and wrapped names; their selected platform price becomes prominent on compact layouts. Missing price is explicitly labeled, while a real zero remains zero. Navigation preserves the mascot lockup, shows a rail on tablet and opens full names in a drawer.
 
 ### Dialogs / Contextual Detail
 
-Dialogs have a bounded scrolling body and reachable header/footer. Desktop body padding is 24px and phone body padding 16px. Confirmation uses the same constrained frame at 440px width and starts focus on cancel. Nested overlays keep one focus/inert/scroll-lock stack; deactivation closes transient UI and releases its participation in that stack. Error messages name a recovery action. Loading reflects actual work. Toasts announce changes without stealing focus. Success and information messages use a dedicated polite announcer; errors use alerts and remain until dismissed. Other messages expire after five seconds, pausing while hovered or focused. Each toast has a named 44px dismiss action with an inherited-color focus outline. Toasts wrap within the viewport, sit above the safe-area bottom on desktop and move to the safe-area top below 768px.
+Dialogs have a bounded scrolling body and reachable header/footer. Their headers use spacing rather than a divider; the soft-fill footer separates actions without a border. Filters likewise avoid outer/header/footer outlines and a nested calendar frame. Desktop body padding is 24px and phone body padding 16px. Confirmation uses the same constrained frame at 440px width and starts focus on cancel. Nested overlays keep one focus/inert/scroll-lock stack; deactivation closes transient UI and releases its participation in that stack. Error messages name a recovery action. Loading reflects actual work. Toasts announce changes without stealing focus. Success and information messages use a dedicated polite announcer; errors use alerts and remain until dismissed. Other messages expire after five seconds, pausing while hovered or focused. Each toast has a named 44px dismiss action with an inherited-color focus outline. Toasts wrap within the viewport, sit above the safe-area bottom on desktop and move to the safe-area top below 768px.
 
 Archived materials retain contextual edit and permanent-delete routes without requiring restoration. Stock drafts, recipe details and cart review open in contextual panels/sheets; closing their presentation is not a commit.
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="calendar-panel select-none rounded-lg border border-stone-100 p-2">
+  <div class="calendar-panel select-none rounded-lg p-2">
     <!-- Calendar Header: Month & Year Navigator -->
     <div class="calendar-header flex items-center justify-between mb-2 px-0.5">
       <button

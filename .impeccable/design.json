@@ -45,8 +45,8 @@
         "name": "popup"
       },
       {
-        "value": "0 2px 5px #58040604",
-        "purpose": "Existing editorial card treatment; catalog and settings cards remain flat",
+        "value": "none",
+        "purpose": "Resting editorial surfaces are flat; spacing and cream fills separate modules",
         "name": "editorial-card"
       },
       {
@@ -139,7 +139,7 @@
       "name": "secondary button",
       "description": "Shared touch action; minimum height rather than fixed height",
       "html": "<button class=\"ds-button-secondary\">ยกเลิก</button>",
-      "css": ".ds-button-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid var(--border-subtle);border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--bg-soft);color:var(--text-main)}.ds-button-secondary:hover:not(:disabled){background:var(--border-subtle)}.ds-button-secondary:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-secondary:disabled{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-secondary{transition:background-color 150ms ease,color 150ms ease}}",
+      "css": ".ds-button-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--bg-soft);color:var(--text-main)}.ds-button-secondary:hover:not(:disabled){background:var(--border-subtle)}.ds-button-secondary:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-secondary:disabled{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-secondary{transition:background-color 150ms ease,color 150ms ease}}",
       "refersTo": "button-secondary",
       "kind": "button"
     },
@@ -187,7 +187,7 @@
       "name": "Catalog card",
       "description": "Adaptive catalog surface with wrapped name and explicit unset price",
       "html": "<article class=\"ds-card\"><strong>เมนูกรีกโยเกิร์ต</strong><small>ยังไม่กำหนดราคา</small></article>",
-      "css": ".ds-card{display:grid;gap:12px;min-width:0;padding:16px;background:var(--bg-card);color:var(--text-main);border:1px solid var(--border-subtle);border-radius:var(--surface-radius,16px);font-family:Prompt,sans-serif}.ds-card strong{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.ds-card small{font-size:12px;color:var(--text-muted)}",
+      "css": ".ds-card{display:grid;gap:12px;min-width:0;padding:16px;background:var(--bg-card);color:var(--text-main);border:1px solid transparent;border-radius:var(--surface-radius,16px);font-family:Prompt,sans-serif}.ds-card strong{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.ds-card small{font-size:12px;color:var(--text-muted)}",
       "refersTo": "catalog-card",
       "kind": "card"
     },

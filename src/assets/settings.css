@@ -11,8 +11,8 @@
 .settings-nav-item[aria-pressed=true]{background:var(--accent-brand);color:var(--bg-card)}
 .settings-nav-item[aria-pressed=true] small{color:#F0D6CA}
 .settings-content{min-width:0;display:grid;gap:18px}
-.settings-page [data-settings]{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;padding:26px;box-shadow:none;min-width:0}
-.settings-page [data-settings]>div:first-child{padding-bottom:20px;border-color:var(--border-subtle);align-items:flex-start}
+.settings-page [data-settings]{background:var(--bg-card);border:1px solid transparent;border-radius:20px;padding:26px;box-shadow:none;min-width:0}
+.settings-page [data-settings]>div:first-child{padding-bottom:20px;border-bottom:0;align-items:flex-start}
 .settings-page [data-settings]>div:first-child h3{font-size:17px;font-weight:500;color:var(--text-main);line-height:1.5}
 .settings-page [data-settings]>div:first-child p{color:var(--text-muted);font-size:11px;line-height:1.8;margin-top:5px}
 .settings-page [data-settings]>div:first-child>div:first-child:not(:last-child),.settings-page #settings-categories>div:first-child>div>div:first-child{background:var(--bg-soft);color:var(--accent-brand);border-radius:13px}
@@ -41,7 +41,7 @@
 .settings-category-tabs button{flex:1;justify-content:center;min-height:38px;padding:8px;font-size:11px}
 .settings-category-form{padding:18px;background:var(--bg-soft);border:0}
 .settings-category-fields{flex-basis:100%;flex-wrap:wrap}.settings-category-fields input{min-width:0}.settings-category-fields input:first-of-type{flex:1;min-width:140px}
-.settings-category-list>div{background:var(--bg-card);border-color:var(--border-subtle);box-shadow:none;padding:16px}
+.settings-category-list>div{background:var(--bg-soft);border-color:transparent;box-shadow:none;padding:16px}
 .settings-page input:not([type=file]){min-height:40px;min-width:0;background:var(--bg-card);border:1px solid var(--border-subtle)}.settings-page button{cursor:pointer}
 .settings-page button:disabled{cursor:not-allowed}
 .settings-page button:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}
