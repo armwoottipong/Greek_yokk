@@ -1,24 +1,15 @@
 <template>
-  <ModalShell labelled-by="MenuEditModal-title" :open="store.modals.menuEdit.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/40 backdrop-blur-xs"
-    @request-close="requestClose(close)"
-  >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      <!-- Calm Header -->
-      <div class="px-7 py-5 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
+ <DialogFrame :open="store.modals.menuEdit.isOpen" id="MenuEditModal" title="ข้อมูลเมนู" :teleport="false" @request-close="requestClose(close)">
+ <template #header><div class="flex items-center justify-between bg-white">
         <div>
           <h3 id="MenuEditModal-title" class="text-base font-semibold text-stone-900">
             {{ isEditing ? `แก้ไขเมนู: ${form.name}` : 'เพิ่มเมนูใหม่' }}
           </h3>
           <p class="text-[11px] text-stone-500 mt-0.5">กำหนดราคาขายแต่ละแพลตฟอร์ม สูตรวัตถุดิบ และบรรจุภัณฑ์ที่ตัดสต็อก</p>
         </div>
-        <button @click="requestClose(close)" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
-          <X class="w-5 h-5" />
-        </button>
-      </div>
-
-      <!-- Pure Flat Body -->
-      <div class="p-7 space-y-5 overflow-y-auto flex-1 text-xs">
+        
+      </div></template>
+ <div class="space-y-5 text-xs">
         <!-- Section 1: Emoji Icon & Menu Name -->
         <div class="flex items-start gap-3.5">
           <div class="shrink-0">
@@ -33,7 +24,7 @@
             </button>
           </div>
           <div class="flex-1">
-            <FormField id="menu-name" label="ชื่อเมนู" required v-slot="{controlId,describedBy}"><input :id="controlId" :aria-describedby="describedBy" aria-required="true"
+            <FormField id="menu-name" label="ชื่อเมนู" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><input :id="controlId" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true"
               v-model="form.name"
               type="text"
               placeholder="เช่น Greek Yogurt Bowl (M)"
@@ -83,7 +74,7 @@
         </div>
 
         <!-- Section 3: Platform Prices (Compact capsules) -->
-        <div class="space-y-1.5">
+        <details class="editor-section" data-menu-prices open><summary>ราคาขายแต่ละช่องทาง</summary><div class="editor-section-body"><div class="space-y-1.5">
           <div class="flex items-center justify-between">
             <span class="text-xs font-medium text-stone-700 flex items-center gap-1.5">
               <span>🏷️</span>
@@ -119,10 +110,10 @@
               </div>
             </div>
           </div>
-        </div>
+        </div></div></details>
 
         <!-- Section 4: Dual Functional Toggle Tiles -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+        <details class="editor-section" data-menu-permissions ><summary>ตัวเลือกการขาย</summary><div class="editor-section-body"><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           <ToggleSwitch
             v-model="form.hasAddons"
             label="อนุญาตให้เลือก Add-on"
@@ -137,10 +128,10 @@
             icon="📦"
             color="amber"
           />
-        </div>
+        </div></div></details>
 
         <!-- Section 5: Base Recipe (Flat tabular rows) -->
-        <div class="space-y-2.5 pt-2 border-t border-stone-100">
+        <details class="editor-section" data-menu-recipe open><summary>สูตรวัตถุดิบ</summary><div class="editor-section-body"><div class="space-y-2.5 pt-2 border-t border-stone-100">
           <div class="flex items-center justify-between">
             <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
               <span>🥣</span>
@@ -200,7 +191,7 @@
 
               <button
                 type="button"
-                @click="removeBaseRecipeRow(idx)"
+                :aria-label="`ลบ ${store.matMap[row.materialId]?.name || 'วัตถุดิบ'} จากสูตร`" @click="removeBaseRecipeRow(idx)"
                 class="w-7 h-7 flex items-center justify-center text-stone-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
                 title="ลบรายการ"
               >
@@ -208,10 +199,10 @@
               </button>
             </div>
           </div>
-        </div>
+        </div></div></details>
 
         <!-- Section 6: Packaging BOM -->
-        <div class="space-y-2.5 pt-2 border-t border-stone-100">
+        <details class="editor-section" data-menu-packaging open><summary>บรรจุภัณฑ์</summary><div class="editor-section-body"><div class="space-y-2.5 pt-2 border-t border-stone-100">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
               <span>📦</span>
@@ -285,7 +276,7 @@
 
               <button
                 type="button"
-                @click="removePackageRecipeRow(idx)"
+                :aria-label="`ลบ ${store.matMap[row.materialId]?.name || 'บรรจุภัณฑ์'} จากสูตร`" @click="removePackageRecipeRow(idx)"
                 class="w-7 h-7 flex items-center justify-center text-stone-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
                 title="ลบรายการ"
               >
@@ -293,11 +284,9 @@
               </button>
             </div>
           </div>
-        </div>
+        </div></div></details>
       </div>
-
-      <!-- Grounded Footer -->
-      <div class="px-7 py-4 bg-stone-50/70 border-t border-stone-100 flex items-center justify-end gap-3 shrink-0">
+ <template #footer><div class="bg-stone-50/70 flex items-center justify-end gap-3">
         <button
           type="button"
           @click="requestClose(close)"
@@ -313,22 +302,22 @@
           <Check class="w-4 h-4" />
           <span>บันทึกข้อมูลเมนู</span>
         </button>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
 import FormField from '@/components/ui/FormField.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
-import ModalShell from '@/components/ui/ModalShell.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
-import { X, Plus, Trash2, Check } from 'lucide-vue-next'
+import { Plus, Trash2, Check } from 'lucide-vue-next'
 
 const store = usePosStore()
+const nameError=ref('')
 
 const form = ref({
   id: '',
@@ -383,6 +372,7 @@ function getUnit(matId) {
 // Watch modal open and populate
 watch(() => store.modals.menuEdit.isOpen, (open) => {
   if (open) {
+    nameError.value=''
     const menuId = store.modals.menuEdit.menuId
     const menu = menuId ? store.menus.find(m => m.id === menuId) : null
 
@@ -497,8 +487,10 @@ function close() {
 }
 
 async function submit() {
+  nameError.value=''
   if (!form.value.name.trim()) {
-    store.showToast('กรุณากรอกชื่อเมนู', 'error')
+    nameError.value='กรุณากรอกชื่อเมนูก่อนบันทึก'
+    store.showToast(nameError.value, 'error')
     return
   }
 
