@@ -13,4 +13,6 @@ Browser local demo at port3032: six routes × desktop1280×720, iPad834×1194, p
 
 Evidence `.impeccable/review/border-simplification/`: desktop settings/POS/filter, phone menu screenshots and18-row metrics. Inspection bounded to these states; physical Safari, screenreader and paper printing remain unverified. No production data writes or Sheets calls.
 
-Release evidence to be recorded after exact build/Pages completion.
+Main fast-forward merged and pushed source **89d3c44aece63e9ca14563d5ae9fd26d1a40e280**. [Build38128703931](https://github.com/armwoottipong/Greek_yokk/actions/runs/38128703931) completed/success (CI tests/lint/build); generated gh-pages **27493615f8d1ce12b55f656e87457ce925ee3c40** explicitly records that source SHA. [Pages38128764932](https://github.com/armwoottipong/Greek_yokk/actions/runs/38128764932) completed/success. Live HTTP200 module `/Greek_yokk/assets/index-YdNZax5I.js` matches generated index; production settings module/header computed boundaries transparent, no horizontal overflow and console errors `[]`. Browser reload/read-only navigation only, no production data write.
+
+Vite stopped; existing managed worktree retained per earlier cleanup limitation. Primary unrelated local skills/skills-lock/AI files untouched. This evidence follow-up is documentation only `[skip ci]`; product deploy remains89d3c44.
