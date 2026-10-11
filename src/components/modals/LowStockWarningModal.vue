@@ -1,17 +1,11 @@
 <template>
-  <ModalShell labelled-by="LowStockWarningModal-title" @request-close="cancel" :open="store.modals.lowStockWarning.isOpen"
-    class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xs"
-  >
-    <div
-      class="bg-white rounded-2xl border shadow-2xl max-w-sm w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150"
-      :class="store.modals.lowStockWarning.isOutOfStock ? 'border-rose-300' : 'border-amber-200'"
-    >
-      <div class="flex items-center gap-3">
+ <DialogFrame :open="store.modals.lowStockWarning.isOpen" id="LowStockWarningModal" title="ตรวจสอบสต็อก" :teleport="false" initial-focus="[data-decision-cancel]" @request-close="cancel">
+  <template #header><div class="flex items-center gap-3">
         <div
           class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-xl font-bold"
           :class="store.modals.lowStockWarning.isOutOfStock ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'"
         >
-          {{ store.modals.lowStockWarning.isOutOfStock ? '🚨' : '⚠️' }}
+          <AlertTriangle :size="22" aria-hidden="true"/>
         </div>
         <div>
           <h3 id="LowStockWarningModal-title" class="text-sm font-bold text-stone-900">
@@ -21,10 +15,8 @@
             {{ store.modals.lowStockWarning.subtitle || (store.modals.lowStockWarning.isOutOfStock ? 'วัตถุดิบไม่พอในระบบ แต่สามารถยืนยันเพื่อขายต่อได้' : 'การเพิ่มออเดอร์นี้จะทำให้วัตถุดิบต่ำกว่าเกณฑ์ปลอดภัย') }}
           </p>
         </div>
-      </div>
-
-      <!-- Warning list -->
-      <div class="space-y-2 max-h-48 overflow-y-auto p-1 text-xs">
+      </div></template>
+  <div class="space-y-2 text-xs">
         <div
           v-for="(item, idx) in store.modals.lowStockWarning.warningItems"
           :key="idx"
@@ -50,11 +42,10 @@
           </div>
         </div>
       </div>
-
-      <div class="pt-2 flex items-center justify-end gap-2 border-t border-stone-100">
+  <template #footer><div class="decision-actions">
         <button
           type="button"
-          @click="cancel"
+          data-decision-cancel @click="cancel"
           class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
         >
           ยกเลิก
@@ -67,13 +58,13 @@
         >
           {{ store.modals.lowStockWarning.isOutOfStock ? 'ยืนยันขายต่อ (Backorder)' : 'ยืนยันและดำเนินการต่อ' }}
         </button>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
-import ModalShell from '@/components/ui/ModalShell.vue'
+import {AlertTriangle} from 'lucide-vue-next'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { usePosStore } from '@/stores/posStore'
 
 const store = usePosStore()
@@ -85,7 +76,13 @@ function cancel() {
 }
 
 function confirm() {
+  if (!store.modals.lowStockWarning.isOpen) return
   const cb = store.modals.lowStockWarning.onConfirm
-  if (cb) cb()
+  store.modals.lowStockWarning.isOpen = false
+  store.modals.lowStockWarning.onConfirm = null
+  if (typeof cb === 'function') cb()
 }
 </script>
+<style scoped>
+.decision-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;width:100%}.decision-actions>button{min-height:44px;font-size:.8125rem}
+</style>

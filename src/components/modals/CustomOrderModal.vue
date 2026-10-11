@@ -1,11 +1,6 @@
 <template>
-  <ModalShell labelled-by="CustomOrderModal-title" :open="store.modals.customOrder.isOpen && Boolean(selectedMenu)"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-xs"
-    @request-close="requestClose"
-  >
-    <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      <!-- Header -->
-      <div class="p-6 border-b border-stone-100 flex items-center justify-between shrink-0">
+ <DialogFrame :open="store.modals.customOrder.isOpen && Boolean(selectedMenu)" id="CustomOrderModal" title="ปรับแต่งชาม" :teleport="false" @request-close="requestClose">
+  <template #header><div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <span class="text-3xl p-2 rounded-2xl bg-[#FBF5EA] border border-stone-100">{{ selectedMenu.emoji }}</span>
           <div>
@@ -13,13 +8,9 @@
             <p class="text-xs text-stone-400 mt-0.5">{{ selectedMenu.description }}</p>
           </div>
         </div>
-        <button @click="requestClose" class="text-stone-400 hover:text-stone-700 p-2 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer" aria-label="ปิดหน้าต่าง">
-          <X class="w-5 h-5" />
-        </button>
-      </div>
-
-      <!-- Add-ons Selection Body -->
-      <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+        
+      </div></template>
+  <div class="space-y-4 text-xs">
         <div v-if="!selectedMenu.hasAddons" class="py-6 text-center text-stone-400 bg-[#FBF5EA] rounded-xl italic">
           เมนูนี้ไม่อนุญาตให้เลือก Add-on เพิ่มเติม
         </div>
@@ -44,7 +35,7 @@
                 :class="[
                   'flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none',
                   isAddonSelected(addon.id)
-                    ? 'bg-purple-50/80 border-purple-300 text-purple-950 font-medium'
+                    ? 'bg-brand-50 border-brand-200 text-brand-900 font-medium'
                     : isAddonOutOfStock(addon)
                     ? 'bg-amber-50/40 border-amber-200/80 text-stone-800'
                     : 'bg-[#FBF5EA] border-stone-100 hover:border-stone-200 text-stone-800'
@@ -54,11 +45,11 @@
                   <span class="text-lg">{{ addon.emoji }}</span>
                   <div class="min-w-0">
                     <div class="font-semibold text-left">{{ addon.name }}</div>
-                    <div v-if="isAddonOutOfStock(addon)" class="text-[10px] text-amber-700 font-semibold flex items-center gap-0.5">
+                    <div v-if="isAddonOutOfStock(addon)" class="text-[11px] text-amber-700 font-semibold flex items-center gap-0.5">
                       <span>⚠️ ของหมด (เลือกได้)</span>
                     </div>
-                    <div v-else-if="addon.materialId" class="text-[10px] text-stone-400">ใช้ {{ addon.amountUsed }} {{ getMatUnit(addon.materialId) }}</div>
-                    <div v-else class="text-[10px] text-stone-400">ท็อปปิ้งสำเร็จรูป</div>
+                    <div v-else-if="addon.materialId" class="text-[11px] text-stone-400">ใช้ {{ addon.amountUsed }} {{ getMatUnit(addon.materialId) }}</div>
+                    <div v-else class="text-[11px] text-stone-400">ท็อปปิ้งสำเร็จรูป</div>
                   </div>
                 </div>
 
@@ -82,29 +73,23 @@
           </div>
         </div>
       </div>
-
-      <!-- Footer Summary & Add to Cart -->
-      <div class="p-6 bg-[#FBF5EA] border-t border-stone-200/80 flex items-center justify-between shrink-0">
+  <template #footer><div class="custom-order-footer">
         <div>
           <span class="text-[11px] text-stone-400 block">ราคารวมต่อชาม</span>
           <span class="text-xl font-bold font-number text-stone-900">฿{{ totalBowlPrice }}</span>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="custom-order-footer-actions">
           <div class="flex items-center gap-2 bg-white border border-stone-200 rounded-xl px-2 py-1">
             <button
-              @click="qty = Math.max(1, qty - 1)"
+              aria-label="ลดจำนวนชาม" :disabled="qty<=1" @click="qty = Math.max(1, qty - 1)"
               class="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-900 font-bold"
-            >
-              -
-            </button>
+            ><Minus :size="18" aria-hidden="true"/></button>
             <span class="font-number font-bold text-xs w-4 text-center">{{ qty }}</span>
             <button
-              @click="qty += 1"
+              aria-label="เพิ่มจำนวนชาม" @click="qty += 1"
               class="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-900 font-bold"
-            >
-              +
-            </button>
+            ><Plus :size="18" aria-hidden="true"/></button>
           </div>
 
           <button
@@ -115,16 +100,15 @@
             <span>เพิ่มลงตะกร้า (฿{{ totalBowlPrice * qty }})</span>
           </button>
         </div>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
-import ModalShell from '@/components/ui/ModalShell.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { X, Check, ShoppingBag } from 'lucide-vue-next'
+import { Minus, Plus, Check, ShoppingBag } from 'lucide-vue-next'
 
 const store = usePosStore()
 
@@ -199,10 +183,10 @@ function close() {
 }
 
 async function requestClose() {
-  if (selectedAddons.value.length > 0) {
+  if (selectedAddons.value.length > 0 || qty.value !== 1) {
     const ok = await store.confirmDialog({
-      title: 'ยกเลิกการเลือกท็อปปิ้ง?',
-      message: 'คุณได้เลือกท็อปปิ้งไว้ ต้องการปิดโดยไม่เพิ่มลงในรายการสั่งซื้อหรือไม่?',
+      title: 'ยกเลิกชามที่ปรับแต่ง?',
+      message: 'จำนวนชามและท็อปปิ้งที่ปรับไว้จะไม่ถูกเพิ่มลงตะกร้า ต้องการปิดหรือไม่?',
       confirmText: 'ปิดหน้าต่าง',
       cancelText: 'เลือกต่อ',
       type: 'warning'
@@ -220,3 +204,7 @@ function addToCart() {
   }
 }
 </script>
+<style scoped>
+.custom-order-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;width:100%;align-items:center}.custom-order-footer-actions{display:contents}.custom-order-footer-actions>button{grid-column:1/-1;justify-content:center;width:100%;min-height:44px;font-size:.875rem}.custom-order-footer-actions>div{justify-self:end;padding:0 4px;background:var(--bg-soft)}.custom-order-footer-actions>div>button{min-width:44px;min-height:44px}.custom-order-footer-actions>div>button:disabled{opacity:.4;cursor:not-allowed}
+</style>
+

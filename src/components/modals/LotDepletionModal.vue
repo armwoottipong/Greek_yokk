@@ -1,16 +1,8 @@
 <template>
-  <ModalShell labelled-by="LotDepletionModal-title" :open="modal.isOpen"
-    class="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-    tabindex="-1"
-    @request-close="onCancel"
-  >
-    <div
-      class="bg-white rounded-3xl border border-stone-200/90 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150 relative overflow-hidden"
-    >
-      <!-- Top Header -->
-      <div class="flex items-start gap-3.5 pb-1">
+ <DialogFrame :open="modal.isOpen" id="LotDepletionModal" title="เปลี่ยนล็อตวัตถุดิบ" :teleport="false" initial-focus="[data-decision-cancel]" @request-close="onCancel">
+  <template #header><div class="flex items-start gap-3.5">
         <div class="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-700 flex items-center justify-center text-xl shrink-0 shadow-2xs">
-          <span>⚠️</span>
+          <AlertTriangle :size="22" aria-hidden="true"/>
         </div>
         <div class="min-w-0 flex-1 pt-0.5">
           <div class="flex items-center gap-2">
@@ -28,10 +20,8 @@
             สต็อกในล็อตที่กำลังใช้งานของ <span class="font-bold text-stone-800">{{ modal.materialEmoji }} {{ modal.materialName }}</span> {{ modal.willDeplete ? 'หมดลงหรือไม่พอต่อจำนวนที่ต้องการ' : 'ใกล้จะหมดลงหลังจากการดำเนินการนี้' }}
           </p>
         </div>
-      </div>
-
-      <!-- Lot Flow Comparison Cards -->
-      <div class="space-y-2.5">
+      </div></template>
+  <div class="space-y-2.5">
         <!-- 1. Depleted Current Lot -->
         <div class="p-3.5 rounded-2xl bg-rose-50/60 border border-rose-200/70 text-xs">
           <div class="flex items-center justify-between mb-1.5">
@@ -97,41 +87,39 @@
           </div>
         </div>
       </div>
-
-      <!-- Action Explanations -->
-      <div class="p-3 rounded-xl bg-stone-50 border border-stone-100 text-[11px] text-stone-500 leading-relaxed">
+<div class="rounded-xl bg-stone-50 text-[11px] text-stone-500 leading-relaxed">
         <p>
           • <strong>ถ้ากด "เปลี่ยนไปล็อตใหม่":</strong> ระบบจะย้ายสถานะ <em>"กำลังใช้งาน"</em> ไปที่ล็อตใหม่ทันที และตัดสต็อกต่อจากล็อตใหม่<br />
-          • <strong>ถ้ากด "ยกเลิก (ไม่เปลี่ยนล็อต)":</strong> ระบบจะไม่แตะต้องล็อตใหม่ และใช้เฉพาะสต็อกที่มีในล็อตเดิม (หากสต็อกไม่พอ การดำเนินการจะถูกยกเลิก)
+          <span v-if="modal.actionContext === 'pos'">ยกเลิกแล้วตะกร้าและล็อตปัจจุบันจะยังเหมือนเดิม</span>
+          <span v-else>หากไม่สลับ ล็อตใหม่จะไม่ถูกเลือกมาใช้งาน ตรวจรายการร่างในหน้าคลังก่อนบันทึกสต็อกจริง</span>
         </p>
       </div>
-
-      <!-- Action Buttons -->
-      <div class="pt-2 flex flex-col sm:flex-row items-center justify-end gap-2">
+  <template #footer><div class="decision-actions">
         <button
           type="button"
-          @click="onCancel"
+          data-decision-cancel @click="onCancel"
           class="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer select-none text-center"
         >
-          ยกเลิก (ไม่เปลี่ยนล็อต)
+          {{ modal.actionContext === 'adjust' ? 'ไม่สลับล็อต' : 'ยกเลิก' }}
         </button>
 
         <button
           type="button"
           @click="onConfirm"
+          :disabled="!modal.nextLot"
           class="w-full sm:w-auto px-5 py-2.5 text-xs font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-800 active:bg-brand-900 shadow-sm transition-all cursor-pointer select-none flex items-center justify-center gap-1.5"
           ref="confirmButtonRef"
         >
           <span>เปลี่ยนไปล็อตใหม่ (สลับทันที)</span>
           <span>⚡</span>
         </button>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
-import ModalShell from '@/components/ui/ModalShell.vue'
+import {AlertTriangle} from 'lucide-vue-next'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { computed, ref } from 'vue'
 import { usePosStore, formatDisplayDate } from '@/stores/posStore'
 
@@ -140,11 +128,11 @@ const modal = computed(() => store.modals.lotDepletion || {})
 const confirmButtonRef = ref(null)
 
 function onConfirm() {
-  if (typeof modal.value.onConfirm === 'function') {
-    modal.value.onConfirm()
-  } else {
-    store.modals.lotDepletion.isOpen = false
-  }
+  if(!modal.value.isOpen)return
+  const callback=modal.value.onConfirm
+  store.modals.lotDepletion.isOpen=false
+  store.modals.lotDepletion.onConfirm=null
+  if(typeof callback==='function')callback()
 }
 
 function onCancel() {
@@ -155,3 +143,7 @@ function onCancel() {
   }
 }
 </script>
+<style scoped>
+.decision-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;width:100%}.decision-actions>button{min-height:44px;font-size:.8125rem}
+</style>
+<style scoped>.decision-actions>button:disabled{opacity:.45;cursor:not-allowed}</style>

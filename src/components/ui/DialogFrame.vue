@@ -1,6 +1,6 @@
 <template>
- <Teleport to="body">
-  <ModalShell :id="id" :open="present" :labelled-by="`${id}-title`" class="dialog-frame-shell" :style="viewportStyle" @request-close="requestClose">
+ <Teleport to="body" :disabled="!teleport">
+  <ModalShell :id="id" :open="present" :initial-focus="initialFocus" :labelled-by="`${id}-title`" class="dialog-frame-shell" :style="viewportStyle" @request-close="requestClose">
    <Transition name="dialog-frame" @after-leave="finishLeave">
     <section v-if="open" class="dialog-frame-panel" :class="`dialog-frame-panel--${presentation}`" :aria-busy="busy||undefined">
      <header class="dialog-frame-header"><slot name="header"><div><h3 :id="`${id}-title`">{{ title }}</h3><p v-if="description">{{ description }}</p></div></slot><IconButton label="ปิดหน้าต่าง" :disabled="busy" @click="requestClose"><X aria-hidden="true" /></IconButton></header>
@@ -16,7 +16,7 @@ import {ref,watch,computed,onMounted,onUnmounted} from 'vue'
 import {X} from 'lucide-vue-next'
 import ModalShell from './ModalShell.vue'
 import IconButton from './IconButton.vue'
-const props=defineProps({open:Boolean,id:{type:String,required:true},title:{type:String,required:true},description:String,presentation:{type:String,default:'dialog'},busy:Boolean})
+const props=defineProps({open:Boolean,id:{type:String,required:true},title:{type:String,required:true},description:String,presentation:{type:String,default:'dialog'},busy:Boolean,teleport:{type:Boolean,default:true},initialFocus:String})
 const emit=defineEmits(['request-close'])
 const present=ref(props.open),viewport=ref({height:768,top:0})
 watch(()=>props.open,open=>{if(open)present.value=true})
