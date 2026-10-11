@@ -1,8 +1,9 @@
 <template>
   <div class="space-y-4">
     <CatalogToolbar id="menu-catalog" label="เมนู" v-model:search="searchQuery" placeholder="ค้นหาชื่อหรือคำอธิบายเมนู" :category="selectedCategory" :platform="displayPlatformId" :categories="categories" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddMenu" />
+    <div class="adaptive-catalog-list"><MenuCard v-for="menu in filteredMenus" :key="menu.id" :menu="menu" :platforms="store.platforms" :selected-id="displayPlatformId" @details="openBomModal" @edit="editMenu" @delete="deleteMenu" /><p v-if="!filteredMenus.length" class="interface-empty">ไม่พบเมนู ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div>
     <!-- Menus Management Table -->
-    <div class="editorial-card overflow-hidden">
+    <div class="desktop-catalog-table editorial-card overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs text-stone-700">
           <thead class="bg-stone-50/70 text-stone-400 font-medium border-b border-stone-100">
@@ -112,160 +113,13 @@
     <!-- ======================================================== -->
     <!-- POPUP MODAL: รายละเอียดสูตรวัตถุดิบ & บรรจุภัณฑ์ (BOM)       -->
     <!-- ======================================================== -->
-    <Teleport to="body">
-      <ModalShell labelled-by="menu-recipe-title"
-        :open="isBomModalOpen && Boolean(selectedMenuForBom)"
-        class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-stone-900/50 backdrop-blur-xs"
-        @request-close="closeBomModal"
-      >
-      <div class="bg-white rounded-2xl border border-stone-200/80 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between bg-white shrink-0">
-          <div class="flex items-center gap-3">
-            <span class="text-3xl p-1.5 rounded-xl bg-[#FBF5EA] border border-stone-100">
-              {{ selectedMenuForBom.emoji }}
-            </span>
-            <div>
-              <div class="flex items-center gap-2">
-                <h3 id="menu-recipe-title" class="text-sm font-bold text-stone-900">{{ selectedMenuForBom.name }}</h3>
-                <span class="px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[10px] font-medium">
-                  {{ selectedMenuForBom.category }}
-                </span>
-              </div>
-              <p class="text-[11px] text-stone-400 mt-0.5">สูตรวัตถุดิบ & บรรจุภัณฑ์ (BOM)</p>
-            </div>
-          </div>
-          <button
-            aria-label="ปิดรายละเอียดสูตร" @click="closeBomModal"
-            class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 transition-colors"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-
-        <!-- Modal Body -->
-        <div class="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
-          <!-- Cost & Margin Summary Cards -->
-          <div class="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50 text-center">
-            <div>
-              <span class="block text-[10px] text-stone-400 mb-0.5">ต้นทุนวัตถุดิบรวม</span>
-              <span class="font-number font-bold text-rose-700 text-sm">
-                ฿{{ selectedMenuFoodCost.toFixed(2) }}
-              </span>
-            </div>
-            <div>
-              <span class="block text-[10px] text-stone-400 mb-0.5">ราคาขายหน้าร้าน</span>
-              <span class="font-number font-bold text-stone-900 text-sm">
-                ฿{{ selectedMenuStorePrice }}
-              </span>
-            </div>
-            <div>
-              <span class="block text-[10px] text-stone-400 mb-0.5">กำไรขั้นต้น (GP)</span>
-              <span class="font-number font-bold text-emerald-800 text-sm">
-                {{ selectedMenuGpPercent.toFixed(1) }}%
-              </span>
-            </div>
-          </div>
-
-          <!-- Recipe & Packaging Items -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between text-stone-700 font-medium">
-              <span class="flex items-center gap-1.5 text-xs">
-                <span>📋</span>
-                <span>รายการวัตถุดิบที่ใช้ต่อ 1 เสิร์ฟ</span>
-              </span>
-              <span class="text-[10px] text-stone-400">{{ (selectedMenuForBom.recipe || []).length }} รายการ</span>
-            </div>
-
-            <div v-if="!selectedMenuForBom.recipe || selectedMenuForBom.recipe.length === 0" class="text-stone-400 text-center py-6 italic bg-stone-50 rounded-xl">
-              ยังไม่มีการผูกสูตรวัตถุดิบในเมนูนี้
-            </div>
-
-            <div v-else class="space-y-1.5">
-              <div
-                v-for="(item, idx) in detailedRecipeItems"
-                :key="idx"
-                class="flex items-center justify-between p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50 hover:bg-[#F4EBDD] transition-colors"
-              >
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <span class="text-xl shrink-0">{{ item.mat?.emoji || '🥣' }}</span>
-                  <div class="min-w-0">
-                    <div class="font-medium text-stone-900 truncate flex items-center gap-1.5">
-                      <span>{{ item.mat?.name || item.materialId }}</span>
-                      <span
-                        class="text-[9px] px-1.5 py-0.2 rounded font-normal"
-                        :class="item.mat?.category === 'Packaging' ? 'bg-amber-100/70 text-amber-900' : 'bg-stone-200/60 text-stone-700'"
-                      >
-                        {{ item.mat?.category === 'Packaging' ? 'บรรจุภัณฑ์' : 'วัตถุดิบ' }}
-                      </span>
-                    </div>
-                    <div class="text-[10px] text-stone-400 flex items-center gap-2 mt-0.5">
-                      <span>คงเหลือในคลัง: {{ (item.mat?.stock || 0).toLocaleString() }} {{ item.mat?.unit }}</span>
-                      <span v-if="item.servingsAvailable !== null" class="text-emerald-700 font-medium">
-                        (พอขาย ~{{ item.servingsAvailable }} เสิร์ฟ)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Qty and Cost -->
-                <div class="text-right shrink-0">
-                  <div class="font-number font-bold text-stone-900">
-                    {{ item.qty.toLocaleString() }} {{ item.mat?.unit }}
-                  </div>
-                  <div class="text-[10px] text-stone-400 font-number mt-0.5">
-                    @ ฿{{ Number(item.mat?.unitCost || 0).toFixed(4) }} =
-                    <strong class="text-stone-700">฿{{ item.cost.toFixed(2) }}</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Platform Prices Overview -->
-          <div class="pt-2 border-t border-stone-100">
-            <span class="text-[11px] font-medium text-stone-500 block mb-1.5">ราคาขายตามแต่ละช่องทาง (Platform Prices)</span>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px]">
-              <div
-                v-for="p in store.platforms"
-                :key="p.id"
-                class="p-2 rounded-lg bg-stone-50 border border-stone-100"
-              >
-                <span class="block text-[10px] text-stone-400 truncate">{{ p.name.replace(/\s*\([^)]*\)/g, '') }}</span>
-                <span class="font-number font-bold text-stone-800">
-                  ฿{{ selectedMenuForBom.prices?.[p.id] !== undefined ? selectedMenuForBom.prices[p.id] : '-' }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-between shrink-0">
-          <button
-            type="button"
-            @click="closeBomModal"
-            class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
-          >
-            ปิด
-          </button>
-          <button
-            type="button"
-            @click="editFromBom"
-            class="px-5 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5"
-          >
-            <Edit3 class="w-3.5 h-3.5" />
-            <span>แก้ไขเมนู & สูตรนี้</span>
-          </button>
-        </div>
-      </div>
-    </ModalShell>
-    </Teleport>
+    <MenuRecipeDetails :open="isBomModalOpen" :menu="selectedMenuForBom && store.menus.find(m=>m.id===selectedMenuForBom.id)" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :store-price="selectedMenuStorePrice" :margin="selectedMenuGpPercent" :platforms="store.platforms" :selected-id="displayPlatformId" @close="closeBomModal" @edit="editFromBom" />
   </div>
 </template>
 
 <script setup>
-import ModalShell from '@/components/ui/ModalShell.vue'
+import MenuCard from '@/components/catalog/MenuCard.vue'
+import MenuRecipeDetails from '@/components/catalog/MenuRecipeDetails.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import CatalogToolbar from '@/components/catalog/CatalogToolbar.vue'
 import PlatformPriceSummary from '@/components/catalog/PlatformPriceSummary.vue'
@@ -365,9 +219,10 @@ function editMenu(menuId) {
   store.modals.menuEdit = { isOpen: true, menuId }
 }
 
-function deleteMenu(menu) {
-  if (confirm(`คุณต้องการลบเมนู "${menu.name}" หรือไม่?`)) {
+async function deleteMenu(menu) {
+  if (await store.confirmDialog({title:'ลบเมนู?',message:menu.name+' · '+menu.id,confirmText:'ลบเมนู',cancelText:'ยกเลิก',type:'danger'})) {
     store.deleteMenu(menu.id)
   }
 }
 </script>
+

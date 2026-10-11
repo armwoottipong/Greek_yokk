@@ -1,8 +1,10 @@
 <template>
   <div class="space-y-4">
     <CatalogToolbar id="addon-catalog" label="Add-on" v-model:search="searchQuery" placeholder="ค้นหาชื่อ Add-on" :category="selectedCategory" :platform="displayPlatformId" :categories="addonFilterCategories" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddAddon" />
+    <div class="adaptive-catalog-list"><AddonCard v-for="addon in filteredAddons" :key="addon.id" :addon="addon" :platforms="store.platforms" :selected-id="displayPlatformId" @details="detailAddonId=$event" @edit="editAddon" @delete="deleteAddon" /><p v-if="!filteredAddons.length" class="interface-empty">ไม่พบ Add-on ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div>
+    <DialogFrame id="addon-details" title="รายละเอียด Add-on" :open="Boolean(detailAddonId)" presentation="sheet" @request-close="detailAddonId=null"><template v-if="detailAddon"><h4 class="font-semibold">{{ detailAddon.name }}</h4><PlatformPriceSummary all :prices="detailAddon.prices||{}" :platforms="store.platforms" :selected-id="displayPlatformId" /><h4 class="mt-6 font-semibold">วัตถุดิบที่ตัดจากคลัง</h4><p class="mt-3">{{ store.matMap[detailAddon.materialId]?.name||'ไม่พบวัตถุดิบ' }} · {{ detailAddon.amountUsed }} {{ store.matMap[detailAddon.materialId]?.unit||'' }}</p></template><p v-else>ไม่พบ Add-on รายการนี้อาจถูกลบแล้ว</p><template #footer><Button v-if="detailAddon" @click="editAddon(detailAddon.id);detailAddonId=null">แก้ไข Add-on</Button></template></DialogFrame>
     <!-- Addons Management Table -->
-    <div class="editorial-card overflow-hidden">
+    <div class="desktop-catalog-table editorial-card overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs text-stone-700">
           <thead class="bg-stone-50/70 text-stone-400 font-medium border-b border-stone-100">
@@ -75,7 +77,9 @@
 </template>
 
 <script setup>
-import AppSelect from '@/components/ui/AppSelect.vue'
+import AddonCard from '@/components/catalog/AddonCard.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
+import Button from '@/components/ui/Button.vue'
 import CatalogToolbar from '@/components/catalog/CatalogToolbar.vue'
 import PlatformPriceSummary from '@/components/catalog/PlatformPriceSummary.vue'
 import { ref, computed, watch } from 'vue'
@@ -84,6 +88,8 @@ import { Search, Plus, Trash2 } from 'lucide-vue-next'
 
 const store = usePosStore()
 
+const detailAddonId=ref(null)
+const detailAddon=computed(()=>store.addons.find(a=>a.id===detailAddonId.value)||null)
 const searchQuery = ref('')
 const selectedCategory = ref('ทั้งหมด')
 const displayPlatformId=ref(store.platforms[0]?.id||'')
@@ -119,8 +125,8 @@ function editAddon(addonId) {
   store.modals.addonEdit = { isOpen: true, addonId }
 }
 
-function deleteAddon(addon) {
-  if (confirm(`คุณต้องการลบ Add-on "${addon.name}" หรือไม่?`)) {
+async function deleteAddon(addon) {
+  if (await store.confirmDialog({title:'ลบ Add-on?',message:addon.name+' · '+addon.id,confirmText:'ลบ Add-on',cancelText:'ยกเลิก',type:'danger'})) {
     store.deleteAddon(addon.id)
   }
 }

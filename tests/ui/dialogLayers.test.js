@@ -25,12 +25,12 @@ it('keeps nested dialogs locked and permits only the top scrolling body',async()
 })
 it('isolates recipe details as a named dialog and closes with Escape',async()=>{
  const store=createTestStore();store.resetDemoData()
- const w=mount(MenuView,{attachTo:document.body})
+ const w=mount(MenuView,{attachTo:document.body,global:{stubs:{transition:false}}})
  try{
   await w.findAll('button').find(b=>b.attributes('title')==='คลิกเพื่อดูสูตรวัตถุดิบและบรรจุภัณฑ์ (BOM)').trigger('click');await flushPromises()
   const dialog=document.querySelector('[role="dialog"]')
   expect(dialog).not.toBeNull();expect(dialog.getAttribute('aria-labelledby')).toBe('menu-recipe-title')
-  dialog.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await flushPromises()
+  dialog.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await flushPromises();await new Promise(resolve=>setTimeout(resolve,100))
   expect(document.querySelector('[role="dialog"]')).toBeNull()
  }finally{w.unmount()}
 })
