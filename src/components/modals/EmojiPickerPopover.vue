@@ -37,12 +37,13 @@
       </div>
 
       <!-- Emoji Grid -->
-      <div class="grid grid-cols-7 gap-1.5 max-h-56 overflow-y-auto p-1 text-xl">
+      <div class="emoji-grid grid grid-cols-5 sm:grid-cols-7 gap-1.5 max-h-56 overflow-y-auto p-1 text-xl">
         <button
           v-for="(item, idx) in filteredEmojis"
           :key="idx"
           @click="selectEmoji(item.emoji)"
-          class="flex items-center justify-center h-10 w-10 rounded-xl hover:bg-amber-100/50 hover:scale-115 active:scale-95 transition-all"
+          :aria-label="`เลือก ${item.keywords.split(/\s+/)[0]}`"
+          class="flex items-center justify-center min-h-11 w-full rounded-xl hover:bg-brand-50 transition-colors"
           :title="item.keywords"
         >
           {{ item.emoji }}

@@ -1,7 +1,7 @@
 <template>
-  <div class="select-none rounded-lg border border-stone-100 p-2">
+  <div class="calendar-panel select-none rounded-lg border border-stone-100 p-2">
     <!-- Calendar Header: Month & Year Navigator -->
-    <div class="flex items-center justify-between mb-2 px-0.5">
+    <div class="calendar-header flex items-center justify-between mb-2 px-0.5">
       <button
         type="button"
         @click="prevMonth"
@@ -28,11 +28,11 @@
 
     <!-- Day of Week Headers -->
     <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-stone-400 mb-1">
-      <span v-for="d in dayNames" :key="d" :class="d === 'อา.' ? 'text-rose-400' : ''">{{ d }}</span>
+      <span v-for="d in dayNames" :key="d">{{ d }}</span>
     </div>
 
     <!-- Calendar Days Grid -->
-    <div class="grid grid-cols-7 gap-y-0.5 gap-x-0.5 text-center text-xs">
+    <div class="calendar-days grid grid-cols-7 gap-y-0.5 gap-x-0.5 text-center text-xs">
       <div
         v-for="(cell, idx) in calendarDays"
         :key="idx"
@@ -287,3 +287,7 @@ function formatDateLabel(dateStr) {
   return `${d} ${m} ${y}`
 }
 </script>
+<style scoped>
+.calendar-header button{min-width:44px;min-height:44px}.calendar-days button{min-height:44px}
+@media(max-width:767px){.calendar-panel{padding:0;border-color:transparent}.calendar-days{column-gap:0}.calendar-days>div{padding:0}.calendar-days button{font-size:.8125rem}.calendar-header{padding:0 4px}}
+</style>
