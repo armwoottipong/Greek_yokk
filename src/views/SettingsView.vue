@@ -80,9 +80,10 @@
             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors"
           >
             <RefreshCw class="w-3.5 h-3.5" :class="{ 'animate-spin': store.isSyncing }" />
-            <span>{{ store.isSyncing ? 'กำลังส่งข้อมูล...' : 'สำรองไป Google Sheets' }}</span>
+            <span>{{ store.isSyncing ? 'กำลังส่งข้อมูล...' : store.syncError ? 'ลองสำรองอีกครั้ง' : 'สำรองไป Google Sheets' }}</span>
           </button>
         </div>
+        <p data-sync-status role="status" aria-live="polite" class="text-xs text-stone-600">{{ store.isSyncing?'กำลังส่งข้อมูลไป Google Sheets':store.syncStatus==='success'?'ซิงค์ข้อมูลที่บันทึกแล้วสำเร็จ':store.syncError?'สำรองไม่สำเร็จ ตรวจ URL และอินเทอร์เน็ต แล้วลองอีกครั้ง':store.gasApiUrl?'บันทึก URL แล้ว · ยังไม่ซิงค์ข้อมูล':'ยังไม่เชื่อมต่อ ใช้ไฟล์สำรองในเครื่องได้' }}</p>
         <p v-if="store.syncError" role="alert" class="text-sm text-rose-700">{{ store.syncError }}</p>
       </div>
     </div>
@@ -286,14 +287,14 @@
                 <button
                   @click="saveEditingCategory"
                   class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
-                  title="บันทึก"
+                  :aria-label="`บันทึกหมวดหมู่ ${cat.name}`" title="บันทึก"
                 >
                   <Check class="w-4 h-4" />
                 </button>
                 <button
                   @click="cancelEditingCategory"
                   class="p-1.5 text-stone-400 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
-                  title="ยกเลิก"
+                  :aria-label="`ยกเลิกแก้ไขหมวดหมู่ ${cat.name}`" title="ยกเลิก"
                 >
                   <X class="w-4 h-4" />
                 </button>
@@ -367,7 +368,7 @@
               <button
                 @click="startEditingCategory(cat)"
                 class="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
-                title="แก้ไขหมวดหมู่"
+                :aria-label="`แก้ไขหมวดหมู่ ${cat.name}`" title="แก้ไขหมวดหมู่"
               >
                 <Edit3 class="w-3.5 h-3.5" />
               </button>
@@ -376,7 +377,7 @@
               <button
                 @click="handleDeleteCategory(activeCategoryTab, cat)"
                 class="p-1.5 text-stone-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                title="ลบหมวดหมู่"
+                :aria-label="`ลบหมวดหมู่ ${cat.name}`" title="ลบหมวดหมู่"
               >
                 <Trash2 class="w-3.5 h-3.5" />
               </button>
@@ -653,15 +654,15 @@ function getTrackingModeClass(mode) {
   return 'bg-stone-100 text-stone-600'
 }
 
-function handleDeleteCategory(tab, cat) {
+async function handleDeleteCategory(tab, cat) {
   const count = getItemCount(tab, cat.name)
   if (count > 0) {
     const itemLabel = tab === 'menu' ? 'เมนู' : tab === 'material' ? 'วัตถุดิบ' : 'Add-on'
-    alert(`ไม่สามารถลบหมวดหมู่ "${cat.name}" ได้เนื่องจากมี ${count} ${itemLabel} ใช้งานอยู่\nกรุณาเปลี่ยนหมวดหมู่ของรายการเหล่านั้นก่อนทำการลบ`)
+    store.showToast(`ยังลบหมวดหมู่ ${cat.name} ไม่ได้: มี ${count} ${itemLabel} ใช้งานอยู่ กรุณาเปลี่ยนหมวดหมู่ของรายการก่อน`, 'error')
     return
   }
 
-  if (confirm(`คุณต้องการลบหมวดหมู่ "${cat.name}" หรือไม่?`)) {
+  if (await store.confirmDialog({title:'ลบหมวดหมู่?',message:cat.name,confirmText:'ลบหมวดหมู่',cancelText:'ยกเลิก',type:'danger'})) {
     store.deleteCategory(tab, cat.id)
   }
 }
@@ -716,10 +717,10 @@ function handleImportFile(event) {
   if (!file) return
 
   const reader = new FileReader()
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const data = JSON.parse(e.target.result)
-      if (!confirm('ยืนยันการกู้คืนข้อมูล? ข้อมูลปัจจุบันจะถูกแทนที่ด้วยไฟล์สำรอง')) return
+      if (!await store.confirmDialog({title:'กู้คืนข้อมูลจากไฟล์?',message:'ข้อมูลปัจจุบันจะถูกแทนที่ด้วยไฟล์ '+file.name,confirmText:'กู้คืนข้อมูล',cancelText:'ยกเลิก',type:'danger'})) return
       const result = store.replaceDatabase(data,{source:'import'})
       if (!result.ok) { store.showToast('กู้คืนไม่สำเร็จ: ' + result.message,'error'); return }
       gasUrlInput.value = store.gasApiUrl
@@ -727,7 +728,7 @@ function handleImportFile(event) {
     } catch (err) {
       console.error(err)
       store.showToast('ไม่สามารถอ่านไฟล์ JSON ได้: ' + err.message, 'error')
-    }
+    } finally { event.target.value='' }
   }
   reader.readAsText(file)
 }
