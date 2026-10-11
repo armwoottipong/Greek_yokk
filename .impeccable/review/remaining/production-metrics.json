@@ -1,0 +1,50 @@
+[
+  {
+    "controlBorder": "#9A8374",
+    "focus": "main-content",
+    "module": "https://armwoottipong.github.io/Greek_yokk/assets/index-B3ZkBoAU.js",
+    "overflow": false,
+    "route": "#dashboard",
+    "title": "ภาพรวมร้าน · Greek Yogg."
+  },
+  {
+    "controlBorder": "#9A8374",
+    "focus": "main-content",
+    "module": "https://armwoottipong.github.io/Greek_yokk/assets/index-B3ZkBoAU.js",
+    "overflow": false,
+    "route": "#pos",
+    "title": "ขายหน้าร้าน · Greek Yogg."
+  },
+  {
+    "controlBorder": "#9A8374",
+    "focus": "main-content",
+    "module": "https://armwoottipong.github.io/Greek_yokk/assets/index-B3ZkBoAU.js",
+    "overflow": false,
+    "route": "#menu",
+    "title": "เมนูและสูตร · Greek Yogg."
+  },
+  {
+    "controlBorder": "#9A8374",
+    "focus": "main-content",
+    "module": "https://armwoottipong.github.io/Greek_yokk/assets/index-B3ZkBoAU.js",
+    "overflow": false,
+    "route": "#addon",
+    "title": "ท็อปปิ้ง · Greek Yogg."
+  },
+  {
+    "controlBorder": "#9A8374",
+    "focus": "main-content",
+    "module": "https://armwoottipong.github.io/Greek_yokk/assets/index-B3ZkBoAU.js",
+    "overflow": false,
+    "route": "#stock",
+    "title": "คลังวัตถุดิบ · Greek Yogg."
+  },
+  {
+    "controlBorder": "#9A8374",
+    "focus": "main-content",
+    "module": "https://armwoottipong.github.io/Greek_yokk/assets/index-B3ZkBoAU.js",
+    "overflow": false,
+    "route": "#settings",
+    "title": "ตั้งค่าระบบ · Greek Yogg."
+  }
+]
