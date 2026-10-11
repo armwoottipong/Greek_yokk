@@ -1,103 +1,9 @@
 <template>
-  <div class="h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-5 overflow-hidden">
-    <!-- Left: Menu Catalog Area -->
-    <div class="flex-1 flex flex-col min-w-0 space-y-4 overflow-hidden">
-      <!-- Top Platform Bar & Search -->
-      <div class="flex items-center justify-between gap-3 shrink-0">
-        <!-- Platform selector pills -->
-        <div class="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl overflow-x-auto no-scrollbar text-xs">
-          <button
-            v-for="p in store.platforms"
-            :key="p.id"
-            @click="store.setPlatform(p.id)"
-            :class="[
-              'px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all flex items-center gap-1.5',
-              store.currentPlatformId === p.id
-                ? 'bg-white text-stone-900 shadow-xs font-semibold'
-                : 'text-stone-500 hover:text-stone-900'
-            ]"
-          >
-            <span>{{ p.name.replace(/\s*\([^)]*\)/g, '') }}</span>
-            <span
-              v-if="p.gpPercent > 0"
-              class="text-[9px] font-number px-1 py-0.2 rounded bg-amber-100 text-amber-800"
-            >
-              {{ p.gpPercent }}%
-            </span>
-          </button>
-        </div>
-
-        <!-- Search input -->
-        <div class="relative w-48 shrink-0">
-          <Search class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <input aria-label="ค้นหาเมนู"
-            v-model="searchQuery"
-            type="text"
-            placeholder="ค้นหาเมนู..."
-            class="soft-input w-full pl-8 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-          />
-        </div>
-      </div>
-
-      <!-- Category Filter Pills -->
-      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0 text-xs">
-        <button
-          v-for="cat in categories"
-          :key="cat"
-          @click="activeCategory = cat"
-          :class="[
-            'px-3.5 py-1.5 rounded-xl font-medium whitespace-nowrap transition-colors',
-            activeCategory === cat
-              ? 'bg-brand-600 text-white font-semibold'
-              : 'bg-white border border-stone-200/80 text-stone-600 hover:bg-stone-50'
-          ]"
-        >
-          {{ cat }}
-        </button>
-      </div>
-
-      <!-- Menu Grid Cards -->
-      <div class="flex-1 overflow-y-auto pr-1">
-        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-          <button type="button"
-            v-for="menu in filteredMenus"
-            :key="menu.id"
-            @click="handleMenuClick(menu)"
-            :class="[
-              'editorial-card p-4 flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md select-none',
-              isMenuOutOfStock(menu) ? 'bg-amber-50/20 border-amber-200/60' : 'bg-white'
-            ]"
-          >
-            <div>
-              <div class="flex items-start justify-between gap-2 mb-2">
-                <span class="text-3xl p-1.5 rounded-xl bg-[#FBF5EA] border border-stone-100">{{ menu.emoji }}</span>
-                <span v-if="isMenuOutOfStock(menu)" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold flex items-center gap-1" title="วัตถุดิบหมด แต่สามารถกดสั่งขายต่อได้">
-                  <span>⚠️</span>
-                  <span>ของหมด (ขายต่อได้)</span>
-                </span>
-                <span v-else-if="menu.hasAddons" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-medium">
-                  + Add-on ได้
-                </span>
-              </div>
-              <h4 class="text-xs font-bold text-stone-900 line-clamp-1 mb-1">{{ menu.name }}</h4>
-              <p class="text-[11px] text-stone-400 line-clamp-2 leading-relaxed">{{ menu.description }}</p>
-            </div>
-
-            <div class="flex items-center justify-between pt-3 mt-2 border-t border-stone-100">
-              <span class="text-sm font-bold font-number text-stone-900">
-                ฿{{ getMenuPrice(menu) }}
-              </span>
-              <span class="text-[11px] text-amber-900 hover:underline font-medium">
-                {{ menu.hasAddons ? 'ปรับแต่งชาม' : '+ ใส่รายการ' }}
-              </span>
-            </div>
-          </button>
-        </div>
-      </div>
-    </div>
+  <div ref="workspace" class="pos-workspace" :class="{'is-split':split}">
+    <PosCatalog :menus="filteredMenus" :platforms="store.platforms" :platform-id="store.currentPlatformId" v-model:search="searchQuery" v-model:category="activeCategory" :categories="categories" :price-for="getMenuPrice" :unavailable-for="isMenuOutOfStock" @platform="store.setPlatform($event)" @select-menu="selectMenu" />
 
     <!-- Right: POS Order Cart Sidebar -->
-    <div class="w-full lg:w-96 bg-white border border-stone-200/80 rounded-2xl flex flex-col shrink-0 shadow-sm overflow-hidden">
+    <div class="pos-cart-legacy w-full lg:w-96 bg-white border border-stone-200/80 rounded-2xl flex flex-col shrink-0 shadow-sm overflow-hidden">
       <!-- Cart Header -->
       <div class="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50 shrink-0">
         <div class="flex items-center gap-2">
@@ -284,11 +190,16 @@
 </template>
 
 <script setup>
+import PosCatalog from '@/components/pos/PosCatalog.vue'
+import {useElementWidth} from '@/composables/useElementWidth'
 import { ref, computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { Search, ShoppingBag, Check } from 'lucide-vue-next'
+import { ShoppingBag, Check } from 'lucide-vue-next'
 
 const store = usePosStore()
+const workspace=ref(null),width=useElementWidth(workspace)
+const split=computed(()=>width.value>=696)
+function selectMenu(id){const menu=store.menus.find(m=>m.id===id);if(menu)handleMenuClick(menu)}
 
 const searchQuery = ref('')
 const activeCategory = ref('ทั้งหมด')
@@ -370,3 +281,10 @@ function handleCheckout() {
   store.checkout()
 }
 </script>
+
+<style scoped>
+.pos-workspace{display:flex;flex-direction:column;gap:16px;min-width:0}
+.pos-workspace.is-split{flex-direction:row;height:calc(100dvh - var(--sidebar-header-height,var(--panel-header-height)) - 48px);min-height:480px;overflow:hidden}
+.pos-workspace.is-split>.pos-cart-legacy{width:320px}
+.pos-workspace.is-split :deep(.pos-catalog-scroll){overflow-y:auto;padding-right:2px;overscroll-behavior:contain}
+</style>
