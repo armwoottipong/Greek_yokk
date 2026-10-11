@@ -136,3 +136,10 @@ input[type="number"] {
   }
 }
 
+@media print {
+ body>#app{display:none!important}
+ #ReceiptModal{display:block!important;position:static!important;height:auto!important;padding:0!important;background:transparent!important}
+ #ReceiptModal .dialog-frame-panel,#ReceiptModal .dialog-frame-body{display:block!important;position:static!important;width:80mm!important;max-height:none!important;height:auto!important;overflow:visible!important;transform:none!important;padding:0!important;border:0!important;box-shadow:none!important;background:white!important}
+ #ReceiptModal .dialog-frame-header,#ReceiptModal .dialog-frame-footer{display:none!important}
+ #printable-receipt{position:static!important;width:80mm!important}
+}

@@ -83,9 +83,24 @@ async function handleSwitchLot(w) {
 }
 
 function handleCheckout() {
-  if (store.cart.length === 0) return
-  store.checkout()
+  if (checkoutPending.value || store.cart.length === 0) return null
+  checkoutPending.value=true
+  try{
+    const result=store.checkout()
+    if(result?.orderId){cartOpen.value=false;checkoutPending.value=false}
+    return result
+  }catch{
+    store.showToast('ไม่สามารถบันทึกออเดอร์ได้ ตรวจรายการแล้วลองอีกครั้ง','error')
+    return null
+  }finally{
+    if(!store.modals.lowStockWarning?.isOpen&&!store.modals.lotDepletion?.isOpen)checkoutPending.value=false
+  }
 }
+watch(()=>[store.modals.lowStockWarning?.isOpen,store.modals.lotDepletion?.isOpen,store.modals.receipt?.isOpen],()=>{
+  if(!checkoutPending.value)return
+  if(store.modals.receipt?.isOpen&&store.modals.receipt.order&&store.cart.length===0){cartOpen.value=false;checkoutPending.value=false}
+  else if(!store.modals.lowStockWarning?.isOpen&&!store.modals.lotDepletion?.isOpen)checkoutPending.value=false
+},{flush:'post'})
 </script>
 
 <style scoped>

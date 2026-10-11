@@ -1,21 +1,7 @@
 <template>
-  <ModalShell @request-close="close" :open="store.modals.receipt.isOpen && Boolean(order)"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-xs"
-  >
-    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-sm w-full overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
-      <!-- Modal Header -->
-      <div class="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">🧾</span>
-          <span class="text-xs font-bold text-stone-900">ใบเสร็จรับเงิน (สำเร็จ)</span>
-        </div>
-        <button @click="close" class="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg" aria-label="ปิดหน้าต่าง">
-          <X class="w-4 h-4" />
-        </button>
-      </div>
+ <DialogFrame :open="store.modals.receipt.isOpen && Boolean(order)" id="ReceiptModal" title="ใบเสร็จรับเงิน" width="400px" :teleport="false" @request-close="close">
 
-      <!-- Thermal Receipt Preview (80mm) -->
-      <div class="p-6 overflow-y-auto flex-1 font-mono text-[11px] leading-relaxed text-stone-800 bg-[#FBF5EA]" id="printable-receipt">
+  <div class="font-mono text-[11px] leading-relaxed text-stone-800 bg-[#FBF5EA]" id="printable-receipt">
         <div class="text-center pb-4 border-b border-dashed border-stone-300">
           <div class="text-2xl mb-1">🥣</div>
           <div class="font-bold text-sm text-stone-900 font-sans tracking-wide">GREEK YOGG. CAFE</div>
@@ -89,9 +75,7 @@
           <div class="text-[9px] mt-0.5">Have a Healthy & Blissful Day!</div>
         </div>
       </div>
-
-      <!-- Action Buttons -->
-      <div class="p-4 bg-white border-t border-stone-100 flex items-center justify-between gap-2">
+  <template #footer><div class="bg-white flex items-center justify-between gap-2">
         <button
           @click="close"
           class="px-4 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
@@ -105,16 +89,15 @@
           <Printer class="w-4 h-4" />
           <span>พิมพ์ใบเสร็จ (Print)</span>
         </button>
-      </div>
-    </div>
-  </ModalShell>
+      </div></template>
+ </DialogFrame>
 </template>
 
 <script setup>
-import ModalShell from '@/components/ui/ModalShell.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { X, Printer } from 'lucide-vue-next'
+import { Printer } from 'lucide-vue-next'
 
 const store = usePosStore()
 
