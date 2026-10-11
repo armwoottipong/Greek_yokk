@@ -376,7 +376,7 @@
               <!-- Delete button -->
               <button
                 @click="handleDeleteCategory(activeCategoryTab, cat)"
-                class="p-1.5 text-stone-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                class="p-1.5 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                 :aria-label="`ลบหมวดหมู่ ${cat.name}`" title="ลบหมวดหมู่"
               >
                 <Trash2 class="w-3.5 h-3.5" />

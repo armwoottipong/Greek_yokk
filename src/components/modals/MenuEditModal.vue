@@ -82,15 +82,15 @@
             </span>
             <span class="text-[10px] text-stone-400">บาท (฿)</span>
           </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div class="price-editor-grid">
             <div
               v-for="p in store.platforms"
               :key="p.id"
-              class="flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F4EBDD] focus-within:bg-[#E8DCCB] focus-within:ring-1 focus-within:ring-brand-600/40 transition-all"
+              class="price-editor-field flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F4EBDD] focus-within:bg-[#E8DCCB] focus-within:ring-1 focus-within:ring-brand-600/40 transition-all"
             >
               <div class="flex items-center gap-1 min-w-0">
-                <span class="text-[11px] font-medium text-stone-700 truncate" :title="p.name">
-                  {{ p.name.replace(/\s*\([^)]*\)/g, '') }}
+                <span class="price-editor-label text-xs font-medium text-stone-700">
+                  {{ p.name }}
                 </span>
                 <span
                   v-if="p.gpPercent > 0"
@@ -105,7 +105,7 @@
                   v-model.number="form.prices[p.id]"
                   type="number"
                   placeholder="0"
-                  class="w-14 bg-transparent border-0 text-right font-number font-semibold text-xs text-stone-900 focus:outline-none placeholder:text-stone-300"
+                  class="w-14 bg-transparent border-0 text-right font-number font-semibold text-xs text-stone-900 focus:outline-none placeholder:text-stone-500"
                 />
               </div>
             </div>
@@ -182,7 +182,7 @@
                   type="number"
                   step="any"
                   placeholder="ปริมาณ"
-                  class="soft-input w-full px-2.5 py-2 rounded-xl text-xs font-number font-semibold text-stone-900 placeholder:text-stone-300"
+                  class="soft-input w-full px-2.5 py-2 rounded-xl text-xs font-number font-semibold text-stone-900 placeholder:text-stone-500"
                 />
                 <span class="text-[11px] text-stone-400 font-medium shrink-0 w-6">
                   {{ getUnit(row.materialId) }}
@@ -192,7 +192,7 @@
               <button
                 type="button"
                 :aria-label="`ลบ ${store.matMap[row.materialId]?.name || 'วัตถุดิบ'} จากสูตร`" @click="removeBaseRecipeRow(idx)"
-                class="w-7 h-7 flex items-center justify-center text-stone-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
+                class="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
                 title="ลบรายการ"
               >
                 <Trash2 class="w-3.5 h-3.5" />
@@ -269,7 +269,7 @@
                   min="1"
                   step="1"
                   placeholder="จำนวน"
-                  class="soft-input w-full px-2.5 py-2 rounded-xl text-xs font-number font-semibold text-stone-900 placeholder:text-stone-300"
+                  class="soft-input w-full px-2.5 py-2 rounded-xl text-xs font-number font-semibold text-stone-900 placeholder:text-stone-500"
                 />
                 <span class="text-[11px] text-stone-400 font-medium shrink-0 w-6">ชิ้น</span>
               </div>
@@ -277,7 +277,7 @@
               <button
                 type="button"
                 :aria-label="`ลบ ${store.matMap[row.materialId]?.name || 'บรรจุภัณฑ์'} จากสูตร`" @click="removePackageRecipeRow(idx)"
-                class="w-7 h-7 flex items-center justify-center text-stone-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
+                class="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
                 title="ลบรายการ"
               >
                 <Trash2 class="w-3.5 h-3.5" />
@@ -490,7 +490,8 @@ async function submit() {
   nameError.value=''
   if (!form.value.name.trim()) {
     nameError.value='กรุณากรอกชื่อเมนูก่อนบันทึก'
-    store.showToast(nameError.value, 'error')
+    await nextTick()
+    document.getElementById('menu-name')?.focus()
     return
   }
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-11T06:36:10Z",
+  "generatedAt": "2026-10-11T07:22:41Z",
   "title": "Design System: Greek Yogg.",
   "extensions": {
     "colorMeta": {
@@ -80,6 +80,11 @@
         "value": "750ms linear infinite",
         "purpose": "Shared loading spinner; reduced motion disables animations",
         "name": "loading-spin"
+      },
+      {
+        "name": "toast-response",
+        "value": "250ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Toast opacity and transform; entry 16px downward offset at .95 scale, exit -8px offset at .95 scale; reduced motion disables transitions"
       }
     ],
     "breakpoints": [
@@ -126,7 +131,7 @@
       "name": "primary button",
       "description": "Shared touch action; minimum height rather than fixed height",
       "html": "<button class=\"ds-button-primary\">บันทึก</button>",
-      "css": ".ds-button-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--action-primary);color:var(--bg-card)}.ds-button-(:disabled){background:var(--accent-hover)}.ds-button--visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-primary{transition:background-color 150ms ease,color 150ms ease}}",
+      "css": ".ds-button-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--action-primary);color:var(--bg-card)}.ds-button-primary:hover:not(:disabled){background:var(--accent-hover)}.ds-button-primary:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-primary:disabled{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-primary{transition:background-color 150ms ease,color 150ms ease}}",
       "refersTo": "button-primary",
       "kind": "button"
     },
@@ -134,7 +139,7 @@
       "name": "secondary button",
       "description": "Shared touch action; minimum height rather than fixed height",
       "html": "<button class=\"ds-button-secondary\">ยกเลิก</button>",
-      "css": ".ds-button-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid var(--border-subtle);border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--bg-soft);color:var(--text-main)}.ds-button-(:disabled){background:var(--border-subtle)}.ds-button--visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-secondary{transition:background-color 150ms ease,color 150ms ease}}",
+      "css": ".ds-button-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid var(--border-subtle);border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--bg-soft);color:var(--text-main)}.ds-button-secondary:hover:not(:disabled){background:var(--border-subtle)}.ds-button-secondary:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-secondary:disabled{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-secondary{transition:background-color 150ms ease,color 150ms ease}}",
       "refersTo": "button-secondary",
       "kind": "button"
     },
@@ -142,7 +147,7 @@
       "name": "quiet button",
       "description": "Shared touch action; minimum height rather than fixed height",
       "html": "<button class=\"ds-button-quiet\">ดูรายละเอียด</button>",
-      "css": ".ds-button-quiet{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:transparent;color:var(--accent-brand)}.ds-button-(:disabled){background:var(--accent-soft)}.ds-button--visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-quiet{transition:background-color 150ms ease,color 150ms ease}}",
+      "css": ".ds-button-quiet{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:transparent;color:var(--accent-brand)}.ds-button-quiet:hover:not(:disabled){background:var(--accent-soft)}.ds-button-quiet:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-quiet:disabled{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-quiet{transition:background-color 150ms ease,color 150ms ease}}",
       "refersTo": "button-quiet",
       "kind": "button"
     },
@@ -150,15 +155,15 @@
       "name": "danger button",
       "description": "Shared touch action; minimum height rather than fixed height",
       "html": "<button class=\"ds-button-danger\">ลบรายการ</button>",
-      "css": ".ds-button-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--state-error);color:var(--bg-card)}.ds-button-(:disabled){background:#991B1B}.ds-button--visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-danger{transition:background-color 150ms ease,color 150ms ease}}",
+      "css": ".ds-button-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--control-height,44px);padding:10px 16px;border:1px solid transparent;border-radius:var(--control-radius,10px);font:500 .8125rem/1.4 Prompt,sans-serif;white-space:normal;text-align:center;cursor:pointer;background:var(--state-error);color:var(--bg-card)}.ds-button-danger:hover:not(:disabled){background:#991B1B}.ds-button-danger:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}.ds-button-danger:disabled{opacity:.5;cursor:not-allowed}@media(prefers-reduced-motion:no-preference){.ds-button-danger{transition:background-color 150ms ease,color 150ms ease}}",
       "refersTo": "button-danger",
       "kind": "button"
     },
     {
       "name": "Named soft field",
-      "description": "Visible label with the existing soft field treatment",
+      "description": "Visible label, warm fill, control border and strong burgundy focus; compact native fields use 16px type",
       "html": "<label class=\"ds-label\" for=\"ds-name\">ชื่อรายการ</label><input id=\"ds-name\" class=\"ds-input\" placeholder=\"ชื่อรายการ\">",
-      "css": ".ds-label{display:block;margin-bottom:6px;font:500 .8125rem/1.5 Prompt,sans-serif;color:var(--text-main)}.ds-input{display:block;min-height:44px;padding:8px 12px;border:0;border-radius:14px;font:500 14px/1.5 Prompt,sans-serif;background:var(--bg-soft);color:var(--text-main);outline:none;transition:background-color .15s ease,box-shadow .15s ease}.ds-input:focus{background:var(--bg-card);box-shadow:0 0 0 2px var(--accent-border)}@media(prefers-reduced-motion:reduce){.ds-input{transition:none}}",
+      "css": ".ds-label{display:block;margin-bottom:6px;font:500 .8125rem/1.5 Prompt,sans-serif;color:var(--text-main)}.ds-input{display:block;min-height:44px;padding:8px 12px;border:1px solid var(--control-border);border-radius:14px;font:500 14px/1.5 Prompt,sans-serif;background:var(--bg-soft);color:var(--text-main);outline:none;transition:background-color .15s ease,box-shadow .15s ease}.ds-input:focus{background:var(--bg-card);box-shadow:0 0 0 2px var(--accent-brand)}@media(prefers-reduced-motion:reduce){.ds-input{transition:none}} .ds-input:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}@media(max-width:1199px){.ds-input{font-size:1rem}}",
       "refersTo": "input-soft",
       "kind": "input"
     },
@@ -185,6 +190,13 @@
       "css": ".ds-card{display:grid;gap:12px;min-width:0;padding:16px;background:var(--bg-card);color:var(--text-main);border:1px solid var(--border-subtle);border-radius:var(--surface-radius,16px);font-family:Prompt,sans-serif}.ds-card strong{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.ds-card small{font-size:12px;color:var(--text-muted)}",
       "refersTo": "catalog-card",
       "kind": "card"
+    },
+    {
+      "name": "Platform price grid",
+      "kind": "custom",
+      "description": "Full channel names with named prices, two columns above the phone shell boundary and one below it",
+      "html": "<div class=\"ds-price-grid\"><label class=\"ds-price-field\"><span class=\"ds-price-label\">หน้าร้าน</span><span>฿ <input class=\"ds-price-input\" type=\"number\" aria-label=\"ราคา หน้าร้าน\" value=\"120\"></span></label><label class=\"ds-price-field\"><span class=\"ds-price-label\">Delivery Platform</span><span>฿ <input class=\"ds-price-input\" type=\"number\" aria-label=\"ราคา Delivery Platform\" value=\"150\"></span></label></div>",
+      "css": ".ds-price-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-family:Prompt,sans-serif}.ds-price-field{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;min-height:44px;padding:6px 12px;border:1px solid var(--control-border);border-radius:12px;background:var(--bg-soft);color:var(--text-main);font-size:12px}.ds-price-label{min-width:0;overflow-wrap:anywhere;line-height:1.5}.ds-price-field>span:last-child{flex-shrink:0}.ds-price-input{width:56px;border:0;background:transparent;color:var(--text-main);font:600 12px/1.5 \"Plus Jakarta Sans\",sans-serif;text-align:right}.ds-price-field:focus-within{background:var(--border-subtle)}.ds-price-input:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}@media(max-width:1199px){.ds-price-input{font-size:1rem}}@media(max-width:767px){.ds-price-grid{grid-template-columns:1fr}}"
     }
   ],
   "narrative": {

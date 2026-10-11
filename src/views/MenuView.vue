@@ -97,7 +97,7 @@
                   </button>
                   <button
                     @click="deleteMenu(menu)"
-                    class="p-1 text-stone-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                    class="p-1 text-stone-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
                     title="ลบเมนู"
                   >
                     <Trash2 class="w-3.5 h-3.5" />

@@ -58,11 +58,11 @@
         <!-- Row 3: Platform Prices (Compact capsules) -->
         <div class="space-y-1.5">
           <label class="block text-xs font-medium text-stone-700">ราคาบวกเพิ่มตามแต่ละ Platform (฿)</label>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="price-editor-grid">
             <div
               v-for="p in store.platforms"
               :key="p.id"
-              class="flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F4EBDD] focus-within:bg-[#E8DCCB] focus-within:ring-1 focus-within:ring-brand-600/40"
+              class="price-editor-field flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F4EBDD] focus-within:bg-[#E8DCCB] focus-within:ring-1 focus-within:ring-brand-600/40"
             >
               <span class="text-xs font-medium text-stone-700">{{ p.name }}</span>
               <div class="flex items-center gap-0.5 shrink-0">
@@ -217,7 +217,8 @@ async function submit() {
   nameError.value=''
   if (!form.value.name.trim()) {
     nameError.value='กรุณากรอกชื่อ Add-on ก่อนบันทึก'
-    store.showToast(nameError.value, 'error')
+    await nextTick()
+    document.getElementById('addon-name')?.focus()
     return
   }
 

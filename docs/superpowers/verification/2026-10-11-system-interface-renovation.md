@@ -2,6 +2,8 @@
 
 Date: 2026-10-11. Baseline main: `3e92fcc`. Approved A: cream/burgundy mascot shop workspace; desktop/iPad primary, phone quick management. Replaces the earlier four-page mobile plan.
 
+Follow-up: [Remaining interface checks](2026-10-11-interface-remaining-checks.md) installs all six missing owning skills, resolves the deferred Add-on wording and additional evidenced shared UI failures. This report remains the historical initial-release evidence; follow-up verification supersedes its missing-skill/deferred-copy status.
+
 ## Result and checks
 
 Tasks1–24 implementation and release work completed. Physical/manual verification gates remain explicitly Not verified. No real shop checkout or Google Sheets write used for UI verification.

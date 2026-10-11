@@ -1,0 +1,296 @@
+[
+  {
+    "focus": "main-content",
+    "height": 844,
+    "main": true,
+    "overflow": false,
+    "route": "#pos",
+    "title": "ขายหน้าร้าน · Greek Yogg.",
+    "width": 320
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "main": true,
+    "overflow": false,
+    "route": "#stock",
+    "title": "คลังวัตถุดิบ · Greek Yogg.",
+    "width": 320
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "main": true,
+    "overflow": false,
+    "route": "#menu",
+    "title": "เมนูและสูตร · Greek Yogg.",
+    "width": 320
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "main": true,
+    "overflow": false,
+    "route": "#addon",
+    "title": "ท็อปปิ้ง · Greek Yogg.",
+    "width": 320
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "main": true,
+    "overflow": false,
+    "route": "#dashboard",
+    "title": "ภาพรวมร้าน · Greek Yogg.",
+    "width": 320
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "main": true,
+    "overflow": false,
+    "route": "#settings",
+    "title": "ตั้งค่าระบบ · Greek Yogg.",
+    "width": 320
+  },
+  {
+    "focus": "main-content",
+    "height": 1194,
+    "overflow": false,
+    "route": "#pos",
+    "title": "ขายหน้าร้าน · Greek Yogg.",
+    "width": 834
+  },
+  {
+    "focus": "main-content",
+    "height": 1194,
+    "overflow": false,
+    "route": "#stock",
+    "title": "คลังวัตถุดิบ · Greek Yogg.",
+    "width": 834
+  },
+  {
+    "focus": "main-content",
+    "height": 1194,
+    "overflow": false,
+    "route": "#menu",
+    "title": "เมนูและสูตร · Greek Yogg.",
+    "width": 834
+  },
+  {
+    "focus": "main-content",
+    "height": 1194,
+    "overflow": false,
+    "route": "#addon",
+    "title": "ท็อปปิ้ง · Greek Yogg.",
+    "width": 834
+  },
+  {
+    "focus": "main-content",
+    "height": 1194,
+    "overflow": false,
+    "route": "#dashboard",
+    "title": "ภาพรวมร้าน · Greek Yogg.",
+    "width": 834
+  },
+  {
+    "focus": "main-content",
+    "height": 1194,
+    "overflow": false,
+    "route": "#settings",
+    "title": "ตั้งค่าระบบ · Greek Yogg.",
+    "width": 834
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "overflow": false,
+    "route": "#pos",
+    "title": "ขายหน้าร้าน · Greek Yogg.",
+    "width": 390
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "overflow": false,
+    "route": "#stock",
+    "title": "คลังวัตถุดิบ · Greek Yogg.",
+    "width": 390
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "overflow": false,
+    "route": "#menu",
+    "title": "เมนูและสูตร · Greek Yogg.",
+    "width": 390
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "overflow": false,
+    "route": "#addon",
+    "title": "ท็อปปิ้ง · Greek Yogg.",
+    "width": 390
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "overflow": false,
+    "route": "#dashboard",
+    "title": "ภาพรวมร้าน · Greek Yogg.",
+    "width": 390
+  },
+  {
+    "focus": "main-content",
+    "height": 844,
+    "overflow": false,
+    "route": "#settings",
+    "title": "ตั้งค่าระบบ · Greek Yogg.",
+    "width": 390
+  },
+  {
+    "focus": "main-content",
+    "height": 834,
+    "overflow": false,
+    "route": "#pos",
+    "title": "ขายหน้าร้าน · Greek Yogg.",
+    "width": 1194
+  },
+  {
+    "focus": "main-content",
+    "height": 834,
+    "overflow": false,
+    "route": "#stock",
+    "title": "คลังวัตถุดิบ · Greek Yogg.",
+    "width": 1194
+  },
+  {
+    "focus": "main-content",
+    "height": 834,
+    "overflow": false,
+    "route": "#menu",
+    "title": "เมนูและสูตร · Greek Yogg.",
+    "width": 1194
+  },
+  {
+    "focus": "main-content",
+    "height": 834,
+    "overflow": false,
+    "route": "#addon",
+    "title": "ท็อปปิ้ง · Greek Yogg.",
+    "width": 1194
+  },
+  {
+    "focus": "main-content",
+    "height": 834,
+    "overflow": false,
+    "route": "#dashboard",
+    "title": "ภาพรวมร้าน · Greek Yogg.",
+    "width": 1194
+  },
+  {
+    "focus": "main-content",
+    "height": 834,
+    "overflow": false,
+    "route": "#settings",
+    "title": "ตั้งค่าระบบ · Greek Yogg.",
+    "width": 1194
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#pos",
+    "title": "ขายหน้าร้าน · Greek Yogg.",
+    "width": 1280
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#stock",
+    "title": "คลังวัตถุดิบ · Greek Yogg.",
+    "width": 1280
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#menu",
+    "title": "เมนูและสูตร · Greek Yogg.",
+    "width": 1280
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#addon",
+    "title": "ท็อปปิ้ง · Greek Yogg.",
+    "width": 1280
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#dashboard",
+    "title": "ภาพรวมร้าน · Greek Yogg.",
+    "width": 1280
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#settings",
+    "title": "ตั้งค่าระบบ · Greek Yogg.",
+    "width": 1280
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#pos",
+    "title": "ขายหน้าร้าน · Greek Yogg.",
+    "width": 640
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#stock",
+    "title": "คลังวัตถุดิบ · Greek Yogg.",
+    "width": 640
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#menu",
+    "title": "เมนูและสูตร · Greek Yogg.",
+    "width": 640
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#addon",
+    "title": "ท็อปปิ้ง · Greek Yogg.",
+    "width": 640
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#dashboard",
+    "title": "ภาพรวมร้าน · Greek Yogg.",
+    "width": 640
+  },
+  {
+    "focus": "main-content",
+    "height": 720,
+    "overflow": false,
+    "route": "#settings",
+    "title": "ตั้งค่าระบบ · Greek Yogg.",
+    "width": 640
+  }
+]

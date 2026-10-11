@@ -15,6 +15,7 @@
   --text-main: #352522;
   --text-muted: #7D675B;
   --border-subtle: #E8DCCB;
+  --control-border: #9A8374;
   --accent-brand: #780608;
   --accent-hover: #580406;
   --accent-soft: #FBF0E9;
@@ -39,7 +40,7 @@ body {
     outline-offset: 3px;
   }
   input:not([type="checkbox"]):not([type="radio"]):focus-visible, textarea:focus-visible {
-    outline: 2px solid var(--accent-border);
+    outline: 2px solid var(--accent-brand);
     outline-offset: 1px;
   }
   input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-brand); }
@@ -83,17 +84,16 @@ body {
   border-radius: 20px;
 }
 
-/* Soft borderless inputs & selects */
+/* Soft inputs & selects with visible control boundaries */
 .soft-input {
   background-color: var(--bg-soft) !important;
-  border: 0 !important;
-  outline: none !important;
+  border: 1px solid var(--control-border) !important;
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .soft-input:focus {
   background-color: var(--bg-card) !important;
-  box-shadow: 0 0 0 2px var(--accent-border) !important;
+  box-shadow: 0 0 0 2px var(--accent-brand) !important;
 }
 
 select.soft-input {
@@ -143,3 +143,10 @@ input[type="number"] {
  #ReceiptModal .dialog-frame-header,#ReceiptModal .dialog-frame-footer{display:none!important}
  #printable-receipt{position:static!important;width:80mm!important}
 }
+
+.skip-content{position:fixed;inset-inline-start:16px;top:8px;z-index:180;padding:12px 16px;background:var(--bg-card);color:var(--accent-brand);border:1px solid var(--control-border);border-radius:10px;transform:translateY(-160%)}
+.skip-content:focus{transform:translateY(0)}
+@media(max-width:1199px){#app input:not([type="checkbox"]):not([type="radio"]),#app textarea,#app select,[role="dialog"] input:not([type="checkbox"]):not([type="radio"]),[role="dialog"] textarea,[role="dialog"] select{font-size:1rem!important}}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(:disabled),textarea:not(:disabled),select:not(:disabled){border-color:var(--control-border)!important}
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent-brand)!important;outline-offset:2px}

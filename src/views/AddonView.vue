@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <CatalogToolbar id="addon-catalog" label="Add-on" v-model:search="searchQuery" placeholder="ค้นหาชื่อ Add-on" :category="selectedCategory" :platform="displayPlatformId" :categories="addonFilterCategories" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddAddon" />
     <div class="adaptive-catalog-list"><AddonCard v-for="addon in filteredAddons" :key="addon.id" :addon="addon" :platforms="store.platforms" :selected-id="displayPlatformId" @details="detailAddonId=$event" @edit="editAddon" @delete="deleteAddon" /><p v-if="!filteredAddons.length" class="interface-empty">ไม่พบ Add-on ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div>
-    <DialogFrame id="addon-details" title="รายละเอียด Add-on" :open="Boolean(detailAddonId)" presentation="sheet" @request-close="detailAddonId=null"><template v-if="detailAddon"><h4 class="font-semibold">{{ detailAddon.name }}</h4><PlatformPriceSummary all :prices="detailAddon.prices||{}" :platforms="store.platforms" :selected-id="displayPlatformId" /><h4 class="mt-6 font-semibold">วัตถุดิบที่ตัดจากคลัง</h4><p class="mt-3">{{ store.matMap[detailAddon.materialId]?.name||'ไม่พบวัตถุดิบ' }} · {{ detailAddon.amountUsed }} {{ store.matMap[detailAddon.materialId]?.unit||'' }}</p></template><p v-else>ไม่พบ Add-on รายการนี้อาจถูกลบแล้ว</p><template #footer><Button v-if="detailAddon" @click="editAddon(detailAddon.id);detailAddonId=null">แก้ไข Add-on</Button></template></DialogFrame>
+    <DialogFrame id="addon-details" title="รายละเอียด Add-on" :open="Boolean(detailAddonId)" presentation="sheet" @request-close="detailAddonId=null"><template v-if="detailAddon"><h4 class="font-semibold">{{ detailAddon.name }}</h4><PlatformPriceSummary all :prices="detailAddon.prices||{}" :platforms="store.platforms" :selected-id="displayPlatformId" /><h4 class="mt-6 font-semibold">วัตถุดิบที่ตัดจากคลัง</h4><p v-if="!detailAddon.materialId" class="mt-3">ไม่ตัดวัตถุดิบ</p><p v-else-if="!store.matMap[detailAddon.materialId]" class="mt-3">ไม่พบวัตถุดิบที่ผูกไว้ เลือกแก้ไข Add-on เพื่อผูกวัตถุดิบใหม่ หรือเลือกไม่ตัดวัตถุดิบ</p><p v-else class="mt-3">{{ store.matMap[detailAddon.materialId].name }} · {{ detailAddon.amountUsed }} {{ store.matMap[detailAddon.materialId].unit }}</p></template><p v-else>ไม่พบ Add-on รายการนี้อาจถูกลบแล้ว</p><template #footer><Button v-if="detailAddon" @click="editAddon(detailAddon.id);detailAddonId=null">แก้ไข Add-on</Button></template></DialogFrame>
     <!-- Addons Management Table -->
     <div class="desktop-catalog-table editorial-card overflow-hidden">
       <div class="overflow-x-auto">
@@ -48,7 +48,7 @@
                   <span class="font-medium">{{ store.matMap[addon.materialId].name }}</span>
                   <span class="text-stone-400">({{ addon.amountUsed }} {{ store.matMap[addon.materialId].unit }})</span>
                 </div>
-                <span v-else class="text-stone-300">-</span>
+                <span v-else-if="!addon.materialId" class="text-stone-500">ไม่ตัดวัตถุดิบ</span><span v-else class="text-stone-500">ไม่พบวัตถุดิบที่ผูกไว้ · แก้ไขเพื่อเลือกใหม่</span>
               </td>
 
               <td class="py-3.5 px-4 text-center">
@@ -61,7 +61,7 @@
                   </button>
                   <button
                     @click="deleteAddon(addon)"
-                    class="p-1 text-stone-300 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                    class="p-1 text-stone-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
                     title="ลบ Add-on"
                   >
                     <Trash2 class="w-3.5 h-3.5" />

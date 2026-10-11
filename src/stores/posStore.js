@@ -1219,9 +1219,9 @@ const posDefinition = {
         message,
         type
       })
-      setTimeout(() => {
-        this.toasts = this.toasts.filter(t => t.id !== id)
-      }, 3500)
+    },
+    dismissToast(id) {
+      this.toasts=this.toasts.filter(toast=>toast.id!==id)
     },
 
     // ========================================================

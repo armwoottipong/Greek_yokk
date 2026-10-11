@@ -21,7 +21,7 @@ const controlAttrs=()=>Object.fromEntries(Object.entries(attrs).filter(([key])=>
 <style scoped>
 .app-checkbox{display:inline-flex;align-items:center;gap:8px;min-height:32px;cursor:pointer;user-select:none;font-size:12px;color:var(--text-main)}
 .app-checkbox-control{display:inline-flex;position:relative;align-items:center;justify-content:center;flex-shrink:0}
-.app-checkbox-input{appearance:none;display:block;margin:0;width:18px;height:18px;border:1.5px solid #d2c2b0;border-radius:6px;background:var(--bg-card);cursor:inherit;transition:background-color .15s,border-color .15s,box-shadow .15s}
+.app-checkbox-input{appearance:none;display:block;margin:0;width:18px;height:18px;border:1.5px solid var(--control-border);border-radius:6px;background:var(--bg-card);cursor:inherit;transition:background-color .15s,border-color .15s,box-shadow .15s}
 .app-checkbox-input:checked{background:var(--accent-brand);border-color:var(--accent-brand)}
 .app-checkbox:not(.app-checkbox--disabled):hover .app-checkbox-input{border-color:var(--accent-brand)}
 .app-checkbox:not(.app-checkbox--disabled):hover .app-checkbox-input:checked{background:var(--accent-hover);border-color:var(--accent-hover)}
@@ -32,7 +32,7 @@ const controlAttrs=()=>Object.fromEntries(Object.entries(attrs).filter(([key])=>
 .app-checkbox--disabled{opacity:.5;cursor:not-allowed}
 .app-checkbox--switch{flex-direction:row-reverse;justify-content:space-between;gap:12px}
 .app-checkbox--switch .app-checkbox-content{flex:1}
-.app-checkbox--switch .app-checkbox-input{width:40px;height:24px;border-radius:999px;background:var(--border-subtle);border-color:var(--border-subtle)}
+.app-checkbox--switch .app-checkbox-input{width:40px;height:24px;border-radius:999px;background:var(--border-subtle);border-color:var(--control-border)}
 .app-checkbox--switch .app-checkbox-input:checked{background:var(--accent-brand);border-color:var(--accent-brand)}
 .app-checkbox-thumb{position:absolute;left:4px;top:4px;width:16px;height:16px;border-radius:50%;background:var(--bg-card);box-shadow:0 1px 3px #35252220;pointer-events:none;transition:transform .15s}
 .app-checkbox-input:checked+.app-checkbox-thumb{transform:translateX(16px)}

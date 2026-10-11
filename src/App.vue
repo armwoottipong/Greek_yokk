@@ -1,5 +1,6 @@
 <template>
-  <div class="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-[#FBF5EA] font-sans antialiased text-stone-900">
+  <div class="flex flex-col md:flex-row h-dvh w-full overflow-hidden bg-[#FBF5EA] font-sans antialiased text-stone-900">
+    <a data-skip-content class="skip-content" href="#main-content" @click.prevent="focusContent">ข้ามไปเนื้อหาหลัก</a>
     <!-- Sidebar Navigation -->
     <Sidebar :mobile-open="mobileMenuOpen" @close="mobileMenuOpen=false" />
 
@@ -13,7 +14,7 @@
       </div>
 
       <!-- Active View Content -->
-      <main :inert="mobileMenuOpen ? true : undefined" class="flex-1 overflow-y-auto p-4 md:p-6">
+      <main id="main-content" ref="contentRoot" tabindex="-1" :inert="mobileMenuOpen ? true : undefined" class="flex-1 overflow-y-auto p-4 md:p-6">
         <KeepAlive>
           <component :is="currentViewComponent" />
         </KeepAlive>
@@ -42,8 +43,9 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { computed, ref, onMounted, onUnmounted, defineAsyncComponent, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
+import {overlayStack} from '@/composables/overlayState'
 
 import Sidebar from '@/components/layout/Sidebar.vue'
 import HeaderBar from '@/components/layout/HeaderBar.vue'
@@ -75,6 +77,16 @@ import LotDepletionModal from '@/components/modals/LotDepletionModal.vue'
 
 const store = usePosStore()
 const mobileMenuOpen=ref(false)
+const contentRoot=ref(null)
+const viewNames={dashboard:'ภาพรวมร้าน',pos:'ขายหน้าร้าน',menu:'เมนูและสูตร',addon:'ท็อปปิ้ง',stock:'คลังวัตถุดิบ',settings:'ตั้งค่าระบบ'}
+function focusContent(){contentRoot.value?.focus({preventScroll:true})}
+let pendingViewFocus=false
+function finishViewFocus(){
+ if(!pendingViewFocus||overlayStack.length||document.getElementById('app')?.hasAttribute('inert'))return
+ focusContent();pendingViewFocus=false
+}
+watch(()=>store.currentTab,async tab=>{document.title=`${viewNames[tab]||viewNames.dashboard} · Greek Yogg.`;pendingViewFocus=true;await nextTick();finishViewFocus()},{immediate:true,flush:'post'})
+watch(()=>overlayStack.length,async count=>{if(count===0&&pendingViewFocus){await nextTick();finishViewFocus()}})
 
 const currentViewComponent = computed(() => {
   switch (store.currentTab) {
