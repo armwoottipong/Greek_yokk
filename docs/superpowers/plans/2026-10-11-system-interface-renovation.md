@@ -326,17 +326,17 @@
 
 **Files:** verificationreport/dateใหม่; fixproductfilesเฉพาะconfirmedfindings; noextraUIfeature
 
-- [ ] Updateinventory36units: source/runtime/states/deviceevidence; ไม่มีblind“allclear”ที่unverified
-- [ ] `npm test`, `npm run lint`, `npm run build`, `git diff --check` ผ่านบนfinalrevision
-- [ ] Runimpeccabledetect**ครั้งเดียวหลังUIเสร็จ**; verifyfindingsincontextและไม่เปลี่ยนbrand/fontเพราะheuristicwarning
-- [ ] Capturedesktop+iPadportrait/landscape+phone320/390ในbatchเดียว; initialstate/empty/error/dirty/loadingตามstateที่มีจริง; validcapturesไม่transitionframes
-- [ ] ส่งfreshfinishreviewตามimpeccablereferenceพร้อมscope/files/PRODUCT/direction/screenshots/knownnotverified; อย่าให้reviewerรับframingจากtranscriptเต็ม
-- [ ] Fixconfirmedmaterialfindingsหนึ่งbatch, rebuildและconfirmationcaptureหนึ่งbatch; ถ้ายังมีHIGH/qualitygateopenรายงานและอย่าประกาศApproved
-- [ ] PhysicaliPad/Safari/keyboard/zoommanualgatesถ้าทำไม่ได้ระบุNotverifiedพร้อมstepsสำหรับuser ไม่ทำคะแนนเหมือนผ่าน
-- [ ] เขียนDESIGN.md+`.impeccable/design.json`ตามdocumentworkflowให้ตรงสิ่งที่สร้างจริง ไม่ซ่อมconfigurationdriftนอกscope
-- [ ] Integrationเข้mainตามauthorizationเดิม; stageเฉพาะtaskfiles; noforcepush/noeraseuserchanges; testอีกถ้าintegrationเปลี่ยนproductcode
-- [ ] PushและตรวจBuild/PagesdeploymentของSHAนี้จนsuccess; smoke6routes+popupmainflowsด้วยtestorigin/data; ไม่ใช้realcheckoutหรือGASwrite
-- [ ] Finalreport: F01–F13resolution, 24taskstatus, tests/limitations, SHA/versionURL, desktop/iPads/mobilecaptures; cleanupworktreeที่สร้างอย่างrecoverable
+- [x] Updateinventory36units: source/runtime/states/deviceevidence; ไม่มีblind“allclear”ที่unverified
+- [x] `npm test`, `npm run lint`, `npm run build`, `git diff --check` ผ่านบนfinalrevision
+- [x] Runimpeccabledetect**ครั้งเดียวหลังUIเสร็จ**; verifyfindingsincontextและไม่เปลี่ยนbrand/fontเพราะheuristicwarning
+- [x] Capturedesktop+iPadportrait/landscape+phone320/390ในbatchเดียว; initialstate/empty/error/dirty/loadingตามstateที่มีจริง; validcapturesไม่transitionframes
+- [x] ส่งfreshfinishreviewตามimpeccablereferenceพร้อมscope/files/PRODUCT/direction/screenshots/knownnotverified; อย่าให้reviewerรับframingจากtranscriptเต็ม
+- [x] Fixconfirmedmaterialfindingsหนึ่งbatch, rebuildและconfirmationcaptureหนึ่งbatch; ถ้ายังมีHIGH/qualitygateopenรายงานและอย่าประกาศApproved
+- [x] PhysicaliPad/Safari/keyboard/zoommanualgatesถ้าทำไม่ได้ระบุNotverifiedพร้อมstepsสำหรับuser ไม่ทำคะแนนเหมือนผ่าน
+- [x] เขียนDESIGN.md+`.impeccable/design.json`ตามdocumentworkflowให้ตรงสิ่งที่สร้างจริง ไม่ซ่อมconfigurationdriftนอกscope
+- [x] Integrationเข้mainตามauthorizationเดิม; stageเฉพาะtaskfiles; noforcepush/noeraseuserchanges; testอีกถ้าintegrationเปลี่ยนproductcode
+- [x] PushและตรวจBuild/PagesdeploymentของSHAนี้จนsuccess; smoke6routes+popupmainflowsด้วยtestorigin/data; ไม่ใช้realcheckoutหรือGASwrite
+- [x] Finalreport: F01–F13resolution, 24taskstatus, tests/limitations, SHA/versionURL, desktop/iPads/mobilecaptures; cleanupworktreeที่สร้างอย่างrecoverable
 
 ## Commit / implementation protocol
 
@@ -368,6 +368,6 @@
 
 Tasks1–23: implementation complete, covering checks PASS; detailed task/commit/test evidence in `.impeccable/review/execution-ledger.txt` and the verification report. Original detailed checklists remain as the requested scope; physical-device checklist items do not become verified through emulation.
 
-Task24: local final correction/review complete (250tests/lint/build PASS); final integration/deployment outcome recorded in `docs/superpowers/verification/2026-10-11-system-interface-renovation.md`.
+Task24: implementation/review/integration/push/Pages release complete (250tests/lint/build PASS); exact deployment evidence recorded in `docs/superpowers/verification/2026-10-11-system-interface-renovation.md`.
 
 Physical iPad/Safari/keyboard/screenreader/zoom/paper gates: Not verified; concrete manual follow-up steps in the report.

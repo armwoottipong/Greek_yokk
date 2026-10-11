@@ -4,7 +4,7 @@ Date: 2026-10-11. Baseline main: `3e92fcc`. Approved A: cream/burgundy mascot sh
 
 ## Result and checks
 
-Tasks1–23 implemented and committed. Task24 implementation, correction batch and local quality review completed; integration/deployment evidence follows below when available. No real shop checkout or Google Sheets write used for UI verification.
+Tasks1–24 implementation and release work completed. Physical/manual verification gates remain explicitly Not verified. No real shop checkout or Google Sheets write used for UI verification.
 
 - Baseline182tests32files; final **250tests57files PASS** (`npm test`, 26.53s). Targeted final regression4PASS after lint-only alias correction.
 - `npm run lint` PASS; `npm run build` PASS; `git diff --check` PASS. Main JS409.74kB /117.88kB gzip.
@@ -114,7 +114,15 @@ All36 original units source-reviewed; tests below exercise relevant states rathe
 
 ## Integration / deployment
 
-Pending final integration at report creation; no deployment success claim until exactSHA/workflow/Pages verification is recorded.
+- Main fast-forward merged from3e92fcc to **6c8bfefbf18b33be3665c543c4843ca518278ed4**; pushed `origin/main`.
+- Merged main full suite250tests57filesPASS (24.16s); user skills-lock/skills/AI files untouched. Six colliding draft documents preserved under `.superpowers/pre-merge-docs-2026-10-11` before integration.
+- [Build/deploy38118705196](https://github.com/armwoottipong/Greek_yokk/actions/runs/38118705196): completed/success, exact sourceSHA6c8bfef.
+- Generatedgh-pages **0382192cc2e6eb97f8e59e4a8b43345fd6e10fad**, message records sourceSHA6c8bfef.
+- [Pages38118758243](https://github.com/armwoottipong/Greek_yokk/actions/runs/38118758243): completed/success for generated commit0382192.
+- [Live system](https://armwoottipong.github.io/Greek_yokk/): HTTP200; production HTML module `/Greek_yokk/assets/index-DIrnUzMh.js` matches generatedgh-pages index. CI Linux assethash differs from local Windows build; deployed source association verified through commit message and workflowSHA.
+- Production read-only smoke: six routes at1280×720, correct headings, no horizontal page overflow; history/filter/calendar open and cancel/close restore page. Consoleerrors `[]`. Fresh production origin had empty data; populated checkout, stock and recipe branches are covered by isolated local demo/tests, not claimed as production transactions.
+- Release report/evidence follow-up commit is documentation only with `[skip ci]`; deployed product source remains6c8bfef. No extra deploy or product re-test is needed for unchanged code.
+- Managed implementation worktree archived recoverably after release; committed screenshots/ledger remain in main.
 
 ## Screenshots
 

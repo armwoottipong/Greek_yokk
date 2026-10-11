@@ -64,3 +64,5 @@ Final: Ruling: keep backend/auth/security outside approved UI scope — business
 Final: Ruling: preserve stock allocation/accounting policies — UI renovation does not authorize new business rules — cost if wrong: policy correction needs separate product decision.
 Final: Ruling: do not claim physical device certification — browser sizes/DOM/tests cover responsive implementation, not Safari/keyboard/screenreader/zoom/printing — cost if wrong: device-specific issues may remain.
 Final: Ruling: recoverable archive after merge/deploy rather than raw worktree deletion — preserves snapshot and needed review evidence — cost if wrong: retained storage until user removes archive.
+
+Task 24: complete — final review correction6c8bfef, main250tests57filesPASS, lint/build/diffPASS. Build38118705196 and Pages38118758243success, productSHA6c8bfef/ghpages0382192. Production6route read-only smoke, history/filtercancel, errors[]; physicalmanualgates Notverified.
