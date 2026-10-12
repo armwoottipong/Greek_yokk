@@ -8,7 +8,7 @@ import StockAdjust from '../../src/components/modals/StockAdjustModal.vue'
 import Stocktake from '../../src/components/modals/StocktakeModal.vue'
 import MaterialEdit from '../../src/components/modals/MaterialEditModal.vue'
 beforeEach(() => {
- const material = { id:'M1', name:'Milk', unit:'g', stock:540, packUnit:'bag', packSize:1000, unitCost:0, category:'raw', lots:[{id:'L1',qty:40},{id:'L2',qty:500}], isDeleted:false }
+ const material = { id:'M1', name:'Milk', inventoryType:'packaging', unit:'g', stock:540, packUnit:'bag', packSize:1000, unitCost:0, category:'raw', lots:[{id:'L1',qty:40},{id:'L2',qty:500}], isDeleted:false }
  state.store = reactive({ materials:[material], matMap:{M1:material}, activeMaterials:[material], materialCategories:[], modals:{stocktake:{isOpen:false},stockAdjust:{isOpen:false,materialId:'M1',lotId:'L2'},materialEdit:{isOpen:false,materialId:'M1'}}, restoreMaterial:vi.fn(), archiveMaterial:vi.fn(), showToast:vi.fn() })
 })
 describe('stock forms', () => {
@@ -37,6 +37,7 @@ describe('stock forms', () => {
   state.store.modals.materialEdit.isOpen=true
   await nextTick(); await nextTick()
   expect(wrapper.vm.form.isDeleted).toBe(true)
+  expect(wrapper.vm.form.inventoryType).toBe('packaging')
   wrapper.vm.handleArchiveToggle()
   expect(state.store.restoreMaterial).toHaveBeenCalledOnce()
   wrapper.unmount()

@@ -119,6 +119,21 @@
           </div>
         </div>
 
+        <fieldset class="space-y-2">
+          <legend class="text-[11px] font-medium text-stone-700">ประเภทสินค้า <span class="text-rose-500">*</span></legend>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 p-3 rounded-xl border border-stone-200 cursor-pointer">
+              <input v-model="form.inventoryType" type="radio" name="material-inventory-type" value="ingredient" aria-label="วัตถุดิบ" aria-describedby="material-inventory-type-help" required class="accent-brand-600" />
+              <span class="text-xs font-medium text-stone-800">วัตถุดิบ</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 rounded-xl border border-stone-200 cursor-pointer">
+              <input v-model="form.inventoryType" type="radio" name="material-inventory-type" value="packaging" aria-label="บรรจุภัณฑ์" aria-describedby="material-inventory-type-help" required class="accent-brand-600" />
+              <span class="text-xs font-medium text-stone-800">บรรจุภัณฑ์</span>
+            </label>
+          </div>
+          <p id="material-inventory-type-help" class="text-[11px] text-stone-500 leading-relaxed">วัตถุดิบใช้เป็นส่วนผสมในสูตร ส่วนบรรจุภัณฑ์ใช้ตรวจ/ปรับ Package และแยกรายงานต้นทุน ประเภทนี้กำหนดการจัดกลุ่มในสูตร หมวดหมู่ใช้จัดระเบียบรายการเท่านั้น การเปลี่ยนหมวดหมู่จะไม่เปลี่ยนประเภท</p>
+        </fieldset>
+
         <!-- Unit Selection (Strictly 3 choices: ml, g, ชิ้น) -->
         <div class="space-y-1.5">
           <label class="block text-[11px] font-medium text-stone-700">
@@ -571,6 +586,7 @@ const form = ref({
   id: '',
   name: '',
   category: 'Base Yogurt',
+  inventoryType: 'ingredient',
   unit: 'g',
   packUnit: 'ถุง',
   packSize: 1000,
@@ -923,6 +939,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         isDeleted: Boolean(mat.isDeleted),
         name: mat.name,
         category: mat.category || 'Base Yogurt',
+        inventoryType: mat.inventoryType,
         unit: ['g', 'ml', 'ชิ้น'].includes(mat.unit) ? mat.unit : (mat.unit === 'pcs' ? 'ชิ้น' : 'g'),
         packUnit: pUnit,
         packSize: pSize,
@@ -947,6 +964,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         id: '',
         name: '',
         category: defaultCategory,
+        inventoryType: 'ingredient',
         unit: 'g',
         packUnit: 'ถุง',
         packSize: 1000,
@@ -1035,6 +1053,7 @@ async function submit() {
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     category: form.value.category,
+    inventoryType: form.value.inventoryType,
     unit: form.value.unit || 'g',
     packUnit: form.value.packUnit?.trim() || 'แพ็ค',
     packSize: pSize,

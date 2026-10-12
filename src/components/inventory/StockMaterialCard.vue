@@ -2,7 +2,7 @@
  <article class="material-card">
   <button type="button" :data-material-details="material.id" class="material-card-main" :aria-label="`ดูรายละเอียด ${material.name}`" @click="$emit('details',material.id)">
    <span class="material-emoji" aria-hidden="true">{{ material.emoji }}</span>
-   <span class="material-name"><strong>{{ material.name }}</strong><small>{{ material.category || 'อื่นๆ' }}</small></span>
+   <span class="material-name"><strong>{{ material.name }}</strong><small>{{ material.category || 'อื่นๆ' }}</small><br /><StatusBadge :data-inventory-type="material.inventoryType" :label="material.inventoryType === 'packaging' ? 'บรรจุภัณฑ์' : 'วัตถุดิบ'" tone="neutral" /></span>
    <span class="material-quantity">{{ Number(material.stock||0).toLocaleString('th-TH') }} <small>{{ material.unit }}</small></span>
    <StatusBadge :label="status" :tone="tone" />
   </button>
