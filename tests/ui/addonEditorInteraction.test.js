@@ -77,6 +77,22 @@ it('prevents duplicate selection and rejects existing duplicate rows rather than
   expect(store.confirmDialog).not.toHaveBeenCalled()
 })
 
+it('reveals a collapsed recipe section and focuses its invalid row when save is blocked', async () => {
+  const store = await openEditor([{ materialId: 'BOM-FOOD', qty: 25 }])
+  const before = JSON.stringify(store.addons)
+  await wrapper.get('[aria-label="ปริมาณ Cup fruit"]').setValue('0')
+  const recipeSection = wrapper.get('[data-addon-recipe-row]').element.closest('details')
+  recipeSection.open = false
+  await button('บันทึก Add-on').trigger('click')
+  await flushPromises()
+  expect(recipeSection.open).toBe(true)
+  expect(wrapper.get('[role="alert"]').isVisible()).toBe(true)
+  expect(wrapper.get('[data-addon-recipe-row]').element.contains(document.activeElement)).toBe(true)
+  expect(document.activeElement.getAttribute('aria-invalid')).toBe('true')
+  expect(store.confirmDialog).not.toHaveBeenCalled()
+  expect(JSON.stringify(store.addons)).toBe(before)
+})
+
 it.each(['MISSING', 'BOM-ARCHIVED'])('shows unavailable material recovery and allows removal (%s)', async materialId => {
   const store = await openEditor([{ materialId, qty: 2 }])
   expect(wrapper.get('[role="status"]').text()).toContain('เลือกใหม่หรือลบรายการ')

@@ -241,7 +241,10 @@ async function submit() {
   const invalidIndex = recipeErrors.value.findIndex(Boolean)
   if (invalidIndex !== -1) {
     await nextTick()
-    document.querySelectorAll('#AddonEditModal [data-addon-recipe-row]')[invalidIndex]?.querySelector('[aria-invalid="true"]')?.focus()
+    const invalidRow = document.querySelectorAll('#AddonEditModal [data-addon-recipe-row]')[invalidIndex]
+    const recipeSection = invalidRow?.closest('details')
+    if (recipeSection) recipeSection.open = true
+    invalidRow?.querySelector('[aria-invalid="true"]')?.focus()
     return
   }
 
