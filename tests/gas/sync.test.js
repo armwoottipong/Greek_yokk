@@ -15,7 +15,7 @@ it('changed endpoint replaces failed pending request destination',async()=> {
  expect(globalThis.fetch.mock.calls.map(c=>c[0])).toEqual(['https://old.example.test','https://new.example.test'])
 })
 it('requires matching committed acknowledgement and checksum',async()=> {
- const snapshot={schemaVersion:3,revision:1,materials:[],orders:[]}
+ const snapshot={schemaVersion:4,revision:1,materials:[],orders:[]}
  globalThis.fetch=vi.fn().mockResolvedValue({ok:true,json:async()=>({status:'success',data:{requestId:'WRONG',revision:1,status:'committed',checksum:'wrong'}})})
  await expect(client.syncDatabase('https://example.test',snapshot,{requestId:'R'})).rejects.toThrow()
  const checksum=client.snapshotChecksum(snapshot)

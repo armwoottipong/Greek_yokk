@@ -53,7 +53,7 @@ function setupDatabase() {
   // 1. RawMaterials
   let sMat = ss.getSheetByName(SHEETS.RAW_MATERIALS) || ss.insertSheet(SHEETS.RAW_MATERIALS);
   applyHeaderStyle(sMat, [
-    "MaterialID", "Name", "Category", "Unit", "StockQty", "MinAlertQty", "UnitCost", "Emoji", "UpdatedAt", "IsDeleted", "IsSubIngredient"
+    "MaterialID", "Name", "Category", "Unit", "StockQty", "MinAlertQty", "UnitCost", "Emoji", "UpdatedAt", "IsDeleted", "IsSubIngredient", "InventoryType"
   ], "#2B6CB0");
   
   const sampleMaterials = [
@@ -72,7 +72,7 @@ function setupDatabase() {
     ["MAT013", "ถุงพลาสติกหิ้วเดี่ยว (1 แก้ว)", "Packaging", "pcs", 400, 100, 0.85, "🛍️", new Date(), false, false],
     ["MAT014", "ถุงพลาสติกหิ้วคู่ (2 แก้ว)", "Packaging", "pcs", 200, 50, 1.20, "🛍️", new Date(), false, false]
   ];
-  if (sMat.getLastRow() === 1) sampleMaterials.forEach(row => sMat.appendRow(row));
+  if (sMat.getLastRow() === 1) sampleMaterials.forEach(row => sMat.appendRow(row.concat([row[2] === "Packaging" ? "packaging" : "ingredient"])));
 
   // 2. Platforms
   let sPlat = ss.getSheetByName(SHEETS.PLATFORMS) || ss.insertSheet(SHEETS.PLATFORMS);
@@ -163,7 +163,7 @@ function setupDatabase() {
   // 4. Addons
   let sAddon = ss.getSheetByName(SHEETS.ADDONS) || ss.insertSheet(SHEETS.ADDONS);
   applyHeaderStyle(sAddon, [
-    "AddonID", "Name", "Category", "Emoji", "Prices_JSON", "MaterialID", "AmountUsed", "IsActive"
+    "AddonID", "Name", "Category", "Emoji", "Prices_JSON", "MaterialID", "AmountUsed", "IsActive", "Recipe_JSON"
   ], "#DD6B20");
 
   const sampleAddons = [
@@ -174,12 +174,12 @@ function setupDatabase() {
     ["ADD06", "น้ำผึ้งแท้ดอกไม้ป่า (15ml)", "ซอส & น้ำผึ้ง", "🍯", JSON.stringify({ "PLAT01": 15, "PLAT02": 20, "PLAT03": 20, "PLAT04": 10 }), "MAT008", 15, true],
     ["ADD08", "กราโนล่าอบเนยถั่ว (20g)", "ธัญพืช & กรอบ", "🥜", JSON.stringify({ "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }), "MAT009", 20, true],
   ];
-  if (sAddon.getLastRow() === 1) sampleAddons.forEach(row => sAddon.appendRow(row));
+  if (sAddon.getLastRow() === 1) sampleAddons.forEach(row => sAddon.appendRow(row.concat([JSON.stringify([{ materialId: row[5], qty: row[6] }])])));
 
   // 5. Orders
   let sOrders = ss.getSheetByName(SHEETS.ORDERS) || ss.insertSheet(SHEETS.ORDERS);
   applyHeaderStyle(sOrders, [
-    "OrderID", "CreatedAt", "PlatformID", "PlatformName", "Subtotal", "Discount", "GP_Amount", "NetRevenue", "FoodCost", "GrossProfit", "PaymentMethod", "Note"
+    "OrderID", "CreatedAt", "PlatformID", "PlatformName", "Subtotal", "Discount", "GP_Amount", "NetRevenue", "FoodCost", "GrossProfit", "PaymentMethod", "Note", "IngredientCost", "PackagingCost", "ExpectedPackagingShortageCost", "PackagePlan_JSON", "StockShortages_JSON"
   ], "#4A5568");
 
   // 6. OrderItems
@@ -352,7 +352,12 @@ function handleCreateOrder(orderData) {
     totalFoodCost,
     grossProfit,
     orderData.paymentMethod || "QR PromptPay",
-    orderData.note || ""
+    orderData.note || "",
+    Number(orderData.ingredientCost != null ? orderData.ingredientCost : totalFoodCost) || 0,
+    Number(orderData.packagingCost) || 0,
+    Number(orderData.expectedPackagingShortageCost) || 0,
+    JSON.stringify(orderData.packagePlan || []),
+    JSON.stringify(orderData.stockShortages || [])
   ]);
 
   // ตัดสต็อกในชีต RawMaterials และบันทึกประวัติ StockTransactions
@@ -632,9 +637,10 @@ function handleSaveAddon(addon) {
     addon.category || "ผลไม้สด",
     addon.emoji || "🍓",
     typeof addon.prices === "string" ? addon.prices : JSON.stringify(addon.prices || {}),
-    addon.materialId || "",
-    Number(addon.amountUsed) || 0,
-    addon.isActive !== false
+    "",
+    0,
+    addon.isActive !== false,
+    typeof addon.recipe === "string" ? addon.recipe : JSON.stringify(addon.recipe || [])
   ];
 
   if (targetRow > 0) {
@@ -675,7 +681,8 @@ function handleSaveMaterial(mat) {
     mat.emoji || "📦",
     new Date(),
     Boolean(mat.isDeleted),
-    Boolean(mat.isSubIngredient)
+    Boolean(mat.isSubIngredient),
+    mat.inventoryType || "ingredient"
   ];
 
   if (targetRow > 0) {
@@ -1097,8 +1104,11 @@ function validateMutation(action, data) {
   } else if (action === "saveMaterial") {
     ["stock", "minAlert", "unitCost"].forEach(function(key) { if (data[key] != null) numberValue(data[key], key); });
     if (!data.name) throw new Error("Material name required");
+    if (["ingredient", "packaging"].indexOf(data.inventoryType) === -1) throw new Error("Inventory type required");
   } else if (action === "saveAddon") {
-    requireMaterial(map, data.materialId); numberValue(data.amountUsed, "addon quantity"); validatePrices(data.prices);
+    validatePrices(data.prices);
+    const recipe = typeof data.recipe === "string" ? JSON.parse(data.recipe) : data.recipe || [];
+    recipe.forEach(function(input) { requireMaterial(map, input.materialId); numberValue(input.qty, "addon recipe quantity", true); });
   } else if (action === "saveMenu") {
     validatePrices(data.prices);
     const recipe = typeof data.recipe === "string" ? JSON.parse(data.recipe) : data.recipe || [];
@@ -1119,7 +1129,7 @@ function validatePrices(prices) {
 }
 
 function validateSnapshot(snapshot) {
-  if (!snapshot || [3, 4].indexOf(snapshot.schemaVersion) === -1 || !Number.isInteger(snapshot.revision) || snapshot.revision < 0) throw new Error("Schema3 or Schema4 snapshot and revision required");
+  if (!snapshot || snapshot.schemaVersion !== 4 || !Number.isInteger(snapshot.revision) || snapshot.revision < 0) throw new Error("Schema4 snapshot and revision required");
   ["materials", "menus", "addons", "platforms", "orders", "activityLogs", "stockShortages"].forEach(function(key) {
     if (!Array.isArray(snapshot[key])) throw new Error("Snapshot array required: " + key);
     const ids = {};
@@ -1128,7 +1138,11 @@ function validateSnapshot(snapshot) {
       if (entity.id) { if (ids[entity.id]) throw new Error("Duplicate snapshot ID: " + entity.id); ids[entity.id] = true; }
     });
   });
+  const materialIds = {};
   snapshot.materials.forEach(function(material) {
+    if (!material.id || materialIds[material.id]) throw new Error("Duplicate or missing material ID");
+    materialIds[material.id] = true;
+    if (["ingredient", "packaging"].indexOf(material.inventoryType) === -1) throw new Error("Invalid inventory type");
     const stock = numberValue(material.stock, "snapshot stock");
     ["unitCost", "packCost", "minAlert"].forEach(function(key) { if (material[key] != null) numberValue(material[key], "snapshot " + key); });
     if (!Array.isArray(material.lots)) throw new Error("Snapshot material lots required");
@@ -1139,6 +1153,31 @@ function validateSnapshot(snapshot) {
       if (lot.unitCost != null) numberValue(lot.unitCost, "snapshot lot cost");
     });
     if (!Number.isFinite(total) || Math.abs(total - stock) > 0.00001) throw new Error("Snapshot stock and lots disagree");
+  });
+  function validateRecipe(entity, label) {
+    if (!Array.isArray(entity.recipe)) throw new Error(label + " recipe required");
+    entity.recipe.forEach(function(input) {
+      if (!materialIds[input.materialId]) throw new Error(label + " recipe material missing");
+      numberValue(input.qty, label + " recipe quantity", true);
+    });
+  }
+  snapshot.menus.forEach(function(menu) { validateRecipe(menu, "Menu"); });
+  snapshot.addons.forEach(function(addon) { validateRecipe(addon, "Addon"); });
+  const reasons = ["separate_bag", "customer_declined", "combined_packaging", "package_unavailable", "repacked", "other"];
+  snapshot.orders.forEach(function(order) {
+    ["ingredientCost", "packagingCost", "expectedPackagingShortageCost", "foodCost"].forEach(function(key) { numberValue(order[key], "order " + key); });
+    if (!Array.isArray(order.packagePlan)) throw new Error("Order package plan required");
+    order.packagePlan.forEach(function(row) {
+      if (!materialIds[row.materialId]) throw new Error("Package plan material missing");
+      ["baselineQty", "requestedQty", "fulfilledQty", "shortageQty", "fulfilledCost", "expectedShortageCost"].forEach(function(key) { numberValue(row[key], "package plan " + key); });
+      if (typeof row.adjustmentQty !== "number" || !Number.isFinite(row.adjustmentQty)) throw new Error("Invalid package adjustment quantity");
+      if (Number(row.adjustmentQty) !== 0 && reasons.indexOf(row.reason) === -1) throw new Error("Invalid package adjustment reason");
+      if (row.reason === "other" && (!row.note || !String(row.note).trim())) throw new Error("Package adjustment note required");
+    });
+  });
+  snapshot.stockShortages.forEach(function(shortage) {
+    if (["ingredient", "packaging"].indexOf(shortage.inventoryType) === -1) throw new Error("Invalid shortage inventory type");
+    numberValue(shortage.qty, "shortage quantity", true);
   });
   if (!snapshot.categories || typeof snapshot.categories !== "object" || typeof snapshot.gasApiUrl !== "string") throw new Error("Snapshot metadata required");
 }
