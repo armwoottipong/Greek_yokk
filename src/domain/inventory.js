@@ -36,7 +36,7 @@ export function expandItemRequirements(menu, addons = [], qty = 1, materials = [
       // Ingredients retain precision until the existing running-total aggregation.
       const expandedQty = material.inventoryType === 'ingredient'
         ? Number(row.qty) * qty : round(Number(row.qty) * qty)
-      if (!Number.isFinite(expandedQty)) throw new Error('สูตรวัตถุดิบไม่ถูกต้อง')
+      if (!Number.isFinite(expandedQty) || !Number.isFinite(round(expandedQty))) throw new Error('สูตรวัตถุดิบไม่ถูกต้อง')
       return expandedQty > 0 ? [{
         materialId: row.materialId,
         qty: expandedQty,

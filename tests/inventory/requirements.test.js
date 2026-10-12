@@ -33,6 +33,16 @@ it('preserves existing Menu aggregation rounding for duplicate fractional ingred
  expect(inventory.getEffectiveRequirements(menu,[],1,mats)).toEqual([{materialId:'X',qty:0.16}])
  expect(inventory.ingredientRequirementsForCart([{menu,selectedAddons:[],qty:1}],mats)).toEqual([{materialId:'X',qty:0.16}])
 })
+it('rejects ingredient rounding overflow through the compatibility requirements interface',()=> {
+ const mats=[material('X')]
+ const menu={recipe:[{materialId:'X',qty:1}]}
+ expect(()=>inventory.getEffectiveRequirements(menu,[],Number.MAX_VALUE,mats)).toThrow()
+})
+it('rejects ingredient rounding overflow through the cart requirements interface',()=> {
+ const mats=[material('X')]
+ const menu={recipe:[{materialId:'X',qty:1}]}
+ expect(()=>inventory.ingredientRequirementsForCart([{menu,selectedAddons:[],qty:Number.MAX_VALUE}],mats)).toThrow()
+})
 it('rejects invalid order or recipe quantities instead of dropping requirements',()=> {
  for (const qty of [0,-1,NaN,Infinity]) expect(()=>inventory.expandItemRequirements({recipe:[]},[],qty,[])).toThrow()
  for (const qty of [-1,NaN,Infinity]) expect(()=>inventory.expandItemRequirements({recipe:[{materialId:'X',qty}]},[],1,[material('X')])).toThrow()
