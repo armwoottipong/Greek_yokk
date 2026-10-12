@@ -18,7 +18,7 @@ it('sale between receipt draft and discard preserves only the sale',()=> {
  expect(s.materials[0].stock).toBe(40);expect(s.materials[0].lots.reduce((n,l)=>n+l.qty,0)).toBe(40)
 })
 it('packaging disabled means no requirement or cost or deduction',()=> {
- const s=createTestStore({storage:{GY_MATERIALS:[material('X',100,{category:'Packaging'})],GY_MENUS:[menu(120,{hasPackage:false})]}})
+ const s=createTestStore({storage:{GY_MATERIALS:[material('X',100,{category:'Packaging',inventoryType:'packaging'})],GY_MENUS:[menu(120,{hasPackage:false})]}})
  expect(s.checkStockAvailability(s.menus[0]).canAdd).toBe(true);s.executeAddToCart(s.menus[0]);expect(s.cartSummary.totalFoodCost).toBe(0);s.checkout();expect(s.materials[0].stock).toBe(100)
 })
 it('cart preserves recipe snapshots across later menu edits',()=> {
