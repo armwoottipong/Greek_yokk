@@ -27,6 +27,12 @@ it('aggregates only cart ingredient requirements and rounds quantities to two de
  const cart=[{menu:{recipe:[{materialId:'X',qty:0.333},{materialId:'P',qty:1}]},selectedAddons:[{recipe:[{materialId:'X',qty:0.111}]}],qty:3},{menu:{recipe:[{materialId:'X',qty:1}]},qty:2}]
  expect(inventory.ingredientRequirementsForCart(cart,mats)).toEqual([{materialId:'X',qty:3.33}])
 })
+it('preserves existing Menu aggregation rounding for duplicate fractional ingredient rows',()=> {
+ const mats=[material('X')]
+ const menu={recipe:[{materialId:'X',qty:0.01},{materialId:'X',qty:0.145}]}
+ expect(inventory.getEffectiveRequirements(menu,[],1,mats)).toEqual([{materialId:'X',qty:0.16}])
+ expect(inventory.ingredientRequirementsForCart([{menu,selectedAddons:[],qty:1}],mats)).toEqual([{materialId:'X',qty:0.16}])
+})
 it('rejects invalid order or recipe quantities instead of dropping requirements',()=> {
  for (const qty of [0,-1,NaN,Infinity]) expect(()=>inventory.expandItemRequirements({recipe:[]},[],qty,[])).toThrow()
  for (const qty of [-1,NaN,Infinity]) expect(()=>inventory.expandItemRequirements({recipe:[{materialId:'X',qty}]},[],1,[material('X')])).toThrow()

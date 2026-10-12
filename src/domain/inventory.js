@@ -33,7 +33,9 @@ export function expandItemRequirements(menu, addons = [], qty = 1, materials = [
       if (!['ingredient', 'packaging'].includes(material.inventoryType)) throw Object.assign(
         new Error('ประเภทวัตถุดิบไม่ถูกต้อง'), { code: 'INVALID_INVENTORY_TYPE', materialId: row.materialId })
       if (sourceType === 'menu' && menu.hasPackage === false && material.inventoryType === 'packaging') return []
-      const expandedQty = round(Number(row.qty) * qty)
+      // Ingredients retain precision until the existing running-total aggregation.
+      const expandedQty = material.inventoryType === 'ingredient'
+        ? Number(row.qty) * qty : round(Number(row.qty) * qty)
       if (!Number.isFinite(expandedQty)) throw new Error('สูตรวัตถุดิบไม่ถูกต้อง')
       return expandedQty > 0 ? [{
         materialId: row.materialId,
