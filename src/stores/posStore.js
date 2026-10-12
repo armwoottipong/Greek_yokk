@@ -3,17 +3,25 @@ import {
 } from '@/services/gasClient'
 import {
   getEffectiveRequirements,
+  ingredientRequirementsForCart,
   allocateInventory,
   aggregateRequirements,
   rebaseInventoryDraft
 } from '@/domain/inventory'
+import {
+  buildPackagePlan,
+  packageRequirements,
+  finalizePackagePlan,
+  PACKAGE_ADJUSTMENT_REASONS
+} from '@/domain/packagePlan'
 import {
   businessDateKey
 } from '@/domain/businessDate'
 import {
   normalizeDatabase,
   clone,
-  DATABASE_FIELDS
+  DATABASE_FIELDS,
+  CURRENT_SCHEMA_VERSION
 } from '@/domain/database'
 import {
   loadDatabase,
@@ -396,6 +404,7 @@ const posDefinition = {
       // POS Active State
       currentPlatformId: storedPlatforms.find(p => p.isActive !== false)?.id || 'PLAT01',
       cart: [],
+      packageAdjustments: [],
       orderNote: '',
       paymentMethod: 'QR PromptPay',
 
@@ -446,6 +455,9 @@ const posDefinition = {
           isOpen: false,
           warningItems: [],
           onConfirm: null
+        },
+        packageReview: {
+          isOpen: false
         },
         emojiPicker: {
           isOpen: false,
@@ -924,6 +936,8 @@ const posDefinition = {
       const plat = this.currentPlatform
       let subtotal = 0
       let totalFoodCost = 0
+      let totalIngredientCost = 0
+      let totalPackagingCost = 0
 
       this.cart.forEach(item => {
         const menuPrice = (item.menu.prices && item.menu.prices[plat.id] !== undefined) ?
@@ -943,12 +957,17 @@ const posDefinition = {
 
         subtotal += (itemUnitPrice * item.qty)
 
-        let singleItemCost = 0
         const materials = this.stockDraftSnapshot || this.materials
-        for (const r of getEffectiveRequirements(item.menu, item.selectedAddons, 1, materials))
-          singleItemCost += r.qty * (materials.find(m => m.id === r.materialId)?.unitCost || 0)
-        totalFoodCost += (singleItemCost * item.qty)
+        for (const r of getEffectiveRequirements(item.menu, item.selectedAddons, 1, materials)) {
+          const material = materials.find(m => m.id === r.materialId)
+          const cost = r.qty * (material?.unitCost || 0)
+          if (material?.inventoryType !== 'packaging') totalIngredientCost += cost * item.qty
+        }
       })
+      const packageProjection = this.cartPackagePlan
+      totalPackagingCost = packageProjection.items.reduce((sum, item) => sum + (Number(item.fulfilledCost) || 0), 0)
+      const expectedPackagingShortageCost = packageProjection.items.reduce((sum, item) => sum + (Number(item.expectedShortageCost) || 0), 0)
+      totalFoodCost = totalIngredientCost + totalPackagingCost
 
       const gpPercent = plat.gpPercent || 0
       const gpAmount = Math.round((subtotal * (gpPercent / 100)) * 100) / 100
@@ -962,8 +981,23 @@ const posDefinition = {
         gpAmount,
         netRevenue,
         totalFoodCost,
+        totalIngredientCost,
+        totalPackagingCost,
+        expectedPackagingShortageCost,
         grossProfit
       }
+    },
+
+    cartPackagePlan() {
+      const materials = this.stockDraftSnapshot || this.materials
+      const plan = buildPackagePlan(this.cart, materials, this.packageAdjustments)
+      if (!plan.ok) return plan
+      const allocated = allocateInventory(materials, packageRequirements(plan.items), {
+        allowShortage: true,
+        expiredAsShortage: true
+      })
+      if (!allocated.ok) return {...plan, ok: false, issues: allocated.issues || []}
+      return {...plan, items: finalizePackagePlan(plan.items, allocated)}
     },
 
     // Warning getter for materials in POS cart whose active lots are depleted or nearly empty
@@ -971,24 +1005,15 @@ const posDefinition = {
       if (!this.cart || this.cart.length === 0) return []
       const required = {}
       this.cart.forEach(item => {
-        if (item.menu.hasPackage !== false && item.menu.recipe) {
-          item.menu.recipe.forEach(r => {
-            required[r.materialId] = (required[r.materialId] || 0) + (r.qty * item.qty)
-          })
-        } else if (item.menu.recipe) {
-          item.menu.recipe.forEach(r => {
-            const m = this.materials.find(x => x.id === r.materialId)
-            if (m && m.category !== 'Packaging') {
-              required[r.materialId] = (required[r.materialId] || 0) + (r.qty * item.qty)
-            }
-          })
+        let rows
+        try {
+          rows = getEffectiveRequirements(item.menu, item.selectedAddons, item.qty, this.materials)
+        } catch {
+          // Invalid snapshots are blocked by the stock/checkout checks; keep warning UI readable.
+          return
         }
-        if (item.selectedAddons) {
-          item.selectedAddons.forEach(a => {
-            if (a.materialId && a.amountUsed) {
-              required[a.materialId] = (required[a.materialId] || 0) + (a.amountUsed * item.qty)
-            }
-          })
+        for (const row of rows) {
+          required[row.materialId] = (required[row.materialId] || 0) + row.qty
         }
       })
 
@@ -1231,7 +1256,7 @@ const posDefinition = {
       committedMaterials = true
     } = {}) {
       const data = {
-        schemaVersion: 3,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
         revision: this.databaseRevision
       }
       for (const field of DATABASE_FIELDS) data[field] = clone(this[field])
@@ -1852,7 +1877,7 @@ const posDefinition = {
       // Check addons
       if (Array.isArray(this.addons)) {
         this.addons.forEach(addon => {
-          if (addon.materialId === matId) {
+          if (addon.recipe?.some(row => row.materialId === matId)) {
             usedInAddons.push(addon.name)
           }
         })
@@ -2800,21 +2825,56 @@ const posDefinition = {
       this.cart.splice(index, 1)
     },
 
+    savePackageAdjustment({materialId, requestedQty, reason, note = ''}) {
+      const material = this.materials.find(item => item.id === materialId)
+      const qty = Number(requestedQty)
+      if (!material || material.isDeleted || material.inventoryType !== 'packaging')
+        return {ok: false, success: false, message: 'เลือกบรรจุภัณฑ์ที่พร้อมใช้งาน'}
+      if (!Number.isFinite(qty) || qty < 0)
+        return {ok: false, success: false, message: 'จำนวนบรรจุภัณฑ์ต้องเป็นศูนย์หรือมากกว่า'}
+      if (!PACKAGE_ADJUSTMENT_REASONS.includes(reason))
+        return {ok: false, success: false, message: 'เลือกเหตุผลการปรับบรรจุภัณฑ์'}
+      if (reason === 'other' && !String(note).trim())
+        return {ok: false, success: false, message: 'ระบุเหตุผลเพิ่มเติม'}
+      const current = buildPackagePlan(this.cart, this.stockDraftSnapshot || this.materials, [])
+        .items.find(item => item.materialId === materialId)
+      const baselineQty = current?.baselineQty || 0
+      const adjustment = {
+        materialId,
+        deltaQty: Math.round((qty - baselineQty) * 100) / 100,
+        reason,
+        note: String(note).trim()
+      }
+      const index = this.packageAdjustments.findIndex(item => item.materialId === materialId)
+      if (index >= 0) this.packageAdjustments[index] = adjustment
+      else this.packageAdjustments.push(adjustment)
+      return {ok: true, success: true}
+    },
+
+    resetPackageAdjustment(materialId) {
+      this.packageAdjustments = this.packageAdjustments.filter(item => item.materialId !== materialId)
+    },
+
+    resetPackageAdjustments() {
+      this.packageAdjustments = []
+    },
+
     clearCart() {
       this.cart = []
+      this.packageAdjustments = []
       this.orderNote = ''
     },
 
     // Complete Checkout
     prepareCheckout({
-      allowShortage = false
+      allowShortage = false,
+      allowPackageShortage = false
     } = {}) {
       if (!this.cart.length) return {
         ok: false,
         code: 'EMPTY_CART'
       }
       const candidate = this.databaseSnapshot()
-      let requirements = []
       try {
         for (const item of this.cart) {
           const current = this.menus.find(m => m.id === item.menu.id)
@@ -2829,8 +2889,6 @@ const posDefinition = {
               code: 'ADDON_UNAVAILABLE',
               issues: []
             }
-          requirements.push(...getEffectiveRequirements(item.menu, item.selectedAddons, item.qty, candidate
-            .materials))
         }
       } catch (error) {
         return {
@@ -2840,28 +2898,53 @@ const posDefinition = {
           issues: []
         }
       }
-      const allocated = allocateInventory(candidate.materials, requirements, {
+      let ingredientRequirements
+      try {
+        ingredientRequirements = ingredientRequirementsForCart(this.cart, candidate.materials)
+      } catch (error) {
+        return {ok: false, code: 'INVALID_CART', message: error.message, issues: []}
+      }
+      const packagePlan = buildPackagePlan(this.cart, candidate.materials, this.packageAdjustments)
+      if (!packagePlan.ok) return {ok: false, code: 'INVALID_PACKAGE_PLAN', issues: packagePlan.issues}
+      const ingredientAllocated = allocateInventory(candidate.materials, ingredientRequirements, {
         allowShortage
       })
-      return allocated.ok ? {
+      const packageBaseMaterials = ingredientAllocated.ok ? ingredientAllocated.materials : candidate.materials
+      const packageAllocated = allocateInventory(packageBaseMaterials, packageRequirements(packagePlan.items), {
+        allowShortage: allowPackageShortage,
+        expiredAsShortage: true
+      })
+      const issues = [
+        ...(ingredientAllocated.ok ? [] : (ingredientAllocated.issues || []).map(issue => ({...issue, inventoryType: 'ingredient'}))),
+        ...(packageAllocated.ok ? [] : (packageAllocated.issues || []).map(issue => ({...issue, inventoryType: 'packaging'})))
+      ]
+      if (issues.length) return {ok: false, code: 'INVENTORY_UNAVAILABLE', issues}
+      return {
         ok: true,
         candidate,
-        allocated
-      } : allocated
+        ingredientRequirements,
+        ingredientAllocated,
+        packageAllocated,
+        packagePlan: finalizePackagePlan(packagePlan.items, packageAllocated)
+      }
     },
     checkout({
-      allowShortage = false
+      allowShortage = false,
+      allowPackageShortage = false
     } = {}) {
       const prepared = this.prepareCheckout({
-        allowShortage
+        allowShortage,
+        allowPackageShortage
       })
       if (!prepared.ok) {
         if (prepared.issues?.length && prepared.issues.every(i => i.code === 'SHORTAGE')) {
+          const needsIngredientConfirmation = prepared.issues.some(i => i.inventoryType === 'ingredient')
+          const needsPackageConfirmation = prepared.issues.some(i => i.inventoryType === 'packaging')
           this.modals.lowStockWarning = {
             isOpen: true,
             isOutOfStock: true,
             title: 'ยืนยันยอดขาดก่อนขาย',
-            subtitle: 'ระบบจะบันทึกยอดวัตถุดิบขาดค้างไว้',
+            subtitle: needsPackageConfirmation ? 'ขายต่อได้โดยไม่ระบุของทดแทน Package จะตัดได้ถึงศูนย์และบันทึกยอดขาดเป็นเหตุการณ์เท่านั้น' : 'ระบบจะบันทึกยอดวัตถุดิบขาดค้างไว้',
             warningItems: prepared.issues.map(i => ({
               ...i,
               shortage: i.needed - i.stock
@@ -2869,7 +2952,8 @@ const posDefinition = {
             onConfirm: () => {
               this.modals.lowStockWarning.isOpen = false;
               this.checkout({
-                allowShortage: true
+                allowShortage: allowShortage || needsIngredientConfirmation,
+                allowPackageShortage: allowPackageShortage || needsPackageConfirmation
               })
             }
           }
@@ -2878,13 +2962,30 @@ const posDefinition = {
       }
       const {
         candidate,
-        allocated
+        ingredientRequirements,
+        ingredientAllocated,
+        packageAllocated,
+        packagePlan
       } = prepared, summary = this.cartSummary, plat = this.currentPlatform
-      allocated.shortages = allocated.shortages.map(x => ({
+      ingredientAllocated.shortages = ingredientAllocated.shortages.map(x => ({
         ...x,
+        inventoryType: 'ingredient',
         materialName: candidate.materials.find(m => m.id === x.materialId)?.name,
         unit: candidate.materials.find(m => m.id === x.materialId)?.unit
       }))
+      packageAllocated.shortages = packageAllocated.shortages.map(x => ({
+        ...x,
+        inventoryType: 'packaging',
+        materialName: candidate.materials.find(m => m.id === x.materialId)?.name,
+        unit: candidate.materials.find(m => m.id === x.materialId)?.unit
+      }))
+      const stockShortages = [...ingredientAllocated.shortages, ...packageAllocated.shortages]
+      const ingredientCost = Math.round(ingredientRequirements.reduce((sum, row) => sum + row.qty *
+        (candidate.materials.find(material => material.id === row.materialId)?.unitCost || 0), 0) * 100) / 100
+      const packagingCost = Math.round(packagePlan.reduce((sum, row) => sum + row.fulfilledCost, 0) * 100) / 100
+      const expectedPackagingShortageCost = Math.round(packagePlan.reduce((sum, row) => sum + row
+        .expectedShortageCost, 0) * 100) / 100
+      const foodCost = Math.round((ingredientCost + packagingCost) * 100) / 100
       const orderId = createEntityId('ORD', this.orders.map(o => o.orderId))
       const items = this.cart.map(item => {
         const price = Number(item.menu.prices?.[plat.id] || 0) + (item.selectedAddons || []).reduce((n,
@@ -2912,17 +3013,24 @@ const posDefinition = {
         discount: 0,
         gpAmount: summary.gpAmount,
         netRevenue: summary.netRevenue,
-        foodCost: summary.totalFoodCost,
-        grossProfit: summary.grossProfit,
+        ingredientCost,
+        packagingCost,
+        expectedPackagingShortageCost,
+        foodCost,
+        grossProfit: Math.round((summary.netRevenue - foodCost) * 100) / 100,
         paymentMethod: this.paymentMethod,
         note: this.orderNote,
         items,
-        inventoryAllocations: allocated.allocations,
-        stockShortages: allocated.shortages
+        packagePlan: clone(packagePlan),
+        inventoryAllocations: [
+          ...ingredientAllocated.allocations.map(row => ({...row, inventoryType: 'ingredient'})),
+          ...packageAllocated.allocations.map(row => ({...row, inventoryType: 'packaging'}))
+        ],
+        stockShortages
       }
-      candidate.materials = allocated.materials;
+      candidate.materials = packageAllocated.materials;
       candidate.orders.unshift(order)
-      candidate.stockShortages.push(...allocated.shortages.map(x => ({
+      candidate.stockShortages.push(...stockShortages.map(x => ({
         ...x,
         orderId,
         createdAt: order.createdAt

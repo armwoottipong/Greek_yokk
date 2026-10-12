@@ -34,6 +34,7 @@
       <CustomOrderModal />
       <ReceiptModal />
       <LowStockWarningModal />
+      <PackageReviewModal />
       <EmojiPickerPopover />
       <ConfirmModal />
       <LotDepletionModal />
@@ -71,6 +72,7 @@ import ActivityLogModal from '@/components/modals/ActivityLogModal.vue'
 import CustomOrderModal from '@/components/modals/CustomOrderModal.vue'
 import ReceiptModal from '@/components/modals/ReceiptModal.vue'
 import LowStockWarningModal from '@/components/modals/LowStockWarningModal.vue'
+import PackageReviewModal from '@/components/modals/PackageReviewModal.vue'
 import EmojiPickerPopover from '@/components/modals/EmojiPickerPopover.vue'
 import ConfirmModal from '@/components/modals/ConfirmModal.vue'
 import LotDepletionModal from '@/components/modals/LotDepletionModal.vue'

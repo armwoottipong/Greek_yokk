@@ -129,6 +129,7 @@
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-stone-100 text-stone-600 truncate max-w-full">
                   {{ mat.category || 'อื่นๆ' }}
                 </span>
+                <div class="mt-1"><span :data-inventory-type="mat.inventoryType" class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-stone-100 text-stone-700">{{ mat.inventoryType === 'packaging' ? 'บรรจุภัณฑ์' : 'วัตถุดิบ' }}</span></div>
               </td>
 
               <!-- Stock Level: Clear Quantity & Dedicated Stock In / Produce Action Button -->

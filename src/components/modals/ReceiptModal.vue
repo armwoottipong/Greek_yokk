@@ -48,8 +48,12 @@
           </div>
         </div>
 
+        <div v-if="order.packagePlan?.length" class="py-3 border-b border-dashed border-stone-300 space-y-1">
+          <strong>Package ที่ใช้ในออเดอร์</strong>
+          <div v-for="row in order.packagePlan" :key="row.materialId" class="flex justify-between gap-2"><span>{{ row.materialName }} {{ row.fulfilledQty }}/{{ row.requestedQty }} {{ row.unit }}<small v-if="row.adjustmentQty"> · ปรับ {{ row.adjustmentQty>0?'+':'' }}{{ row.adjustmentQty }} ({{ reasonLabel(row.reason) }})</small></span><span>฿{{ row.fulfilledCost }}</span></div>
+        </div>
         <div v-if="order.stockShortages?.length" class="py-3 border-b border-dashed border-amber-300 text-amber-900">
-          <strong>วัตถุดิบขาดค้าง</strong>
+          <strong>{{ order.stockShortages.some(x=>x.inventoryType==='packaging') ? 'วัตถุดิบ / บรรจุภัณฑ์ขาด' : 'วัตถุดิบขาดค้าง' }}</strong>
           <div v-for="shortage in order.stockShortages" :key="shortage.materialId">
             {{ shortage.materialName || shortage.materialId }}: {{ shortage.qty }} {{ shortage.unit }}
           </div>
@@ -68,6 +72,7 @@
             <span>รายรับสุทธิร้าน (Net):</span>
             <span class="font-number">฿{{ order.netRevenue }}</span>
           </div>
+          <div class="mt-2 pt-2 border-t border-dashed border-stone-300 space-y-1 text-[10px] text-stone-500"><div class="flex justify-between"><span>ต้นทุนวัตถุดิบ</span><span>฿{{ order.ingredientCost ?? order.foodCost ?? 0 }}</span></div><div class="flex justify-between"><span>ต้นทุนบรรจุภัณฑ์ที่ใช้จริง</span><span>฿{{ order.packagingCost || 0 }}</span></div><div class="flex justify-between font-semibold text-stone-700"><span>ต้นทุนขายรวม</span><span>฿{{ order.foodCost || 0 }}</span></div><div v-if="order.expectedPackagingShortageCost" class="flex justify-between text-amber-800"><span>ต้นทุน Package ที่ขาด (ไม่รวมกำไร)</span><span>฿{{ order.expectedPackagingShortageCost }}</span></div></div>
         </div>
 
         <div class="text-center pt-4 border-t border-dashed border-stone-300 text-[10px] text-stone-400">
@@ -112,6 +117,8 @@ const formattedDate = computed(() => {
   if (!order.value?.createdAt) return ''
   return new Date(order.value.createdAt).toLocaleString('th-TH', {timeZone:'Asia/Bangkok'})
 })
+const reasonLabels={separate_bag:'แยกถุง',customer_declined:'ลูกค้าไม่รับ',combined_packaging:'รวมบรรจุภัณฑ์',package_unavailable:'Package ไม่มี',repacked:'เปลี่ยนบรรจุ',other:'อื่น ๆ'}
+const reasonLabel=reason=>reasonLabels[reason]||reason||'-'
 
 function close() {
   store.modals.receipt.isOpen = false

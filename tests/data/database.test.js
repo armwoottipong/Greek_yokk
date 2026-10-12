@@ -14,6 +14,7 @@ it('rejects non-finite values and dangling recipe references', () => {
 it('normalizes legacy stock without losing baseline quantity or zero costs', () => {
   const r=database.normalizeDatabase({...snapshot(),materials:[material('X',15000,{lots:undefined,unitCost:0})]})
   expect(r.ok).toBe(true);expect(r.value.materials[0].lots[0].qty).toBe(15000);expect(r.value.materials[0].unitCost).toBe(0)
+  expect(r.value.schemaVersion).toBe(4);expect(r.value.materials[0].inventoryType).toBe('ingredient')
 })
 it('does not silently reconcile contradictory lot totals', () => {
   expect(database.normalizeDatabase({...snapshot(),materials:[material('X',150,{lots:[{id:'L',qty:100}]})]}).ok).toBe(false)

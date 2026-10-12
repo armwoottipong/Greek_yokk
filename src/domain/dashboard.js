@@ -14,7 +14,22 @@ export function dashboardRange(period,today=businessDateKey()) {
 function metricsFor(orders){
  const sum=field=>orders.reduce((total,o)=>total+(Number(o[field]) || 0),0)
  const totalSales=sum('subtotal'),totalGp=sum('gpAmount'),totalFoodCost=sum('foodCost'),netRevenue=sum('netRevenue'),grossProfit=sum('grossProfit')
- return {totalSales,totalGp,totalFoodCost,netRevenue,grossProfit,orderCount:orders.length,avgOrderValue:orders.length?totalSales/orders.length:0,foodCostRatio:totalSales?totalFoodCost/totalSales*100:0,margin:netRevenue?grossProfit/netRevenue*100:0}
+ const totalIngredientCost=orders.reduce((total,o)=>total+(Number(o.ingredientCost ?? o.foodCost) || 0),0)
+ const totalPackagingCost=sum('packagingCost'),expectedPackagingShortageCost=sum('expectedPackagingShortageCost')
+ const adjustmentMaterials=new Map(),adjustmentReasons=new Map(),shortageMaterials=new Map()
+ for(const order of orders){
+  for(const row of order.packagePlan || []) if(Number(row.adjustmentQty)){
+   const key=row.materialId,entry=adjustmentMaterials.get(key)||{materialId:key,materialName:row.materialName||key,count:0,quantity:0}
+   entry.count++;entry.quantity+=Number(row.adjustmentQty);adjustmentMaterials.set(key,entry)
+   const reason=row.reason||'unknown',reasonEntry=adjustmentReasons.get(reason)||{reason,count:0,quantity:0}
+   reasonEntry.count++;reasonEntry.quantity+=Number(row.adjustmentQty);adjustmentReasons.set(reason,reasonEntry)
+  }
+  for(const row of order.stockShortages || []) if(row.inventoryType==='packaging'){
+   const key=row.materialId,entry=shortageMaterials.get(key)||{materialId:key,materialName:row.materialName||key,count:0,quantity:0}
+   entry.count++;entry.quantity+=Number(row.qty)||0;shortageMaterials.set(key,entry)
+  }
+ }
+ return {totalSales,totalGp,totalFoodCost,totalIngredientCost,totalPackagingCost,expectedPackagingShortageCost,packagingCostPerOrder:orders.length?totalPackagingCost/orders.length:0,packageAdjustments:[...adjustmentMaterials.values()].sort((a,b)=>Math.abs(b.quantity)-Math.abs(a.quantity)),adjustmentReasons:[...adjustmentReasons.values()].sort((a,b)=>b.count-a.count),packageShortages:[...shortageMaterials.values()].sort((a,b)=>b.quantity-a.quantity),netRevenue,grossProfit,orderCount:orders.length,avgOrderValue:orders.length?totalSales/orders.length:0,foodCostRatio:totalSales?totalFoodCost/totalSales*100:0,margin:netRevenue?grossProfit/netRevenue*100:0}
 }
 export function buildDashboard(source,range){
  let start=range.start,end=range.end || range.start

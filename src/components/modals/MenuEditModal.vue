@@ -342,7 +342,7 @@ const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => ({
 const isEditing = computed(() => Boolean(store.modals.menuEdit.menuId))
 
 const recipeMaterialsByCategory = computed(() => {
-  const nonPkgs = store.activeMaterials.filter(m => !isPackagingMaterial(m))
+  const nonPkgs = store.activeMaterials.filter(m => m.inventoryType === 'ingredient')
   const groups = {}
   nonPkgs.forEach(m => {
     const cat = m.category || 'วัตถุดิบอื่นๆ'
@@ -353,15 +353,11 @@ const recipeMaterialsByCategory = computed(() => {
 })
 
 const packagingMaterials = computed(() => {
-  const pkgs = store.activeMaterials.filter(m => m.category === 'Packaging' || isPackagingMaterial(m))
-  return pkgs.length > 0 ? pkgs : store.activeMaterials
+  return store.activeMaterials.filter(m => m.inventoryType === 'packaging')
 })
 
 function isPackagingMaterial(m) {
-  if (!m) return false
-  const cat = (m.category || '').toLowerCase()
-  const name = (m.name || '').toLowerCase()
-  return cat.includes('packag') || cat.includes('บรรจุ') || name.includes('ถ้วย') || name.includes('ช้อน') || name.includes('ถุง') || name.includes('แก้ว')
+  return m?.inventoryType === 'packaging'
 }
 
 function getUnit(matId) {
@@ -409,11 +405,11 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
       })
     } else {
       // For new menu: if materials exist, add defaults if available
-      const defaultBase = store.matMap['MAT001'] || store.activeMaterials.find(m => !isPackagingMaterial(m))
+      const defaultBase = store.activeMaterials.find(m => m.id === 'MAT001' && m.inventoryType === 'ingredient') || store.activeMaterials.find(m => m.inventoryType === 'ingredient')
       if (defaultBase) {
         baseRecipeRows.value.push({ materialId: defaultBase.id, qty: 100 })
       }
-      const defaultCup = store.matMap['MAT010'] || packagingMaterials.value[0]
+      const defaultCup = packagingMaterials.value.find(m => m.id === 'MAT010') || packagingMaterials.value[0]
       if (defaultCup) {
         packageRecipeRows.value.push({ materialId: defaultCup.id, qty: 1 })
       }
@@ -426,8 +422,7 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
 })
 
 function addBaseRecipeRow() {
-  const nonPkgs = store.activeMaterials.filter(m => !isPackagingMaterial(m))
-  const defaultMat = nonPkgs[0] || store.activeMaterials[0]
+  const defaultMat = store.activeMaterials.find(m => m.inventoryType === 'ingredient')
   if (!defaultMat) {
     store.showToast('ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าสต็อกก่อน', 'error')
     return
@@ -443,7 +438,7 @@ function removeBaseRecipeRow(idx) {
 }
 
 function addPackageRecipeRow() {
-  const defaultPkg = packagingMaterials.value[0] || store.activeMaterials[0]
+  const defaultPkg = packagingMaterials.value[0]
   if (!defaultPkg) {
     store.showToast('ยังไม่มีรายการบรรจุภัณฑ์ในระบบ กรุณาเพิ่มบรรจุภัณฑ์ในหน้าสต็อกก่อน', 'error')
     return

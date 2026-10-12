@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { gasHarness } from '../helpers/gasHarness.js'
 
 const conversion = {targetMaterialId:'MAT001',yieldQty:20,totalBatchCost:10,subUsages:[{materialId:'MAT002',qty:10},{materialId:'MAT002',qty:20}]}
-const snapshot = () => ({schemaVersion:3,revision:4,materials:[{id:'M',stock:2,lots:[{id:'L',qty:2}]}],menus:[],addons:[],platforms:[],orders:[],activityLogs:[{id:'log',note:'x'.repeat(65000)}],categories:{materials:['test']},gasApiUrl:'',stockShortages:[]})
+const snapshot = () => ({schemaVersion:4,revision:4,materials:[{id:'M',name:'ถ้วย',inventoryType:'packaging',stock:2,lots:[{id:'L',qty:2}]}],menus:[],addons:[{id:'A',name:'น้ำผึ้ง',prices:{},recipe:[{materialId:'M',qty:1}]}],platforms:[],orders:[{orderId:'O',ingredientCost:1,packagingCost:2,expectedPackagingShortageCost:0,foodCost:3,packagePlan:[{materialId:'M',baselineQty:1,adjustmentQty:0,requestedQty:1,fulfilledQty:1,shortageQty:0,fulfilledCost:2,expectedShortageCost:0,reason:null,note:'',sources:[]}]}],activityLogs:[{id:'log',note:'x'.repeat(65000)}],categories:{materials:['test']},gasApiUrl:'',stockShortages:[]})
 describe('GAS recoverable backend',()=>{
   it('formula-looking literal values are rejected before intent without blocking later requests',()=>{
     const h=gasHarness()
@@ -63,7 +63,7 @@ describe('GAS recoverable backend',()=>{
     expect(h.rows('RawMaterials')[1][6]).toBe(0.09)
   })
   it.each(['stockIn','stockAdjust','saveMaterial','saveMenu','saveAddon','savePlatforms'])('rejects invalid finite quantities for %s without changes',action=>{
-    const data={stockIn:{materialId:'MAT001',quantity:-1},stockAdjust:{materialId:'MAT001',countedQty:-1},saveMaterial:{name:'invalid',stock:-1},saveMenu:{recipe:[{materialId:'MAT001',qty:-1}]},saveAddon:{materialId:'MAT001',amountUsed:-1},savePlatforms:[{id:'bad',gpPercent:101}]}[action]
+    const data={stockIn:{materialId:'MAT001',quantity:-1},stockAdjust:{materialId:'MAT001',countedQty:-1},saveMaterial:{name:'invalid',stock:-1},saveMenu:{recipe:[{materialId:'MAT001',qty:-1}]},saveAddon:{recipe:[{materialId:'MAT001',qty:-1}]},savePlatforms:[{id:'bad',gpPercent:101}]}[action]
     const h=gasHarness(); const before=JSON.stringify([...h.sheets].map(([name,s])=>[name,s.rows]))
     expect(h.post(action,data).status).toBe('error')
     expect(JSON.stringify([...h.sheets].filter(([name])=>!['Operations','OperationChunks','SnapshotChunks','SnapshotMetadata'].includes(name)).map(([name,s])=>[name,s.rows]))).toBe(before)
@@ -78,7 +78,7 @@ describe('GAS recoverable backend',()=>{
     expect(h.post('createOrder',data)).toEqual(response)
   })
   it.each(['saveMaterial','saveMenu','saveAddon','deleteMaterial','restoreMaterial','savePlatforms','saveSettings','stockIn','stockAdjust'])('recovers and replays %s once',action=>{
-    const data={saveMaterial:{name:'new',stock:1,unitCost:0},saveMenu:{name:'new',recipe:[],prices:{}},saveAddon:{name:'new',materialId:'MAT001',amountUsed:2,prices:{}},deleteMaterial:{materialId:'MAT001'},restoreMaterial:{materialId:'MAT001'},savePlatforms:[{id:'PLAT99',name:'test',gpPercent:0}],saveSettings:{ShopName:'changed'},stockIn:{materialId:'MAT001',quantity:10,unitCost:0},stockAdjust:{materialId:'MAT001',countedQty:10}}[action]
+    const data={saveMaterial:{name:'new',stock:1,unitCost:0,inventoryType:'ingredient'},saveMenu:{name:'new',recipe:[],prices:{}},saveAddon:{name:'new',recipe:[{materialId:'MAT001',qty:2}],prices:{}},deleteMaterial:{materialId:'MAT001'},restoreMaterial:{materialId:'MAT001'},savePlatforms:[{id:'PLAT99',name:'test',gpPercent:0}],saveSettings:{ShopName:'changed'},stockIn:{materialId:'MAT001',quantity:10,unitCost:0},stockAdjust:{materialId:'MAT001',countedQty:10}}[action]
     for (let boundary=1;boundary<=12;boundary++) {
       const h=gasHarness(); h.failAfter(boundary); h.post(action,data); h.resume()
       const first=h.post(action,data); expect(first.status).toBe('success')
@@ -107,6 +107,28 @@ describe('GAS recoverable backend',()=>{
     const h=gasHarness(); const s=snapshot(); s.materials[0].stock=-1
     expect(h.post('syncAll',{snapshot:s}).status).toBe('error')
     expect(h.get({action:'getSnapshot'}).status).toBe('error')
+  })
+  it('requires schema 4 types recipes split costs and valid package adjustments',()=>{
+    const h=gasHarness()
+    for(const [name,mutate] of [
+      ['schema',s=>{s.schemaVersion=3}],['type',s=>{s.materials[0].inventoryType='other'}],['recipe',s=>{s.addons[0].recipe[0].qty=0}],
+      ['cost',s=>{s.orders[0].packagingCost=-1}],['reason',s=>{s.orders[0].packagePlan[0].adjustmentQty=1;s.orders[0].packagePlan[0].reason='invalid'}],
+      ['note',s=>{s.orders[0].packagePlan[0].adjustmentQty=1;s.orders[0].packagePlan[0].reason='other';s.orders[0].packagePlan[0].note=''}]
+    ]){const s=snapshot();mutate(s);expect(h.post('syncAll',{snapshot:s},crypto.randomUUID()).status,name).toBe('error')}
+  })
+  it('writes canonical inventory type addon recipe and split order columns',()=>{
+    const h=gasHarness();expect(h.rows('RawMaterials')[0]).toContain('InventoryType');expect(h.rows('Addons')[0]).toContain('Recipe_JSON');expect(h.rows('Orders')[0]).toContain('PackagePlan_JSON')
+    expect(h.post('saveAddon',{name:'ใหม่',prices:{PLAT01:0},recipe:[{materialId:'MAT001',qty:2}]},'addon-v4').status).toBe('success')
+    const row=h.rows('Addons').at(-1);expect(JSON.parse(row[h.rows('Addons')[0].indexOf('Recipe_JSON')])).toEqual([{materialId:'MAT001',qty:2}])
+  })
+  it('accepts zero menu quantities and orphaned historical package evidence in schema 4',()=>{
+    const h=gasHarness(),s=snapshot();s.menus=[{id:'ZERO',recipe:[{materialId:'M',qty:0}]}];s.orders[0].packagePlan[0].materialId='DELETED';s.stockShortages=[{materialId:'DELETED',qty:1,inventoryType:'packaging'}]
+    expect(h.post('syncAll',{snapshot:s},'history-v4').status).toBe('success')
+  })
+  it('creates an order using canonical addon recipe rows',()=>{
+    const h=gasHarness(),before=h.rows('RawMaterials')[1][4]
+    const data={items:[{menuId:'MENU01',menuName:'test',qty:1,unitPrice:10,totalPrice:10,recipe:[],selectedAddons:[{id:'A',name:'addon',recipe:[{materialId:'MAT001',qty:2}]}]}],subtotal:10,discount:0,gpPercent:0,platformId:'PLAT01',platformName:'store'}
+    expect(h.post('createOrder',data,'canonical-addon-order').status).toBe('success');expect(h.rows('RawMaterials')[1][4]).toBe(before-2)
   })
   it('rejects an older revision while preserving the current backup',()=>{
     const h=gasHarness(); h.post('syncAll',{snapshot:snapshot()},'current')

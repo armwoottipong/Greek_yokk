@@ -1,6 +1,7 @@
 <template>
  <DialogFrame id="material-details" :open="open" :title="material?.name || 'รายละเอียดวัตถุดิบ'" :presentation="phone?'sheet':'panel'" @request-close="$emit('close')">
   <template v-if="material">
+   <StatusBadge :data-inventory-type="material.inventoryType" :label="material.inventoryType === 'packaging' ? 'บรรจุภัณฑ์' : 'วัตถุดิบ'" tone="neutral" />
    <StatusBadge v-if="material.isDeleted" label="จัดเก็บแล้ว" tone="neutral" />
    <dl class="material-facts"><div><dt>คงเหลือ</dt><dd>{{ Number(material.stock||0).toLocaleString('th-TH') }} {{ material.unit }}</dd></div><div><dt>ต้นทุนต่อ {{ material.packUnit||material.unit }}</dt><dd>฿{{ packCost.toLocaleString('th-TH',{maximumFractionDigits:2}) }}</dd></div></dl>
    <p v-if="draftDiff" class="draft-note">รอยืนยัน {{ draftDiff>0?'+':'' }}{{ draftDiff }} {{ material.unit }}</p>

@@ -15,3 +15,10 @@ it('rejects malformed category records and discovers missing legacy categories',
  const r=normalizeDatabase({...base(),menus:[{id:'M',category:'Custom',prices:{PLAT01:10},recipe:[]}]},{source:'legacy'})
  expect(r.ok).toBe(true);expect(r.value.categories.menu.some(c=>c.name==='Custom')).toBe(true)
 })
+it('accepts supported schema versions and rejects unsupported versions',()=> {
+ for(const schemaVersion of [undefined,3,4]) {
+  const result=normalizeDatabase({...base(),schemaVersion})
+  expect(result.ok).toBe(true);expect(result.value.schemaVersion).toBe(4)
+ }
+ for(const schemaVersion of [2,5,'4']) expect(normalizeDatabase({...base(),schemaVersion}).ok).toBe(false)
+})

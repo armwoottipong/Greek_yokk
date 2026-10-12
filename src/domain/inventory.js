@@ -19,21 +19,48 @@ export function aggregateRequirements(requirements) {
     qty
   })).filter(r => r.qty > 0)
 }
-export function getEffectiveRequirements(menu, addons = [], qty = 1, materials = []) {
+export function expandItemRequirements(menu, addons = [], qty = 1, materials = []) {
   if (!Number.isFinite(qty) || qty <= 0) throw new Error('จำนวนสั่งซื้อไม่ถูกต้อง')
-  const recipe = (menu.recipe || []).filter(r => menu.hasPackage !== false || materials.find(m => m.id === r
-    .materialId)?.category !== 'Packaging')
-  return aggregateRequirements([...recipe.map(r => ({
-    ...r,
-    qty: Number(r.qty) * qty
-  })), ...addons.filter(a => a.materialId).map(a => ({
-    materialId: a.materialId,
-    qty: Number(a.amountUsed || 0) * qty
-  }))])
+  const materialById = new Map(materials.map(material => [material.id, material]))
+  const expand = (source, sourceType) => {
+    const recipe = source.recipe || []
+    aggregateRequirements(recipe)
+    return recipe.flatMap(row => {
+      const material = materialById.get(row.materialId)
+      if (!material) throw Object.assign(new Error('ไม่พบวัตถุดิบในสูตร'), {
+        code: 'MISSING_MATERIAL', materialId: row.materialId
+      })
+      if (!['ingredient', 'packaging'].includes(material.inventoryType)) throw Object.assign(
+        new Error('ประเภทวัตถุดิบไม่ถูกต้อง'), { code: 'INVALID_INVENTORY_TYPE', materialId: row.materialId })
+      if (sourceType === 'menu' && menu.hasPackage === false && material.inventoryType === 'packaging') return []
+      // Ingredients retain precision until the existing running-total aggregation.
+      const expandedQty = material.inventoryType === 'ingredient'
+        ? Number(row.qty) * qty : round(Number(row.qty) * qty)
+      if (!Number.isFinite(expandedQty) || !Number.isFinite(round(expandedQty))) throw new Error('สูตรวัตถุดิบไม่ถูกต้อง')
+      return expandedQty > 0 ? [{
+        materialId: row.materialId,
+        qty: expandedQty,
+        inventoryType: material.inventoryType,
+        sourceType,
+        sourceId: source.id || '',
+        sourceName: source.name || ''
+      }] : []
+    })
+  }
+  return [...expand(menu, 'menu'), ...addons.flatMap(addon => expand(addon, 'addon'))]
+}
+export function ingredientRequirementsForCart(cart, materials) {
+  return aggregateRequirements(cart.flatMap(item =>
+    expandItemRequirements(item.menu, item.selectedAddons, item.qty, materials)
+      .filter(requirement => requirement.inventoryType === 'ingredient')))
+}
+export function getEffectiveRequirements(menu, addons = [], qty = 1, materials = []) {
+  return aggregateRequirements(expandItemRequirements(menu, addons, qty, materials))
 }
 export function allocateInventory(materials, requirements, {
   businessDate = businessDateKey(new Date()),
-  allowShortage = false
+  allowShortage = false,
+  expiredAsShortage = false
 } = {}) {
   const next = clone(materials),
     allocations = [],
@@ -83,14 +110,14 @@ export function allocateInventory(materials, requirements, {
     }
     if (remaining > 0) {
       const expired = (mat.lots || []).some(l => l.qty > 0 && isExpiredOn(l.expiryDate, businessDate))
-      if (expired || !allowShortage) issues.push({
+      if ((expired && !expiredAsShortage) || !allowShortage) issues.push({
         materialId,
         name: mat.name,
         emoji: mat.emoji,
         unit: mat.unit,
         stock: round(qty - remaining),
         needed: qty,
-        code: expired ? 'EXPIRED_MATERIAL' : 'SHORTAGE'
+        code: expired && !expiredAsShortage ? 'EXPIRED_MATERIAL' : 'SHORTAGE'
       })
       else shortages.push({
         materialId,

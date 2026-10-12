@@ -48,7 +48,7 @@
                     <div v-if="isAddonOutOfStock(addon)" class="text-[11px] text-amber-700 font-semibold flex items-center gap-0.5">
                       <span>⚠️ ของหมด (เลือกได้)</span>
                     </div>
-                    <div v-else-if="addon.materialId" class="text-[11px] text-stone-400">ใช้ {{ addon.amountUsed }} {{ getMatUnit(addon.materialId) }}</div>
+                    <div v-else-if="addon.recipe?.length" class="text-[11px] text-stone-400 text-left">ใช้ {{ addon.recipe.map(row => `${store.matMap[row.materialId]?.name || row.materialId} ${row.qty} ${getMatUnit(row.materialId)}`).join(' · ') }}</div>
                     <div v-else class="text-[11px] text-stone-400">ท็อปปิ้งสำเร็จรูป</div>
                   </div>
                 </div>
@@ -144,14 +144,15 @@ function getAddonPrice(addon) {
 
 function getMatUnit(matId) {
   const mat = store.matMap[matId]
-  return mat ? mat.unit : 'g'
+  return mat ? mat.unit : 'ไม่ระบุหน่วย'
 }
 
 function isAddonOutOfStock(addon) {
-  if (!addon.materialId) return false
-  const mat = store.matMap[addon.materialId]
-  if (!mat || mat.isDeleted) return true
-  return mat.stock < (addon.amountUsed || 0)
+  return (addon.recipe || []).some(row => {
+    const mat = store.matMap[row.materialId]
+    if (!mat || mat.isDeleted || mat.isArchived) return true
+    return mat.stock < Number(row.qty) * qty.value
+  })
 }
 
 function isAddonSelected(addonId) {
