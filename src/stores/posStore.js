@@ -972,24 +972,15 @@ const posDefinition = {
       if (!this.cart || this.cart.length === 0) return []
       const required = {}
       this.cart.forEach(item => {
-        if (item.menu.hasPackage !== false && item.menu.recipe) {
-          item.menu.recipe.forEach(r => {
-            required[r.materialId] = (required[r.materialId] || 0) + (r.qty * item.qty)
-          })
-        } else if (item.menu.recipe) {
-          item.menu.recipe.forEach(r => {
-            const m = this.materials.find(x => x.id === r.materialId)
-            if (m && m.category !== 'Packaging') {
-              required[r.materialId] = (required[r.materialId] || 0) + (r.qty * item.qty)
-            }
-          })
+        let rows
+        try {
+          rows = getEffectiveRequirements(item.menu, item.selectedAddons, item.qty, this.materials)
+        } catch {
+          // Invalid snapshots are blocked by the stock/checkout checks; keep warning UI readable.
+          return
         }
-        if (item.selectedAddons) {
-          item.selectedAddons.forEach(a => {
-            if (a.materialId && a.amountUsed) {
-              required[a.materialId] = (required[a.materialId] || 0) + (a.amountUsed * item.qty)
-            }
-          })
+        for (const row of rows) {
+          required[row.materialId] = (required[row.materialId] || 0) + row.qty
         }
       })
 
@@ -1853,7 +1844,7 @@ const posDefinition = {
       // Check addons
       if (Array.isArray(this.addons)) {
         this.addons.forEach(addon => {
-          if (addon.materialId === matId) {
+          if (addon.recipe?.some(row => row.materialId === matId)) {
             usedInAddons.push(addon.name)
           }
         })

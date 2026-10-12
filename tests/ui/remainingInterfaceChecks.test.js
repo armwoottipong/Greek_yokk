@@ -8,7 +8,7 @@ import AddonEdit from '../../src/components/modals/AddonEditModal.vue'
 import Toast from '../../src/components/ui/ToastContainer.vue'
 import App from '../../src/App.vue'
 it('distinguishes intentionally unlinked addons from broken references without consumption text',async()=>{
- const store=createTestStore();store.resetDemoData();store.addons[0].materialId='';store.addons[0].amountUsed=99
+ const store=createTestStore();store.resetDemoData();store.addons[0].recipe=[]
  const w=mount(AddonView,{attachTo:document.body})
  try{w.vm.detailAddonId=store.addons[0].id;await flushPromises();const text=document.getElementById('addon-details').textContent;expect(text).toContain('ไม่ตัดวัตถุดิบ');expect(text).not.toContain('ไม่พบวัตถุดิบ');expect(text).not.toContain('99')}finally{w.unmount()}
 })
