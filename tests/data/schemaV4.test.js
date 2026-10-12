@@ -105,12 +105,26 @@ describe('canonical schema version 4', () => {
     expect(result.errors.some(error => error.path === 'addons[0].recipe[0].qty')).toBe(true)
   })
 
-  it('rejects a non-positive legacy addon linkage quantity', () => {
+  it('migrates a zero-consumption legacy addon linkage to an empty recipe', () => {
     const raw = version3Snapshot()
     raw.addons[0].amountUsed = 0
     const result = database.normalizeDatabase(raw)
-    expect(result.ok).toBe(false)
-    expect(result.errors.some(error => error.path === 'addons[0].recipe[0].qty')).toBe(true)
+    expect(result.ok).toBe(true)
+    expect(result.value.addons[0].recipe).toEqual([])
+  })
+
+  it.each([
+    [null,'INVALID_RECORD'],
+    [{materialId:'CUP',baselineQty:-1,adjustmentQty:0,requestedQty:0,fulfilledQty:0,shortageQty:0,fulfilledCost:0,expectedShortageCost:0,reason:null,note:'',sources:[]},'INVALID_NUMBER'],
+    [{materialId:'CUP',baselineQty:1,adjustmentQty:1,requestedQty:2,fulfilledQty:2,shortageQty:0,fulfilledCost:5,expectedShortageCost:0,reason:'bad',note:'',sources:[]},'INVALID_ADJUSTMENT_REASON']
+  ])('rejects malformed package plan history %#', (row,code) => {
+    const raw=version3Snapshot();raw.schemaVersion=4;raw.orders[0].packagePlan=[row]
+    const result=database.normalizeDatabase(raw,{source:'import'});expect(result.ok).toBe(false);expect(result.errors.some(error=>error.code===code)).toBe(true)
+  })
+
+  it('rejects invalid shortage quantities while preserving orphaned identities',()=>{
+    const raw=version3Snapshot();raw.schemaVersion=4;raw.stockShortages=[{materialId:'removed',qty:-1,inventoryType:'packaging'}]
+    expect(database.normalizeDatabase(raw,{source:'import'}).ok).toBe(false)
   })
 
   it('aggregates duplicate addon material rows into one canonical requirement', () => {

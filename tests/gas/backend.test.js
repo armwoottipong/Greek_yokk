@@ -121,6 +121,15 @@ describe('GAS recoverable backend',()=>{
     expect(h.post('saveAddon',{name:'ใหม่',prices:{PLAT01:0},recipe:[{materialId:'MAT001',qty:2}]},'addon-v4').status).toBe('success')
     const row=h.rows('Addons').at(-1);expect(JSON.parse(row[h.rows('Addons')[0].indexOf('Recipe_JSON')])).toEqual([{materialId:'MAT001',qty:2}])
   })
+  it('accepts zero menu quantities and orphaned historical package evidence in schema 4',()=>{
+    const h=gasHarness(),s=snapshot();s.menus=[{id:'ZERO',recipe:[{materialId:'M',qty:0}]}];s.orders[0].packagePlan[0].materialId='DELETED';s.stockShortages=[{materialId:'DELETED',qty:1,inventoryType:'packaging'}]
+    expect(h.post('syncAll',{snapshot:s},'history-v4').status).toBe('success')
+  })
+  it('creates an order using canonical addon recipe rows',()=>{
+    const h=gasHarness(),before=h.rows('RawMaterials')[1][4]
+    const data={items:[{menuId:'MENU01',menuName:'test',qty:1,unitPrice:10,totalPrice:10,recipe:[],selectedAddons:[{id:'A',name:'addon',recipe:[{materialId:'MAT001',qty:2}]}]}],subtotal:10,discount:0,gpPercent:0,platformId:'PLAT01',platformName:'store'}
+    expect(h.post('createOrder',data,'canonical-addon-order').status).toBe('success');expect(h.rows('RawMaterials')[1][4]).toBe(before-2)
+  })
   it('rejects an older revision while preserving the current backup',()=>{
     const h=gasHarness(); h.post('syncAll',{snapshot:snapshot()},'current')
     expect(h.post('syncAll',{snapshot:{...snapshot(),revision:3}},'old').status).toBe('error')

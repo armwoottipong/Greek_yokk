@@ -35,4 +35,9 @@ describe('package checkout accounting',()=>{
   const store=setup();store.savePackageAdjustment({materialId:'CUP',requestedQty:1,reason:'combined_packaging',note:''});vi.spyOn(Storage.prototype,'setItem').mockImplementation(()=>{throw new Error('quota')})
   expect(store.checkout()).toBeNull();expect(store.matMap.CUP.stock).toBe(1);expect(store.orders).toEqual([]);expect(store.stockShortages).toEqual([]);expect(store.cart).toHaveLength(1);expect(store.packageAdjustments).toHaveLength(1)
  })
+  it('treats expired package lots as a confirmable shortage without consuming them',()=>{
+   const store=setup({packageStock:3});const cup=store.materials.find(x=>x.id==='CUP');cup.lots[0].expiryDate='2020-01-01'
+   expect(store.checkout()).toBeNull();expect(store.modals.lowStockWarning.warningItems[0]).toMatchObject({inventoryType:'packaging',shortage:3})
+   const order=store.checkout({allowPackageShortage:true});expect(order).toBeTruthy();expect(store.matMap.CUP.stock).toBe(3);expect(order.packagePlan[0]).toMatchObject({fulfilledQty:0,shortageQty:3})
+  })
 })

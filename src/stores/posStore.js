@@ -957,17 +957,17 @@ const posDefinition = {
 
         subtotal += (itemUnitPrice * item.qty)
 
-        let singleItemCost = 0
         const materials = this.stockDraftSnapshot || this.materials
         for (const r of getEffectiveRequirements(item.menu, item.selectedAddons, 1, materials)) {
           const material = materials.find(m => m.id === r.materialId)
           const cost = r.qty * (material?.unitCost || 0)
-          singleItemCost += cost
-          if (material?.inventoryType === 'packaging') totalPackagingCost += cost * item.qty
-          else totalIngredientCost += cost * item.qty
+          if (material?.inventoryType !== 'packaging') totalIngredientCost += cost * item.qty
         }
-        totalFoodCost += (singleItemCost * item.qty)
       })
+      const packageProjection = this.cartPackagePlan
+      totalPackagingCost = packageProjection.items.reduce((sum, item) => sum + (Number(item.fulfilledCost) || 0), 0)
+      const expectedPackagingShortageCost = packageProjection.items.reduce((sum, item) => sum + (Number(item.expectedShortageCost) || 0), 0)
+      totalFoodCost = totalIngredientCost + totalPackagingCost
 
       const gpPercent = plat.gpPercent || 0
       const gpAmount = Math.round((subtotal * (gpPercent / 100)) * 100) / 100
@@ -983,6 +983,7 @@ const posDefinition = {
         totalFoodCost,
         totalIngredientCost,
         totalPackagingCost,
+        expectedPackagingShortageCost,
         grossProfit
       }
     },
@@ -992,7 +993,8 @@ const posDefinition = {
       const plan = buildPackagePlan(this.cart, materials, this.packageAdjustments)
       if (!plan.ok) return plan
       const allocated = allocateInventory(materials, packageRequirements(plan.items), {
-        allowShortage: true
+        allowShortage: true,
+        expiredAsShortage: true
       })
       if (!allocated.ok) return {...plan, ok: false, issues: allocated.issues || []}
       return {...plan, items: finalizePackagePlan(plan.items, allocated)}
@@ -2909,7 +2911,8 @@ const posDefinition = {
       })
       const packageBaseMaterials = ingredientAllocated.ok ? ingredientAllocated.materials : candidate.materials
       const packageAllocated = allocateInventory(packageBaseMaterials, packageRequirements(packagePlan.items), {
-        allowShortage: allowPackageShortage
+        allowShortage: allowPackageShortage,
+        expiredAsShortage: true
       })
       const issues = [
         ...(ingredientAllocated.ok ? [] : (ingredientAllocated.issues || []).map(issue => ({...issue, inventoryType: 'ingredient'}))),

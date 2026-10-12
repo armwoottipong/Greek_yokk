@@ -59,7 +59,8 @@ export function getEffectiveRequirements(menu, addons = [], qty = 1, materials =
 }
 export function allocateInventory(materials, requirements, {
   businessDate = businessDateKey(new Date()),
-  allowShortage = false
+  allowShortage = false,
+  expiredAsShortage = false
 } = {}) {
   const next = clone(materials),
     allocations = [],
@@ -109,14 +110,14 @@ export function allocateInventory(materials, requirements, {
     }
     if (remaining > 0) {
       const expired = (mat.lots || []).some(l => l.qty > 0 && isExpiredOn(l.expiryDate, businessDate))
-      if (expired || !allowShortage) issues.push({
+      if ((expired && !expiredAsShortage) || !allowShortage) issues.push({
         materialId,
         name: mat.name,
         emoji: mat.emoji,
         unit: mat.unit,
         stock: round(qty - remaining),
         needed: qty,
-        code: expired ? 'EXPIRED_MATERIAL' : 'SHORTAGE'
+        code: expired && !expiredAsShortage ? 'EXPIRED_MATERIAL' : 'SHORTAGE'
       })
       else shortages.push({
         materialId,

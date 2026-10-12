@@ -45,4 +45,8 @@ describe('order package adjustments',()=>{
   store.cart=[]
   expect(store.cartPackagePlan.items.find(x=>x.materialId==='BOWL')).toMatchObject({baselineQty:0,adjustmentQty:-1,requestedQty:0})
  })
+ it('projects adjusted fulfilled package cost into the cart financial summary',()=>{
+  const {store}=setup();store.savePackageAdjustment({materialId:'BOWL',requestedQty:1,reason:'combined_packaging',note:''})
+  expect(store.cartSummary).toMatchObject({totalIngredientCost:20,totalPackagingCost:2,totalFoodCost:22})
+ })
 })

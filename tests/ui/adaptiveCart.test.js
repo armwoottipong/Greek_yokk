@@ -52,3 +52,8 @@ it('shows estimated ingredient and package costs as separate non-charge lines',a
  const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],1);const w=mount(CartPanel,{props:{presentation:'panel'}})
  try{await flushPromises();const text=w.text();expect(text).toContain('ต้นทุนวัตถุดิบประมาณ');expect(text).toContain('ต้นทุนบรรจุภัณฑ์ประมาณ');expect(store.cartSummary.subtotal).toBeGreaterThan(0)}finally{w.unmount()}
 })
+it('opens package review for a package-free order and estimates adjusted fulfilled package cost',async()=>{
+ const store=createTestStore();store.resetDemoData();const food=store.materials.find(x=>x.inventoryType==='ingredient');store.materials=[food];store.cart=[{menu:{id:'M',name:'เปล่า',prices:{PLAT01:10},recipe:[{materialId:food.id,qty:1}],hasPackage:false},selectedAddons:[],qty:1}]
+ const w=mount(CartPanel,{props:{presentation:'panel'}})
+ try{await flushPromises();const button=w.findAll('button').find(b=>b.text().includes('ตรวจ/ปรับ Package'));expect(button).toBeTruthy();await button.trigger('click');expect(store.modals.packageReview.isOpen).toBe(true)}finally{w.unmount()}
+})

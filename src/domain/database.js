@@ -148,7 +148,7 @@ export function normalizeDatabase(raw, {
           `${p}.prices.${k}`)]))
         if (field === 'addons') {
           item.recipe = record.recipe === undefined && raw.schemaVersion !== CURRENT_SCHEMA_VERSION
-            ? (record.materialId ? [{ materialId: record.materialId, qty: record.amountUsed }] : [])
+            ? (record.materialId ? (Number(record.amountUsed) === 0 ? [] : [{ materialId: record.materialId, qty: record.amountUsed }]) : [])
             : clone(record.recipe ?? [])
           delete item.materialId
           delete item.amountUsed
@@ -164,7 +164,22 @@ export function normalizeDatabase(raw, {
         item.expectedPackagingShortageCost = number(record.expectedPackagingShortageCost, `${p}.expectedPackagingShortageCost`)
         if (Math.abs(item.foodCost - item.ingredientCost - item.packagingCost) > 0.00000001) fail(`${p}.foodCost`, 'COST_TOTAL_CONFLICT')
         if (record.packagePlan != null && !Array.isArray(record.packagePlan)) fail(`${p}.packagePlan`, 'INVALID_COLLECTION')
-        item.packagePlan = Array.isArray(record.packagePlan) ? clone(record.packagePlan) : []
+        const reasons = ['separate_bag', 'customer_declined', 'combined_packaging', 'package_unavailable', 'repacked', 'other']
+        item.packagePlan = Array.isArray(record.packagePlan) ? record.packagePlan.map((row, rowIndex) => {
+          const rp = `${p}.packagePlan[${rowIndex}]`
+          if (!row || typeof row !== 'object' || Array.isArray(row)) { fail(rp, 'INVALID_RECORD'); return {} }
+          const normalized = {...clone(row)}
+          for (const key of ['baselineQty', 'requestedQty', 'fulfilledQty', 'shortageQty', 'fulfilledCost', 'expectedShortageCost']) normalized[key] = number(row[key], `${rp}.${key}`)
+          normalized.adjustmentQty = number(row.adjustmentQty, `${rp}.adjustmentQty`, 0, true)
+          if (normalized.adjustmentQty !== 0 && !reasons.includes(row.reason)) fail(`${rp}.reason`, 'INVALID_ADJUSTMENT_REASON')
+          if (row.reason === 'other' && (typeof row.note !== 'string' || !row.note.trim())) fail(`${rp}.note`, 'ADJUSTMENT_NOTE_REQUIRED')
+          if (row.sources != null && !Array.isArray(row.sources)) fail(`${rp}.sources`, 'INVALID_COLLECTION')
+          normalized.sources = Array.isArray(row.sources) ? row.sources.map((source, sourceIndex) => {
+            if (!source || typeof source !== 'object' || Array.isArray(source)) { fail(`${rp}.sources[${sourceIndex}]`, 'INVALID_RECORD'); return {} }
+            return {...clone(source), qty:number(source.qty, `${rp}.sources[${sourceIndex}].qty`)}
+          }) : []
+          return normalized
+        }) : []
         if (record.items != null && !Array.isArray(record.items)) fail(`${p}.items`, 'INVALID_COLLECTION')
         item.items = Array.isArray(record.items) ? clone(record.items) : []
         if (item.items.some(x => !x || typeof x !== 'object' || Array.isArray(x))) fail(`${p}.items`, 'INVALID_RECORD')
@@ -252,7 +267,11 @@ export function normalizeDatabase(raw, {
         ? materials.get(record.materialId)?.inventoryType || 'ingredient'
         : record.inventoryType
       if (!['ingredient', 'packaging'].includes(inventoryType)) fail(`${path}[${index}].inventoryType`, 'INVALID_INVENTORY_TYPE')
-      return { ...record, inventoryType }
+      const qty = number(record.qty, `${path}[${index}].qty`)
+      if (qty <= 0) fail(`${path}[${index}].qty`, 'INVALID_SHORTAGE_QUANTITY')
+      const normalized = { ...record, qty, inventoryType }
+      if (record.expectedCost != null) normalized.expectedCost = number(record.expectedCost, `${path}[${index}].expectedCost`)
+      return normalized
     })
   }
   value.stockShortages = normalizeShortages(value.stockShortages, 'stockShortages')

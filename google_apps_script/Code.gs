@@ -274,12 +274,16 @@ function handleCreateOrder(orderData) {
       rowIdx: i + 1,
       name: row[1],
       stock: Number(row[4]) || 0,
-      cost: Number(row[6]) || 0
+      cost: Number(row[6]) || 0,
+      inventoryType: row[11] || "ingredient"
     };
   }
 
   // คำนวณสูตรและต้นทุนรวมของวัตถุดิบทั้งหมดที่ใช้ในบิลนี้
   let totalFoodCost = 0;
+  let ingredientCost = 0;
+  let packagingCost = 0;
+  const hasPackagePlan = Array.isArray(orderData.packagePlan);
   const stockDeductions = {}; // materialId -> totalQtyToDeduct
 
   const now = new Date();
@@ -292,6 +296,7 @@ function handleCreateOrder(orderData) {
     // 1. ตัดวัตถุดิบตามสูตรเมนูหลัก
     if (item.recipe && Array.isArray(item.recipe)) {
       item.recipe.forEach(r => {
+        if (hasPackagePlan && matMap[r.materialId] && matMap[r.materialId].inventoryType === "packaging") return;
         const qtyNeeded = (Number(r.qty) || 0) * (Number(item.qty) || 1);
         stockDeductions[r.materialId] = (stockDeductions[r.materialId] || 0) + qtyNeeded;
         if (matMap[r.materialId]) {
@@ -303,17 +308,17 @@ function handleCreateOrder(orderData) {
     // 2. ตัดวัตถุดิบตาม Add-on ที่เลือก
     if (item.selectedAddons && Array.isArray(item.selectedAddons)) {
       item.selectedAddons.forEach(addon => {
-        if (addon.materialId && addon.amountUsed) {
-          const qtyNeeded = (Number(addon.amountUsed) || 0) * (Number(item.qty) || 1);
-          stockDeductions[addon.materialId] = (stockDeductions[addon.materialId] || 0) + qtyNeeded;
-          if (matMap[addon.materialId]) {
-            itemCost += qtyNeeded * matMap[addon.materialId].cost;
-          }
-        }
+        (addon.recipe || []).forEach(function(input) {
+          if (hasPackagePlan && matMap[input.materialId] && matMap[input.materialId].inventoryType === "packaging") return;
+          const qtyNeeded = Number(input.qty) * Number(item.qty);
+          stockDeductions[input.materialId] = (stockDeductions[input.materialId] || 0) + qtyNeeded;
+          if (matMap[input.materialId]) itemCost += qtyNeeded * matMap[input.materialId].cost;
+        });
       });
     }
 
     totalFoodCost += itemCost;
+    ingredientCost += itemCost;
 
     // บันทึกลง OrderItems
     const itemId = orderId + "-I" + (idx + 1);
@@ -330,6 +335,14 @@ function handleCreateOrder(orderData) {
       itemCost
     ]);
   });
+
+  if (hasPackagePlan) orderData.packagePlan.forEach(function(row) {
+    const qty = Number(row.fulfilledQty) || 0;
+    stockDeductions[row.materialId] = (stockDeductions[row.materialId] || 0) + qty;
+    packagingCost += qty * (matMap[row.materialId] ? matMap[row.materialId].cost : 0);
+  });
+  totalFoodCost += packagingCost;
+  const expectedPackagingShortageCost = hasPackagePlan ? orderData.packagePlan.reduce(function(sum, row) { return sum + (Number(row.expectedShortageCost) || 0); }, 0) : 0;
 
   // คำนวณการเงิน
   const subtotal = Number(orderData.subtotal) || 0;
@@ -353,9 +366,9 @@ function handleCreateOrder(orderData) {
     grossProfit,
     orderData.paymentMethod || "QR PromptPay",
     orderData.note || "",
-    Number(orderData.ingredientCost != null ? orderData.ingredientCost : totalFoodCost) || 0,
-    Number(orderData.packagingCost) || 0,
-    Number(orderData.expectedPackagingShortageCost) || 0,
+    ingredientCost,
+    packagingCost,
+    expectedPackagingShortageCost,
     JSON.stringify(orderData.packagePlan || []),
     JSON.stringify(orderData.stockShortages || [])
   ]);
@@ -1092,10 +1105,18 @@ function validateMutation(action, data) {
     data.items.forEach(function(item) {
       const qty = numberValue(item.qty, "order quantity", true);
       numberValue(item.unitPrice, "unit price"); numberValue(item.totalPrice, "total price");
-      (item.recipe || []).concat((item.selectedAddons || []).map(function(addon) { return { materialId: addon.materialId, qty: addon.amountUsed }; })).forEach(function(input) {
+      const hasPackagePlan = Array.isArray(data.packagePlan);
+      const addonRecipe = (item.selectedAddons || []).reduce(function(rows, addon) { return rows.concat(addon.recipe || []); }, []);
+      (item.recipe || []).concat(addonRecipe).forEach(function(input) {
         requireMaterial(map, input.materialId);
+        if (hasPackagePlan && map[input.materialId][11] === "packaging") return;
         totals[input.materialId] = (totals[input.materialId] || 0) + numberValue(input.qty, "recipe quantity") * qty;
       });
+    });
+    if (Array.isArray(data.packagePlan)) data.packagePlan.forEach(function(row) {
+      requireMaterial(map, row.materialId);
+      totals[row.materialId] = (totals[row.materialId] || 0) + numberValue(row.fulfilledQty, "fulfilled package quantity");
+      numberValue(row.expectedShortageCost, "expected package shortage cost");
     });
     Object.keys(totals).forEach(function(id) { if (totals[id] > Number(map[id][4])) throw new Error("Insufficient stock: " + id); });
     const subtotal = numberValue(data.subtotal, "subtotal");
@@ -1154,21 +1175,20 @@ function validateSnapshot(snapshot) {
     });
     if (!Number.isFinite(total) || Math.abs(total - stock) > 0.00001) throw new Error("Snapshot stock and lots disagree");
   });
-  function validateRecipe(entity, label) {
+  function validateRecipe(entity, label, positive) {
     if (!Array.isArray(entity.recipe)) throw new Error(label + " recipe required");
     entity.recipe.forEach(function(input) {
       if (!materialIds[input.materialId]) throw new Error(label + " recipe material missing");
-      numberValue(input.qty, label + " recipe quantity", true);
+      numberValue(input.qty, label + " recipe quantity", positive);
     });
   }
-  snapshot.menus.forEach(function(menu) { validateRecipe(menu, "Menu"); });
-  snapshot.addons.forEach(function(addon) { validateRecipe(addon, "Addon"); });
+  snapshot.menus.forEach(function(menu) { validateRecipe(menu, "Menu", false); });
+  snapshot.addons.forEach(function(addon) { validateRecipe(addon, "Addon", true); });
   const reasons = ["separate_bag", "customer_declined", "combined_packaging", "package_unavailable", "repacked", "other"];
   snapshot.orders.forEach(function(order) {
     ["ingredientCost", "packagingCost", "expectedPackagingShortageCost", "foodCost"].forEach(function(key) { numberValue(order[key], "order " + key); });
     if (!Array.isArray(order.packagePlan)) throw new Error("Order package plan required");
     order.packagePlan.forEach(function(row) {
-      if (!materialIds[row.materialId]) throw new Error("Package plan material missing");
       ["baselineQty", "requestedQty", "fulfilledQty", "shortageQty", "fulfilledCost", "expectedShortageCost"].forEach(function(key) { numberValue(row[key], "package plan " + key); });
       if (typeof row.adjustmentQty !== "number" || !Number.isFinite(row.adjustmentQty)) throw new Error("Invalid package adjustment quantity");
       if (Number(row.adjustmentQty) !== 0 && reasons.indexOf(row.reason) === -1) throw new Error("Invalid package adjustment reason");

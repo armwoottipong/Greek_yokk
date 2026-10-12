@@ -6,12 +6,14 @@ Verified schema v4 migration, stable inventory types, multi-row Add-on BOMs, ord
 
 ## Automated evidence
 
-- `npm test` — PASS: 65 files, 389 tests.
+- `npm test` — PASS: 65 files, 398 tests.
 - `npm run lint` — PASS: ESLint exit 0.
-- `npm run build` — PASS: Vite production build completed in 8.56s.
+- `npm run build` — PASS: Vite production build completed in 6.16s.
 - Critical workflow selection — PASS: 11 files, 166 tests covering schema migration/idempotence, Package planning, adjustment retention/reset, shortage checkout and zero-floor allocation, split reports, GAS recovery/round trip, dialog focus, Package review, receipt, and responsive dashboard presentation.
 
-Logs are retained in the ignored task workspace at `.superpowers/sdd/2026-10-12-addon-package-cost/task-9-*.log` until final review cleanup.
+Command output was retained in the ignored task workspace during review and removed with the temporary review workspace after the recorded results were confirmed.
+
+The final whole-branch review identified seven important gaps. A single TDD fix pass closed all seven: zero-use legacy Add-on migration, stricter Package history validation, package-free/invalid-adjustment recovery, adjusted cart cost projection, expired-Package shortage handling, GAS historical validation, and canonical GAS Add-on recipe deductions. The final full suite above includes those regressions.
 
 ## Migration and backup
 
