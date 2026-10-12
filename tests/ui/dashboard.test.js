@@ -36,6 +36,10 @@ it('keeps the date dialog outside the inert application shell',async()=>{
  try{await w.get('[data-dashboard-dates]').trigger('click');await w.vm.$nextTick();expect(document.querySelector('[data-filter-dropdown]').closest('[inert]')).toBeNull()}
  finally{w.unmount();app.remove()}
 })
+it('shows package cost adjustment and shortage reporting in the selected period',()=>{
+ const s=createTestStore();s.orders=[{...sale('PKG',new Date().toISOString()),ingredientCost:20,packagingCost:3,expectedPackagingShortageCost:2,foodCost:23,packagePlan:[{materialId:'CUP',materialName:'ถ้วย',adjustmentQty:1,reason:'separate_bag'}],stockShortages:[{materialId:'CUP',materialName:'ถ้วย',inventoryType:'packaging',qty:1}]}]
+ const w=mount(DashboardView);expect(w.text()).toContain('ต้นทุนวัตถุดิบ');expect(w.text()).toContain('ต้นทุนบรรจุภัณฑ์ที่ใช้จริง');expect(w.text()).toContain('ต้นทุน Package ที่ขาด');expect(w.text()).toContain('ถ้วย');expect(w.text()).toContain('แยกถุง');w.unmount()
+})
 it('refreshes relative presets after Bangkok midnight while keeping custom dates',async()=>{
  vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-10T16:59:50Z'))
  const s=createTestStore();s.orders=[sale('YESTERDAY','2026-10-10T10:00:00Z'),sale('TODAY','2026-10-10T17:00:01Z')]

@@ -936,6 +936,8 @@ const posDefinition = {
       const plat = this.currentPlatform
       let subtotal = 0
       let totalFoodCost = 0
+      let totalIngredientCost = 0
+      let totalPackagingCost = 0
 
       this.cart.forEach(item => {
         const menuPrice = (item.menu.prices && item.menu.prices[plat.id] !== undefined) ?
@@ -957,8 +959,13 @@ const posDefinition = {
 
         let singleItemCost = 0
         const materials = this.stockDraftSnapshot || this.materials
-        for (const r of getEffectiveRequirements(item.menu, item.selectedAddons, 1, materials))
-          singleItemCost += r.qty * (materials.find(m => m.id === r.materialId)?.unitCost || 0)
+        for (const r of getEffectiveRequirements(item.menu, item.selectedAddons, 1, materials)) {
+          const material = materials.find(m => m.id === r.materialId)
+          const cost = r.qty * (material?.unitCost || 0)
+          singleItemCost += cost
+          if (material?.inventoryType === 'packaging') totalPackagingCost += cost * item.qty
+          else totalIngredientCost += cost * item.qty
+        }
         totalFoodCost += (singleItemCost * item.qty)
       })
 
@@ -974,6 +981,8 @@ const posDefinition = {
         gpAmount,
         netRevenue,
         totalFoodCost,
+        totalIngredientCost,
+        totalPackagingCost,
         grossProfit
       }
     },

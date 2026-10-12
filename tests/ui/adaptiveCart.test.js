@@ -48,3 +48,7 @@ it('opens package review from a compact summary without changing subtotal',async
  const subtotal=store.cartSummary.subtotal,w=mount(CartPanel,{props:{presentation:'panel'},attachTo:document.body})
  try{await flushPromises();const button=w.findAll('button').find(b=>b.text().includes('ตรวจ/ปรับ Package'));expect(button).toBeTruthy();await button.trigger('click');expect(store.modals.packageReview.isOpen).toBe(true);expect(store.cartSummary.subtotal).toBe(subtotal)}finally{w.unmount()}
 })
+it('shows estimated ingredient and package costs as separate non-charge lines',async()=>{
+ const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],1);const w=mount(CartPanel,{props:{presentation:'panel'}})
+ try{await flushPromises();const text=w.text();expect(text).toContain('ต้นทุนวัตถุดิบประมาณ');expect(text).toContain('ต้นทุนบรรจุภัณฑ์ประมาณ');expect(store.cartSummary.subtotal).toBeGreaterThan(0)}finally{w.unmount()}
+})

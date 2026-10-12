@@ -19,3 +19,7 @@ it('receipt retains original commission after platform rate changes',()=> {
  s.modals.receipt={isOpen:true,order:{orderId:'O',platformId:s.platforms[0].id,createdAt:new Date().toISOString(),subtotal:100,gpAmount:30,netRevenue:70,items:[]}}
  const w=mount(ReceiptModal);expect(w.text()).toContain('(30%)');w.unmount()
 })
+it('receipt shows split costs package adjustments and expected missing cost without charging the customer',()=>{
+ const s=createTestStore();s.modals.receipt={isOpen:true,order:{orderId:'PKG',createdAt:new Date().toISOString(),subtotal:100,gpAmount:0,netRevenue:100,ingredientCost:20,packagingCost:2,foodCost:22,expectedPackagingShortageCost:4,items:[],packagePlan:[{materialId:'CUP',materialName:'ถ้วย',baselineQty:1,adjustmentQty:1,requestedQty:2,fulfilledQty:1,shortageQty:1,reason:'separate_bag'}],stockShortages:[{materialId:'CUP',materialName:'ถ้วย',unit:'ใบ',qty:1,inventoryType:'packaging'}]}}
+ const w=mount(ReceiptModal);expect(w.text()).toContain('ต้นทุนวัตถุดิบ');expect(w.text()).toContain('ต้นทุนบรรจุภัณฑ์ที่ใช้จริง');expect(w.text()).toContain('ต้นทุน Package ที่ขาด (ไม่รวมกำไร)');expect(w.text()).toContain('ปรับ +1');expect(w.text()).toContain('แยกถุง');expect(w.text()).toContain('บรรจุภัณฑ์ขาด');expect(w.text()).not.toContain('ยอดชำระสุทธิ (Total):฿102');w.unmount()
+})
