@@ -1119,7 +1119,7 @@ function validatePrices(prices) {
 }
 
 function validateSnapshot(snapshot) {
-  if (!snapshot || snapshot.schemaVersion !== 3 || !Number.isInteger(snapshot.revision) || snapshot.revision < 0) throw new Error("Schema3 snapshot and revision required");
+  if (!snapshot || [3, 4].indexOf(snapshot.schemaVersion) === -1 || !Number.isInteger(snapshot.revision) || snapshot.revision < 0) throw new Error("Schema3 or Schema4 snapshot and revision required");
   ["materials", "menus", "addons", "platforms", "orders", "activityLogs", "stockShortages"].forEach(function(key) {
     if (!Array.isArray(snapshot[key])) throw new Error("Snapshot array required: " + key);
     const ids = {};

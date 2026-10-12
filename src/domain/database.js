@@ -3,6 +3,13 @@ import {
   DEFAULT_PLATFORMS
 } from '../data/initialData'
 export const clone = value => JSON.parse(JSON.stringify(value))
+export const CURRENT_SCHEMA_VERSION = 4
+export function inferInventoryType(material) {
+  const category = typeof material?.category === 'string' ? material.category.toLowerCase() : ''
+  const name = typeof material?.name === 'string' ? material.name.toLowerCase() : ''
+  return category.includes('packag') || category.includes('บรรจุ') ||
+    ['ถ้วย', 'ช้อน', 'ถุง', 'แก้ว'].some(word => name.includes(word)) ? 'packaging' : 'ingredient'
+}
 export const DATABASE_FIELDS = ['materials', 'menus', 'addons', 'platforms', 'orders', 'activityLogs',
   'categories', 'gasApiUrl', 'stockShortages'
 ]
@@ -27,7 +34,7 @@ export function normalizeDatabase(raw, {
   if (source === 'import' || source === 'canonical')
     for (const key of ['materials', 'menus', 'addons'])
       if (!Array.isArray(raw[key])) fail(key, 'REQUIRED_COLLECTION')
-  if (raw.schemaVersion != null && raw.schemaVersion !== 3) fail('schemaVersion', 'UNSUPPORTED_VERSION')
+  if (raw.schemaVersion != null && ![3, CURRENT_SCHEMA_VERSION].includes(raw.schemaVersion)) fail('schemaVersion', 'UNSUPPORTED_VERSION')
   const number = (value, path, fallback = 0, allowNegative = false) => {
     const n = value === undefined ? fallback : Number(value)
     if (value === null || value === '' || typeof value === 'boolean' || typeof value === 'object' || !Number.isFinite(n) || (!allowNegative && n < 0)) {
@@ -44,7 +51,7 @@ export function normalizeDatabase(raw, {
     return value
   }
   const value = {
-    schemaVersion: 3,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
     revision: number(raw.revision, 'revision'),
     categories: clone(raw.categories ?? DEFAULT_CATEGORIES),
     gasApiUrl: typeof raw.gasApiUrl === 'string' ? raw.gasApiUrl : '',
@@ -73,6 +80,8 @@ export function normalizeDatabase(raw, {
         ids.add(id)
       }
       if (field === 'materials') {
+        item.inventoryType = record.inventoryType === undefined ? inferInventoryType(record) : record.inventoryType
+        if (!['ingredient', 'packaging'].includes(item.inventoryType)) fail(`${p}.inventoryType`, 'INVALID_INVENTORY_TYPE')
         item.stock = number(record.stock, `${p}.stock`);
         item.unitCost = number(record.unitCost, `${p}.unitCost`)
         item.minAlert = number(record.minAlert, `${p}.minAlert`);
@@ -137,12 +146,25 @@ export function normalizeDatabase(raw, {
           fail(`${p}.prices`, 'INVALID_PRICES')
         item.prices = Object.fromEntries(Object.entries(record.prices || {}).map(([k, v]) => [k, number(v,
           `${p}.prices.${k}`)]))
-        if (field === 'addons') item.amountUsed = number(record.amountUsed, `${p}.amountUsed`)
+        if (field === 'addons') {
+          item.recipe = record.recipe === undefined && raw.schemaVersion !== CURRENT_SCHEMA_VERSION
+            ? (record.materialId ? [{ materialId: record.materialId, qty: record.amountUsed }] : [])
+            : clone(record.recipe ?? [])
+          delete item.materialId
+          delete item.amountUsed
+        }
       }
       if (field === 'orders') {
         for (const k of ['subtotal', 'gpAmount', 'netRevenue', 'foodCost'])
           if (record[k] != null) item[k] = number(record[k], `${p}.${k}`)
         if (record.grossProfit != null) item.grossProfit = number(record.grossProfit, `${p}.grossProfit`, 0, true)
+        item.foodCost = number(record.foodCost, `${p}.foodCost`)
+        item.ingredientCost = number(record.ingredientCost, `${p}.ingredientCost`, item.foodCost)
+        item.packagingCost = number(record.packagingCost, `${p}.packagingCost`)
+        item.expectedPackagingShortageCost = number(record.expectedPackagingShortageCost, `${p}.expectedPackagingShortageCost`)
+        if (Math.abs(item.foodCost - item.ingredientCost - item.packagingCost) > 0.00000001) fail(`${p}.foodCost`, 'COST_TOTAL_CONFLICT')
+        if (record.packagePlan != null && !Array.isArray(record.packagePlan)) fail(`${p}.packagePlan`, 'INVALID_COLLECTION')
+        item.packagePlan = Array.isArray(record.packagePlan) ? clone(record.packagePlan) : []
         if (record.items != null && !Array.isArray(record.items)) fail(`${p}.items`, 'INVALID_COLLECTION')
         item.items = Array.isArray(record.items) ? clone(record.items) : []
         if (item.items.some(x => !x || typeof x !== 'object' || Array.isArray(x))) fail(`${p}.items`, 'INVALID_RECORD')
@@ -183,6 +205,7 @@ export function normalizeDatabase(raw, {
   const materialIds = new Set(value.materials.map(m => m.id))
   for (const [field, key] of [
       ['menus', 'recipe'],
+      ['addons', 'recipe'],
       ['materials', 'subRecipe']
     ]) value[field].forEach((item, index) => {
     if (item[key] != null && !Array.isArray(item[key])) {
@@ -190,20 +213,51 @@ export function normalizeDatabase(raw, {
       return
     }
     item[key] = (item[key] || []).map((r, i) => {
-      if (!r || typeof r !== 'object') {
+      if (!r || typeof r !== 'object' || Array.isArray(r)) {
         fail(`${field}[${index}].${key}[${i}]`, 'INVALID_RECIPE');
         return {}
       }
       if (!materialIds.has(r.materialId)) fail(`${field}[${index}].${key}[${i}]`, 'MISSING_MATERIAL')
-      return {
+      const row = {
         ...r,
         qty: number(r.qty, `${field}[${index}].${key}[${i}].qty`)
       }
+      if (field === 'addons' && row.qty <= 0) fail(`${field}[${index}].${key}[${i}].qty`, 'INVALID_RECIPE_QUANTITY')
+      return row
     })
+    if (field === 'addons') {
+      const requirements = new Map()
+      for (const row of item.recipe) {
+        const previous = requirements.get(row.materialId)
+        if (previous) {
+          previous.qty += row.qty
+          if (!Number.isFinite(previous.qty)) fail(`${field}[${index}].${key}`, 'INVALID_NUMBER')
+        } else requirements.set(row.materialId, { materialId: row.materialId, qty: row.qty })
+      }
+      item.recipe = [...requirements.values()]
+    }
   })
-  value.addons.forEach((a, i) => {
-    if (a.materialId && !materialIds.has(a.materialId)) fail(`addons[${i}].materialId`,
-      'MISSING_MATERIAL')
+  const materials = new Map(value.materials.map(material => [material.id, material]))
+  const normalizeShortages = (records, path) => {
+    if (!Array.isArray(records)) {
+      fail(path, 'INVALID_COLLECTION')
+      return []
+    }
+    return records.map((record, index) => {
+      if (!record || typeof record !== 'object' || Array.isArray(record)) {
+        fail(`${path}[${index}]`, 'INVALID_RECORD')
+        return {}
+      }
+      const inventoryType = record.inventoryType === undefined
+        ? materials.get(record.materialId)?.inventoryType || 'ingredient'
+        : record.inventoryType
+      if (!['ingredient', 'packaging'].includes(inventoryType)) fail(`${path}[${index}].inventoryType`, 'INVALID_INVENTORY_TYPE')
+      return { ...record, inventoryType }
+    })
+  }
+  value.stockShortages = normalizeShortages(value.stockShortages, 'stockShortages')
+  value.orders.forEach((order, index) => {
+    if (order.stockShortages != null) order.stockShortages = normalizeShortages(order.stockShortages, `orders[${index}].stockShortages`)
   })
   const visit = (id, stack = []) => {
     if (stack.includes(id)) {

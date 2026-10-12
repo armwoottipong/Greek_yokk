@@ -13,7 +13,8 @@ import {
 import {
   normalizeDatabase,
   clone,
-  DATABASE_FIELDS
+  DATABASE_FIELDS,
+  CURRENT_SCHEMA_VERSION
 } from '@/domain/database'
 import {
   loadDatabase,
@@ -1231,7 +1232,7 @@ const posDefinition = {
       committedMaterials = true
     } = {}) {
       const data = {
-        schemaVersion: 3,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
         revision: this.databaseRevision
       }
       for (const field of DATABASE_FIELDS) data[field] = clone(this[field])

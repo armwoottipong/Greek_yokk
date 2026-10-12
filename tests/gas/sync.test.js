@@ -24,8 +24,9 @@ it('requires matching committed acknowledgement and checksum',async()=> {
  expect(ack.revision).toBe(1);expect(ack.requestId).toBe('R')
  const body=JSON.parse(globalThis.fetch.mock.calls[0][1].body);expect(body.action).toBe('syncAll');expect(body.data.snapshot).toEqual(snapshot)
 })
-it('frontend snapshot round-trips through the actual backend contract',async()=> {
- const h=gasHarness(),s=createTestStore();s.saveGasUrl('https://test.example')
+it('frontend schema version 4 snapshot round-trips through the actual backend contract',async()=> {
+ const h=gasHarness(),s=createTestStore();s.resetDemoData();s.saveGasUrl('https://test.example')
+ expect(s.exportDatabase().schemaVersion).toBe(4)
  globalThis.fetch=vi.fn(async(_url,options)=>{const payload=JSON.parse(options.body);const response=h.post(payload.action,payload.data,payload.requestId);return {ok:true,json:async()=>response}})
  expect((await s.syncWithGas()).ok).toBe(true)
  expect(h.get({action:'getSnapshot'}).data.snapshot).toEqual(s.exportDatabase())

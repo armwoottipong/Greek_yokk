@@ -116,7 +116,7 @@ export const DEFAULT_MATERIALS = [
   {
     id: "MAT001",
     name: "กรีกโยเกิร์ตแท้ (Greek Base)",
-    category: "Base Yogurt",
+    category: "Base Yogurt", inventoryType: "ingredient",
     unit: "g",
     packUnit: "ถัง",
     packSize: 1200,
@@ -135,19 +135,19 @@ export const DEFAULT_MATERIALS = [
     shelfLifeDays: 7,
     isDeleted: false
   },
-  { id: "MAT002", name: "นมสดพาสเจอร์ไรส์ (Fresh Milk)", category: "Dairy & Milk", unit: "ml", packUnit: "ขวด", packSize: 1200, packCost: 54, stock: 15000, minAlert: 4000, unitCost: 0.045, emoji: "🥛", isSubIngredient: true, shelfLifeDays: 10, isDeleted: false },
-  { id: "MAT003", name: "หัวเชื้อโยเกิร์ตธรรมชาติ", category: "Dairy & Milk", unit: "g", packUnit: "ถ้วย", packSize: 500, packCost: 40, stock: 2500, minAlert: 500, unitCost: 0.08, emoji: "🥣", isSubIngredient: true, shelfLifeDays: 14, isDeleted: false },
-  { id: "MAT004", name: "สตรอว์เบอร์รีสด", category: "Fresh Fruits", unit: "g", packUnit: "ลัง", packSize: 500, packCost: 175, stock: 1200, minAlert: 300, unitCost: 0.35, emoji: "🍓", isSubIngredient: false, shelfLifeDays: 4, isDeleted: false },
-  { id: "MAT005", name: "บลูเบอร์รีสด", category: "Fresh Fruits", unit: "g", packUnit: "กล่อง", packSize: 125, packCost: 68.75, stock: 800, minAlert: 200, unitCost: 0.55, emoji: "🫐", isSubIngredient: false, shelfLifeDays: 5, isDeleted: false },
-  { id: "MAT006", name: "มะม่วงน้ำดอกไม้สุก", category: "Fresh Fruits", unit: "g", packUnit: "กก.", packSize: 1000, packCost: 200, stock: 1500, minAlert: 400, unitCost: 0.20, emoji: "🥭", isSubIngredient: false, shelfLifeDays: 4, isDeleted: false },
-  { id: "MAT007", name: "กล้วยหอมทอง", category: "Fresh Fruits", unit: "g", packUnit: "หวี", packSize: 1200, packCost: 96, stock: 2000, minAlert: 500, unitCost: 0.08, emoji: "🍌", isSubIngredient: false, shelfLifeDays: 4, isDeleted: false },
-  { id: "MAT008", name: "น้ำผึ้งแท้ดอกไม้ป่า", category: "Sauces", unit: "g", packUnit: "ขวด", packSize: 1000, packCost: 250, stock: 1500, minAlert: 300, unitCost: 0.25, emoji: "🍯", isSubIngredient: false, shelfLifeDays: 365, isDeleted: false },
-  { id: "MAT009", name: "กราโนล่าอบเนยถั่ว", category: "Toppings", unit: "g", packUnit: "ถุง", packSize: 500, packCost: 140, stock: 1800, minAlert: 400, unitCost: 0.28, emoji: "🥜", isSubIngredient: false, shelfLifeDays: 60, isDeleted: false },
-  { id: "MAT010", name: "ถ้วยกระดาษ Type A (Size S)", category: "Packaging", unit: "pcs", packUnit: "แถว", packSize: 50, packCost: 160, stock: 150, minAlert: 30, unitCost: 3.20, emoji: "📦", isSubIngredient: false, shelfLifeDays: null, isDeleted: false },
-  { id: "MAT011", name: "ถ้วยกระดาษ Type B (Size M)", category: "Packaging", unit: "pcs", packUnit: "แถว", packSize: 50, packCost: 190, stock: 180, minAlert: 40, unitCost: 3.80, emoji: "📦", isSubIngredient: false, shelfLifeDays: null, isDeleted: false },
-  { id: "MAT012", name: "ช้อนไม้รักษ์โลก", category: "Packaging", unit: "pcs", packUnit: "แพ็ค", packSize: 100, packCost: 60, stock: 300, minAlert: 50, unitCost: 0.60, emoji: "🥄", isSubIngredient: false, shelfLifeDays: null, isDeleted: false },
-  { id: "MAT013", name: "ถุงพลาสติกหิ้วเดี่ยว (1 แก้ว)", category: "Packaging", unit: "pcs", packUnit: "แพ็ค", packSize: 100, packCost: 85, stock: 400, minAlert: 100, unitCost: 0.85, emoji: "🛍️", isSubIngredient: false, shelfLifeDays: null, isDeleted: false },
-  { id: "MAT014", name: "ถุงพลาสติกหิ้วคู่ (2 แก้ว)", category: "Packaging", unit: "pcs", packUnit: "แพ็ค", packSize: 100, packCost: 120, stock: 200, minAlert: 50, unitCost: 1.20, emoji: "🛍️", isSubIngredient: false, shelfLifeDays: null, isDeleted: false }
+  { id: "MAT002", name: "นมสดพาสเจอร์ไรส์ (Fresh Milk)", category: "Dairy & Milk", inventoryType: "ingredient", unit: "ml", packUnit: "ขวด", packSize: 1200, packCost: 54, stock: 15000, minAlert: 4000, unitCost: 0.045, emoji: "🥛", isSubIngredient: true, shelfLifeDays: 10, isDeleted: false },
+  { id: "MAT003", name: "หัวเชื้อโยเกิร์ตธรรมชาติ", category: "Dairy & Milk", inventoryType: "ingredient", unit: "g", packUnit: "ถ้วย", packSize: 500, packCost: 40, stock: 2500, minAlert: 500, unitCost: 0.08, emoji: "🥣", isSubIngredient: true, shelfLifeDays: 14, isDeleted: false },
+  { id: "MAT004", name: "สตรอว์เบอร์รีสด", category: "Fresh Fruits", inventoryType: "ingredient", unit: "g", packUnit: "ลัง", packSize: 500, packCost: 175, stock: 1200, minAlert: 300, unitCost: 0.35, emoji: "🍓", isSubIngredient: false, shelfLifeDays: 4, isDeleted: false },
+  { id: "MAT005", name: "บลูเบอร์รีสด", category: "Fresh Fruits", inventoryType: "ingredient", unit: "g", packUnit: "กล่อง", packSize: 125, packCost: 68.75, stock: 800, minAlert: 200, unitCost: 0.55, emoji: "🫐", isSubIngredient: false, shelfLifeDays: 5, isDeleted: false },
+  { id: "MAT006", name: "มะม่วงน้ำดอกไม้สุก", category: "Fresh Fruits", inventoryType: "ingredient", unit: "g", packUnit: "กก.", packSize: 1000, packCost: 200, stock: 1500, minAlert: 400, unitCost: 0.20, emoji: "🥭", isSubIngredient: false, shelfLifeDays: 4, isDeleted: false },
+  { id: "MAT007", name: "กล้วยหอมทอง", category: "Fresh Fruits", inventoryType: "ingredient", unit: "g", packUnit: "หวี", packSize: 1200, packCost: 96, stock: 2000, minAlert: 500, unitCost: 0.08, emoji: "🍌", isSubIngredient: false, shelfLifeDays: 4, isDeleted: false },
+  { id: "MAT008", name: "น้ำผึ้งแท้ดอกไม้ป่า", category: "Sauces", inventoryType: "ingredient", unit: "g", packUnit: "ขวด", packSize: 1000, packCost: 250, stock: 1500, minAlert: 300, unitCost: 0.25, emoji: "🍯", isSubIngredient: false, shelfLifeDays: 365, isDeleted: false },
+  { id: "MAT009", name: "กราโนล่าอบเนยถั่ว", category: "Toppings", inventoryType: "ingredient", unit: "g", packUnit: "ถุง", packSize: 500, packCost: 140, stock: 1800, minAlert: 400, unitCost: 0.28, emoji: "🥜", isSubIngredient: false, shelfLifeDays: 60, isDeleted: false },
+  { id: "MAT010", name: "ถ้วยกระดาษ Type A (Size S)", category: "Packaging", inventoryType: "packaging", unit: "pcs", packUnit: "แถว", packSize: 50, packCost: 160, stock: 150, minAlert: 30, unitCost: 3.20, emoji: "📦", isSubIngredient: false, shelfLifeDays: null, isDeleted: false },
+  { id: "MAT011", name: "ถ้วยกระดาษ Type B (Size M)", category: "Packaging", inventoryType: "packaging", unit: "pcs", packUnit: "แถว", packSize: 50, packCost: 190, stock: 180, minAlert: 40, unitCost: 3.80, emoji: "📦", isSubIngredient: false, shelfLifeDays: null, isDeleted: false },
+  { id: "MAT012", name: "ช้อนไม้รักษ์โลก", category: "Packaging", inventoryType: "packaging", unit: "pcs", packUnit: "แพ็ค", packSize: 100, packCost: 60, stock: 300, minAlert: 50, unitCost: 0.60, emoji: "🥄", isSubIngredient: false, shelfLifeDays: null, isDeleted: false },
+  { id: "MAT013", name: "ถุงพลาสติกหิ้วเดี่ยว (1 แก้ว)", category: "Packaging", inventoryType: "packaging", unit: "pcs", packUnit: "แพ็ค", packSize: 100, packCost: 85, stock: 400, minAlert: 100, unitCost: 0.85, emoji: "🛍️", isSubIngredient: false, shelfLifeDays: null, isDeleted: false },
+  { id: "MAT014", name: "ถุงพลาสติกหิ้วคู่ (2 แก้ว)", category: "Packaging", inventoryType: "packaging", unit: "pcs", packUnit: "แพ็ค", packSize: 100, packCost: 120, stock: 200, minAlert: 50, unitCost: 1.20, emoji: "🛍️", isSubIngredient: false, shelfLifeDays: null, isDeleted: false }
 ];
 
 export const DEFAULT_MENUS = [
@@ -228,12 +228,12 @@ export const DEFAULT_MENUS = [
 ];
 
 export const DEFAULT_ADDONS = [
-  { id: "ADD01", name: "สตรอว์เบอร์รีสด (30g)", category: "ผลไม้สด", emoji: "🍓", prices: { "PLAT01": 20, "PLAT02": 29, "PLAT03": 29, "PLAT04": 18 }, materialId: "MAT004", amountUsed: 30, isActive: true },
-  { id: "ADD02", name: "บลูเบอร์รีสด (25g)", category: "ผลไม้สด", emoji: "🫐", prices: { "PLAT01": 25, "PLAT02": 35, "PLAT03": 35, "PLAT04": 22 }, materialId: "MAT005", amountUsed: 25, isActive: true },
-  { id: "ADD03", name: "มะม่วงน้ำดอกไม้ (40g)", category: "ผลไม้สด", emoji: "🥭", prices: { "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }, materialId: "MAT006", amountUsed: 40, isActive: true },
-  { id: "ADD04", name: "กล้วยหอมทอง (40g)", category: "ผลไม้สด", emoji: "🍌", prices: { "PLAT01": 12, "PLAT02": 18, "PLAT03": 18, "PLAT04": 10 }, materialId: "MAT007", amountUsed: 40, isActive: true },
-  { id: "ADD05", name: "น้ำผึ้งแท้ดอกไม้ป่า (15ml)", category: "ซอส & น้ำผึ้ง", emoji: "🍯", prices: { "PLAT01": 15, "PLAT02": 20, "PLAT03": 20, "PLAT04": 10 }, materialId: "MAT008", amountUsed: 15, isActive: true },
-  { id: "ADD06", name: "กราโนล่าอบเนยถั่ว (20g)", category: "ธัญพืช & กรอบ", emoji: "🥜", prices: { "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }, materialId: "MAT009", amountUsed: 20, isActive: true }
+  { id: "ADD01", name: "สตรอว์เบอร์รีสด (30g)", category: "ผลไม้สด", emoji: "🍓", prices: { "PLAT01": 20, "PLAT02": 29, "PLAT03": 29, "PLAT04": 18 }, recipe: [{ materialId: "MAT004", qty: 30 }], isActive: true },
+  { id: "ADD02", name: "บลูเบอร์รีสด (25g)", category: "ผลไม้สด", emoji: "🫐", prices: { "PLAT01": 25, "PLAT02": 35, "PLAT03": 35, "PLAT04": 22 }, recipe: [{ materialId: "MAT005", qty: 25 }], isActive: true },
+  { id: "ADD03", name: "มะม่วงน้ำดอกไม้ (40g)", category: "ผลไม้สด", emoji: "🥭", prices: { "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }, recipe: [{ materialId: "MAT006", qty: 40 }], isActive: true },
+  { id: "ADD04", name: "กล้วยหอมทอง (40g)", category: "ผลไม้สด", emoji: "🍌", prices: { "PLAT01": 12, "PLAT02": 18, "PLAT03": 18, "PLAT04": 10 }, recipe: [{ materialId: "MAT007", qty: 40 }], isActive: true },
+  { id: "ADD05", name: "น้ำผึ้งแท้ดอกไม้ป่า (15ml)", category: "ซอส & น้ำผึ้ง", emoji: "🍯", prices: { "PLAT01": 15, "PLAT02": 20, "PLAT03": 20, "PLAT04": 10 }, recipe: [{ materialId: "MAT008", qty: 15 }], isActive: true },
+  { id: "ADD06", name: "กราโนล่าอบเนยถั่ว (20g)", category: "ธัญพืช & กรอบ", emoji: "🥜", prices: { "PLAT01": 15, "PLAT02": 22, "PLAT03": 22, "PLAT04": 12 }, recipe: [{ materialId: "MAT009", qty: 20 }], isActive: true }
 ];
 
 const todayIso = new Date().toISOString();
@@ -248,6 +248,10 @@ export const DEFAULT_ORDERS = [
     gpAmount: 0,
     netRevenue: 169,
     foodCost: 45.5,
+    ingredientCost: 45.5,
+    packagingCost: 0,
+    expectedPackagingShortageCost: 0,
+    packagePlan: [],
     grossProfit: 123.5,
     paymentMethod: "QR PromptPay",
     note: "ทานที่ร้าน",
@@ -272,6 +276,10 @@ export const DEFAULT_ORDERS = [
     gpAmount: 68.4,
     netRevenue: 159.6,
     foodCost: 48.2,
+    ingredientCost: 48.2,
+    packagingCost: 0,
+    expectedPackagingShortageCost: 0,
+    packagePlan: [],
     grossProfit: 111.4,
     paymentMethod: "Platform Delivery",
     note: "แยกน้ำผึ้ง",
