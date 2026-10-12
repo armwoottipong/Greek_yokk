@@ -8,6 +8,12 @@ import {
   rebaseInventoryDraft
 } from '@/domain/inventory'
 import {
+  buildPackagePlan,
+  packageRequirements,
+  finalizePackagePlan,
+  PACKAGE_ADJUSTMENT_REASONS
+} from '@/domain/packagePlan'
+import {
   businessDateKey
 } from '@/domain/businessDate'
 import {
@@ -397,6 +403,7 @@ const posDefinition = {
       // POS Active State
       currentPlatformId: storedPlatforms.find(p => p.isActive !== false)?.id || 'PLAT01',
       cart: [],
+      packageAdjustments: [],
       orderNote: '',
       paymentMethod: 'QR PromptPay',
 
@@ -447,6 +454,9 @@ const posDefinition = {
           isOpen: false,
           warningItems: [],
           onConfirm: null
+        },
+        packageReview: {
+          isOpen: false
         },
         emojiPicker: {
           isOpen: false,
@@ -965,6 +975,17 @@ const posDefinition = {
         totalFoodCost,
         grossProfit
       }
+    },
+
+    cartPackagePlan() {
+      const materials = this.stockDraftSnapshot || this.materials
+      const plan = buildPackagePlan(this.cart, materials, this.packageAdjustments)
+      if (!plan.ok) return plan
+      const allocated = allocateInventory(materials, packageRequirements(plan.items), {
+        allowShortage: true
+      })
+      if (!allocated.ok) return {...plan, ok: false, issues: allocated.issues || []}
+      return {...plan, items: finalizePackagePlan(plan.items, allocated)}
     },
 
     // Warning getter for materials in POS cart whose active lots are depleted or nearly empty
@@ -2792,8 +2813,43 @@ const posDefinition = {
       this.cart.splice(index, 1)
     },
 
+    savePackageAdjustment({materialId, requestedQty, reason, note = ''}) {
+      const material = this.materials.find(item => item.id === materialId)
+      const qty = Number(requestedQty)
+      if (!material || material.isDeleted || material.inventoryType !== 'packaging')
+        return {ok: false, success: false, message: 'เลือกบรรจุภัณฑ์ที่พร้อมใช้งาน'}
+      if (!Number.isFinite(qty) || qty < 0)
+        return {ok: false, success: false, message: 'จำนวนบรรจุภัณฑ์ต้องเป็นศูนย์หรือมากกว่า'}
+      if (!PACKAGE_ADJUSTMENT_REASONS.includes(reason))
+        return {ok: false, success: false, message: 'เลือกเหตุผลการปรับบรรจุภัณฑ์'}
+      if (reason === 'other' && !String(note).trim())
+        return {ok: false, success: false, message: 'ระบุเหตุผลเพิ่มเติม'}
+      const current = buildPackagePlan(this.cart, this.stockDraftSnapshot || this.materials, [])
+        .items.find(item => item.materialId === materialId)
+      const baselineQty = current?.baselineQty || 0
+      const adjustment = {
+        materialId,
+        deltaQty: Math.round((qty - baselineQty) * 100) / 100,
+        reason,
+        note: String(note).trim()
+      }
+      const index = this.packageAdjustments.findIndex(item => item.materialId === materialId)
+      if (index >= 0) this.packageAdjustments[index] = adjustment
+      else this.packageAdjustments.push(adjustment)
+      return {ok: true, success: true}
+    },
+
+    resetPackageAdjustment(materialId) {
+      this.packageAdjustments = this.packageAdjustments.filter(item => item.materialId !== materialId)
+    },
+
+    resetPackageAdjustments() {
+      this.packageAdjustments = []
+    },
+
     clearCart() {
       this.cart = []
+      this.packageAdjustments = []
       this.orderNote = ''
     },
 

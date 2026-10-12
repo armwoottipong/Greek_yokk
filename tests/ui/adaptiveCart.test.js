@@ -43,3 +43,8 @@ it('shows quantity rather than row count and an empty review cannot checkout',as
   expect(checkout).not.toHaveBeenCalled()
  }finally{w.unmount()}
 })
+it('opens package review from a compact summary without changing subtotal',async()=>{
+ const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],1)
+ const subtotal=store.cartSummary.subtotal,w=mount(CartPanel,{props:{presentation:'panel'},attachTo:document.body})
+ try{await flushPromises();const button=w.findAll('button').find(b=>b.text().includes('ตรวจ/ปรับ Package'));expect(button).toBeTruthy();await button.trigger('click');expect(store.modals.packageReview.isOpen).toBe(true);expect(store.cartSummary.subtotal).toBe(subtotal)}finally{w.unmount()}
+})
