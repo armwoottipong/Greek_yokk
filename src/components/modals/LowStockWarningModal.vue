@@ -26,7 +26,7 @@
           <div class="flex items-center gap-2">
             <span class="text-base">{{ item.emoji }}</span>
             <div>
-              <div class="font-medium text-stone-900">{{ item.name }}</div>
+              <div class="font-medium text-stone-900">{{ item.name }} <span v-if="item.inventoryType" class="stock-type">{{ item.inventoryType==='packaging'?'บรรจุภัณฑ์':'วัตถุดิบ' }}</span></div>
               <div class="text-[10px] text-stone-400">
                 {{ store.modals.lowStockWarning.isOutOfStock ? `ต้องการ: ${item.needed} ${item.unit} (มี ${item.stock})` : `จุดเตือนหมด: ${item.minAlert} ${item.unit}` }}
               </div>
@@ -41,6 +41,7 @@
             </span>
           </div>
         </div>
+        <p v-if="store.modals.lowStockWarning.warningItems.some(item=>item.inventoryType==='packaging')" class="package-shortage-copy">Package ที่ขาดจะหยุดตัดที่ศูนย์ สต็อกไม่ติดลบ และไม่บันทึกของทดแทน ระบบเก็บยอดขาดเป็นเหตุการณ์ของออเดอร์เท่านั้น</p>
       </div>
   <template #footer><div class="decision-actions">
         <button
@@ -85,4 +86,5 @@ function confirm() {
 </script>
 <style scoped>
 .decision-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;width:100%}.decision-actions>button{min-height:44px;font-size:.8125rem}
+.stock-type{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:999px;background:#fff;color:#78716c;font-size:.625rem}.package-shortage-copy{margin-top:12px;padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;line-height:1.6}
 </style>

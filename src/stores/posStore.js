@@ -3,6 +3,7 @@ import {
 } from '@/services/gasClient'
 import {
   getEffectiveRequirements,
+  ingredientRequirementsForCart,
   allocateInventory,
   aggregateRequirements,
   rebaseInventoryDraft
@@ -2855,14 +2856,14 @@ const posDefinition = {
 
     // Complete Checkout
     prepareCheckout({
-      allowShortage = false
+      allowShortage = false,
+      allowPackageShortage = false
     } = {}) {
       if (!this.cart.length) return {
         ok: false,
         code: 'EMPTY_CART'
       }
       const candidate = this.databaseSnapshot()
-      let requirements = []
       try {
         for (const item of this.cart) {
           const current = this.menus.find(m => m.id === item.menu.id)
@@ -2877,8 +2878,6 @@ const posDefinition = {
               code: 'ADDON_UNAVAILABLE',
               issues: []
             }
-          requirements.push(...getEffectiveRequirements(item.menu, item.selectedAddons, item.qty, candidate
-            .materials))
         }
       } catch (error) {
         return {
@@ -2888,28 +2887,52 @@ const posDefinition = {
           issues: []
         }
       }
-      const allocated = allocateInventory(candidate.materials, requirements, {
+      let ingredientRequirements
+      try {
+        ingredientRequirements = ingredientRequirementsForCart(this.cart, candidate.materials)
+      } catch (error) {
+        return {ok: false, code: 'INVALID_CART', message: error.message, issues: []}
+      }
+      const packagePlan = buildPackagePlan(this.cart, candidate.materials, this.packageAdjustments)
+      if (!packagePlan.ok) return {ok: false, code: 'INVALID_PACKAGE_PLAN', issues: packagePlan.issues}
+      const ingredientAllocated = allocateInventory(candidate.materials, ingredientRequirements, {
         allowShortage
       })
-      return allocated.ok ? {
+      const packageBaseMaterials = ingredientAllocated.ok ? ingredientAllocated.materials : candidate.materials
+      const packageAllocated = allocateInventory(packageBaseMaterials, packageRequirements(packagePlan.items), {
+        allowShortage: allowPackageShortage
+      })
+      const issues = [
+        ...(ingredientAllocated.ok ? [] : (ingredientAllocated.issues || []).map(issue => ({...issue, inventoryType: 'ingredient'}))),
+        ...(packageAllocated.ok ? [] : (packageAllocated.issues || []).map(issue => ({...issue, inventoryType: 'packaging'})))
+      ]
+      if (issues.length) return {ok: false, code: 'INVENTORY_UNAVAILABLE', issues}
+      return {
         ok: true,
         candidate,
-        allocated
-      } : allocated
+        ingredientRequirements,
+        ingredientAllocated,
+        packageAllocated,
+        packagePlan: finalizePackagePlan(packagePlan.items, packageAllocated)
+      }
     },
     checkout({
-      allowShortage = false
+      allowShortage = false,
+      allowPackageShortage = false
     } = {}) {
       const prepared = this.prepareCheckout({
-        allowShortage
+        allowShortage,
+        allowPackageShortage
       })
       if (!prepared.ok) {
         if (prepared.issues?.length && prepared.issues.every(i => i.code === 'SHORTAGE')) {
+          const needsIngredientConfirmation = prepared.issues.some(i => i.inventoryType === 'ingredient')
+          const needsPackageConfirmation = prepared.issues.some(i => i.inventoryType === 'packaging')
           this.modals.lowStockWarning = {
             isOpen: true,
             isOutOfStock: true,
             title: 'ยืนยันยอดขาดก่อนขาย',
-            subtitle: 'ระบบจะบันทึกยอดวัตถุดิบขาดค้างไว้',
+            subtitle: needsPackageConfirmation ? 'ขายต่อได้โดยไม่ระบุของทดแทน Package จะตัดได้ถึงศูนย์และบันทึกยอดขาดเป็นเหตุการณ์เท่านั้น' : 'ระบบจะบันทึกยอดวัตถุดิบขาดค้างไว้',
             warningItems: prepared.issues.map(i => ({
               ...i,
               shortage: i.needed - i.stock
@@ -2917,7 +2940,8 @@ const posDefinition = {
             onConfirm: () => {
               this.modals.lowStockWarning.isOpen = false;
               this.checkout({
-                allowShortage: true
+                allowShortage: allowShortage || needsIngredientConfirmation,
+                allowPackageShortage: allowPackageShortage || needsPackageConfirmation
               })
             }
           }
@@ -2926,13 +2950,30 @@ const posDefinition = {
       }
       const {
         candidate,
-        allocated
+        ingredientRequirements,
+        ingredientAllocated,
+        packageAllocated,
+        packagePlan
       } = prepared, summary = this.cartSummary, plat = this.currentPlatform
-      allocated.shortages = allocated.shortages.map(x => ({
+      ingredientAllocated.shortages = ingredientAllocated.shortages.map(x => ({
         ...x,
+        inventoryType: 'ingredient',
         materialName: candidate.materials.find(m => m.id === x.materialId)?.name,
         unit: candidate.materials.find(m => m.id === x.materialId)?.unit
       }))
+      packageAllocated.shortages = packageAllocated.shortages.map(x => ({
+        ...x,
+        inventoryType: 'packaging',
+        materialName: candidate.materials.find(m => m.id === x.materialId)?.name,
+        unit: candidate.materials.find(m => m.id === x.materialId)?.unit
+      }))
+      const stockShortages = [...ingredientAllocated.shortages, ...packageAllocated.shortages]
+      const ingredientCost = Math.round(ingredientRequirements.reduce((sum, row) => sum + row.qty *
+        (candidate.materials.find(material => material.id === row.materialId)?.unitCost || 0), 0) * 100) / 100
+      const packagingCost = Math.round(packagePlan.reduce((sum, row) => sum + row.fulfilledCost, 0) * 100) / 100
+      const expectedPackagingShortageCost = Math.round(packagePlan.reduce((sum, row) => sum + row
+        .expectedShortageCost, 0) * 100) / 100
+      const foodCost = Math.round((ingredientCost + packagingCost) * 100) / 100
       const orderId = createEntityId('ORD', this.orders.map(o => o.orderId))
       const items = this.cart.map(item => {
         const price = Number(item.menu.prices?.[plat.id] || 0) + (item.selectedAddons || []).reduce((n,
@@ -2960,17 +3001,24 @@ const posDefinition = {
         discount: 0,
         gpAmount: summary.gpAmount,
         netRevenue: summary.netRevenue,
-        foodCost: summary.totalFoodCost,
-        grossProfit: summary.grossProfit,
+        ingredientCost,
+        packagingCost,
+        expectedPackagingShortageCost,
+        foodCost,
+        grossProfit: Math.round((summary.netRevenue - foodCost) * 100) / 100,
         paymentMethod: this.paymentMethod,
         note: this.orderNote,
         items,
-        inventoryAllocations: allocated.allocations,
-        stockShortages: allocated.shortages
+        packagePlan: clone(packagePlan),
+        inventoryAllocations: [
+          ...ingredientAllocated.allocations.map(row => ({...row, inventoryType: 'ingredient'})),
+          ...packageAllocated.allocations.map(row => ({...row, inventoryType: 'packaging'}))
+        ],
+        stockShortages
       }
-      candidate.materials = allocated.materials;
+      candidate.materials = packageAllocated.materials;
       candidate.orders.unshift(order)
-      candidate.stockShortages.push(...allocated.shortages.map(x => ({
+      candidate.stockShortages.push(...stockShortages.map(x => ({
         ...x,
         orderId,
         createdAt: order.createdAt

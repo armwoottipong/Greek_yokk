@@ -36,6 +36,11 @@ it('confirms a stock warning only once even while its button is leaving',async()
  const w=mount(Shortage)
  try{w.vm.confirm();w.vm.confirm();expect(confirmed).toBe(1)}finally{w.unmount()}
 })
+it('labels package shortages and explains zero-floor checkout without a substitute',async()=>{
+ const store=createTestStore();store.modals.lowStockWarning={isOpen:true,isOutOfStock:true,title:'ยืนยันยอดขาดก่อนขาย',subtitle:'ตรวจสอบรายการ',warningItems:[{name:'ถ้วย',unit:'ใบ',needed:3,stock:1,shortage:2,inventoryType:'packaging'}],onConfirm:()=>{}}
+ const w=mount(Shortage)
+ try{await flushPromises();expect(w.text()).toContain('บรรจุภัณฑ์');expect(w.text()).toContain('ไม่บันทึกของทดแทน');expect(w.text()).toContain('สต็อกไม่ติดลบ')}finally{w.unmount()}
+})
 it('cancels a multi-lot decision without switching the active lot',async()=>{
  const store=createTestStore();const mat=material('MILK',100);mat.lots.push({...mat.lots[0],id:'NEXT',qty:50,isInUse:false});store.materials=[mat]
  const w=mount(Lot)
