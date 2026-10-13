@@ -6,6 +6,8 @@ User direction, 13 October 2026: redesign PC, iPad and mobile including popups. 
 
 ## Direction contract
 
+User clarification: product drawers open from the bottom on PC, iPad and phone. The shared drawer is centered at 520px on PC/iPad and full-width on phone, with top corners and vertical enter/leave motion. The earlier side-drawer description below is superseded. Bottom coordinates equal viewport height at 1440×900, 820×1180 and 390×844 with no horizontal overflow; evidence is product-bottom-drawer-checks.json and product-bottom-drawer-{desktop,mobile}.jpg. Fifteen related tests, lint and build passed after this CSS refinement.
+
 THESIS: A clear selling counter: choose a bowl, review one order, pay. Avoid equal emphasis on transaction totals and accounting details.
 
 OWN-WORLD: Existing Greek Yogg cream and burgundy, Prompt Thai and tabular numeric prices. Rounded cream fields without resting outlines or input focus rings as requested. Mascot appears in the empty cart; actual menu emoji remain catalog content.

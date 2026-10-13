@@ -1,0 +1,29 @@
+[
+  {
+    "bottom": 900,
+    "documentWidth": 1440,
+    "height": 888,
+    "left": 460,
+    "viewport": 1440,
+    "viewportHeight": 900,
+    "width": 520
+  },
+  {
+    "bottom": 1180,
+    "documentWidth": 820,
+    "height": 1168,
+    "left": 150,
+    "viewport": 820,
+    "viewportHeight": 1180,
+    "width": 520
+  },
+  {
+    "bottom": 844,
+    "documentWidth": 390,
+    "height": 832,
+    "left": 0,
+    "viewport": 390,
+    "viewportHeight": 844,
+    "width": 390
+  }
+]

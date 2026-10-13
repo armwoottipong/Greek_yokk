@@ -225,7 +225,7 @@ POS payment uses this variant with QR / PromptPay, เงินสด / Cash and
 
 ### POS Product Drawer
 
-Every menu opens the shared DialogFrame drawer: right side at 768px+, 520px width; full-width bottom drawer on phones. Header stays named, the body scrolls through the existing product emoji/name/description, price, optional topping rows and item note, while quantity and add action stay in the footer. Item notes use the popup fill without borders or outlines. Notes are trimmed, merge only with matching menu/addons/notes, and survive stock-warning confirmation, order saving and receipt printing. Whole-order notes retain their separate scope. Each menu card shows its total cart quantity in a 36px burgundy circle at bottom-right, including the count in its accessible name; zero quantities hide the circle.
+Every menu opens the shared DialogFrame drawer from the bottom at every viewport width, per the user's clarification. It is centered at 520px on desktop/tablet and full-width on phones, flush with the viewport bottom and rounded at the top. Enter/leave motion uses vertical translation at every width. Header stays named, the body scrolls through the existing product emoji/name/description, price, optional topping rows and item note, while quantity and add action stay in the footer. Item notes use the popup fill without borders or outlines. Notes are trimmed, merge only with matching menu/addons/notes, and survive stock-warning confirmation, order saving and receipt printing. Whole-order notes retain their separate scope. Each menu card shows its total cart quantity in a 36px burgundy circle at bottom-right, including the count in its accessible name; zero quantities hide the circle.
 
 ### Search Fields
 
