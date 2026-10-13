@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { reactive, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 const state = vi.hoisted(() => ({ store: null }))
-vi.mock('@/stores/posStore', () => ({ usePosStore: () => state.store, formatThaiDate: x => x, formatDisplayDate: x => x }))
+vi.mock('@/stores/posStore', () => ({ usePosStore: () => state.store, getTodayString: () => '2026-10-13', formatThaiDate: x => x, formatDisplayDate: x => x }))
 vi.mock('@/composables/useModalForm', () => ({ useModalForm: () => ({ saveSnapshot: () => {}, requestClose: () => {}, confirmSave: async () => true }) }))
 import StockAdjust from '../../src/components/modals/StockAdjustModal.vue'
 import Stocktake from '../../src/components/modals/StocktakeModal.vue'
 import MaterialEdit from '../../src/components/modals/MaterialEditModal.vue'
 beforeEach(() => {
  const material = { id:'M1', name:'Milk', inventoryType:'packaging', unit:'g', stock:540, packUnit:'bag', packSize:1000, unitCost:0, category:'raw', lots:[{id:'L1',qty:40},{id:'L2',qty:500}], isDeleted:false }
- state.store = reactive({ materials:[material], matMap:{M1:material}, activeMaterials:[material], materialCategories:[], modals:{stocktake:{isOpen:false},stockAdjust:{isOpen:false,materialId:'M1',lotId:'L2'},materialEdit:{isOpen:false,materialId:'M1'}}, restoreMaterial:vi.fn(), archiveMaterial:vi.fn(), showToast:vi.fn() })
+ state.store = reactive({ materials:[material], matMap:{M1:material}, activeMaterials:[material], materialCategories:[],materialKindOptions:[{id:'packaging',label:'บรรจุภัณฑ์'}],materialUsageById:new Map(), modals:{stocktake:{isOpen:false},stockAdjust:{isOpen:false,materialId:'M1',lotId:'L2'},materialEdit:{isOpen:false,materialId:'M1'}}, restoreMaterial:vi.fn(), archiveMaterial:vi.fn(), showToast:vi.fn() })
 })
 describe('stock forms', () => {
  it('keeps requested lot on first opening', async () => {

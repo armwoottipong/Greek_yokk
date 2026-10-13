@@ -45,4 +45,10 @@ describe('lot origin and optional expiry', () => {
     expect(s.batchProduce('OUT',20,[{materialId:'RAW',qty:10}],'',{receiveDate:'2026-10-13'},true).ok).toBe(true)
     expect(s.materials[1].lots.at(-1)).toMatchObject({receiveDate:'2026-10-13',expiryDate:null})
   })
+  it('keeps active-lot dates accurate when a receipt has a different expiry', () => {
+    const s=createTestStore();s.materials=[material('M',5,{lots:[{id:'OLD',qty:5,initialQty:5,unitCost:1,isInUse:true,receiveDate:'2026-10-01',expiryDate:null}]})]
+    expect(s.stockIn('M',10,1,'',null,{receiveDate:'2026-10-13',expiryDate:'2026-10-20'}).ok).toBe(true)
+    expect(s.materials[0].expiryDate).toBeNull()
+    expect(s.materials[0].lots.at(-1).expiryDate).toBe('2026-10-20')
+  })
 })

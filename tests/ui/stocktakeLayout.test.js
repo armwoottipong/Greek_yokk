@@ -6,7 +6,7 @@ vi.mock('@/stores/posStore',()=>({usePosStore:()=>state.store}))
 import Stocktake from '../../src/components/modals/StocktakeModal.vue'
 beforeEach(()=>{
  const materials=[{id:'M1',name:'Milk',stock:500,unit:'ml',packUnit:'bottle',packSize:1000,category:'Dairy',unitCost:0.05},{id:'M2',name:'Oats',stock:100,unit:'g',category:'Toppings',unitCost:0.1}]
- state.store=reactive({materials,matMap:Object.fromEntries(materials.map(m=>[m.id,m])),modals:{stocktake:{isOpen:true}},batchStocktake:vi.fn(()=>({ok:true})),showToast:vi.fn()})
+ state.store=reactive({materialKindOptions:[{id:'normal',label:'วัตถุดิบปกติ'}],materials,matMap:Object.fromEntries(materials.map(m=>[m.id,m])),modals:{stocktake:{isOpen:true}},batchStocktake:vi.fn(()=>({ok:true})),showToast:vi.fn()})
 })
 it('filters differing rows while retaining counts and stages all changed items',async()=>{
  const wrapper=mount(Stocktake,{attachTo:document.body})

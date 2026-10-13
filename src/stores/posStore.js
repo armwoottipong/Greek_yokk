@@ -1833,6 +1833,14 @@ const posDefinition = {
       clean.unitCost = Number(matData.unitCost ?? mat?.unitCost ?? 0)
       clean.packCost = Number(matData.packCost ?? mat?.packCost ?? clean.unitCost * clean.packSize)
       clean.minAlert = Number(matData.minAlert ?? mat?.minAlert ?? 0)
+      if (getMaterialKind(clean) === 'produced' && (
+        !Number.isFinite(Number(clean.yieldQty)) || Number(clean.yieldQty) <= 0 ||
+        !clean.subRecipe?.length || clean.subRecipe.some(row =>
+          row.materialId === id || !this.materials.some(source => source.id === row.materialId && !source.isDeleted) ||
+          !Number.isFinite(Number(row.qty)) || Number(row.qty) <= 0)
+      )) {
+        return {ok:false, code:'INVALID_PRODUCTION_RECIPE', message:'กรุณาระบุส่วนผสมและปริมาณผลผลิตให้มากกว่า 0'}
+      }
       const eventDates = {receiveDate: matData.lastStockInDate, expiryDate: matData.expiryDate}
       if (requested > oldStock) {
         const validation = validateLotDates(clean, eventDates, clean.hasSubRecipe ? 'produce' : 'receive')

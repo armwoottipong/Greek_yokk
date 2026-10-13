@@ -2,6 +2,19 @@ import { describe, it, expect } from 'vitest'
 import * as database from '../../src/domain/database'
 import { DEFAULT_ADDONS, DEFAULT_MATERIALS } from '../../src/data/initialData'
 import { createTestStore, material } from '../helpers/createStore'
+it('round trips legacy categories and lots without persisting derived usage or kinds', () => {
+  const s=createTestStore({storage:{GY_MATERIALS:[material('RAW',100),material('OUT',0,{hasSubRecipe:true,subRecipe:[{materialId:'RAW',qty:10}]})]}})
+  const before=s.exportDatabase()
+  expect(s.getMaterialKind(s.materials[1])).toBe('produced')
+  expect(s.materialUsageById.get('RAW').production).toHaveLength(1)
+  const exported=s.exportDatabase()
+  expect(exported.categories).toEqual(before.categories)
+  expect(exported.materials).toEqual(before.materials)
+  expect(exported.materials.every(m=>!('kind' in m)&&!('usage' in m))).toBe(true)
+  const result=s.replaceDatabase(exported,{source:'import'})
+  expect(result.ok).toBe(true)
+  expect(s.exportDatabase().materials).toEqual(before.materials)
+})
 
 function version3Snapshot() {
   const honey = material('HONEY', 100, { name: 'Honey', category: 'Sauces' })

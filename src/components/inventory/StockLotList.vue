@@ -6,7 +6,7 @@
   <article v-for="lot in lots" :key="lot.id" class="lot-card">
    <div class="lot-heading"><strong>{{ lot.id }}</strong><StatusBadge :label="lot.isInUse?'กำลังใช้':'ล็อตสำรอง'" :tone="lot.isInUse?'success':'neutral'" /></div>
    <p class="lot-quantity">{{ Number(lot.qty||0).toLocaleString('th-TH') }} {{ unit }}</p>
-   <dl v-if="trackingMode!=='none'" class="lot-dates"><div><dt>รับเข้า</dt><dd>{{ lot.receiveDate?formatDisplayDate(lot.receiveDate):'ไม่ระบุวันที่' }}</dd></div><div v-if="trackingMode!=='receive_only'"><dt>หมดอายุ</dt><dd>{{ lot.expiryDate?formatDisplayDate(lot.expiryDate):'ไม่ระบุวันที่' }}</dd></div></dl>
+   <dl v-if="trackingMode!=='none'" class="lot-dates"><div><dt>{{ originLabel }}</dt><dd>{{ lot.receiveDate?formatDisplayDate(lot.receiveDate):'ไม่ระบุวันที่' }}</dd></div><div v-if="trackingMode!=='receive_only'"><dt>หมดอายุ</dt><dd>{{ lot.expiryDate?formatDisplayDate(lot.expiryDate):'ไม่ระบุวันที่' }}</dd></div></dl>
    <StatusBadge v-if="trackingMode!=='none' && lot.expiryDate && isExpired({expiryDate:lot.expiryDate})" label="หมดอายุแล้ว" tone="error" />
    <div v-if="!archived" class="lot-actions">
     <Button variant="secondary" :data-lot-adjust="lot.id" :aria-label="`ปรับยอดล็อต ${lot.id}`" @click="$emit('adjust',lot.id)">ปรับยอด</Button>
@@ -20,7 +20,7 @@
 import {formatDisplayDate,isExpired} from '@/stores/posStore'
 import Button from '../ui/Button.vue'
 import StatusBadge from '../ui/StatusBadge.vue'
-defineProps({lots:{type:Array,default:()=>[]},trackingMode:String,unit:String,archived:Boolean})
+defineProps({lots:{type:Array,default:()=>[]},trackingMode:String,unit:String,archived:Boolean,originLabel:{type:String,default:'วันรับเข้า'}})
 defineEmits(['adjust','waste','switch'])
 </script>
 <style scoped>

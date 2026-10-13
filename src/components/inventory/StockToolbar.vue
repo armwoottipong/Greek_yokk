@@ -7,7 +7,7 @@
     </div>
     <div class="stock-search">
       <Search :size="17" aria-hidden="true" />
-      <input :value="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาชื่อ รหัส หรือหมวดหมู่" @input="$emit('update:search',$event.target.value)" />
+      <input :value="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาชื่อ รหัส หรือประเภท" @input="$emit('update:search',$event.target.value)" />
       <Button ref="filterButton" variant="secondary" data-stock-filter :aria-expanded="filterOpen" @click="filterOpen=true"><SlidersHorizontal :size="16" />ตัวกรอง<span v-if="filterCount">{{ filterCount }}</span></Button>
     </div>
     <FilterDropdown teleport id="stock-filters" title="กรองวัตถุดิบ" :open="filterOpen" :anchor="filterButton?.$el" :include-dates="false" :values="{role,kind,showDeleted}" :fields="fields" @close="filterOpen=false" @apply="$emit('apply-filters',$event)" />

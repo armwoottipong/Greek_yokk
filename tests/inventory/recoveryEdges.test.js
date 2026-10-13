@@ -7,7 +7,7 @@ it('discard after conflicting sale permits a fresh recount',()=> {
 })
 it('zero-cost receipt contributes zero incoming valuation',()=> {
  const s=createTestStore({storage:{GY_MATERIALS:[material()]}})
- expect(s.stockIn('X',100,0,'',0,{expiryDate:'2099-01-01'},false).ok).toBe(true)
+ expect(s.stockIn('X',100,0,'',0,{receiveDate:'2026-10-13',expiryDate:'2099-01-01'},false).ok).toBe(true)
  expect(s.materials[0].stock).toBe(200);expect(s.materials[0].unitCost).toBe(0.5)
 })
 it('invalid draft inputs return failure without mutation',()=> {

@@ -48,4 +48,11 @@ describe('inventory classification and usage', () => {
     expect(matchesMaterialFilter(m,usage,{kind:'produced',role:'addon'})).toBe(false)
     expect(matchesMaterialFilter(m,usage,{kind:'all',role:'menu'})).toBe(false)
   })
+  it('requires a usable production recipe and output quantity before saving a produced item', () => {
+    const s=createTestStore();s.materials=[material('RAW')]
+    const before=JSON.stringify(s.materials)
+    expect(s.saveMaterial(material('NEW',0,{hasSubRecipe:true,yieldQty:20,subRecipe:[]})).ok).toBe(false)
+    expect(s.saveMaterial(material('NEW',0,{hasSubRecipe:true,yieldQty:0,subRecipe:[{materialId:'RAW',qty:10}]})).ok).toBe(false)
+    expect(JSON.stringify(s.materials)).toBe(before)
+  })
 })

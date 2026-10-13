@@ -20,7 +20,7 @@ it('clear and import reset stale drafts and carts',()=> {
 it('exports audit logs and normalized baseline lots',()=> {
   const s=createTestStore();s.replaceDatabase({...raw(),materials:[material('X',15000,{lots:undefined})]},{source:'import'})
   const backup=s.exportDatabase();expect(backup.activityLogs[0].id).toBe('L');expect(backup.materials[0].lots[0].qty).toBe(15000)
-  s.stockIn('X',100,1,'',null,{expiryDate:'2099-01-01'},false);expect(s.materials[0].stock).toBe(15100)
+  s.stockIn('X',100,1,'',null,{receiveDate:'2026-10-13',expiryDate:'2099-01-01'},false);expect(s.materials[0].stock).toBe(15100)
 })
 it('generated material IDs are unique after a deletion',()=> {
   const s=createTestStore({storage:{GY_MATERIALS:[material('MAT001'),material('MAT002'),material('MAT003')]}})
@@ -44,7 +44,7 @@ it('explicit restore can recover corrupt canonical data while preserving its raw
 it('demo receipt and stocktake preserve initial milk baseline',()=> {
  const s=createTestStore();expect(s.resetDemoData().ok).toBe(true)
  const before=s.materials.find(m=>m.id==='MAT002').stock
- s.stockIn('MAT002',100,1,'',null,{expiryDate:'2099-01-01'},false)
+ s.stockIn('MAT002',100,1,'',null,{receiveDate:'2026-10-13',expiryDate:'2099-01-01'},false)
  expect(s.materials.find(m=>m.id==='MAT002').stock).toBe(before+100)
  s.stockAdjust('MAT002',14000,'','',false);expect(s.materials.find(m=>m.id==='MAT002').stock).toBe(14000)
 })
@@ -54,7 +54,7 @@ it('unrelated JSON cannot replace the database as an import',()=> {
  expect(s.materials[0].stock).toBe(100)
 })
 it('intentional replacement preserves the exact previous canonical snapshot',()=> {
- const s=createTestStore();s.replaceDatabase(raw(),{source:'import'});s.stockIn('X',1,1,'',null,{expiryDate:'2099-01-01'},false)
+ const s=createTestStore();s.replaceDatabase(raw(),{source:'import'});s.stockIn('X',1,1,'',null,{receiveDate:'2026-10-13',expiryDate:'2099-01-01'},false)
  const previous=localStorage.getItem('GY_DATABASE_V3')
  expect(s.replaceDatabase({materials:[],menus:[],addons:[]},{source:'import'}).ok).toBe(true)
  const keys=Object.keys(localStorage).filter(k=>k.startsWith('GY_REPLACEMENT_RECOVERY_V3'))

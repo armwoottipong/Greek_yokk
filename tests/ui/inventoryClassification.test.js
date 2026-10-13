@@ -54,3 +54,9 @@ it('creates a new dated lot from the material editor without changing legacy cat
   expect(s.materials[0].category).toBe('Legacy')
   expect(s.materials[0].lots.at(-1).receiveDate).toBe('2026-10-13');w.unmount()
 })
+it('identifies the origin of produced lots as production dates', async () => {
+  const s=createTestStore();s.materials=[material('OUT',100,{hasSubRecipe:true})];s.menus=[];s.addons=[]
+  const w=mount(Stock,{attachTo:document.body})
+  await w.get('.desktop-material-table [data-material-details="OUT"]').trigger('click');await flushPromises()
+  expect(document.querySelector('#material-details .lot-dates dt').textContent).toBe('วันผลิต');w.unmount()
+})

@@ -963,6 +963,11 @@ function close() {
 
 async function submit() {
   formError.value = ''
+  if (form.value.hasSubRecipe && (!form.value.subRecipe.length ||
+    !Number.isFinite(Number(form.value.yieldQty)) || Number(form.value.yieldQty) <= 0)) {
+    formError.value = 'กรุณาระบุส่วนผสมและปริมาณผลผลิตให้มากกว่า 0'
+    return
+  }
   if (form.value.stock > initialStock.value) {
     const validation = validateLotDates(form.value, {receiveDate:form.value.lastStockInDate,expiryDate:form.value.expiryDate}, form.value.hasSubRecipe ? 'produce' : 'receive')
     if (!validation.ok) { formError.value=validation.message; return }
@@ -1018,5 +1023,6 @@ async function submit() {
   })
 
   if (result?.ok || result?.success) close()
+  else formError.value = result?.message || 'บันทึกไม่สำเร็จ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง'
 }
 </script>

@@ -2,6 +2,16 @@ import {it,expect,vi} from 'vitest'
 import {createTestStore,material} from '../helpers/createStore'
 const menu=(qty=60,extra={})=>({id:'M',name:'M',isActive:true,prices:{PLAT01:100},recipe:[{materialId:'X',qty}],...extra})
 const setup=()=>{const s=createTestStore({storage:{GY_MATERIALS:[material()],GY_MENUS:[menu()]}});s.executeAddToCart(s.menus[0]);return s}
+it('deducts production inputs once and direct addon inputs only for their own quantity',()=> {
+ const s=createTestStore({storage:{GY_MATERIALS:[material('RAW',100),material('OUT',0,{hasSubRecipe:true,yieldQty:20,subRecipe:[{materialId:'RAW',qty:30}]})],GY_MENUS:[menu(10,{recipe:[{materialId:'OUT',qty:10}],hasAddons:true})],GY_ADDONS:[{id:'A',name:'Raw extra',isActive:true,prices:{PLAT01:5},recipe:[{materialId:'RAW',qty:2}]}]}})
+ expect(s.batchProduce('OUT',20,[{materialId:'RAW',qty:30}],'',{receiveDate:'2026-10-13'},false).ok).toBe(true)
+ expect(s.materials.map(m=>m.stock)).toEqual([70,20])
+ s.executeAddToCart(s.menus[0],[s.addons[0]],1)
+ expect(s.checkout()).not.toBeNull()
+ expect(s.materials.map(m=>m.stock)).toEqual([68,10])
+ expect(s.materialUsageById.get('RAW').production).toHaveLength(1)
+ expect(s.materialUsageById.get('RAW').addon).toHaveLength(1)
+})
 it('revalidates changed inventory without clearing cart',()=> {
  const s=setup();s.stockAdjust('X',20,'','',false);expect(s.checkout()).toBeNull();expect(s.cart).toHaveLength(1);expect(s.orders).toHaveLength(0)
 })
@@ -14,7 +24,7 @@ it('quota failure retains cart and committed stock without receipt',()=> {
  expect(s.checkout()).toBeNull();expect(s.cart).toHaveLength(1);expect(s.materials[0].stock).toBe(100);expect(s.orders).toEqual([]);expect(s.modals.receipt.isOpen).toBe(false)
 })
 it('sale between receipt draft and discard preserves only the sale',()=> {
- const s=setup();s.stockIn('X',30,1,'',null,{expiryDate:'2099-01-01'},true);s.checkout();s.discardStockDrafts()
+ const s=setup();s.stockIn('X',30,1,'',null,{receiveDate:'2026-10-13',expiryDate:'2099-01-01'},true);s.checkout();s.discardStockDrafts()
  expect(s.materials[0].stock).toBe(40);expect(s.materials[0].lots.reduce((n,l)=>n+l.qty,0)).toBe(40)
 })
 it('packaging disabled means no requirement or cost or deduction',()=> {

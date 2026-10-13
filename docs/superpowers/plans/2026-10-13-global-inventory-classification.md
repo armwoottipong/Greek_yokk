@@ -1,6 +1,6 @@
 # Global Inventory Classification Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Replace independently managed business categories with three inventory types and recipe-derived usage roles, while making lot dates consistent and preserving production versus sale deductions.
 
@@ -52,11 +52,11 @@
 - `matchesMaterialFilter(material, usage, {kind, role}) -> boolean`: `all` bypasses that dimension; roles are `production`, `addon`, `menu`. Kind and role combine with AND.
 - Store getters `materialKindOptions`, `materialUsageById`, `getMaterialKind`: reactive wrappers consumed by later tasks.
 
-- [ ] **Step 1:** Write tests `classification_ignores_legacy_category_and_role`, `usage_changes_on_recipe_save_without_producing`, `roles_overlap`, `multiple_references_keep_role`, `addon_usage_is_direct`, `inactive_listing_keeps_saved_reference`, `archived_producer_does_not_mark_inputs`, and `filters_combine_kind_and_role`. Assert that editing only recipes changes references without changing any stock or lot.
-- [ ] **Step 2:** Run `npm test -- tests/inventory/materialClassification.test.js`; expect failures for missing exports/getters.
-- [ ] **Step 3:** Implement the interfaces. Aggregate duplicate references within one source by quantity; do not recursively traverse production inputs for sales roles. Replace behaviorally used main/sub getters with derived-reference membership; leave compatibility fields untouched.
-- [ ] **Step 4:** Run the targeted test command; expect PASS.
-- [ ] **Step 5:** Commit only Task 1 source/tests with message `feat: derive inventory types and recipe usage roles`.
+- [x] **Step 1:** Write tests `classification_ignores_legacy_category_and_role`, `usage_changes_on_recipe_save_without_producing`, `roles_overlap`, `multiple_references_keep_role`, `addon_usage_is_direct`, `inactive_listing_keeps_saved_reference`, `archived_producer_does_not_mark_inputs`, and `filters_combine_kind_and_role`. Assert that editing only recipes changes references without changing any stock or lot.
+- [x] **Step 2:** Run `npm test -- tests/inventory/materialClassification.test.js`; expect failures for missing exports/getters.
+- [x] **Step 3:** Implement the interfaces. Aggregate duplicate references within one source by quantity; do not recursively traverse production inputs for sales roles. Replace behaviorally used main/sub getters with derived-reference membership; leave compatibility fields untouched.
+- [x] **Step 4:** Run the targeted test command; expect PASS.
+- [x] **Step 5:** Commit only Task 1 source/tests with message `feat: derive inventory types and recipe usage roles`.
 
 ### Task 2: Validate dates for new receipt and production events
 
@@ -68,11 +68,11 @@
 - Preserve store method signatures `batchProduce(targetMatId, yieldQty, subIngredients, note, dates, asDraft)` and existing stock-in/edit actions; validate new stock increases before allocation or writes.
 - `getMaterialTrackingMode(material)` returns `none` for packaging and `expiry_and_receive` for ingredients, independent of category. The latter means expiry is supported, not mandatory.
 
-- [ ] **Step 1:** Test `ingredient_requires_origin`, `ingredient_allows_origin_without_expiry`, `expiry_requires_origin`, `invalid_calendar_date_rejected`, `expiry_before_origin_rejected`, `packaging_accepts_no_dates`, `legacy_category_cannot_change_policy`, and `invalid_date_does_not_mutate_stock_or_logs`. Test new production lot origin dates separately and unchanged old lots.
-- [ ] **Step 2:** Run `npm test -- tests/inventory/lotDates.test.js tests/inventory/materialEditing.test.js tests/inventory/drafts.test.js`; new cases must fail on old behavior.
-- [ ] **Step 3:** Validate receipt, production, and stock-increase paths before mutations, including material-editor increases. Preserve optional expiry as null when omitted instead of silently populating it from shelf life. Keep existing FEFO/allocation semantics and old stored lots; do not backfill dates.
-- [ ] **Step 4:** Run the targeted command; expect PASS. Existing tests invoking new stock increases must supply explicit origin dates rather than depend on silent defaults; do not alter initialData or external records.
-- [ ] **Step 5:** Commit only Task 2 source/tests with message `feat: validate lot dates independently of categories`.
+- [x] **Step 1:** Test `ingredient_requires_origin`, `ingredient_allows_origin_without_expiry`, `expiry_requires_origin`, `invalid_calendar_date_rejected`, `expiry_before_origin_rejected`, `packaging_accepts_no_dates`, `legacy_category_cannot_change_policy`, and `invalid_date_does_not_mutate_stock_or_logs`. Test new production lot origin dates separately and unchanged old lots.
+- [x] **Step 2:** Run `npm test -- tests/inventory/lotDates.test.js tests/inventory/materialEditing.test.js tests/inventory/drafts.test.js`; new cases must fail on old behavior.
+- [x] **Step 3:** Validate receipt, production, and stock-increase paths before mutations, including material-editor increases. Preserve optional expiry as null when omitted instead of silently populating it from shelf life. Keep existing FEFO/allocation semantics and old stored lots; do not backfill dates.
+- [x] **Step 4:** Run the targeted command; expect PASS. Existing tests invoking new stock increases must supply explicit origin dates rather than depend on silent defaults; do not alter initialData or external records.
+- [x] **Step 5:** Commit only Task 2 source/tests with message `feat: validate lot dates independently of categories`.
 
 ### Task 3: Apply types and usage roles across inventory UI
 
@@ -80,11 +80,11 @@
 
 **Interfaces:** Consume Task 1 getters and Task 2 validation. StockToolbar filter values become `{kind:'all'|Kind, role:'all'|'production'|'addon'|'menu', showDeleted:boolean}`; `apply-filters` retains its existing event name. Stocktake uses the same three kinds instead of legacy category names.
 
-- [ ] **Step 1:** Add mounted tests for three type options, overlapping badges, automatic role changes after recipe edits, direct add-on names/quantities, combined filters, and a produced material that is itself used as an input. Test required origin/optional expiry UI and packaging without required dates. Verify optional expiry is shown in stock cards/details irrespective of legacy category.
-- [ ] **Step 2:** Run `npm test -- tests/ui/inventoryClassification.test.js tests/ui/materialInventoryType.test.js tests/ui/stockFormInteraction.test.js tests/ui/stockDetailPresentation.test.js`; expect new interaction failures.
-- [ ] **Step 3:** Replace category and manually assigned main/sub controls with three type choices. Map choices to existing `inventoryType` and `hasSubRecipe`; produced requires its existing recipe/yield form. Remove special-case material IDs, category-name heuristics, and main/sub restrictions. Render all applicable badges and source references. Use `วันรับเข้า` for receipt and `วันผลิต` for production; maintain accessible labels, errors, keyboard interaction, and responsive layout using existing components.
-- [ ] **Step 4:** Run the targeted tests; expect PASS. Also run `npm test -- tests/ui/adaptiveStockWorkspace.test.js tests/ui/stocktakeDraftInteraction.test.js` for filter/draft regressions.
-- [ ] **Step 5:** Commit only Task 3 source/tests with message `feat: simplify inventory classification and usage filters`.
+- [x] **Step 1:** Add mounted tests for three type options, overlapping badges, automatic role changes after recipe edits, direct add-on names/quantities, combined filters, and a produced material that is itself used as an input. Test required origin/optional expiry UI and packaging without required dates. Verify optional expiry is shown in stock cards/details irrespective of legacy category.
+- [x] **Step 2:** Run `npm test -- tests/ui/inventoryClassification.test.js tests/ui/materialInventoryType.test.js tests/ui/stockFormInteraction.test.js tests/ui/stockDetailPresentation.test.js`; expect new interaction failures.
+- [x] **Step 3:** Replace category and manually assigned main/sub controls with three type choices. Map choices to existing `inventoryType` and `hasSubRecipe`; produced requires its existing recipe/yield form. Remove special-case material IDs, category-name heuristics, and main/sub restrictions. Render all applicable badges and source references. Use `วันรับเข้า` for receipt and `วันผลิต` for production; maintain accessible labels, errors, keyboard interaction, and responsive layout using existing components.
+- [x] **Step 4:** Run the targeted tests; expect PASS. Also run `npm test -- tests/ui/adaptiveStockWorkspace.test.js tests/ui/stocktakeDraftInteraction.test.js` for filter/draft regressions.
+- [x] **Step 5:** Commit only Task 3 source/tests with message `feat: simplify inventory classification and usage filters`.
 
 ### Task 4: Remove business-category management and sales grouping
 
@@ -92,11 +92,11 @@
 
 **Interfaces:** Recipe pickers consume Task 1 type options and getters; sale-item search uses name/description, not business category. Remove PosCatalog category props/events; retain search, platform, price and availability props. Generic CatalogToolbar may keep optional category support for unrelated reuse, but MenuView/AddonView stop passing business categories.
 
-- [ ] **Step 1:** Add interaction tests: settings has no category-management destination; menu/add-on editors have no independent category field; recipe pickers offer all ingredient roles and explicit packaging selection; POS searches multi-type menus without grouping; inventory dashboard groups by derived kind. Assert opening/saving existing records preserves legacy category fields instead of resetting their values.
-- [ ] **Step 2:** Run `npm test -- tests/ui/categoryRemoval.test.js tests/ui/settingsNavigation.test.js tests/ui/catalogReadFlows.test.js tests/ui/addonEditorInteraction.test.js tests/ui/menuEditorInteraction.test.js tests/ui/adaptivePosCatalog.test.js`; expect new failures.
-- [ ] **Step 3:** Remove category settings markup/state/handlers and independent sales-category controls, badges and grouping. In CustomOrderModal replace legacy add-on category headings with a flat add-on list; keep ingredient/packaging recipe selection distinct using derived kinds. Change inventory valuation grouping to derived type. Keep persisted legacy fields unchanged by merging edits into existing records rather than writing replacement defaults. Preserve emoji library grouping and pricing/channel behavior.
-- [ ] **Step 4:** Run targeted tests; expect PASS. Run `rg -n 'materialCategories|menuCategories|addonCategories|saveCategory|deleteCategory|getCategoryTrackingMode' src` and inspect remaining occurrences: only inert compatibility code may remain; no visible business UI or new date/role decisions may depend on them.
-- [ ] **Step 5:** Commit only Task 4 source/tests with message `refactor: remove independent business category controls`.
+- [x] **Step 1:** Add interaction tests: settings has no category-management destination; menu/add-on editors have no independent category field; recipe pickers offer all ingredient roles and explicit packaging selection; POS searches multi-type menus without grouping; inventory dashboard groups by derived kind. Assert opening/saving existing records preserves legacy category fields instead of resetting their values.
+- [x] **Step 2:** Run `npm test -- tests/ui/categoryRemoval.test.js tests/ui/settingsNavigation.test.js tests/ui/catalogReadFlows.test.js tests/ui/addonEditorInteraction.test.js tests/ui/menuEditorInteraction.test.js tests/ui/adaptivePosCatalog.test.js`; expect new failures.
+- [x] **Step 3:** Remove category settings markup/state/handlers and independent sales-category controls, badges and grouping. In CustomOrderModal replace legacy add-on category headings with a flat add-on list; keep ingredient/packaging recipe selection distinct using derived kinds. Change inventory valuation grouping to derived type. Keep persisted legacy fields unchanged by merging edits into existing records rather than writing replacement defaults. Preserve emoji library grouping and pricing/channel behavior.
+- [x] **Step 4:** Run targeted tests; expect PASS. Run `rg -n 'materialCategories|menuCategories|addonCategories|saveCategory|deleteCategory|getCategoryTrackingMode' src` and inspect remaining occurrences: only inert compatibility code may remain; no visible business UI or new date/role decisions may depend on them.
+- [x] **Step 5:** Commit only Task 4 source/tests with message `refactor: remove independent business category controls`.
 
 ### Task 5: Verify deductions, compatibility and the complete workflow
 
@@ -104,12 +104,12 @@
 
 **Interfaces:** Existing `batchProduce`, `getEffectiveRequirements`, checkout, export/import and GAS snapshot contracts remain the integration boundary. Consume Task 1 derived getters and Task 2 date behavior.
 
-- [ ] **Step 1:** Add assertions for a production-plus-sale sequence: producing consumes inputs and adds output; selling output leaves inputs unchanged; selling an input as a direct add-on consumes only its recipe quantity. Verify an input with two roles remains selectable. Verify export/import round trips retain old categories and lots and payload inventoryType stays `ingredient`/`packaging`; derived kinds/roles are never persisted as new schema fields.
-- [ ] **Step 2:** Run `npm test -- tests/inventory/requirements.test.js tests/inventory/materialEditing.test.js tests/pos/checkout.test.js tests/data/schemaV4.test.js tests/gas/sync.test.js`; expect PASS on correct preserved behavior. If a new assertion fails, diagnose against the spec before changing allocation logic.
-- [ ] **Step 3:** Run `npm test`, then `npm run lint`, then `npm run build`. Expect all tests passing, lint exit 0, and a successful Vite build. Update obsolete UI expectations to the approved behavior, without weakening stock or compatibility assertions.
-- [ ] **Step 4:** Verify the UI locally with an isolated temporary browser profile/storage: all three types, immediate badges, overlapping roles, add-on references, date errors, production, sale, and settings navigation. Do not open the user's persisted POS database for write operations or call a live GAS endpoint. Record actual commands/results and any limitations in the verification document.
-- [ ] **Step 5:** Inspect `git diff --name-only` against Global Constraints. Exclude pre-existing branding changes and unrelated installed-skill files from implementation commits. Commit only Task 5 tests/verification with message `test: verify inventory classification workflow compatibility`.
+- [x] **Step 1:** Add assertions for a production-plus-sale sequence: producing consumes inputs and adds output; selling output leaves inputs unchanged; selling an input as a direct add-on consumes only its recipe quantity. Verify an input with two roles remains selectable. Verify export/import round trips retain old categories and lots and payload inventoryType stays `ingredient`/`packaging`; derived kinds/roles are never persisted as new schema fields.
+- [x] **Step 2:** Run `npm test -- tests/inventory/requirements.test.js tests/inventory/materialEditing.test.js tests/pos/checkout.test.js tests/data/schemaV4.test.js tests/gas/sync.test.js`; expect PASS on correct preserved behavior. If a new assertion fails, diagnose against the spec before changing allocation logic.
+- [x] **Step 3:** Run `npm test`, then `npm run lint`, then `npm run build`. Expect all tests passing, lint exit 0, and a successful Vite build. Update obsolete UI expectations to the approved behavior, without weakening stock or compatibility assertions.
+- [x] **Step 4:** Verify the UI locally with an isolated temporary browser profile/storage: all three types, immediate badges, overlapping roles, add-on references, date errors, production, sale, and settings navigation. Do not open the user's persisted POS database for write operations or call a live GAS endpoint. Record actual commands/results and any limitations in the verification document.
+- [x] **Step 5:** Inspect `git diff --name-only` against Global Constraints. Exclude pre-existing branding changes and unrelated installed-skill files from implementation commits. Commit only Task 5 tests/verification with message `test: verify inventory classification workflow compatibility`.
 
 ## Execution Boundary
 
-The spec is confirmed; this plan is awaiting user review and execution-method selection. No source changes, migration, production data writes, mockups, backend deployment, or implementation commits have been performed by writing this plan.
+The user confirmed native execution. Tasks 1–5 have been implemented and verified in codex/inventory-classification; independent review and integration are the final gates. No migration, production data writes, mockups, or backend deployment were performed.

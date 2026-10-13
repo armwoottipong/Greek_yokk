@@ -6,7 +6,7 @@
    <dl class="material-facts"><div><dt>คงเหลือ</dt><dd>{{ Number(material.stock||0).toLocaleString('th-TH') }} {{ material.unit }}</dd></div><div><dt>ต้นทุนต่อ {{ material.packUnit||material.unit }}</dt><dd>฿{{ packCost.toLocaleString('th-TH',{maximumFractionDigits:2}) }}</dd></div></dl>
    <p v-if="draftDiff" class="draft-note">รอยืนยัน {{ draftDiff>0?'+':'' }}{{ draftDiff }} {{ material.unit }}</p>
    <MaterialUsage :usage="usage" show-references />
-   <StockLotList :lots="lots" :tracking-mode="trackingMode" :unit="material.unit" :archived="material.isDeleted" @adjust="$emit('adjust',material.id,$event)" @waste="$emit('waste',material.id,$event)" @switch="$emit('switch',material.id,$event)" />
+   <StockLotList :lots="lots" :tracking-mode="trackingMode" :origin-label="material.hasSubRecipe ? 'วันผลิต' : 'วันรับเข้า'" :unit="material.unit" :archived="material.isDeleted" @adjust="$emit('adjust',material.id,$event)" @waste="$emit('waste',material.id,$event)" @switch="$emit('switch',material.id,$event)" />
   </template>
   <p v-else>ไม่พบวัตถุดิบ รายการนี้อาจถูกลบไปแล้ว</p>
   <template #footer>
