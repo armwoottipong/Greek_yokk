@@ -91,7 +91,7 @@ body {
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.soft-input:focus {
+.soft-input:not([type="search"]):focus {
   background-color: var(--bg-card) !important;
   box-shadow: 0 0 0 2px var(--accent-brand) !important;
 }
@@ -179,3 +179,12 @@ input:not([type="checkbox"]):not([type="radio"]):focus-visible,textarea:focus-vi
 .dialog-frame-panel :is(input,textarea,select,.app-select-trigger):disabled{opacity:.55;cursor:not-allowed}
 .dialog-frame-panel :is(input,textarea,select,.app-select-trigger)[aria-invalid="true"]{background-color:#FEF2F2!important;color:var(--state-error)}
 .pos-workspace .cart-body textarea{border-color:transparent!important;outline:none!important;box-shadow:none!important;caret-color:var(--accent-brand)}
+
+/* Search fields keep their resting appearance during mouse and keyboard focus. */
+:root input[type="search"],
+:root input[type="search"]:focus,
+:root input[type="search"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  caret-color: var(--accent-brand);
+}

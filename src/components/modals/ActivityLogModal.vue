@@ -14,7 +14,7 @@
         <div class="flex flex-wrap gap-2">
           <div class="relative flex-1 min-w-0">
             <Search class="absolute left-3 top-3 h-4 w-4 text-stone-400 pointer-events-none" />
-            <input v-model="searchQuery" aria-label="ค้นหาประวัติ" placeholder="ค้นหารายการหรือหมายเหตุ" class="history-control pl-9 pr-9 w-full" />
+            <input type="search" v-model="searchQuery" aria-label="ค้นหาประวัติ" placeholder="ค้นหารายการหรือหมายเหตุ" class="history-control pl-9 pr-9 w-full" />
             <button v-if="searchQuery" type="button" @click="searchQuery = ''" aria-label="ล้างข้อความค้นหา" class="absolute right-1 top-1 history-icon-button !h-8 !w-8"><X class="h-3.5 w-3.5" /></button>
           </div>
           <button ref="filterButton" type="button" @click="toggleFilterPopover" aria-controls="history-filters" aria-haspopup="dialog" :aria-expanded="showFilterPopover" class="history-button"

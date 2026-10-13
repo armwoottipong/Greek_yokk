@@ -7,7 +7,7 @@
     </div>
     <div class="stock-search">
       <Search :size="17" aria-hidden="true" />
-      <input :value="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาชื่อ รหัส หรือประเภท" @input="$emit('update:search',$event.target.value)" />
+      <input type="search" :value="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาชื่อ รหัส หรือประเภท" @input="$emit('update:search',$event.target.value)" />
       <Button ref="filterButton" variant="secondary" data-stock-filter :aria-expanded="filterOpen" @click="filterOpen=true"><SlidersHorizontal :size="16" />ตัวกรอง<span v-if="filterCount">{{ filterCount }}</span></Button>
     </div>
     <FilterDropdown teleport id="stock-filters" title="กรองวัตถุดิบ" :open="filterOpen" :anchor="filterButton?.$el" :include-dates="false" :values="{role,kind,showDeleted}" :fields="fields" @close="filterOpen=false" @apply="$emit('apply-filters',$event)" />
@@ -43,6 +43,6 @@ function run(action){moreOpen.value=false;emit(action)}
 .receive-short{display:none}.stock-actions .ui-button{white-space:nowrap}
 .stock-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-width:0}
 .stock-actions,.stock-search{display:flex;align-items:center;gap:8px;min-width:0}.stock-search{flex:1;max-width:520px}.stock-search>svg{flex-shrink:0;color:var(--text-muted)}
-.stock-search input{min-width:0;flex:1;height:44px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;padding:0 12px;font-size:13px}.stock-search input:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}.stock-more{display:grid;gap:10px}
+.stock-search input{min-width:0;flex:1;height:44px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;padding:0 12px;font-size:13px}.stock-more{display:grid;gap:10px}
 @media(max-width:767px){.receive-full{display:none}.receive-short{display:inline}.stock-toolbar{gap:12px}.stock-actions,.stock-search{width:100%;max-width:none}.stock-actions>:first-child{flex:1}.stock-search>svg{display:none}.stock-search input{width:0}.stock-search .ui-button{flex-shrink:0}}
 </style>

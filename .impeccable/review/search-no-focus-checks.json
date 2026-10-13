@@ -1,0 +1,39 @@
+[
+  {
+    "focus": true,
+    "label": "ค้นหาเมนู",
+    "outline": "none",
+    "shadow": "none"
+  },
+  {
+    "focus": true,
+    "label": "catalog menu",
+    "outline": "none",
+    "shadow": "none"
+  },
+  {
+    "focus": true,
+    "label": "ค้นหาAdd-on",
+    "outline": "none",
+    "shadow": "none"
+  },
+  {
+    "focus": true,
+    "label": "stock",
+    "outline": "none",
+    "shadow": "none"
+  },
+  {
+    "focus": true,
+    "label": "stocktake",
+    "outline": "none",
+    "shadow": "none",
+    "wrapperShadow": "none"
+  },
+  {
+    "focus": true,
+    "label": "ค้นหาประวัติ",
+    "outline": "none",
+    "shadow": "none"
+  }
+]

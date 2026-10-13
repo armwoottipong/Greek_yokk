@@ -3,7 +3,7 @@
   <header class="pos-catalog-heading"><div><h3>เลือกเมนู</h3><p>เลือกชามโปรด แล้วเพิ่มลงออเดอร์</p></div><span>{{ menus.length }} เมนู</span></header>
   <div class="pos-catalog-controls">
    <label class="pos-channel"><span>ช่องทางขาย</span><AppSelect data-pos-platform aria-label="ช่องทางขาย" :model-value="platformId" @update:model-value="$emit('platform',$event)"><option v-for="p in platforms" :key="p.id" :value="p.id">{{ p.name }}</option></AppSelect></label>
-   <label class="pos-search"><span>ค้นหาเมนู</span><div><Search :size="17" aria-hidden="true"/><input data-pos-search aria-label="ค้นหาเมนู" :value="search" placeholder="ชื่อเมนูหรือรายละเอียด" @input="$emit('update:search',$event.target.value)"></div></label>
+   <label class="pos-search"><span>ค้นหาเมนู</span><div><Search :size="17" aria-hidden="true"/><input type="search" data-pos-search aria-label="ค้นหาเมนู" :value="search" placeholder="ชื่อเมนูหรือรายละเอียด" @input="$emit('update:search',$event.target.value)"></div></label>
   </div>
   <p class="pos-channel-context">{{ selectedPlatform?.gpPercent ? 'ค่าธรรมเนียมช่องทาง '+selectedPlatform.gpPercent+'%' : selectedPlatform ? 'ไม่มีค่าธรรมเนียมช่องทาง' : 'เลือกช่องทางขายก่อนเริ่มออเดอร์' }}</p>
   <div class="pos-catalog-scroll">

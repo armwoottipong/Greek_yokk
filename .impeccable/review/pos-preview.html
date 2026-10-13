@@ -3,8 +3,8 @@
 // Development-only preview: all storage writes stay in document-local memory.
 const memory=new Map();
 Object.defineProperty(window,'localStorage',{value:{getItem:key=>memory.get(key)??null,setItem:(key,value)=>memory.set(key,String(value)),removeItem:key=>memory.delete(key),clear:()=>memory.clear()}});
-const {createApp}=await import('/Greek_yokk/node_modules/.vite/deps/vue.js');
-const {createPinia}=await import('/Greek_yokk/node_modules/.vite/deps/pinia.js');
+const {createApp}=await import('vue');
+const {createPinia}=await import('pinia');
 const {usePosStore}=await import('/Greek_yokk/src/stores/posStore.js');
 const {default:App}=await import('/Greek_yokk/src/App.vue');
 await import('/Greek_yokk/src/assets/main.css');

@@ -10,7 +10,7 @@
           <Search class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           <input aria-label="ค้นหาไอคอน"
             v-model="searchQuery"
-            type="text"
+            type="search"
             placeholder="ค้นหาไอคอน เช่น สตรอว์เบอร์รี, ถ้วย..."
             class="soft-input w-full pl-8 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
             autofocus
