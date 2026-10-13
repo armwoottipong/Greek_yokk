@@ -233,7 +233,7 @@ All search fields use native type="search" and one shared rule in main.css: no o
 
 ### Packaging Review
 
-The cart shows the heading บรรจุภัณฑ์, a packaging-item count and its shared review Button; individual package names and quantities remain in the popup. PackageReviewModal uses AppSelect for adding packaging and choosing adjustment reasons, FormField for every field, StatusBadge for the effective quantity and Button for actions. Recipe sources sit in a disclosure. Each row places save/reset actions below its fields; numeric quantity and conditional note inputs keep the shared filled popup treatment. Shared AppQuantityInput uses existing 44px IconButtons to step by 1, clamps at zero and allows direct fractional entry; edits remain drafts until saved. Rows use spacing and separators; quantity/reason fields stack below 520px.
+The cart shows the heading บรรจุภัณฑ์, a packaging-item count and its shared review Button; individual package names and quantities remain in the popup. PackageReviewModal uses AppSelect for adding packaging and choosing adjustment reasons, FormField for every field, StatusBadge for the effective quantity and Button for actions. Recipe sources sit in a disclosure alongside save/reset actions in one row below the fields; numeric quantity and conditional note inputs keep the shared filled popup treatment. Shared AppQuantityInput uses existing 44px IconButtons to step by 1, clamps at zero and allows direct fractional entry; edits remain drafts until saved. Rows use 10px internal gaps and 14px separation/padding; quantity/reason fields stay side by side from 360px and stack below that width. Inputs retain 48px height and stepper buttons retain 44px touch targets.
 
 ### Platform Price Fields
 

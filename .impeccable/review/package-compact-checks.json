@@ -1,0 +1,19 @@
+[
+  {
+    "documentWidth": 1440,
+    "firstRowHeight": 193.5,
+    "viewport": 1440
+  },
+  {
+    "documentWidth": 390,
+    "fieldsColumns": "168px 160px",
+    "firstRowHeight": 193.5,
+    "viewport": 390
+  },
+  {
+    "documentWidth": 320,
+    "fieldsColumns": "266px",
+    "firstRowHeight": 275,
+    "viewport": 320
+  }
+]
