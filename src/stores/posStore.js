@@ -34,6 +34,7 @@ import {
   defineStore
 } from 'pinia'
 import { MATERIAL_KIND_OPTIONS, getMaterialKind, buildMaterialUsage } from '@/domain/materialClassification'
+import { validateLotDates } from '@/domain/lotDates'
 import {
   DEFAULT_MATERIALS,
   DEFAULT_MENUS,
@@ -688,11 +689,7 @@ const posDefinition = {
 
     // Material Tracking Mode Getter
     getMaterialTrackingMode: (state) => (mat) => {
-      if (!mat || !mat.category) return 'none'
-      const cat = (state.categories?.material || []).find(
-        c => c.name === mat.category || c.label === mat.category
-      )
-      return cat?.dateTrackingMode || 'none'
+      return !mat || mat.inventoryType === 'packaging' ? 'none' : 'expiry_and_receive'
     },
 
     // Real-time lot action preview (Merge vs New Lot vs Direct Sum)
@@ -704,10 +701,7 @@ const posDefinition = {
         icon: '',
         badgeClass: ''
       }
-      const cat = state.categories.material?.find(
-        c => c.name === mat.category || c.label === mat.category
-      )
-      const mode = cat?.dateTrackingMode || 'none'
+      const mode = mat.inventoryType === 'packaging' ? 'none' : 'expiry_and_receive'
 
       if (mode === 'none') {
         return {
@@ -1839,6 +1833,11 @@ const posDefinition = {
       clean.unitCost = Number(matData.unitCost ?? mat?.unitCost ?? 0)
       clean.packCost = Number(matData.packCost ?? mat?.packCost ?? clean.unitCost * clean.packSize)
       clean.minAlert = Number(matData.minAlert ?? mat?.minAlert ?? 0)
+      const eventDates = {receiveDate: matData.lastStockInDate, expiryDate: matData.expiryDate}
+      if (requested > oldStock) {
+        const validation = validateLotDates(clean, eventDates, clean.hasSubRecipe ? 'produce' : 'receive')
+        if (!validation.ok) return validation
+      }
       if (mat) Object.assign(mat, clean);
       else {
         this.materials.push(clean);
@@ -1852,10 +1851,13 @@ const posDefinition = {
           qty: Number(r.qty) * (requested - oldStock) / yieldQty
         }))
         const result = this.batchProduce(id, requested - oldStock, ingredients,
-        'ผลิตจากหน้าจัดการวัตถุดิบ', {}, false)
+        'ผลิตจากหน้าจัดการวัตถุดิบ', eventDates, false)
         if (result === false || result?.success === false || result?.ok === false) return false
-      } else if (requested !== oldStock) this.stockAdjust(id, requested, 'แก้ไขยอดจากหน้าจัดการวัตถุดิบ',
-        '', false)
+      } else if (requested > oldStock) {
+        const result = this.stockIn(id, requested - oldStock, clean.unitCost,
+          'รับเข้าจากหน้าจัดการวัตถุดิบ', clean.packCost, eventDates, false)
+        if (result === false || result?.ok === false) return result
+      } else if (requested < oldStock) this.stockAdjust(id, requested, 'แก้ไขยอดจากหน้าจัดการวัตถุดิบ', '', false)
       this.persistLocal()
       this.showToast('บันทึกวัตถุดิบสำเร็จ', 'success')
       return {
@@ -1967,6 +1969,8 @@ const posDefinition = {
       if (!mat) return
       const addQty = Number(qty) || 0
       if (!Number.isFinite(Number(qty)) || Number(qty) <= 0) return false
+      const validation = validateLotDates(mat, dates, 'receive')
+      if (!validation.ok) return validation
 
       if (asDraft && !this.stockDraftSnapshot) {
         this.initStockDraftSnapshot()
@@ -1995,9 +1999,7 @@ const posDefinition = {
       }
 
       const trackingMode = this.getMaterialTrackingMode(mat)
-      const receiveDate = trackingMode === 'none' ? getTodayString() : (dates?.receiveDate ||
-        getTodayString())
-      const expiryDate = trackingMode === 'expiry_and_receive' ? (dates?.expiryDate || null) : null
+      const {receiveDate, expiryDate} = validation.dates
 
       mat.lastStockInDate = receiveDate
       mat.expiryDate = expiryDate
@@ -2043,9 +2045,8 @@ const posDefinition = {
         // Perishable or receive-tracked items
         let matchingLot = null
         if (trackingMode === 'expiry_and_receive') {
-          matchingLot = mat.lots.find(l => (l.receiveDate === receiveDate || !l.receiveDate) && (l
-              .expiryDate || null) === expiryDate && l.qty > 0) ||
-            mat.lots.find(l => (l.expiryDate || null) === expiryDate && l.qty > 0)
+          matchingLot = mat.lots.find(l => l.receiveDate === receiveDate &&
+            (l.expiryDate || null) === expiryDate && l.qty > 0)
         } else if (trackingMode === 'receive_only') {
           matchingLot = mat.lots.find(l => l.receiveDate === receiveDate && l.qty > 0)
         }
@@ -2356,6 +2357,8 @@ const posDefinition = {
       const addedQty = Number(yieldQty),
         target = this.materials.find(m => m.id === targetMatId)
       if (!target || target.isDeleted || !Number.isFinite(addedQty) || addedQty <= 0) return false
+      const validation = validateLotDates(target, dates, 'produce')
+      if (!validation.ok) return validation
       let requirements
       try {
         requirements = aggregateRequirements(subIngredients)
@@ -2375,9 +2378,7 @@ const posDefinition = {
       this.materials = result.materials
       const output = this.materials.find(m => m.id === targetMatId)
       output.unitCost = (output.stock * (output.unitCost || 0) + rawCost) / (output.stock + addedQty)
-      const receiveDate = dates.receiveDate || getTodayString(),
-        expiryDate = dates.expiryDate || (output.shelfLifeDays ? addDays(receiveDate, output
-          .shelfLifeDays) : null)
+      const {receiveDate, expiryDate} = validation.dates
       const lot = {
         id: createEntityId('LOT', output.lots.map(l => l.id)),
         qty: addedQty,
@@ -3128,7 +3129,7 @@ for (const [name, isDraft] of Object.entries(committedActions)) {
         for (const field of DATABASE_FIELDS) this[field] = clone(before[field])
         this.stockDraftSnapshot = snapshot;
         this.stockDraftActions = drafts
-        const message = error?.message || validation.errors?.map(e => e.path + ': ' + e.message).join(
+        const message = error?.message || result?.message || validation.errors?.map(e => e.path + ': ' + e.message).join(
           '\n') || 'รายการไม่ถูกต้อง'
         this.showToast(message, 'error');
         return {
@@ -3171,8 +3172,8 @@ for (const [name, isDraft] of Object.entries(committedActions)) {
       const failure = {
         ok: false,
         success: false,
-        code: 'INVALID_OPERATION',
-        message: error?.message || 'รายการไม่ถูกต้อง'
+        code: output?.code || 'INVALID_OPERATION',
+        message: error?.message || output?.message || 'รายการไม่ถูกต้อง'
       }
       this.showToast(failure.message, 'error');
       return failure

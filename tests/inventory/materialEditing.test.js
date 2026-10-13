@@ -5,7 +5,7 @@ import StockView from '../../src/views/StockView.vue'
 import {createTestStore,material} from '../helpers/createStore'
 it('material production edit updates raw and output lots and survives reload',()=> {
  const s=createTestStore({storage:{GY_MATERIALS:[material('RAW',1000),material('OUT',540,{hasSubRecipe:true,yieldQty:540,subRecipe:[{materialId:'RAW',qty:100}]})]}})
- const result=s.saveMaterial({...s.materials[1],stock:1080})
+ const result=s.saveMaterial({...s.materials[1],stock:1080,lastStockInDate:'2026-10-13',expiryDate:null})
  expect(result.ok).toBe(true);expect(s.materials.map(m=>m.stock)).toEqual([900,1080]);expect(s.materials.map(m=>m.lots.reduce((n,l)=>n+l.qty,0))).toEqual([900,1080])
  expect(JSON.parse(localStorage.getItem('GY_DATABASE_V3')).materials.map(m=>m.stock)).toEqual([900,1080])
 })
