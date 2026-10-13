@@ -18,62 +18,20 @@
           </div>
           <p class="text-[11px] text-stone-400 mt-0.5 truncate">
             {{ form.hasSubRecipe 
-              ? 'ตั้งสูตรส่วนผสม คำนวณต้นทุนรวมและตัดสต็อกวัตถุดิบรองอัตโนมัติ' 
+              ? 'ตั้งสูตรส่วนผสม คำนวณต้นทุนรวมและตัดสต็อกส่วนผสมอัตโนมัติ' 
               : 'ระบุหน่วยนับ ข้อมูลแพ็คสั่งซื้อ และสต็อกปัจจุบัน' 
             }}
           </p>
         </div>
 
         <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0 w-full sm:w-auto">
-          <!-- Switch Button: ผลิตจากวัตถุดิบอื่น (Header toggle, only for main materials) -->
-          <AppCheckbox v-model="form.hasSubRecipe" variant="switch" label="ผลิตจากวัตถุดิบอื่น"
-            v-if="!form.isSubIngredient"
-            class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border cursor-pointer select-none transition-all"
-            :class="form.hasSubRecipe ? 'bg-brand-50 border-brand-200 text-brand-600' : 'bg-stone-50 border-stone-200/80 text-stone-700 hover:border-stone-300'"
-            title="เปิดหากเป็นวัตถุดิบที่ต้องปรุง/ผลิตจากวัตถุดิบอื่น"
-          >
-            <span class="text-[11px] font-semibold flex items-center gap-1.5">
-              <span class="text-xs">🥣</span>
-              <span>ผลิตจากวัตถุดิบอื่น</span>
-            </span>
-          </AppCheckbox>
-
           <!-- Close Modal Button -->
           
         </div>
       </div></template>
  <div class="space-y-4 text-sm">
         
-        <!-- Ingredient Role: Top, compact, prominent (Requirement 3) -->
-        <div 
-          v-if="!form.hasSubRecipe" 
-          class="flex items-center justify-between px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200/80"
-        >
-          <div class="flex items-center gap-2 min-w-0 pr-2">
-            <span class="text-[11px] font-semibold text-stone-700 shrink-0">บทบาทวัตถุดิบ:</span>
-            <span class="text-[10px] text-stone-400 truncate">
-              {{ form.isSubIngredient ? 'ใช้นำไปประกอบสูตรผลิตอื่น (ไม่แสดงตักขาย)' : 'วัตถุดิบหลัก สำหรับใส่เมนู / ตักขายหน้าร้าน' }}
-            </span>
-          </div>
-          <div class="flex items-center gap-1 p-0.5 bg-stone-200/60 rounded-lg text-[10px] font-semibold shrink-0">
-            <button
-              type="button"
-              @click="setRole(false)"
-              :class="!form.isSubIngredient ? 'bg-brand-600 text-white shadow-2xs font-bold' : 'text-stone-600 hover:text-stone-900'"
-              class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer"
-            >
-              <span>🥣 วัตถุดิบหลัก</span>
-            </button>
-            <button
-              type="button"
-              @click="setRole(true)"
-              :class="form.isSubIngredient ? 'bg-purple-800 text-white shadow-2xs font-bold' : 'text-stone-600 hover:text-stone-900'"
-              class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer"
-            >
-              <span>🥛 วัตถุดิบรอง</span>
-            </button>
-          </div>
-        </div>
+        <MaterialUsage :usage="store.materialUsageById.get(form.id)" />
 
         <!-- Emoji, Name & Category -->
         <div class="flex items-center gap-3">
@@ -96,42 +54,17 @@
               class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
             />
           </div>
-          <div class="w-44 shrink-0">
-            <label class="block text-[11px] font-medium text-stone-600 mb-1">หมวดหมู่</label>
-            <AppSelect aria-label="หมวดหมู่"
-              v-model="form.category"
-              class="w-full"
-            >
-              <option
-                v-for="cat in store.materialCategories"
-                :key="cat.id"
-                :value="cat.name"
-              >
-                {{ cat.icon }} {{ cat.label || cat.name }}
-              </option>
-              <option
-                v-if="form.category && !store.materialCategories.some(c => c.name === form.category)"
-                :value="form.category"
-              >
-                📦 {{ form.category }}
-              </option>
-            </AppSelect>
-          </div>
         </div>
 
         <fieldset class="space-y-2">
-          <legend class="text-[11px] font-medium text-stone-700">ประเภทสินค้า <span class="text-rose-500">*</span></legend>
-          <div class="grid grid-cols-2 gap-2">
-            <label class="flex items-center gap-2 p-3 rounded-xl border border-stone-200 cursor-pointer">
-              <input v-model="form.inventoryType" type="radio" name="material-inventory-type" value="ingredient" aria-label="วัตถุดิบ" aria-describedby="material-inventory-type-help" required class="accent-brand-600" />
-              <span class="text-xs font-medium text-stone-800">วัตถุดิบ</span>
-            </label>
-            <label class="flex items-center gap-2 p-3 rounded-xl border border-stone-200 cursor-pointer">
-              <input v-model="form.inventoryType" type="radio" name="material-inventory-type" value="packaging" aria-label="บรรจุภัณฑ์" aria-describedby="material-inventory-type-help" required class="accent-brand-600" />
-              <span class="text-xs font-medium text-stone-800">บรรจุภัณฑ์</span>
+          <legend class="text-[11px] font-medium text-stone-700">ประเภทคลัง <span class="text-rose-500">*</span></legend>
+          <div class="grid gap-2 sm:grid-cols-3">
+            <label v-for="kind in MATERIAL_KIND_OPTIONS" :key="kind.id" class="flex items-center gap-2 p-3 rounded-xl border border-stone-200 cursor-pointer">
+              <input v-model="materialKind" type="radio" name="material-inventory-type" :value="kind.id" :aria-label="kind.label" aria-describedby="material-inventory-type-help" required class="accent-brand-600" />
+              <span class="text-xs font-medium text-stone-800">{{ kind.label }}</span>
             </label>
           </div>
-          <p id="material-inventory-type-help" class="text-[11px] text-stone-500 leading-relaxed">วัตถุดิบใช้เป็นส่วนผสมในสูตร ส่วนบรรจุภัณฑ์ใช้ตรวจ/ปรับ Package และแยกรายงานต้นทุน ประเภทนี้กำหนดการจัดกลุ่มในสูตร หมวดหมู่ใช้จัดระเบียบรายการเท่านั้น การเปลี่ยนหมวดหมู่จะไม่เปลี่ยนประเภท</p>
+          <p id="material-inventory-type-help" class="text-[11px] text-stone-500 leading-relaxed">วัตถุดิบที่มีการผลิตกำหนดสูตรได้ วัตถุดิบทุกบทบาทเลือกใช้ในเมนูหรือ Add-on ได้ บรรจุภัณฑ์แยกต้นทุนใน Package</p>
         </fieldset>
 
         <!-- Unit Selection (Strictly 3 choices: ml, g, ชิ้น) -->
@@ -439,13 +372,13 @@
                 @click="stepStock(1)"
                 :disabled="form.hasSubRecipe && !canAddRound"
                 class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center font-bold text-stone-700 transition-colors cursor-pointer shrink-0"
-                :title="form.hasSubRecipe ? (canAddRound ? 'เพิ่ม 1 รอบผลิต (หักวัตถุดิบรอง)' : 'วัตถุดิบรองไม่พอผลิตเพิ่ม') : 'เพิ่มสต็อก 1 แพ็ค'"
+                :title="form.hasSubRecipe ? (canAddRound ? 'เพิ่ม 1 รอบผลิต (หักส่วนผสม)' : 'ส่วนผสมไม่พอผลิตเพิ่ม') : 'เพิ่มสต็อก 1 แพ็ค'"
               >
                 <Plus class="w-3.5 h-3.5" />
               </button>
             </div>
             <p v-if="form.hasSubRecipe && !canAddRound" class="text-[9px] text-rose-600 font-medium">
-              * วัตถุดิบรองในคลังหมด ไม่พอผลิตเพิ่ม
+              * ส่วนผสมในคลังหมด ไม่พอผลิตเพิ่ม
             </p>
           </div>
 
@@ -493,6 +426,16 @@
             </div>
           </div>
         </div>
+
+        <div v-if="form.stock > initialStock && materialKind !== 'packaging'" class="grid grid-cols-2 gap-3">
+          <label class="text-xs text-stone-700">{{ form.hasSubRecipe ? 'วันผลิต' : 'วันรับเข้า' }}
+            <input v-model="form.lastStockInDate" type="date" :aria-label="form.hasSubRecipe ? 'วันผลิต' : 'วันที่รับเข้า'" required class="soft-input w-full px-3 py-2 mt-1" />
+          </label>
+          <label class="text-xs text-stone-700">วันหมดอายุ (ไม่บังคับ)
+            <input v-model="form.expiryDate" type="date" aria-label="วันหมดอายุ" :min="form.lastStockInDate || undefined" class="soft-input w-full px-3 py-2 mt-1" />
+          </label>
+        </div>
+        <p v-if="formError" role="alert" class="text-sm text-rose-700">{{ formError }}</p>
 
         <!-- อายุการเก็บรักษา (วัน) Simple & Compact -->
         <div class="p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/70 flex items-center justify-between">
@@ -566,11 +509,22 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
-import { usePosStore } from '@/stores/posStore'
+import { usePosStore, getTodayString } from '@/stores/posStore'
+import MaterialUsage from '@/components/inventory/MaterialUsage.vue'
+import { MATERIAL_KIND_OPTIONS, getMaterialKind } from '@/domain/materialClassification'
+import { validateLotDates } from '@/domain/lotDates'
 import { useModalForm } from '@/composables/useModalForm'
 import { X, Check, Plus, Minus, Archive, Trash2 } from 'lucide-vue-next'
 
 const store = usePosStore()
+const formError = ref('')
+const materialKind = computed({
+  get: () => getMaterialKind(form.value),
+  set: kind => {
+    form.value.inventoryType = kind === 'packaging' ? 'packaging' : 'ingredient'
+    form.value.hasSubRecipe = kind === 'produced'
+  }
+})
 
 // Unit Options restricted strictly to 3 choices: มล. (ml), กรัม (g), ชิ้น (pcs)
 const unitOptions = [
@@ -585,7 +539,7 @@ const hasConfirmedLowStock = ref(false) // Tracks if user already confirmed low-
 const form = ref({
   id: '',
   name: '',
-  category: 'Base Yogurt',
+  category: undefined,
   inventoryType: 'ingredient',
   unit: 'g',
   packUnit: 'ถุง',
@@ -765,7 +719,7 @@ function onStockPacksInput(val) {
     form.value.stock = 0
   } else {
     if (form.value.hasSubRecipe && num > maxPossibleProductionRounds.value) {
-      store.showToast(`วัตถุดิบรองในคลังพอผลิตได้สูงสุดเพียง ${maxPossibleProductionRounds.value} รอบ`, 'error')
+      store.showToast(`ส่วนผสมในคลังพอผลิตได้สูงสุดเพียง ${maxPossibleProductionRounds.value} รอบ`, 'error')
       form.value.stock = Math.round(maxPossibleProductionRounds.value * pSize * 100) / 100
     } else {
       form.value.stock = Math.round(num * pSize * 100) / 100
@@ -780,7 +734,7 @@ async function stepStock(delta) {
     if (form.value.hasSubRecipe) {
       // Check 1: Is any sub-ingredient out of stock?
       if (!canAddRound.value) {
-        store.showToast('วัตถุดิบรองในคลังหมด ไม่สามารถเพิ่มรอบผลิตได้', 'error')
+        store.showToast('ส่วนผสมในคลังหมด ไม่สามารถเพิ่มรอบผลิตได้', 'error')
         return
       }
 
@@ -794,8 +748,8 @@ async function stepStock(delta) {
       if (lowItems.length > 0 && !hasConfirmedLowStock.value) {
         const warningLines = lowItems.map(i => `• ${i.name}: จะเหลือ ${(i.remaining - i.qtyPerRound).toLocaleString()} ${i.unit} (จุดเตือน ${i.minAlert.toLocaleString()} ${i.unit})`).join('\n')
         const ok = await store.confirmDialog({
-          title: 'วัตถุดิบรองใกล้หมดสต็อก',
-          message: `การผลิตเพิ่มจะทำให้วัตถุดิบรองในคลังลดลงต่ำกว่าจุดเตือนขั้นต่ำ:\n\n${warningLines}\n\nต้องการยืนยันเพิ่มรอบผลิตต่อหรือไม่?`,
+          title: 'ส่วนผสมใกล้หมดสต็อก',
+          message: `การผลิตเพิ่มจะทำให้ส่วนผสมในคลังลดลงต่ำกว่าจุดเตือนขั้นต่ำ:\n\n${warningLines}\n\nต้องการยืนยันเพิ่มรอบผลิตต่อหรือไม่?`,
           confirmText: 'ยืนยันผลิตต่อ',
           cancelText: 'ยกเลิก',
           type: 'warning'
@@ -857,23 +811,11 @@ function stepMinAlert(delta) {
   form.value.minAlert = Math.round(next * pSize * 100) / 100
 }
 
-function setRole(isSub) {
-  form.value.isSubIngredient = isSub
-  if (isSub) {
-    form.value.hasSubRecipe = false
-    form.value.subRecipe = []
-    if (form.value.packUnit === 'รอบ') {
-      form.value.packUnit = form.value.unit === 'ml' ? 'ขวด' : (form.value.unit === 'g' ? 'ถุง' : 'แพ็ค')
-      form.value.packSize = 1000
-    }
-  }
-}
-
 // Sub-Recipe helpers
 function addSubRecipeRow() {
   const defaultSub = availableSubMaterials.value[0]
   if (!defaultSub) {
-    store.showToast('ยังไม่มีรายการวัตถุดิบรองในระบบ กรุณาสร้างวัตถุดิบรองก่อน (เช่น นมสด หรือหัวเชื้อ)', 'error')
+    store.showToast('ยังไม่มีรายการส่วนผสมในระบบ กรุณาสร้างส่วนผสมก่อน (เช่น นมสด หรือหัวเชื้อ)', 'error')
     return
   }
   form.value.subRecipe.push({
@@ -900,7 +842,6 @@ watch(() => form.value.hasSubRecipe, (newVal) => {
   if (newVal) {
     form.value.packUnit = 'รอบ'
     form.value.packSize = Number(form.value.yieldQty) || 540
-    form.value.isSubIngredient = false
   } else {
     if (form.value.packUnit === 'รอบ') {
       form.value.packUnit = form.value.unit === 'ml' ? 'ขวด' : (form.value.unit === 'g' ? 'ถุง' : 'แพ็ค')
@@ -922,12 +863,13 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
     const id = store.modals.materialEdit.materialId
     const mat = id ? store.materials.find(m => m.id === id) : null
 
+    formError.value = ''
     hasConfirmedLowStock.value = false // Reset warning flag for new session
 
     if (mat) {
       initialStock.value = Number(mat.stock) || 0
-      const isSub = Boolean(mat.isSubIngredient) || mat.id === 'MAT002' || (mat.category && (mat.category.includes('รอง') || mat.category.includes('sub')))
-      const hasRecipe = !isSub && Boolean(mat.hasSubRecipe)
+      const isSub = Boolean(mat.isSubIngredient)
+      const hasRecipe = mat.inventoryType !== 'packaging' && Boolean(mat.hasSubRecipe)
 
       const pUnit = mat.packUnit || (hasRecipe ? 'รอบ' : (mat.unit === 'ml' ? 'ขวด' : mat.unit === 'g' ? 'ถุง' : 'แพ็ค'))
       const pSize = Number(mat.packSize) || (hasRecipe ? (Number(mat.yieldQty) || 540) : 1)
@@ -938,7 +880,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         id: mat.id,
         isDeleted: Boolean(mat.isDeleted),
         name: mat.name,
-        category: mat.category || 'Base Yogurt',
+        category: mat.category,
         inventoryType: mat.inventoryType,
         unit: ['g', 'ml', 'ชิ้น'].includes(mat.unit) ? mat.unit : (mat.unit === 'pcs' ? 'ชิ้น' : 'g'),
         packUnit: pUnit,
@@ -959,11 +901,10 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
     } else {
       // New Material: Clean neutral defaults, hasSubRecipe is OFF
       initialStock.value = 0
-      const defaultCategory = store.materialCategories[0]?.name || 'Base Yogurt'
       form.value = {
         id: '',
         name: '',
-        category: defaultCategory,
+        category: undefined,
         inventoryType: 'ingredient',
         unit: 'g',
         packUnit: 'ถุง',
@@ -981,6 +922,8 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
       }
     }
 
+    form.value.lastStockInDate = getTodayString()
+    form.value.expiryDate = ''
     nextTick(() => {
       saveSnapshot()
     })
@@ -1019,6 +962,11 @@ function close() {
 }
 
 async function submit() {
+  formError.value = ''
+  if (form.value.stock > initialStock.value) {
+    const validation = validateLotDates(form.value, {receiveDate:form.value.lastStockInDate,expiryDate:form.value.expiryDate}, form.value.hasSubRecipe ? 'produce' : 'receive')
+    if (!validation.ok) { formError.value=validation.message; return }
+  }
   if (!form.value.name.trim()) {
     store.showToast('กรุณากรอกชื่อวัตถุดิบ', 'error')
     return
@@ -1028,12 +976,7 @@ async function submit() {
   if (!ok) return
 
   const hasRecipe = Boolean(form.value.hasSubRecipe)
-  const catName = (form.value.category || '').toLowerCase()
-  const isSub = !hasRecipe && (
-    Boolean(form.value.isSubIngredient) ||
-    catName.includes('รอง') ||
-    catName.includes('sub')
-  )
+  const isSub = Boolean(form.value.isSubIngredient)
 
   let pSize = 1
   let pCost = 0
@@ -1054,6 +997,7 @@ async function submit() {
     name: form.value.name.trim(),
     category: form.value.category,
     inventoryType: form.value.inventoryType,
+    ...(form.value.stock > initialStock.value ? {lastStockInDate:form.value.lastStockInDate,expiryDate:form.value.expiryDate || null} : {}),
     unit: form.value.unit || 'g',
     packUnit: form.value.packUnit?.trim() || 'แพ็ค',
     packSize: pSize,

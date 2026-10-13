@@ -10,7 +10,7 @@
       <input :value="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาชื่อ รหัส หรือหมวดหมู่" @input="$emit('update:search',$event.target.value)" />
       <Button ref="filterButton" variant="secondary" data-stock-filter :aria-expanded="filterOpen" @click="filterOpen=true"><SlidersHorizontal :size="16" />ตัวกรอง<span v-if="filterCount">{{ filterCount }}</span></Button>
     </div>
-    <FilterDropdown teleport id="stock-filters" title="กรองวัตถุดิบ" :open="filterOpen" :anchor="filterButton?.$el" :include-dates="false" :values="{role,category,showDeleted}" :fields="fields" @close="filterOpen=false" @apply="$emit('apply-filters',$event)" />
+    <FilterDropdown teleport id="stock-filters" title="กรองวัตถุดิบ" :open="filterOpen" :anchor="filterButton?.$el" :include-dates="false" :values="{role,kind,showDeleted}" :fields="fields" @close="filterOpen=false" @apply="$emit('apply-filters',$event)" />
     <DialogFrame id="stock-more-actions" title="งานอื่นในคลังสต็อก" :open="moreOpen" presentation="sheet" @request-close="moreOpen=false">
       <div class="stock-more">
         <Button variant="secondary" @click="run('adjust')">ปรับยอดนับจริง</Button>
@@ -27,13 +27,14 @@ import Button from '../ui/Button.vue'
 import IconButton from '../ui/IconButton.vue'
 import FilterDropdown from '../ui/FilterDropdown.vue'
 import DialogFrame from '../ui/DialogFrame.vue'
-const props=defineProps({search:{type:String,default:''},role:String,category:String,showDeleted:Boolean,categories:Array,deletedCount:Number})
+import { MATERIAL_ROLE_OPTIONS } from '@/domain/materialClassification'
+const props=defineProps({search:{type:String,default:''},role:String,kind:String,showDeleted:Boolean,kinds:Array,deletedCount:Number})
 const emit=defineEmits(['update:search','apply-filters','receive','stocktake','adjust','create','history'])
 const filterOpen=ref(false),moreOpen=ref(false),filterButton=ref(null)
-const filterCount=computed(()=>Number(props.role!=='all')+Number(props.category!=='all')+Number(props.showDeleted))
+const filterCount=computed(()=>Number(props.role!=='all')+Number(props.kind!=='all')+Number(props.showDeleted))
 const fields=computed(()=>[
- {key:'role',label:'ประเภทวัตถุดิบ',options:[{id:'all',label:'ทั้งหมด'},{id:'main',label:'วัตถุดิบหลัก'},{id:'sub',label:'วัตถุดิบรอง'}]},
- {key:'category',label:'หมวดหมู่',options:props.categories},
+ {key:'role',label:'การใช้งาน',options:[{id:'all',label:'ทั้งหมด'},...MATERIAL_ROLE_OPTIONS]},
+ {key:'kind',label:'ประเภทคลัง',options:props.kinds},
  {key:'showDeleted',label:`รวมรายการจัดเก็บ (${props.deletedCount})`,type:'checkbox',defaultValue:false}
 ])
 function run(action){moreOpen.value=false;emit(action)}

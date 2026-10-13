@@ -7,7 +7,7 @@
             <span>รับเข้าสต็อกวัตถุดิบ</span>
           </h3>
           <p class="text-[11px] text-stone-400 mt-0.5">
-            {{ isProducedFromRecipe ? 'ผลิตตามสูตร (หักวัตถุดิบรองอัตโนมัติ)' : 'รับซื้อวัตถุดิบเข้าคลัง' }}
+            {{ isProducedFromRecipe ? 'ผลิตตามสูตร (หักส่วนผสมอัตโนมัติ)' : 'รับซื้อวัตถุดิบเข้าคลัง' }}
           </p>
         </div>
         
@@ -36,15 +36,8 @@
             v-model="selectedMatId"
             class="w-full"
           >
-            <optgroup label="🥣 วัตถุดิบหลัก" v-if="store.mainMaterials.length > 0">
-              <option v-for="m in store.mainMaterials" :key="m.id" :value="m.id">
-                {{ m.emoji }} {{ m.name }} (คงเหลือ: {{ m.stock.toLocaleString() }} {{ m.unit }})
-              </option>
-            </optgroup>
-            <optgroup label="🥛 วัตถุดิบรอง" v-if="store.subMaterials.length > 0">
-              <option v-for="m in store.subMaterials" :key="m.id" :value="m.id">
-                {{ m.emoji }} {{ m.name }} (คงเหลือ: {{ m.stock.toLocaleString() }} {{ m.unit }})
-              </option>
+            <optgroup v-for="kind in store.materialKindOptions" :key="kind.id" :label="kind.label">
+              <option v-for="m in store.activeMaterials.filter(item => store.getMaterialKind(item) === kind.id)" :key="m.id" :value="m.id">{{ m.emoji }} {{ m.name }}</option>
             </optgroup>
           </AppSelect>
         </div>
@@ -251,7 +244,7 @@
           <!-- Deducted Sub-ingredients (Compact list) -->
           <div class="space-y-1.5 p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50">
             <div class="flex items-center justify-between text-[11px] font-medium text-stone-700 mb-1">
-              <span>วัตถุดิบรองที่จะถูกหัก:</span>
+              <span>ส่วนผสมที่จะถูกหัก:</span>
               <span class="text-[10px] text-stone-400 font-number">สัดส่วน {{ (produceYieldQty / formulaYield).toFixed(2) }}x</span>
             </div>
 
@@ -304,9 +297,8 @@
               <label class="block text-[11px] font-medium text-stone-600 mb-1">
                 {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
               </label>
-              <input aria-label="วันที่รับเข้า"
+              <input :aria-label="isProducedFromRecipe ? 'วันผลิต' : 'วันที่รับเข้า'" required :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined"
                 v-model="receiveDate"
-                @change="onReceiveDateChange"
                 type="date"
                 class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
               />
@@ -342,18 +334,6 @@
               />
             </div>
           </div>
-        </div>
-
-        <div v-else-if="trackingMode === 'receive_only'" class="space-y-1">
-          <label class="block text-[11px] font-medium text-stone-600">
-            {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
-          </label>
-          <input aria-label="วันที่รับเข้า"
-            v-model="receiveDate"
-            type="date"
-            class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white"
-          />
-          <p class="text-[10px] text-stone-400 font-sans">หมวดหมู่นี้ติดตามเฉพาะวันที่รับ/ผลิต ไม่ต้องระบุวันหมดอายุ</p>
         </div>
 
         <!-- สินค้าไม่คุมวันหมดอายุ (บรรจุภัณฑ์ / แก้ว / ช้อน) -->
@@ -412,6 +392,7 @@
 </template>
 
 <script setup>
+import {validateLotDates} from '@/domain/lotDates'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
@@ -467,12 +448,6 @@ const lotPreview = computed(() => {
 const isProducedFromRecipe = computed(() => {
   return Boolean(currentMat.value?.hasSubRecipe && currentMat.value?.subRecipe && currentMat.value.subRecipe.length > 0)
 })
-
-function onReceiveDateChange() {
-  if (trackingMode.value === 'expiry_and_receive' && currentMat.value?.shelfLifeDays) {
-    expiryDate.value = addDays(receiveDate.value, currentMat.value.shelfLifeDays)
-  }
-}
 
 const formulaYield = computed(() => {
   return Number(currentMat.value?.yieldQty) || 1200
@@ -584,13 +559,8 @@ function initForMaterial(mat) {
   produceBatchCount.value = 1
   produceYieldQty.value = mat.yieldQty || 1200
 
-  // Set receiveDate and auto-calculate expiryDate from mat.shelfLifeDays
-  receiveDate.value = getTodayString()
-  if (mat.shelfLifeDays) {
-    expiryDate.value = addDays(receiveDate.value, mat.shelfLifeDays)
-  } else {
-    expiryDate.value = ''
-  }
+  receiveDate.value = mat.inventoryType === 'packaging' ? '' : getTodayString()
+  expiryDate.value = ''
 }
 
 watch(() => store.modals.stockIn.isOpen, (open) => {
@@ -621,10 +591,12 @@ async function submit() {
     return
   }
 
-  const datePayload = {
-    receiveDate: trackingMode.value === 'none' ? getTodayString() : (receiveDate.value || getTodayString()),
-    expiryDate: trackingMode.value === 'expiry_and_receive' ? (expiryDate.value || null) : null
-  }
+  const dateValidation = validateLotDates(mat, {
+    receiveDate: receiveDate.value || null,
+    expiryDate: expiryDate.value || null
+  }, isProducedFromRecipe.value ? 'produce' : 'receive')
+  if (!dateValidation.ok) { formError.value = dateValidation.message; return }
+  const datePayload = dateValidation.dates
 
   if (isProducedFromRecipe.value) {
     if (!produceYieldQty.value || produceYieldQty.value <= 0) {
@@ -633,7 +605,7 @@ async function submit() {
       return
     }
     if (!canProduce.value) {
-      formError.value='วัตถุดิบรองไม่พอหรือไม่พบในระบบ ตรวจสอบสูตรและรับเข้าวัตถุดิบก่อนผลิต'
+      formError.value='ส่วนผสมไม่พอหรือไม่พบในระบบ ตรวจสอบสูตรและรับเข้าวัตถุดิบก่อนผลิต'
       store.showToast(formError.value, 'error')
       return
     }

@@ -20,7 +20,7 @@
               <span class="text-2xl">{{ currentMaterial.emoji }}</span>
               <div>
                 <div class="font-bold text-stone-900 text-xs">{{ currentMaterial.name }}</div>
-                <div class="text-[10px] text-stone-500">หมวดหมู่: {{ currentMaterial.category }}</div>
+                <div class="text-[10px] text-stone-500">ประเภท: {{ getMaterialKindLabel(currentMaterial) }}</div>
               </div>
             </div>
             <span
@@ -159,6 +159,7 @@
 </template>
 
 <script setup>
+import {getMaterialKindLabel} from '@/domain/materialClassification'
 import FormField from '@/components/ui/FormField.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import {useModalForm} from '@/composables/useModalForm'

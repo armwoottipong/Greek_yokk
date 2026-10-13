@@ -1,12 +1,12 @@
 <template>
   <div class="space-y-6">
     <StockSummary :valuation="store.totalInventoryValuation" :draft-diff="store.draftInventoryValuationDiff" :projected="store.projectedInventoryValuation" :budget="store.reorderBudgetNeeded" :low-count="store.lowStockMaterials.length" :out-count="store.outOfStockMaterials.length" />
-    <StockToolbar v-model:search="searchQuery" :role="selectedRole" :category="selectedCategory" :show-deleted="showDeleted" :categories="categories" :deleted-count="deletedCount" @apply-filters="applyStockFilters" @receive="openStockIn()" @stocktake="openStocktake" @adjust="openStockAdjust()" @create="openCreateMaterial" @history="store.openActivityLog('stock')" />
+    <StockToolbar v-model:search="searchQuery" :role="selectedRole" :kind="selectedKind" :show-deleted="showDeleted" :kinds="kinds" :deleted-count="deletedCount" @apply-filters="applyStockFilters" @receive="openStockIn()" @stocktake="openStocktake" @adjust="openStockAdjust()" @create="openCreateMaterial" @history="store.openActivityLog('stock')" />
     <div class="adaptive-material-list editorial-card">
-      <StockMaterialCard v-for="mat in filteredMaterials" :key="mat.id" :material="mat" @details="detailMaterialId=$event" @receive="openStockIn" />
+      <StockMaterialCard v-for="mat in filteredMaterials" :key="mat.id" :material="mat" :usage="store.materialUsageById.get(mat.id)" @details="detailMaterialId=$event" @receive="openStockIn" />
       <p v-if="!filteredMaterials.length" class="p-6 text-sm">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก ลองเปลี่ยนตัวกรองหรือคำค้นหา</p>
     </div>
-    <MaterialDetails :open="Boolean(detailMaterialId)" :material="detailMaterial" :lots="detailMaterial?getDisplayLots(detailMaterial):[]" :tracking-mode="detailMaterial?store.getMaterialTrackingMode(detailMaterial):'none'" :pack-cost="detailMaterial?getDisplayPackCost(detailMaterial):0" :draft-diff="detailMaterial?getDraftDiff(detailMaterial):0" @close="detailMaterialId=null" @adjust="onActionStockAdjustLot" @waste="onActionWasteLot" @switch="onActionSwitchLot" @restore="onActionRestore" @delete="onActionPermanentDelete" @edit="openEditMaterial" @receive="openStockIn" />
+    <MaterialDetails :open="Boolean(detailMaterialId)" :material="detailMaterial" :usage="store.materialUsageById.get(detailMaterialId)" :lots="detailMaterial?getDisplayLots(detailMaterial):[]" :tracking-mode="detailMaterial?store.getMaterialTrackingMode(detailMaterial):'none'" :pack-cost="detailMaterial?getDisplayPackCost(detailMaterial):0" :draft-diff="detailMaterial?getDraftDiff(detailMaterial):0" @close="detailMaterialId=null" @adjust="onActionStockAdjustLot" @waste="onActionWasteLot" @switch="onActionSwitchLot" @restore="onActionRestore" @delete="onActionPermanentDelete" @edit="openEditMaterial" @receive="openStockIn" />
     <!-- Material Inventory Table -->
     <div class="desktop-material-table editorial-card bg-white pb-12">
       <div class="overflow-x-auto">
@@ -23,7 +23,7 @@
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/70 text-[11px] font-semibold text-stone-600 tracking-wider">
               <th class="py-3.5 px-4 text-left whitespace-nowrap">วัตถุดิบ / สินค้า</th>
-              <th class="py-3.5 px-4 text-left whitespace-nowrap">หมวดหมู่</th>
+              <th class="py-3.5 px-4 text-left whitespace-nowrap">ประเภท</th>
               <th class="py-3.5 px-4 text-center whitespace-nowrap">คงเหลือในคลัง</th>
               <th class="py-3.5 px-4 text-right whitespace-nowrap">ต้นทุน/หน่วย</th>
               <th class="py-3.5 px-4 text-right whitespace-nowrap">มูลค่าสต็อกคงเหลือ</th>
@@ -50,24 +50,7 @@
                     <div class="font-bold text-stone-900 flex items-center gap-1.5 truncate">
                       <button type="button" :data-material-details="mat.id" :aria-label="`ดูรายละเอียด ${mat.name}`" class="text-left underline-offset-4 hover:underline focus-visible:underline" @click="detailMaterialId=mat.id">{{ mat.name }}</button>
 
-                      <!-- Special Role Badges (Only shown for sub-ingredients or self-produced bases) -->
-                      <span
-                        v-if="mat.isSubIngredient"
-                        class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-purple-100 text-purple-800 shrink-0"
-                        title="วัตถุดิบรอง สำหรับหมัก/ผลิตกรีกโยเกิร์ต"
-                      >
-                        <span>🥛</span>
-                        <span>วัตถุดิบรอง</span>
-                      </span>
-                      <span
-                        v-else-if="mat.hasSubRecipe"
-                        class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-amber-100 text-amber-800 shrink-0"
-                        title="วัตถุดิบหลัก ผลิตจากวัตถุดิบรอง"
-                      >
-                        <span>🥣</span>
-                        <span>ผลิตเอง</span>
-                      </span>
-
+                      <MaterialUsage :usage="store.materialUsageById.get(mat.id)" />
                       <span
                         v-if="mat.isDeleted"
                         class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-stone-200/90 text-stone-700 shrink-0"
@@ -126,10 +109,10 @@
 
               <!-- Category (Borderless Pill Badge) -->
               <td class="py-3.5 px-4">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-stone-100 text-stone-600 truncate max-w-full">
-                  {{ mat.category || 'อื่นๆ' }}
+                <span :data-inventory-type="mat.inventoryType" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-stone-100 text-stone-600 truncate max-w-full">
+                  {{ getMaterialKindLabel(mat) }}
                 </span>
-                <div class="mt-1"><span :data-inventory-type="mat.inventoryType" class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium bg-stone-100 text-stone-700">{{ mat.inventoryType === 'packaging' ? 'บรรจุภัณฑ์' : 'วัตถุดิบ' }}</span></div>
+                
               </td>
 
               <!-- Stock Level: Clear Quantity & Dedicated Stock In / Produce Action Button -->
@@ -607,6 +590,8 @@ import StockMaterialCard from '@/components/inventory/StockMaterialCard.vue'
 import MaterialDetails from '@/components/inventory/MaterialDetails.vue'
 import StockToolbar from '@/components/inventory/StockToolbar.vue'
 import StockSummary from '@/components/inventory/StockSummary.vue'
+import MaterialUsage from '@/components/inventory/MaterialUsage.vue'
+import { getMaterialKindLabel, matchesMaterialFilter } from '@/domain/materialClassification'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
@@ -643,13 +628,13 @@ import {
 } from 'lucide-vue-next'
 
 const store = usePosStore()
-function applyStockFilters(values){selectedRole.value=values.role;selectedCategory.value=values.category;showDeleted.value=values.showDeleted}
+function applyStockFilters(values){selectedRole.value=values.role;selectedKind.value=values.kind;showDeleted.value=values.showDeleted}
 
 const detailMaterialId=ref(null)
 const detailMaterial=computed(()=>store.materials.find(m=>m.id===detailMaterialId.value)||null)
 const searchQuery = ref('')
 const selectedRole = ref('all') // 'all' | 'main' | 'sub'
-const selectedCategory = ref('all')
+const selectedKind = ref('all')
 const showDeleted = ref(false)
 
 // Expandable sub-lots state
@@ -870,24 +855,7 @@ async function revertPendingChanges() {
 // -------------------------------------------------------------
 // Filters & Other Helpers
 // -------------------------------------------------------------
-const categories = computed(() => {
-  const list = [{ id: 'all', label: 'ทุกหมวดหมู่' }]
-  store.materialCategories.forEach(c => {
-    list.push({
-      id: c.name,
-      label: `${c.icon || '📦'} ${c.label || c.name}`
-    })
-  })
-  store.materials.forEach(m => {
-    if (m.category && !list.some(item => item.id === m.category)) {
-      list.push({
-        id: m.category,
-        label: `📦 ${m.category}`
-      })
-    }
-  })
-  return list
-})
+const kinds = computed(() => [{id:'all',label:'ทุกประเภท'}, ...store.materialKindOptions])
 
 const deletedCount = computed(() => {
   return store.materials.filter(m => m.isDeleted).length
@@ -898,14 +866,7 @@ const filteredMaterials = computed(() => {
     // Deleted filter
     if (!showDeleted.value && m.isDeleted) return false
 
-    // Ingredient Role filter (หลัก / รอง)
-    if (selectedRole.value === 'main' && m.isSubIngredient) return false
-    if (selectedRole.value === 'sub' && !m.isSubIngredient) return false
-
-    // Category filter
-    if (selectedCategory.value !== 'all' && m.category !== selectedCategory.value) {
-      return false
-    }
+    if (!matchesMaterialFilter(m, store.materialUsageById.get(m.id), {kind:selectedKind.value,role:selectedRole.value})) return false
 
     // Search query
     if (searchQuery.value.trim()) {
@@ -913,7 +874,7 @@ const filteredMaterials = computed(() => {
       const matchName = m.name?.toLowerCase().includes(q)
       const matchId = m.id?.toLowerCase().includes(q)
       const matchUnit = m.unit?.toLowerCase().includes(q)
-      const matchCat = m.category?.toLowerCase().includes(q)
+      const matchCat = getMaterialKindLabel(m).toLowerCase().includes(q)
       if (!matchName && !matchId && !matchUnit && !matchCat) return false
     }
 

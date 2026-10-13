@@ -2,7 +2,7 @@
  <article class="material-card">
   <button type="button" :data-material-details="material.id" class="material-card-main" :aria-label="`ดูรายละเอียด ${material.name}`" @click="$emit('details',material.id)">
    <span class="material-emoji" aria-hidden="true">{{ material.emoji }}</span>
-   <span class="material-name"><strong>{{ material.name }}</strong><small>{{ material.category || 'อื่นๆ' }}</small><br /><StatusBadge :data-inventory-type="material.inventoryType" :label="material.inventoryType === 'packaging' ? 'บรรจุภัณฑ์' : 'วัตถุดิบ'" tone="neutral" /></span>
+   <span class="material-name"><strong>{{ material.name }}</strong><StatusBadge :data-inventory-type="material.inventoryType" :label="getMaterialKindLabel(material)" tone="neutral" /><MaterialUsage :usage="usage" /></span>
    <span class="material-quantity">{{ Number(material.stock||0).toLocaleString('th-TH') }} <small>{{ material.unit }}</small></span>
    <StatusBadge :label="status" :tone="tone" />
   </button>
@@ -14,7 +14,9 @@ import {computed} from 'vue'
 import {isExpired} from '@/stores/posStore'
 import Button from '../ui/Button.vue'
 import StatusBadge from '../ui/StatusBadge.vue'
-const props=defineProps({material:{type:Object,required:true}})
+import MaterialUsage from './MaterialUsage.vue'
+import {getMaterialKindLabel} from '@/domain/materialClassification'
+const props=defineProps({material:{type:Object,required:true},usage:Object})
 defineEmits(['details','receive'])
 const status=computed(()=>props.material.isDeleted?'จัดเก็บแล้ว':isExpired(props.material)?'หมดอายุแล้ว':props.material.stock<=0?'หมดสต็อก':props.material.stock<=props.material.minAlert?'ใกล้หมด':'ปกติ')
 const tone=computed(()=>props.material.isDeleted?'neutral':isExpired(props.material)||props.material.stock<=0?'error':props.material.stock<=props.material.minAlert?'warning':'success')

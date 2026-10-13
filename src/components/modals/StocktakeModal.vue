@@ -12,8 +12,8 @@
 
       <div class="stocktake-toolbar">
         <div class="stocktake-controls">
-          <div class="stocktake-search"><Search :size="16" aria-hidden="true" /><input v-model="searchQuery" type="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาวัตถุดิบหรือหมวดหมู่" /></div>
-          <AppSelect v-model="selectedCategory" aria-label="หมวดหมู่ตรวจนับ" class="stocktake-category"><option v-for="cat in categories" :key="cat" :value="cat">{{ cat === 'all' ? 'ทุกหมวดหมู่' : cat }}</option></AppSelect>
+          <div class="stocktake-search"><Search :size="16" aria-hidden="true" /><input v-model="searchQuery" type="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาวัตถุดิบหรือประเภท" /></div>
+          <AppSelect v-model="selectedCategory" aria-label="ประเภทตรวจนับ" class="stocktake-category"><option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.label }}</option></AppSelect>
           <AppCheckbox v-model="onlyDifferences" label="เฉพาะยอดต่าง" class="stocktake-diff-filter" />
         </div>
         <div class="stocktake-list-meta">
@@ -28,7 +28,7 @@
           <tbody>
             <tr v-for="mat in filteredMaterials" :key="mat.id" :class="{'stocktake-row-changed':getVariance(mat.id) !== 0}">
               <td class="stocktake-material">
-                <div class="stocktake-material-info"><span class="stocktake-emoji" aria-hidden="true">{{ mat.emoji || '📦' }}</span><div><strong>{{ mat.name }}</strong><small>{{ mat.category || 'ไม่ระบุหมวดหมู่' }}</small></div></div>
+                <div class="stocktake-material-info"><span class="stocktake-emoji" aria-hidden="true">{{ mat.emoji || '📦' }}</span><div><strong>{{ mat.name }}</strong><small>{{ getMaterialKindLabel(mat) }}</small></div></div>
               </td>
               <td class="stocktake-expected"><span class="stocktake-mobile-label">ยอดในระบบ</span><strong>{{ (mat.stock || 0).toLocaleString() }} <span>{{ mat.unit }}</span></strong><small v-if="mat.packUnit && mat.packSize > 1">≈ {{ ((mat.stock || 0) / mat.packSize).toLocaleString(undefined,{maximumFractionDigits:2}) }} {{ mat.packUnit }}</small></td>
               <td class="stocktake-count">
@@ -50,7 +50,7 @@
                 <span v-else class="stocktake-matched"><Check :size="13" aria-hidden="true" />ตรงระบบ</span>
               </td>
             </tr>
-            <tr v-if="filteredMaterials.length === 0"><td colspan="4" class="stocktake-empty"><Search :size="24" aria-hidden="true" /><strong>{{ onlyDifferences ? 'ไม่พบรายการที่ยอดต่างตามตัวกรอง' : 'ไม่พบวัตถุดิบตามตัวกรอง' }}</strong><span>ลองเปลี่ยนคำค้นหรือหมวดหมู่</span></td></tr>
+            <tr v-if="filteredMaterials.length === 0"><td colspan="4" class="stocktake-empty"><Search :size="24" aria-hidden="true" /><strong>{{ onlyDifferences ? 'ไม่พบรายการที่ยอดต่างตามตัวกรอง' : 'ไม่พบวัตถุดิบตามตัวกรอง' }}</strong><span>ลองเปลี่ยนคำค้นหรือประเภท</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -64,6 +64,7 @@
 </template>
 
 <script setup>
+import {getMaterialKind, getMaterialKindLabel} from '@/domain/materialClassification'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
@@ -81,10 +82,7 @@ const editingMaterialId = ref(null)
 // Local count map: { [matId]: { value: Number, unitMode: 'base' | 'pack' } }
 const counts = ref({})
 
-const categories = computed(() => {
-  const cats = new Set(store.materials.filter(m => !m.isDeleted).map(m => m.category).filter(Boolean))
-  return ['all', ...Array.from(cats)]
-})
+const categories = computed(() => [{id:'all',label:'ทุกประเภท'}, ...store.materialKindOptions])
 
 const activeMaterials = computed(() => {
   return store.materials.filter(m => !m.isDeleted)
@@ -93,14 +91,14 @@ const activeMaterials = computed(() => {
 const filteredMaterials = computed(() => {
   return activeMaterials.value.filter(m => {
     if (onlyDifferences.value && getVariance(m.id) === 0 && editingMaterialId.value !== m.id) return false
-    if (selectedCategory.value !== 'all' && m.category !== selectedCategory.value) {
+    if (selectedCategory.value !== 'all' && getMaterialKind(m) !== selectedCategory.value) {
       return false
     }
     if (searchQuery.value.trim()) {
       const q = searchQuery.value.toLowerCase().trim()
       const matchName = m.name?.toLowerCase().includes(q)
       const matchId = m.id?.toLowerCase().includes(q)
-      const matchCat = m.category?.toLowerCase().includes(q)
+      const matchCat = getMaterialKindLabel(m).toLowerCase().includes(q)
       if (!matchName && !matchId && !matchCat) return false
     }
     return true

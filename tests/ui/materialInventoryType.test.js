@@ -21,7 +21,7 @@ describe('material inventory type', () => {
     store.modals.materialEdit = { isOpen: true, materialId: null }
     await flushPromises()
     expect(wrapper.vm.form.inventoryType).toBe('ingredient')
-    expect(wrapper.get('input[type="radio"][value="ingredient"]').element.checked).toBe(true)
+    expect(wrapper.get('input[type="radio"][value="normal"]').element.checked).toBe(true)
     wrapper.unmount()
   })
 
@@ -40,12 +40,12 @@ describe('material inventory type', () => {
   it('provides named Thai choices with descriptions of grouping, Package and cost', async () => {
     const store = createTestStore()
     const wrapper = await openEditor(store)
-    for (const [type, label] of [['ingredient', 'วัตถุดิบ'], ['packaging', 'บรรจุภัณฑ์']]) {
+    for (const [type, label] of [['produced', 'วัตถุดิบที่มีการผลิต'], ['normal', 'วัตถุดิบปกติ'], ['packaging', 'บรรจุภัณฑ์']]) {
       const radio = wrapper.get(`input[type="radio"][value="${type}"]`)
       expect(radio.attributes('aria-label')).toBe(label)
       expect(radio.attributes('required')).toBeDefined()
       const description = wrapper.get(`#${radio.attributes('aria-describedby')}`).text()
-      expect(description).toContain('หมวดหมู่')
+      expect(description).toContain('ทุกบทบาท')
       expect(description).toContain('Package')
       expect(description).toContain('ต้นทุน')
     }
@@ -58,14 +58,14 @@ describe('material inventory type', () => {
     const save = vi.spyOn(store, 'saveMaterial')
     const wrapper = await openEditor(store)
     await wrapper.get('[aria-label="ชื่อรายการ"]').setValue('รายการใหม่')
-    await wrapper.get(`input[type="radio"][value="${type}"]`).setValue()
+    await wrapper.get(`input[type="radio"][value="${type === 'ingredient' ? 'normal' : type}"]`).setValue()
     await wrapper.vm.submit()
     expect(save).toHaveBeenCalledWith(expect.objectContaining({ inventoryType: type, name: 'รายการใหม่' }))
     expect(store.materials.find(item => item.name === 'รายการใหม่').inventoryType).toBe(type)
     wrapper.unmount()
   })
 
-  it.each([['ingredient', 'วัตถุดิบ'], ['packaging', 'บรรจุภัณฑ์']])('shows %s badges on Stock list and detail surfaces', async (type, label) => {
+  it.each([['ingredient', 'วัตถุดิบปกติ'], ['packaging', 'บรรจุภัณฑ์']])('shows %s badges on Stock list and detail surfaces', async (type, label) => {
     const store = createTestStore()
     store.materials = [material('M', 12.5, { inventoryType: type, category: 'หมวดใหม่' })]
     const wrapper = mount(Stock, { attachTo: document.body })

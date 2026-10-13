@@ -13,7 +13,7 @@ it('routes primary stock actions to existing store dialogs',async()=>{
   expect(w.text()).not.toContain('ระงับขายเมนู')
  }finally{w.unmount()}
 })
-it('applies role/category/archive filters only after Apply, without a calendar',async()=>{
+it('applies usage/type/archive filters only after Apply, without a calendar',async()=>{
  const store=createTestStore();store.resetDemoData()
  const w=mount(Stock,{attachTo:document.body})
  try{
@@ -22,15 +22,16 @@ it('applies role/category/archive filters only after Apply, without a calendar',
   expect(filter.props('includeDates')).toBe(false)
   expect(document.getElementById('stock-filters').closest('[inert]')).toBeNull()
   expect(document.querySelector('#stock-filters .calendar-panel')).toBeNull()
-  filter.vm.draft.role='sub';filter.vm.draft.showDeleted=true
+  filter.vm.draft.role='production';filter.vm.draft.showDeleted=true
   filter.vm.$emit('close');await flushPromises()
   expect(w.vm.selectedRole).toBe('all');expect(w.vm.showDeleted).toBe(false)
   await w.get('[data-stock-filter]').trigger('click');await flushPromises()
-  filter.vm.draft.role='sub';filter.vm.draft.category='all';filter.vm.draft.showDeleted=true;filter.vm.apply();await flushPromises()
-  expect(w.vm.filteredMaterials.every(m=>m.isSubIngredient)).toBe(true);expect(w.vm.showDeleted).toBe(true)
+  filter.vm.draft.role='production';filter.vm.draft.kind='all';filter.vm.draft.showDeleted=true;filter.vm.apply();await flushPromises()
+  expect(w.vm.filteredMaterials.length).toBeGreaterThan(0)
+  expect(w.vm.filteredMaterials.every(m=>store.materialUsageById.get(m.id).production.length)).toBe(true);expect(w.vm.showDeleted).toBe(true)
   await w.get('[data-stock-filter]').trigger('click');await flushPromises()
   filter.vm.reset();filter.vm.apply();await flushPromises()
-  expect(w.vm.selectedRole).toBe('all');expect(w.vm.selectedCategory).toBe('all');expect(w.vm.showDeleted).toBe(false)
+  expect(w.vm.selectedRole).toBe('all');expect(w.vm.selectedKind).toBe('all');expect(w.vm.showDeleted).toBe(false)
   await w.get('input[aria-label="ค้นหาวัตถุดิบ"]').setValue('ไม่มีรายการนี้แน่นอน')
   expect(w.vm.filteredMaterials).toHaveLength(0)
   await w.get('input[aria-label="ค้นหาวัตถุดิบ"]').setValue('')
