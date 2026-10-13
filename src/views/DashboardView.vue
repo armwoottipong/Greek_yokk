@@ -29,7 +29,7 @@
   <template v-else>
    <section class="dashboard-inventory-heading"><div><h3>คลังวัตถุดิบ · ยอดปัจจุบัน</h3><p>มูลค่าคงเหลือตามต้นทุนล่าสุด ไม่เปลี่ยนตามช่วงวันที่รายงานยอดขาย</p></div><button type="button" class="dashboard-primary" @click="store.switchTab('stock')">จัดการคลัง<ArrowRight :size="15" aria-hidden="true" /></button></section>
    <div class="dashboard-inventory-stats"><section><span>มูลค่าคลัง</span><strong class="font-number">฿{{ money(store.totalInventoryValuation) }}</strong><p v-if="store.draftInventoryValuationDiff">หลังยืนยันแบบร่าง ≈ ฿{{ money(store.projectedInventoryValuation) }}</p><p v-else>{{ store.activeMaterials.length }} รายการที่ใช้งาน</p></section><section><span>งบเติมสต็อกแนะนำ</span><strong class="font-number">฿{{ money(store.reorderBudgetNeeded) }}</strong><p>เติมรายการต่ำกว่าเกณฑ์ให้ถึง 2 เท่าของขั้นต่ำ</p></section><section><span>ควรตรวจสอบ</span><strong class="font-number">{{ store.lowStockMaterials.length }} <small>รายการ</small></strong><p>ในจำนวนนี้หมดสต็อก {{ store.outOfStockMaterials.length }} รายการ</p></section></div>
-   <section class="dashboard-panel"><DashboardBreakdown title="มูลค่าคลังตามหมวดหมู่" :subtitle="store.stockDraftSnapshot ? 'กราฟรวมแบบร่างที่ยังไม่ยืนยัน' : 'ยอดคงเหลือ × ต้นทุนต่อหน่วยล่าสุด'" :rows="inventoryRows" allow-donut /></section>
+   <section class="dashboard-panel"><DashboardBreakdown :title="inventoryGrouping==='category' ? 'มูลค่าคลังตามหมวดหมู่' : 'มูลค่าคลังตามรายชื่อวัตถุดิบ'" :subtitle="store.stockDraftSnapshot ? 'กราฟรวมแบบร่างที่ยังไม่ยืนยัน' : 'ยอดคงเหลือ × ต้นทุนต่อหน่วยล่าสุด'" :rows="inventoryRows" allow-donut><template #controls><label class="dashboard-inventory-grouping"><span>แสดงตาม</span><select v-model="inventoryGrouping" aria-label="แสดงมูลค่าคลังตาม"><option value="category">หมวดหมู่</option><option value="material">รายชื่อวัตถุดิบ</option></select></label></template></DashboardBreakdown></section>
   </template>
  </div>
 </template>
@@ -45,6 +45,7 @@ import DashboardBreakdown from '@/components/dashboard/DashboardBreakdown.vue'
 import '@/assets/dashboard.css'
 const store=usePosStore()
 const period=ref(store.dashboardPeriod || 'today'),range=ref(dashboardRange(period.value)),view=ref('overview'),datesOpen=ref(false),dateAnchor=ref(null),orderOffset=ref(0)
+const inventoryGrouping=ref('category')
 let lastDay=businessDateKey(),dayTimer
 function refreshDay(){
  const today=businessDateKey()
@@ -61,7 +62,9 @@ const report=computed(()=>buildDashboard(store.orders,range.value)),metrics=comp
 const rangeLabel=computed(()=>!range.value.start?'ทุกช่วงเวลา':range.value.start===range.value.end?dateLabel(range.value.start):`${dateLabel(range.value.start)} – ${dateLabel(range.value.end)}`)
 const channelRows=computed(()=>report.value.channels.map(c=>({id:c.id,label:c.label,value:c.totalSales})))
 const menuRows=computed(()=>report.value.menus.map(m=>({id:m.id,label:m.label,value:m.qty})))
-const inventoryRows=computed(()=>store.inventoryValuationByCategory.map(c=>({id:c.category,label:`${c.category} (${c.itemCount})`,value:c.totalValue})))
+const inventoryRows=computed(()=>inventoryGrouping.value==='category'
+ ? store.inventoryValuationByCategory.map(c=>({id:c.category,label:`${c.category} (${c.itemCount})`,value:c.totalValue}))
+ : store.activeMaterials.map(m=>({id:m.id,label:m.name,value:Math.max(0,m.stock)*(m.unitCost||0)})).sort((a,b)=>b.value-a.value || a.label.localeCompare(b.label,'th')))
 watch(report,()=>{orderOffset.value=0})
 function selectPeriod(id){period.value=id;store.dashboardPeriod=id;range.value=dashboardRange(id)}
 function applyRange(value){range.value={start:value.start,end:value.end || value.start};period.value='custom';datesOpen.value=false}

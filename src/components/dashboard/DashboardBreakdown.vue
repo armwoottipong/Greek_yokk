@@ -1,6 +1,6 @@
 <template>
  <div class="dashboard-breakdown" :class="{'has-single-selection':!!tooltip}" @keydown.esc.stop="clearSelection">
-  <div class="dashboard-section-heading"><div><h3>{{ title }}</h3><p>{{ subtitle }}</p></div><div v-if="allowDonut" class="dashboard-segments" aria-label="รูปแบบสัดส่วน"><button type="button" :aria-pressed="mode==='bar'" @click="mode='bar'">แท่ง</button><button type="button" :aria-pressed="mode==='donut'" @click="mode='donut'">วงแหวน</button></div></div>
+  <div class="dashboard-section-heading"><div><h3>{{ title }}</h3><p>{{ subtitle }}</p></div><div v-if="$slots.controls || allowDonut" class="dashboard-breakdown-controls"><slot name="controls" /><div v-if="allowDonut" class="dashboard-segments" aria-label="รูปแบบสัดส่วน"><button type="button" :aria-pressed="mode==='bar'" @click="mode='bar'">แท่ง</button><button type="button" :aria-pressed="mode==='donut'" @click="mode='donut'">วงแหวน</button></div></div></div>
   <p v-if="!rows.length" class="dashboard-empty-small">ยังไม่มีข้อมูลในช่วงนี้</p>
   <div v-else class="dashboard-breakdown-body" :class="{'has-donut':mode==='donut'}">
    <figure v-if="mode==='donut'" class="dashboard-donut"><svg viewBox="0 0 180 180" role="group" :aria-label="`${title} รวม ${money(total)} ${unit}`">

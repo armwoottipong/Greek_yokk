@@ -12,6 +12,8 @@ Menu/Add-on: shared search/category/display-platform filters, independent of the
 
 Dashboard: preserve four report views, Bangkok ranges and recorded financial snapshots. Make bill list and graphs usable on touch/keyboard; preserve exact tooltip toggle, arrow, highlight and dimming behavior.
 
+Inventory valuation: a named “แสดงตาม” selector in the chart header switches between categories and individual material names. Categories remain the initial view; material rows include active ingredients and packaging, sorted by value descending, including zero-value stock. Stable material IDs distinguish duplicate names. Both views use the existing current/draft stock × latest unit cost, independently of sales report dates, and retain the selected bar/donut presentation. Controls wrap on narrow screens. Verified desktop and 390×844 mobile controls, keyboard focus, matching totals, pending drafts, reactive stock changes, archived-item exclusion and empty inventory. Regression suite: 71 files / 447 tests passed; lint and production build passed. No shop data was changed.
+
 Settings: preserve the existing category structure; fix edit-field labels, connection feedback and confirmation consistency. Saved URL is not a successful sync.
 
 States: default, empty, no-results, dirty, loading, error, success, disabled and long content where real. Physical iPad/Safari/keyboard/zoom remain explicit manual QA gates.

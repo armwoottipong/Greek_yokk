@@ -2,9 +2,50 @@ import {it,expect,vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import DashboardView from '../../src/views/DashboardView.vue'
 import FilterDropdown from '../../src/components/ui/FilterDropdown.vue'
-import {createTestStore} from '../helpers/createStore'
+import DashboardBreakdown from '../../src/components/dashboard/DashboardBreakdown.vue'
+import {createTestStore,material} from '../helpers/createStore'
 vi.mock('canvas-confetti',()=>({default:()=>{}}))
 const sale=(id,date)=>({orderId:id,createdAt:date,platformId:'P',platformName:'หน้าร้าน',subtotal:100,gpAmount:0,netRevenue:100,foodCost:30,grossProfit:70,items:[{menuId:'M',menuName:'โยเกิร์ต',qty:1}]})
+it('switches inventory valuation between categories and individual materials without changing the total or chart mode',async()=>{
+ const s=createTestStore();s.materials=[material('A',10,{name:'นม',unitCost:2}),material('B',30,{name:'นม',unitCost:3}),material('C',5,{name:'ถ้วย',inventoryType:'packaging',unitCost:1}),material('D',0,{name:'น้ำผึ้ง'}),material('OLD',500,{isDeleted:true})]
+ const w=mount(DashboardView)
+ try{
+  await w.get('[data-view="inventory"]').trigger('click')
+  const chart=w.findComponent(DashboardBreakdown)
+  const sum=()=>chart.props('rows').reduce((total,row)=>total+row.value,0)
+  expect(chart.props('title')).toBe('มูลค่าคลังตามหมวดหมู่')
+  expect(sum()).toBe(115)
+  await chart.findAll('button').find(button=>button.text()==='วงแหวน').trigger('click')
+  await w.get('select[aria-label="แสดงมูลค่าคลังตาม"]').setValue('material')
+  expect(chart.props('title')).toBe('มูลค่าคลังตามรายชื่อวัตถุดิบ')
+  expect(chart.props('rows').map(row=>row.id)).toEqual(['B','A','C','D'])
+  expect(chart.props('rows').map(row=>row.label)).toEqual(['นม','นม','ถ้วย','น้ำผึ้ง'])
+  expect(sum()).toBe(115)
+  expect(chart.findAll('[data-donut-id]')).toHaveLength(4)
+  await w.get('[data-period="week"]').trigger('click')
+  expect(sum()).toBe(115)
+  await w.get('select[aria-label="แสดงมูลค่าคลังตาม"]').setValue('category')
+  expect(chart.props('rows')).toHaveLength(2)
+  expect(chart.findAll('[data-donut-id]')).toHaveLength(2)
+ }finally{w.unmount()}
+})
+it('uses the same pending draft valuation in both inventory views and updates when stock changes',async()=>{
+ const s=createTestStore();s.stockDraftSnapshot=[material('A',10)];s.materials=[material('A',25,{name:'โยเกิร์ต',hasSubRecipe:true})]
+ const w=mount(DashboardView)
+ try{
+  await w.get('[data-view="inventory"]').trigger('click')
+  const chart=w.findComponent(DashboardBreakdown)
+  expect(chart.props('rows')[0].value).toBe(25)
+  await w.get('select[aria-label="แสดงมูลค่าคลังตาม"]').setValue('material')
+  expect(chart.props('subtitle')).toContain('แบบร่าง')
+  expect(chart.props('rows')[0].value).toBe(25)
+  s.materials[0].stock=40;await w.vm.$nextTick()
+  expect(chart.props('rows')[0].value).toBe(40)
+  s.materials=[];await w.vm.$nextTick()
+  expect(chart.props('rows')).toEqual([])
+  expect(w.text()).not.toContain('NaN')
+ }finally{w.unmount()}
+})
 it('applies date picker ranges to metrics, charts and receipts while preserving all reporting views',async()=>{
  const s=createTestStore();s.orders=[sale('OLD','2026-10-01T10:00:00Z'),sale('NEW','2026-10-10T10:00:00Z')]
  const w=mount(DashboardView)
