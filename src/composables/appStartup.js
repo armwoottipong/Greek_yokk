@@ -19,6 +19,11 @@ async function waitForImage(image, required) {
   }
 }
 
+export async function waitForPageImages(root) {
+  const images = [...(root?.querySelectorAll('img[src]') || [])].filter(image => image.loading !== 'lazy')
+  await Promise.all([document.fonts?.ready, ...images.map(image => waitForImage(image, false))])
+}
+
 export async function finishAppStartup() {
   const screen = document.getElementById('app-loading')
   if (!screen || screen.dataset.state === 'error') return

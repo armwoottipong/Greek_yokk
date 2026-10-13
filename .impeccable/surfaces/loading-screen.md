@@ -37,3 +37,11 @@ The initial screen exists in HTML before JavaScript runs. After the initial Vue 
 The development preview was generated from the actual index HTML with only the app-entry script omitted, inspected, and removed before deployment. No preview route ships. Existing DESIGN.md remains the authority; this surface extends its palette. Verdict: ready after lifecycle tests, app regression suite, lint and production build.
 
 Verification: 70 test files, 440 tests passed. Lint and production build exited 0. The real development app removed the startup screen with document state complete, fonts loaded, eager page images loaded and keyboard focus restored to main-content. The three-second update was observed still visible at 493ms after reload and gone at 3197ms; controlled timer tests verify the exact minimum, elapsed-time accounting and continued waiting for slow assets.
+
+## Loading within main-content
+
+Page switches show the same mascot and original wordmark inside main-content for at least three seconds, including cached pages. Header and navigation remain available. The covered page is inert and hidden from assistive technology; main exposes its busy state. Initial app opening continues to use the full-screen startup.
+
+The selected page module and its eager images/fonts must be ready before the content cover disappears. A navigation version prevents an older request from dismissing a newer page's loader. Cached view instances remain in KeepAlive. Failed navigation offers a reload button and clears the busy announcement state.
+
+Verified desktop bounds exactly match main-content (x256/y80, 1024×640) and inspected the 390×844 mobile layout beneath the header. Navigation and cached-page tests were RED then GREEN; full suite passed 71 files / 442 tests, lint and build exited 0. No shop data was changed.

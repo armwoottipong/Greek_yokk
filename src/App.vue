@@ -14,12 +14,15 @@
       </div>
 
       <!-- Active View Content -->
-      <main id="main-content" ref="contentRoot" tabindex="-1" :inert="mobileMenuOpen ? true : undefined" class="flex-1 overflow-y-auto p-4 md:p-6 outline-none">
-        <Suspense @resolve="finishStartup">
-          <KeepAlive>
-            <component :is="currentViewComponent" />
-          </KeepAlive>
-        </Suspense>
+      <main id="main-content" ref="contentRoot" tabindex="-1" :aria-busy="contentLoading && !contentError" :style="contentLoading ? { overflowY: 'hidden' } : undefined" :inert="mobileMenuOpen ? true : undefined" class="relative flex-1 overflow-y-auto p-4 md:p-6 outline-none">
+        <div ref="pageContent" data-page-content :inert="contentLoading ? true : undefined" :aria-hidden="contentLoading ? true : undefined" :style="contentLoading ? { visibility: 'hidden' } : undefined">
+          <Suspense @resolve="finishStartup">
+            <KeepAlive>
+              <component :is="currentViewComponent" />
+            </KeepAlive>
+          </Suspense>
+        </div>
+        <ContentLoading v-if="contentLoading" :error="contentError" @retry="reloadPage" />
       </main>
     </div>
 
@@ -49,28 +52,42 @@
 import { computed, ref, onMounted, onUnmounted, defineAsyncComponent, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import {overlayStack} from '@/composables/overlayState'
-import { finishAppStartup, showAppStartupError } from '@/composables/appStartup'
+import { finishAppStartup, showAppStartupError, waitForPageImages } from '@/composables/appStartup'
+import ContentLoading from '@/components/layout/ContentLoading.vue'
 
 import Sidebar from '@/components/layout/Sidebar.vue'
 import HeaderBar from '@/components/layout/HeaderBar.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 // Views
-function asyncView(loader) {
+const pageLoaders = {
+  dashboard: () => import('@/views/DashboardView.vue'),
+  pos: () => import('@/views/PosView.vue'),
+  menu: () => import('@/views/MenuView.vue'),
+  addon: () => import('@/views/AddonView.vue'),
+  stock: () => import('@/views/StockView.vue'),
+  settings: () => import('@/views/SettingsView.vue')
+}
+const pageRequests = {}
+function loadPage(tab) {
+  const key = pageLoaders[tab] ? tab : 'dashboard'
+  return pageRequests[key] ||= pageLoaders[key]()
+}
+function asyncView(tab) {
   return defineAsyncComponent({
-    loader,
+    loader: () => loadPage(tab),
     onError(_error, _retry, fail) {
       showAppStartupError()
       fail()
     }
   })
 }
-const DashboardView = asyncView(() => import('@/views/DashboardView.vue'))
-const PosView = asyncView(() => import('@/views/PosView.vue'))
-const MenuView = asyncView(() => import('@/views/MenuView.vue'))
-const AddonView = asyncView(() => import('@/views/AddonView.vue'))
-const StockView = asyncView(() => import('@/views/StockView.vue'))
-const SettingsView = asyncView(() => import('@/views/SettingsView.vue'))
+const DashboardView = asyncView('dashboard')
+const PosView = asyncView('pos')
+const MenuView = asyncView('menu')
+const AddonView = asyncView('addon')
+const StockView = asyncView('stock')
+const SettingsView = asyncView('settings')
 
 // Modals
 import MenuEditModal from '@/components/modals/MenuEditModal.vue'
@@ -92,6 +109,30 @@ import LotDepletionModal from '@/components/modals/LotDepletionModal.vue'
 const store = usePosStore()
 const mobileMenuOpen=ref(false)
 const contentRoot=ref(null)
+const pageContent=ref(null)
+const contentLoading=ref(false)
+const contentError=ref(false)
+let navigationVersion=0
+function reloadPage(){window.location.reload()}
+async function loadContent(tab) {
+ const version=++navigationVersion
+ contentLoading.value=true
+ contentError.value=false
+ const minimumDisplay=new Promise(resolve=>setTimeout(resolve,3000))
+ if(contentRoot.value)contentRoot.value.scrollTop=0
+ try {
+  await loadPage(tab)
+  await nextTick()
+  await nextTick()
+  await Promise.all([minimumDisplay,waitForPageImages(pageContent.value)])
+  if(version!==navigationVersion)return
+  contentLoading.value=false
+  await nextTick()
+  finishViewFocus()
+ } catch {
+  if(version===navigationVersion)contentError.value=true
+ }
+}
 const viewNames={dashboard:'ภาพรวมร้าน',pos:'ขายหน้าร้าน',menu:'เมนูและสูตร',addon:'ท็อปปิ้ง',stock:'คลังวัตถุดิบ',settings:'ตั้งค่าระบบ'}
 function focusContent(){contentRoot.value?.focus({preventScroll:true})}
 async function finishStartup() {
@@ -103,7 +144,7 @@ function finishViewFocus(){
  if(!pendingViewFocus||overlayStack.length||document.getElementById('app')?.hasAttribute('inert'))return
  focusContent();pendingViewFocus=false
 }
-watch(()=>store.currentTab,async tab=>{document.title=`${viewNames[tab]||viewNames.dashboard} · Greek Yogg.`;pendingViewFocus=true;await nextTick();finishViewFocus()},{immediate:true,flush:'post'})
+watch(()=>store.currentTab,async (tab,previous)=>{document.title=`${viewNames[tab]||viewNames.dashboard} · Greek Yogg.`;pendingViewFocus=true;if(previous!==undefined)loadContent(tab);await nextTick();finishViewFocus()},{immediate:true,flush:'post'})
 watch(()=>overlayStack.length,async count=>{if(count===0&&pendingViewFocus){await nextTick();finishViewFocus()}})
 
 const currentViewComponent = computed(() => {
@@ -147,6 +188,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  navigationVersion++
   if (handleHashChange) {
     window.removeEventListener('hashchange', handleHashChange)
   }

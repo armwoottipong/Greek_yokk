@@ -12,6 +12,9 @@
   font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .startup-content { width: min(100%, 360px); text-align: center; }
+.content-loading { position: absolute; z-index: 10; padding: 24px; }
+.content-loading .startup-mascot-stage { width: min(100%, 260px); }
+.content-loading .startup-brand { width: min(100%, 220px); height: 92px; }
 .startup-mascot-stage { position: relative; width: min(100%, 320px); margin: 0 auto; }
 .startup-mascot {
   display: block;
