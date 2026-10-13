@@ -150,3 +150,32 @@ input[type="number"] {
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(:disabled),textarea:not(:disabled),select:not(:disabled){border-color:var(--control-border)!important}
 input:not([type="checkbox"]):not([type="radio"]):focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent-brand)!important;outline-offset:2px}
+
+/* Filled popup fields: the user requested no input borders or focus rings. */
+.dialog-frame-panel input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.dialog-frame-panel textarea,
+.dialog-frame-panel select,
+.dialog-frame-panel .app-select-trigger {
+  border-color: transparent !important;
+  background-color: var(--bg-soft) !important;
+  color: var(--text-main);
+  min-height: 44px;
+  caret-color: var(--accent-brand);
+  outline: none !important;
+  box-shadow: none !important;
+}
+.dialog-frame-panel input:not([type="checkbox"]):not([type="radio"]):focus,
+.dialog-frame-panel textarea:focus,
+.dialog-frame-panel select:focus,
+.dialog-frame-panel .app-select-trigger:focus,
+.dialog-frame-panel .app-select-trigger[aria-expanded="true"] {
+  border-color: transparent !important;
+  background-color: var(--bg-soft) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.dialog-frame-panel input::placeholder,.dialog-frame-panel textarea::placeholder{color:var(--text-muted);opacity:1}
+.dialog-frame-panel .price-editor-field{border-color:transparent;background:var(--bg-soft)}
+.dialog-frame-panel :is(input,textarea,select,.app-select-trigger):disabled{opacity:.55;cursor:not-allowed}
+.dialog-frame-panel :is(input,textarea,select,.app-select-trigger)[aria-invalid="true"]{background-color:#FEF2F2!important;color:var(--state-error)}
+.pos-workspace .cart-body textarea{border-color:transparent!important;outline:none!important;box-shadow:none!important;caret-color:var(--accent-brand)}

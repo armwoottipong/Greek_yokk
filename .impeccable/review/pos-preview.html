@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>POS — synthetic preview</title><style>*,*::before,*::after{transition:none!important;animation:none!important}</style></head><body><div id="app"></div><script type="module">
+// Development-only preview: all storage writes stay in document-local memory.
+const memory=new Map();
+Object.defineProperty(window,'localStorage',{value:{getItem:key=>memory.get(key)??null,setItem:(key,value)=>memory.set(key,String(value)),removeItem:key=>memory.delete(key),clear:()=>memory.clear()}});
+const {createApp}=await import('/Greek_yokk/node_modules/.vite/deps/vue.js');
+const {createPinia}=await import('/Greek_yokk/node_modules/.vite/deps/pinia.js');
+const {usePosStore}=await import('/Greek_yokk/src/stores/posStore.js');
+const {default:App}=await import('/Greek_yokk/src/App.vue');
+await import('/Greek_yokk/src/assets/main.css');
+const app=createApp(App);const pinia=createPinia();app.use(pinia);
+const store=usePosStore(pinia);store.resetDemoData();store.gasApiUrl='';store.currentTab='pos';
+store.addToCart(store.menus[0],[],1);store.addToCart(store.menus[1],[],2);
+app.mount('#app');
+</script></body></html>

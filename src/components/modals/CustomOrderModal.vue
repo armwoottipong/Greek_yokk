@@ -1,110 +1,29 @@
 <template>
  <DialogFrame :open="store.modals.customOrder.isOpen && Boolean(selectedMenu)" id="CustomOrderModal" title="ปรับแต่งชาม" :teleport="false" @request-close="requestClose">
-  <template #header><div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <span class="text-3xl p-2 rounded-2xl bg-[#FBF5EA] border border-stone-100">{{ selectedMenu.emoji }}</span>
-          <div>
-            <h3 id="CustomOrderModal-title" class="text-base font-bold text-stone-900">{{ selectedMenu.name }}</h3>
-            <p class="text-xs text-stone-400 mt-0.5">{{ selectedMenu.description }}</p>
-          </div>
-        </div>
-        
-      </div></template>
-  <div class="space-y-4 text-xs">
-        <div v-if="!selectedMenu.hasAddons" class="py-6 text-center text-stone-400 bg-[#FBF5EA] rounded-xl italic">
-          เมนูนี้ไม่อนุญาตให้เลือก Add-on เพิ่มเติม
-        </div>
-
-        <div v-else class="space-y-4">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-stone-800 flex items-center gap-1.5">
-              <span>🍓</span>
-              <span>เลือกท็อปปิ้ง & ผลไม้สดเสริม (Add-ons):</span>
-            </span>
-            <span class="text-[11px] text-stone-400">ราคาบน {{ store.currentPlatform.name }}</span>
-          </div>
-
-          <!-- Grouped Add-ons -->
-          <div class="space-y-2">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button type="button" :aria-pressed="isAddonSelected(addon.id)"
-                v-for="addon in activeAddons"
-                :key="addon.id"
-                @click="toggleAddon(addon)"
-                :class="[
-                  'flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none',
-                  isAddonSelected(addon.id)
-                    ? 'bg-brand-50 border-brand-200 text-brand-900 font-medium'
-                    : isAddonOutOfStock(addon)
-                    ? 'bg-amber-50/40 border-amber-200/80 text-stone-800'
-                    : 'bg-[#FBF5EA] border-stone-100 hover:border-stone-200 text-stone-800'
-                ]"
-              >
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="text-lg">{{ addon.emoji }}</span>
-                  <div class="min-w-0">
-                    <div class="font-semibold text-left">{{ addon.name }}</div>
-                    <div v-if="isAddonOutOfStock(addon)" class="text-[11px] text-amber-700 font-semibold flex items-center gap-0.5">
-                      <span>⚠️ ของหมด (เลือกได้)</span>
-                    </div>
-                    <div v-else-if="addon.recipe?.length" class="text-[11px] text-stone-400 text-left">ใช้ {{ addon.recipe.map(row => `${store.matMap[row.materialId]?.name || row.materialId} ${row.qty} ${getMatUnit(row.materialId)}`).join(' · ') }}</div>
-                    <div v-else class="text-[11px] text-stone-400">ท็อปปิ้งสำเร็จรูป</div>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-2 shrink-0">
-                  <span class="font-number font-bold text-xs">
-                    +฿{{ getAddonPrice(addon) }}
-                  </span>
-                  <div
-                    :class="[
-                      'w-4 h-4 rounded-md flex items-center justify-center border transition-colors',
-                      isAddonSelected(addon.id)
-                        ? 'bg-purple-700 border-purple-700 text-white'
-                        : 'border-stone-300 bg-white'
-                    ]"
-                  >
-                    <Check v-if="isAddonSelected(addon.id)" class="w-3 h-3 stroke-[3]" />
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+  <template #header><div class="bowl-heading"><span class="bowl-emoji" aria-hidden="true">{{ selectedMenu.emoji }}</span><div><h3 id="CustomOrderModal-title">{{ selectedMenu.name }}</h3><p>{{ selectedMenu.description }}</p></div></div></template>
+  <section class="bowl-options" aria-label="ปรับแต่งท็อปปิ้ง">
+   <header><div><h4>เลือกท็อปปิ้งเพิ่ม</h4><p>ราคาบน {{ store.currentPlatform.name }}</p></div><span>{{ selectedAddons.length ? 'เลือกแล้ว '+selectedAddons.length+' รายการ' : 'เลือกได้ตามชอบ' }}</span></header>
+   <p v-if="!selectedMenu.hasAddons" class="bowl-no-addons">เมนูนี้ไม่อนุญาตให้เลือก Add-on เพิ่มเติม</p>
+   <p v-else-if="!activeAddons.length" class="bowl-no-addons">ยังไม่มีท็อปปิ้งเพิ่มเติม เพิ่มชามนี้ลงตะกร้าได้เลย</p>
+   <div v-else class="bowl-addon-grid">
+    <button v-for="addon in activeAddons" :key="addon.id" type="button" class="bowl-addon" :class="{'is-selected':isAddonSelected(addon.id),'is-unavailable':isAddonOutOfStock(addon)}" :aria-pressed="isAddonSelected(addon.id)" @click="toggleAddon(addon)">
+     <span class="bowl-addon-emoji" aria-hidden="true">{{ addon.emoji }}</span>
+     <span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="isAddonOutOfStock(addon)">ของหมด · ยืนยันเลือกต่อได้</small><small v-else-if="addon.recipe?.length">{{ addon.recipe.map(row => `${store.matMap[row.materialId]?.name || row.materialId} ${row.qty} ${getMatUnit(row.materialId)}`).join(' · ') }}</small><small v-else>ท็อปปิ้งสำเร็จรูป</small></span>
+     <span class="bowl-addon-price font-number">+฿{{ getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isAddonSelected(addon.id)" :size="15"/><Plus v-else :size="15"/></span>
+    </button>
+   </div>
+  </section>
   <template #footer><div class="custom-order-footer">
-        <div>
-          <span class="text-[11px] text-stone-400 block">ราคารวมต่อชาม</span>
-          <span class="text-xl font-bold font-number text-stone-900">฿{{ totalBowlPrice }}</span>
-        </div>
-
-        <div class="custom-order-footer-actions">
-          <div class="flex items-center gap-2 bg-white border border-stone-200 rounded-xl px-2 py-1">
-            <button
-              aria-label="ลดจำนวนชาม" :disabled="qty<=1" @click="qty = Math.max(1, qty - 1)"
-              class="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-900 font-bold"
-            ><Minus :size="18" aria-hidden="true"/></button>
-            <span class="font-number font-bold text-xs w-4 text-center">{{ qty }}</span>
-            <button
-              aria-label="เพิ่มจำนวนชาม" @click="qty += 1"
-              class="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-900 font-bold"
-            ><Plus :size="18" aria-hidden="true"/></button>
-          </div>
-
-          <button
-            @click="addToCart"
-            class="px-6 py-3 bg-brand-600 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-2"
-          >
-            <ShoppingBag class="w-4 h-4" />
-            <span>เพิ่มลงตะกร้า (฿{{ totalBowlPrice * qty }})</span>
-          </button>
-        </div>
-      </div></template>
+   <div class="bowl-total"><span>ราคารวมต่อชาม</span><strong class="font-number">฿{{ totalBowlPrice }}</strong></div>
+   <div class="custom-order-footer-actions"><div class="bowl-quantity"><IconButton label="ลดจำนวนชาม" :disabled="qty<=1" @click="qty = Math.max(1, qty - 1)"><Minus :size="18" aria-hidden="true"/></IconButton><span class="font-number" aria-label="จำนวนชาม">{{ qty }}</span><IconButton label="เพิ่มจำนวนชาม" @click="qty += 1"><Plus :size="18" aria-hidden="true"/></IconButton></div><Button @click="addToCart"><ShoppingBag :size="18" aria-hidden="true"/>เพิ่มลงตะกร้า · ฿{{ totalBowlPrice * qty }}</Button></div>
+  </div></template>
  </DialogFrame>
 </template>
 
 <script setup>
 import DialogFrame from '@/components/ui/DialogFrame.vue'
+import Button from '@/components/ui/Button.vue'
+import IconButton from '@/components/ui/IconButton.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { Minus, Plus, Check, ShoppingBag } from 'lucide-vue-next'
@@ -197,6 +116,11 @@ function addToCart() {
 }
 </script>
 <style scoped>
-.custom-order-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;width:100%;align-items:center}.custom-order-footer-actions{display:contents}.custom-order-footer-actions>button{grid-column:1/-1;justify-content:center;width:100%;min-height:44px;font-size:.875rem}.custom-order-footer-actions>div{justify-self:end;padding:0 4px;background:var(--bg-soft)}.custom-order-footer-actions>div>button{min-width:44px;min-height:44px}.custom-order-footer-actions>div>button:disabled{opacity:.4;cursor:not-allowed}
+.bowl-heading{display:flex;gap:16px;align-items:center;min-width:0}.bowl-heading>div{min-width:0}.bowl-heading h3{font-size:1.125rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere}.bowl-emoji{display:grid;place-items:center;width:64px;height:64px;flex-shrink:0;border-radius:16px;background:var(--bg-soft);font-size:34px}.bowl-heading p{font-size:.8125rem;color:var(--text-muted);margin-top:6px;line-height:1.7}
+.bowl-options{display:grid;gap:20px}.bowl-options>header{display:flex;justify-content:space-between;align-items:center;gap:12px}.bowl-options h4{font-size:.9375rem;font-weight:600}.bowl-options header p,.bowl-options header>span{font-size:.75rem;color:var(--text-muted);margin-top:5px}.bowl-options header>span{flex-shrink:0}.bowl-no-addons{color:var(--text-muted);font-size:.8125rem;padding:24px 0}
+.bowl-addon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.bowl-addon{display:grid;grid-template-columns:32px minmax(0,1fr) auto 24px;gap:8px;align-items:center;min-width:0;min-height:88px;padding:14px 12px;border:0;border-radius:12px;background:var(--bg-primary);color:var(--text-main);text-align:left;cursor:pointer}.bowl-addon-emoji{font-size:24px}.bowl-addon-name{min-width:0}.bowl-addon-name strong{display:block;font-size:.8125rem;font-weight:500;line-height:1.6;overflow-wrap:anywhere}.bowl-addon-name small{display:block;font-size:.75rem;color:var(--text-muted);line-height:1.6;margin-top:4px;overflow-wrap:anywhere}.bowl-addon-price{font-size:.8125rem;font-weight:600;white-space:nowrap}.bowl-addon-check{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:var(--bg-card);color:var(--text-muted)}.bowl-addon.is-unavailable small{color:var(--state-warning)}.bowl-addon.is-selected{background:var(--accent-soft);color:var(--accent-brand)}.bowl-addon.is-selected .bowl-addon-check{background:var(--accent-brand);color:var(--bg-card)}
+.custom-order-footer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;width:100%;align-items:center}.bowl-total>span{display:block;font-size:.75rem;color:var(--text-muted);margin-bottom:4px}.bowl-total strong{font-size:1.5rem;color:var(--accent-brand)}.custom-order-footer-actions{display:contents}.custom-order-footer-actions>.ui-button{grid-column:1/-1;justify-content:center;width:100%;min-height:52px;font-size:.875rem}.bowl-quantity{display:flex;align-items:center;justify-self:end;border-radius:12px;background:var(--bg-card);gap:6px}.bowl-quantity>span{min-width:28px;text-align:center;font-weight:600}
+@media(hover:hover){.bowl-addon:hover{background:var(--bg-soft)}.bowl-addon.is-selected:hover{background:var(--accent-soft)}}
+@media(max-width:600px){.bowl-addon-grid{grid-template-columns:1fr}.bowl-addon{min-height:76px;padding:14px}.bowl-options>header{align-items:flex-start}.bowl-heading{gap:12px}.bowl-emoji{width:52px;height:52px;font-size:28px}}
 </style>
 

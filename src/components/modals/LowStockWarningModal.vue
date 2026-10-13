@@ -20,8 +20,8 @@
         <div
           v-for="(item, idx) in store.modals.lowStockWarning.warningItems"
           :key="idx"
-          class="flex items-center justify-between p-2.5 rounded-xl border"
-          :class="store.modals.lowStockWarning.isOutOfStock ? 'bg-rose-50/70 border-rose-200/70' : 'bg-amber-50/70 border-amber-200/60'"
+          class="stock-warning-row"
+          :class="store.modals.lowStockWarning.isOutOfStock ? 'is-shortage' : 'is-low'"
         >
           <div class="flex items-center gap-2">
             <span class="text-base">{{ item.emoji }}</span>
@@ -86,5 +86,6 @@ function confirm() {
 </script>
 <style scoped>
 .decision-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;width:100%}.decision-actions>button{min-height:44px;font-size:.8125rem}
-.stock-type{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:999px;background:#fff;color:#78716c;font-size:.625rem}.package-shortage-copy{margin-top:12px;padding:10px;border-radius:10px;background:#fff7ed;color:#9a3412;line-height:1.6}
+.stock-warning-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px;border:0;border-radius:12px;background:#FFFBEB}.stock-warning-row.is-shortage{background:#FEF2F2}.stock-warning-row>div{min-width:0}.stock-warning-row>div:first-child{flex:1}.stock-warning-row>div:last-child{flex-shrink:0;max-width:45%}.stock-warning-row :deep(.text-stone-400){color:var(--text-muted);font-size:.75rem;line-height:1.7}.stock-type{display:inline-block;margin-left:4px;padding:2px 6px;border-radius:6px;background:var(--bg-card);color:var(--text-muted);font-size:.6875rem}.package-shortage-copy{margin-top:16px;padding:14px;border-radius:12px;background:#fff7ed;color:#9a3412;line-height:1.8;font-size:.8125rem}
+@media(max-width:380px){.stock-warning-row{flex-wrap:wrap;gap:8px}.stock-warning-row>div:last-child{max-width:100%;text-align:left}.decision-actions>button{width:100%}}
 </style>

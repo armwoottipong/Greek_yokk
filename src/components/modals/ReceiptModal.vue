@@ -1,7 +1,7 @@
 <template>
- <DialogFrame :open="store.modals.receipt.isOpen && Boolean(order)" id="ReceiptModal" title="ใบเสร็จรับเงิน" width="400px" :teleport="false" @request-close="close">
+ <DialogFrame :open="store.modals.receipt.isOpen && Boolean(order)" id="ReceiptModal" title="ใบเสร็จรับเงิน" width="440px" :teleport="false" @request-close="close">
 
-  <div class="font-mono text-[11px] leading-relaxed text-stone-800 bg-[#FBF5EA]" id="printable-receipt">
+  <div class="receipt-paper" id="printable-receipt">
         <div class="text-center pb-4 border-b border-dashed border-stone-300">
           <div class="text-2xl mb-1">🥣</div>
           <div class="font-bold text-sm text-stone-900 font-sans tracking-wide">GREEK YOGG. CAFE</div>
@@ -35,7 +35,7 @@
         <div class="py-3 border-b border-dashed border-stone-300 space-y-2">
           <div v-for="(item, idx) in order.items" :key="idx" class="space-y-0.5">
             <div class="flex justify-between font-semibold text-stone-900">
-              <span class="flex-1 truncate">{{ item.qty }}x {{ item.menuName }}</span>
+              <span class="receipt-item-name">{{ item.qty }}x {{ item.menuName }}</span>
               <span class="font-number shrink-0">฿{{ item.totalPrice }}</span>
             </div>
             <!-- Addons -->
@@ -80,7 +80,7 @@
           <div class="text-[9px] mt-0.5">Have a Healthy & Blissful Day!</div>
         </div>
       </div>
-  <template #footer><div class="bg-white flex items-center justify-between gap-2">
+  <template #footer><div class="receipt-actions">
         <button
           @click="close"
           class="px-4 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors"
@@ -129,3 +129,7 @@ function printReceipt() {
   window.print()
 }
 </script>
+<style scoped>
+.receipt-paper{font-family:inherit;font-size:.8125rem;line-height:1.8;color:var(--text-main);background:var(--bg-card)}.receipt-paper :deep(.text-\[10px\]),.receipt-paper :deep(.text-\[9px\]){font-size:.75rem}.receipt-paper :deep(.text-stone-400),.receipt-paper :deep(.text-stone-500){color:var(--text-muted)}.receipt-paper :deep(.flex.justify-between){gap:12px;overflow-wrap:anywhere}.receipt-paper :deep(.font-number){font-variant-numeric:tabular-nums;white-space:nowrap}.receipt-item-name{flex:1;min-width:0;overflow-wrap:anywhere}.receipt-actions{display:flex;justify-content:space-between;gap:12px;width:100%}.receipt-actions>button{min-height:48px;font-size:.8125rem;justify-content:center}.receipt-actions>button:last-child{flex:1}
+@media print{.receipt-paper{font-size:12px;background:white}.receipt-paper :deep(.text-\[10px\]),.receipt-paper :deep(.text-\[9px\]){font-size:10px}}
+</style>

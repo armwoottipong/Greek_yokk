@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-11T07:22:41Z",
+  "generatedAt": "2026-10-13T11:22:09Z",
   "title": "Design System: Greek Yogg.",
   "extensions": {
     "colorMeta": {
@@ -36,6 +36,18 @@
       "label": {
         "purpose": "Shared button labels and FormField labels",
         "displayName": "Control label"
+      },
+      "section-title": {
+        "displayName": "Section title",
+        "purpose": "POS catalog/cart and shared DialogFrame headings"
+      },
+      "pos-payment-total": {
+        "displayName": "POS payment total",
+        "purpose": "Numeric amount beside the fixed checkout action"
+      },
+      "pos-bowl-total": {
+        "displayName": "Custom bowl total",
+        "purpose": "Numeric per-bowl amount in the customization footer"
       }
     },
     "shadows": [
@@ -123,8 +135,45 @@
       {
         "value": "440px",
         "name": "settings-backup-stack"
+      },
+      {
+        "name": "pos-catalog-compact",
+        "value": "440px",
+        "purpose": "Catalog container query: stacked controls and two minmax(0,1fr) columns"
       }
-    ]
+    ],
+    "fieldTreatments": {
+      "popup-filled": {
+        "scope": ".dialog-frame-panel native text/number/select/textarea and .app-select-trigger",
+        "borderColor": "transparent",
+        "backgroundColor": "var(--bg-soft)",
+        "outline": "none",
+        "boxShadow": "none",
+        "states": [
+          "rest",
+          "focus",
+          "expanded"
+        ],
+        "focusBackground": "unchanged soft fill",
+        "minHeight": "44px",
+        "caretColor": "var(--accent-brand)",
+        "disabledOpacity": 0.55,
+        "invalidBackground": "#FEF2F2",
+        "invalidText": "var(--state-error)",
+        "authority": "Explicit user request, 13 October 2026; labels, errors and keyboard semantics retained"
+      },
+      "pos-order-note": {
+        "scope": ".pos-workspace .cart-body textarea",
+        "borderColor": "transparent",
+        "outline": "none",
+        "boxShadow": "none",
+        "radiusRef": "rounded.pos-field"
+      },
+      "ordinary-fields": {
+        "scope": "Other app fields",
+        "treatment": "Existing strong control boundaries and focus treatments retained"
+      }
+    }
   },
   "components": [
     {
@@ -161,11 +210,19 @@
     },
     {
       "name": "Named soft field",
-      "description": "Visible label, warm fill, control border and strong burgundy focus; compact native fields use 16px type",
+      "description": "Ordinary field outside DialogFrame; control border and strong burgundy focus; compact native fields use 16px type",
       "html": "<label class=\"ds-label\" for=\"ds-name\">ชื่อรายการ</label><input id=\"ds-name\" class=\"ds-input\" placeholder=\"ชื่อรายการ\">",
       "css": ".ds-label{display:block;margin-bottom:6px;font:500 .8125rem/1.5 Prompt,sans-serif;color:var(--text-main)}.ds-input{display:block;min-height:44px;padding:8px 12px;border:1px solid var(--control-border);border-radius:14px;font:500 14px/1.5 Prompt,sans-serif;background:var(--bg-soft);color:var(--text-main);outline:none;transition:background-color .15s ease,box-shadow .15s ease}.ds-input:focus{background:var(--bg-card);box-shadow:0 0 0 2px var(--accent-brand)}@media(prefers-reduced-motion:reduce){.ds-input{transition:none}} .ds-input:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}@media(max-width:1199px){.ds-input{font-size:1rem}}",
       "refersTo": "input-soft",
       "kind": "input"
+    },
+    {
+      "name": "Filled popup field",
+      "kind": "input",
+      "refersTo": "input-popup-filled",
+      "description": "DialogFrame field; same warm fill on focus, transparent border, no outline or box-shadow by user request",
+      "html": "<label class=\"ds-popup-label\" for=\"ds-popup-name\">ชื่อรายการ</label><input id=\"ds-popup-name\" class=\"ds-popup-input\" placeholder=\"ชื่อรายการ\">",
+      "css": ".ds-popup-label{display:block;margin-bottom:6px;font:500 .8125rem/1.5 Prompt,sans-serif;color:var(--text-main)}.ds-popup-input{display:block;min-height:44px;padding:8px 12px;border:1px solid transparent;border-radius:14px;font:500 14px/1.5 Prompt,sans-serif;background:var(--bg-soft);color:var(--text-main);caret-color:var(--accent-brand);outline:none;box-shadow:none}.ds-popup-input:hover,.ds-popup-input:focus,.ds-popup-input:focus-visible{background:var(--bg-soft);border-color:transparent;outline:none;box-shadow:none}.ds-popup-input::placeholder{color:var(--text-muted);opacity:1}.ds-popup-input:disabled{opacity:.55;cursor:not-allowed}.ds-popup-input[aria-invalid=\"true\"]{background:#FEF2F2;color:var(--state-error)}@media(max-width:1199px){.ds-popup-input{font-size:1rem}}"
     },
     {
       "name": "Active navigation",
@@ -194,9 +251,9 @@
     {
       "name": "Platform price grid",
       "kind": "custom",
-      "description": "Full channel names with named prices, two columns above the phone shell boundary and one below it",
+      "description": "Dialog price groups: full channel names, warm fill without input outlines or rings, two columns above 768px and one below",
       "html": "<div class=\"ds-price-grid\"><label class=\"ds-price-field\"><span class=\"ds-price-label\">หน้าร้าน</span><span>฿ <input class=\"ds-price-input\" type=\"number\" aria-label=\"ราคา หน้าร้าน\" value=\"120\"></span></label><label class=\"ds-price-field\"><span class=\"ds-price-label\">Delivery Platform</span><span>฿ <input class=\"ds-price-input\" type=\"number\" aria-label=\"ราคา Delivery Platform\" value=\"150\"></span></label></div>",
-      "css": ".ds-price-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-family:Prompt,sans-serif}.ds-price-field{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;min-height:44px;padding:6px 12px;border:1px solid var(--control-border);border-radius:12px;background:var(--bg-soft);color:var(--text-main);font-size:12px}.ds-price-label{min-width:0;overflow-wrap:anywhere;line-height:1.5}.ds-price-field>span:last-child{flex-shrink:0}.ds-price-input{width:56px;border:0;background:transparent;color:var(--text-main);font:600 12px/1.5 \"Plus Jakarta Sans\",sans-serif;text-align:right}.ds-price-field:focus-within{background:var(--border-subtle)}.ds-price-input:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}@media(max-width:1199px){.ds-price-input{font-size:1rem}}@media(max-width:767px){.ds-price-grid{grid-template-columns:1fr}}"
+      "css": ".ds-price-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-family:Prompt,sans-serif}.ds-price-field{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;min-height:44px;padding:6px 12px;border:1px solid transparent;border-radius:12px;background:var(--bg-soft);color:var(--text-main);font-size:12px}.ds-price-label{min-width:0;overflow-wrap:anywhere;line-height:1.5}.ds-price-field>span:last-child{flex-shrink:0}.ds-price-input{width:56px;border:0;background:var(--bg-soft);min-height:44px;outline:none;box-shadow:none;color:var(--text-main);font:600 12px/1.5 \"Plus Jakarta Sans\",sans-serif;text-align:right}.ds-price-field:focus-within{background:var(--bg-soft)}.ds-price-input:focus,.ds-price-input:focus-visible{background:var(--bg-soft);outline:none;box-shadow:none}@media(max-width:1199px){.ds-price-input{font-size:1rem}}@media(max-width:767px){.ds-price-grid{grid-template-columns:1fr}}"
     }
   ],
   "narrative": {

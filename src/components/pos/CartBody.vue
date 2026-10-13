@@ -1,6 +1,6 @@
 <template>
  <div class="cart-body">
-  <div v-if="!store.cart.length" class="cart-empty"><ShoppingBag :size="28" aria-hidden="true"/><strong>เลือกเมนูเพื่อเริ่มออเดอร์</strong><p>รายการที่เลือกจะแสดงที่นี่</p></div>
+  <div v-if="!store.cart.length" class="cart-empty"><img :src="mascot" alt="" width="88" height="88"><strong>ชามแรกของออเดอร์นี้</strong><p>เลือกเมนูเพื่อเริ่มออเดอร์<br>แล้วตรวจรายการก่อนชำระเงิน</p></div>
   <template v-else>
    <div class="cart-list-heading"><span>{{ quantity }} ชาม</span><Button variant="quiet" size="compact" :disabled="busy" :loading="clearing" @click="clearCart">ล้างตะกร้า</Button></div>
    <article v-for="(item,index) in store.cart" :key="index" :data-cart-item="index" class="cart-line">
@@ -18,7 +18,7 @@
 </template>
 <script setup>
 import {computed,ref} from 'vue'
-import {ShoppingBag,Minus,Plus} from 'lucide-vue-next'
+import {Minus,Plus} from 'lucide-vue-next'
 import {usePosStore} from '@/stores/posStore'
 import {money} from '@/domain/dashboard'
 import Button from '@/components/ui/Button.vue'
@@ -28,6 +28,7 @@ import {menuPrice,addonPrice,itemPrice} from './cartPrices'
 const props=defineProps({busy:Boolean})
 defineEmits(['switch-lot'])
 const store=usePosStore()
+const mascot=`${import.meta.env.BASE_URL}brand/mascot.png`
 const summary=computed(()=>store.cartSummary)
 const packagePlan=computed(()=>store.cartPackagePlan)
 const quantity=computed(()=>store.cart.reduce((n,item)=>n+item.qty,0))
@@ -42,11 +43,11 @@ async function clearCart(){
 }
 </script>
 <style scoped>
-.cart-body{display:grid;gap:16px;font-size:.8125rem}.cart-empty{padding:32px 12px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;color:var(--text-muted)}.cart-empty strong{font-size:.875rem;color:var(--text-main)}.cart-empty p{font-size:.75rem}
+.cart-body{display:grid;gap:20px;font-size:.8125rem}.cart-empty{padding:48px 12px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;color:var(--text-muted)}.cart-empty img{object-fit:contain;margin-bottom:8px}.cart-empty strong{font-size:.9375rem;color:var(--text-main)}.cart-empty p{font-size:.8125rem;line-height:1.8}
 .cart-list-heading,.cart-line-title,.cart-line-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.cart-list-heading{color:var(--text-muted)}.cart-line{padding-bottom:16px;border-bottom:1px solid var(--border-subtle);min-width:0}.cart-line-title{align-items:flex-start}.cart-line-title>div{min-width:0}.cart-line-title strong{display:block;font-weight:500;overflow-wrap:anywhere;line-height:1.6}.cart-line-title small{display:block;color:var(--text-muted);font-size:.75rem;margin-top:3px}.cart-line-title>b{white-space:nowrap;font-size:.875rem}
-.cart-quantity{display:flex;align-items:center;gap:4px}.cart-quantity>span{min-width:28px;text-align:center}.cart-line-actions{margin-top:12px}.cart-addons{font-size:.75rem;color:var(--text-muted);margin-top:8px;display:grid;gap:4px}.cart-addons li{display:flex;justify-content:space-between;gap:8px}.cart-shortage{color:var(--state-warning);font-size:.75rem;margin-top:5px}
-.cart-body textarea{width:100%;padding:10px 12px;border:1px solid var(--border-subtle);border-radius:10px;background:var(--bg-card);font-size:.8125rem;resize:vertical}.cart-body textarea:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}
+.cart-quantity{display:flex;align-items:center;gap:4px;background:var(--bg-soft);border-radius:12px}.cart-quantity>span{min-width:28px;text-align:center}.cart-quantity :deep(.ui-button){background:transparent}.cart-line-actions{margin-top:12px}.cart-addons{font-size:.75rem;color:var(--text-muted);margin-top:8px;display:grid;gap:4px}.cart-addons li{display:flex;justify-content:space-between;gap:8px}.cart-shortage{color:var(--state-warning);font-size:.75rem;margin-top:5px}
+.cart-body textarea{width:100%;padding:12px 14px;border:1px solid transparent;border-radius:12px;background:var(--bg-soft);font-size:.8125rem;resize:vertical}.cart-body textarea::placeholder{color:var(--text-muted);opacity:1}
 .cart-financial{font-size:.75rem;color:var(--text-muted)}.cart-financial summary{cursor:pointer;padding:10px 0;color:var(--accent-brand)}.cart-financial dl{display:grid;gap:10px;margin-top:10px}.cart-financial dl>div{display:flex;justify-content:space-between;gap:12px}.cart-financial dd{font-variant-numeric:tabular-nums;white-space:nowrap}
 .cart-lot-warnings{background:#FFFBEB;padding:12px;border-radius:12px;color:#92400E}.cart-lot-warnings h4{font-weight:500;margin-bottom:10px}.cart-lot-warnings>div{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}.cart-lot-warnings p{font-size:.75rem;margin-top:4px}
-.cart-packages{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:12px;background:var(--bg-soft);min-width:0}.cart-packages>div{min-width:0}.cart-packages strong{font-size:.75rem}.cart-packages p{font-size:.6875rem;color:var(--text-muted);overflow-wrap:anywhere;margin-top:3px}.cart-package-adjusted{position:absolute;right:8px;top:-8px;padding:2px 6px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:.625rem}
+.cart-packages{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;min-width:0}.cart-packages>div{min-width:0;flex:1 1 140px}.cart-packages strong{font-size:.8125rem}.cart-packages p{font-size:.75rem;color:var(--text-muted);overflow-wrap:anywhere;margin-top:5px;line-height:1.6}.cart-package-adjusted{padding:3px 8px;border-radius:8px;background:#FEF3C7;color:#92400E;font-size:.75rem}
 </style>

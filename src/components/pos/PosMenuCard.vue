@@ -5,21 +5,22 @@
   <p v-if="menu.description">{{ menu.description }}</p>
   <span v-if="outOfStock" class="pos-menu-state">ของหมด · ยืนยันขายต่อได้</span>
   <span v-else-if="menu.hasAddons" class="pos-menu-state">เลือกท็อปปิ้งได้</span>
-  <span class="pos-menu-price"><strong class="font-number">฿{{ money(price) }}</strong><span>{{ menu.hasAddons?'ปรับชาม':'เพิ่ม' }}</span></span>
+  <span class="pos-menu-price"><strong class="font-number">฿{{ money(price) }}</strong><span>{{ menu.hasAddons?'เลือกท็อปปิ้ง':'เพิ่มลงตะกร้า' }}<Plus :size="15" aria-hidden="true"/></span></span>
  </button>
 </template>
 <script setup>
 import {money} from '@/domain/dashboard'
+import {Plus} from 'lucide-vue-next'
 defineProps({menu:{type:Object,required:true},price:{type:Number,default:0},outOfStock:Boolean})
 defineEmits(['select'])
 </script>
 <style scoped>
-.pos-menu-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;min-height:190px;padding:16px;border:1px solid transparent;border-radius:var(--surface-radius);background:var(--bg-card);text-align:left;cursor:pointer;color:var(--text-main)}
-.pos-menu-art{font-size:28px;display:grid;place-items:center;width:48px;height:48px;background:var(--bg-soft);border-radius:12px;flex-shrink:0}
+.pos-menu-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;min-height:228px;padding:18px;border:0;border-radius:var(--surface-radius);background:var(--bg-card);text-align:left;cursor:pointer;color:var(--text-main)}
+.pos-menu-art{font-size:40px;display:grid;place-items:center;width:100%;height:76px;background:var(--bg-primary);border-radius:12px;flex-shrink:0;margin-bottom:4px}
 .pos-menu-card h4{font-size:.875rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere}.pos-menu-card p{font-size:.75rem;line-height:1.6;color:var(--text-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.pos-menu-state{font-size:.6875rem;color:var(--text-muted);line-height:1.5}.is-out-of-stock .pos-menu-state{color:var(--state-warning)}.is-out-of-stock{background:#FFFBEB;border-color:#FDE68A}
-.pos-menu-price{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;margin-top:auto;padding-top:12px}.pos-menu-price strong{font-size:1rem}.pos-menu-price>span{font-size:.75rem;color:var(--accent-brand)}
+.pos-menu-state{font-size:.75rem;color:var(--text-muted);line-height:1.5}.is-out-of-stock .pos-menu-state{color:var(--state-warning)}.is-out-of-stock{background:#FFFBEB}
+.pos-menu-price{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;margin-top:auto;padding-top:12px;flex-wrap:wrap}.pos-menu-price strong{font-size:1.125rem;color:var(--accent-brand)}.pos-menu-price>span{display:flex;align-items:center;gap:5px;font-size:.6875rem;color:var(--accent-brand)}
 .pos-menu-card:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}
-@media(hover:hover){.pos-menu-card:hover{border-color:var(--accent-border);background:var(--accent-soft)}}
-@media(max-width:767px){.pos-menu-card{padding:12px;gap:6px}.pos-menu-art{width:40px;height:40px;font-size:24px}.pos-menu-card p{display:none}}
+@media(hover:hover){.pos-menu-card:hover{background:var(--accent-soft)}}.pos-menu-card:active{background:var(--bg-soft)}
+@media(max-width:767px){.pos-menu-card{min-height:208px;padding:12px;gap:6px}.pos-menu-art{height:64px;font-size:34px}.pos-menu-card p{display:none}.pos-menu-price>span{font-size:.6875rem}.pos-menu-price>span svg{display:none}}
 </style>

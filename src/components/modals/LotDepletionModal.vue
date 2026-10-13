@@ -23,7 +23,7 @@
       </div></template>
   <div class="space-y-2.5">
         <!-- 1. Depleted Current Lot -->
-        <div class="p-3.5 rounded-2xl bg-rose-50/60 border border-rose-200/70 text-xs">
+        <div class="lot-comparison lot-comparison--current">
           <div class="flex items-center justify-between mb-1.5">
             <span class="font-bold text-rose-800 flex items-center gap-1.5">
               <span>🛑</span>
@@ -64,7 +64,7 @@
         </div>
 
         <!-- 2. Next Available Lot -->
-        <div v-if="modal.nextLot" class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-xs">
+        <div v-if="modal.nextLot" class="lot-comparison lot-comparison--next">
           <div class="flex items-center justify-between mb-1.5">
             <span class="font-bold text-emerald-800 flex items-center gap-1.5">
               <span>✨</span>
@@ -87,7 +87,7 @@
           </div>
         </div>
       </div>
-<div class="rounded-xl bg-stone-50 text-[11px] text-stone-500 leading-relaxed">
+<div class="lot-decision-hint">
         <p>
           • <strong>ถ้ากด "เปลี่ยนไปล็อตใหม่":</strong> ระบบจะย้ายสถานะ <em>"กำลังใช้งาน"</em> ไปที่ล็อตใหม่ทันที และตัดสต็อกต่อจากล็อตใหม่<br />
           <span v-if="modal.actionContext === 'pos'">ยกเลิกแล้วตะกร้าและล็อตปัจจุบันจะยังเหมือนเดิม</span>
@@ -145,5 +145,6 @@ function onCancel() {
 </script>
 <style scoped>
 .decision-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;width:100%}.decision-actions>button{min-height:44px;font-size:.8125rem}
+.lot-comparison{padding:18px;border-radius:12px;font-size:.8125rem;line-height:1.8;background:#FEF2F2}.lot-comparison--next{background:#ECFDF5}.lot-comparison>div:first-child{flex-wrap:wrap;gap:8px}.lot-comparison :deep(.text-stone-400){color:var(--text-muted)}.lot-comparison :deep(.text-\[11px\]){font-size:.75rem}.lot-comparison :deep(.flex.items-center.justify-between){flex-wrap:wrap;gap:8px}.lot-decision-hint{padding:20px 0 0;color:var(--text-muted);font-size:.8125rem;line-height:1.8}
 </style>
 <style scoped>.decision-actions>button:disabled{opacity:.45;cursor:not-allowed}</style>
