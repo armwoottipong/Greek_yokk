@@ -28,7 +28,7 @@ import {menuPrice,addonPrice,itemPrice} from './cartPrices'
 const props=defineProps({busy:Boolean})
 defineEmits(['switch-lot'])
 const store=usePosStore()
-const mascot=`${import.meta.env.BASE_URL}brand/mascot.png`
+const mascot=`${import.meta.env.BASE_URL}brand/content-mascot.svg`
 const summary=computed(()=>store.cartSummary)
 const packagePlan=computed(()=>store.cartPackagePlan)
 const quantity=computed(()=>store.cart.reduce((n,item)=>n+item.qty,0))
