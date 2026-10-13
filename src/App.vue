@@ -14,7 +14,7 @@
       </div>
 
       <!-- Active View Content -->
-      <main id="main-content" ref="contentRoot" tabindex="-1" :inert="mobileMenuOpen ? true : undefined" class="flex-1 overflow-y-auto p-4 md:p-6">
+      <main id="main-content" ref="contentRoot" tabindex="-1" :inert="mobileMenuOpen ? true : undefined" class="flex-1 overflow-y-auto p-4 md:p-6 outline-none">
         <KeepAlive>
           <component :is="currentViewComponent" />
         </KeepAlive>
