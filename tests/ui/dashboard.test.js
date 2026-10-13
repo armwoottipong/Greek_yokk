@@ -7,11 +7,9 @@ import {createTestStore,material} from '../helpers/createStore'
 vi.mock('canvas-confetti',()=>({default:()=>{}}))
 const sale=(id,date)=>({orderId:id,createdAt:date,platformId:'P',platformName:'หน้าร้าน',subtotal:100,gpAmount:0,netRevenue:100,foodCost:30,grossProfit:70,items:[{menuId:'M',menuName:'โยเกิร์ต',qty:1}]})
 async function selectInventoryGrouping(wrapper,value){
- const control=wrapper.get('[role="combobox"][aria-label="แสดงมูลค่าคลังตาม"]')
- await control.trigger('keydown',{key:'ArrowDown'})
- await control.trigger('keydown',{key:value==='material'?'End':'Home'})
- await control.trigger('keydown',{key:'Enter'})
- expect(control.attributes('aria-expanded')).toBe('false')
+ const group=wrapper.get('[role="radiogroup"][aria-label="แสดงมูลค่าคลังตาม"]')
+ await group.get(`input[value="${value}"]`).setValue(true)
+ expect(group.findAll('input').filter(input=>input.element.checked)).toHaveLength(1)
 }
 it('switches inventory valuation between categories and individual materials without changing the total or chart mode',async()=>{
  const s=createTestStore();s.materials=[material('A',10,{name:'นม',unitCost:2}),material('B',30,{name:'นม',unitCost:3}),material('C',5,{name:'ถ้วย',inventoryType:'packaging',unitCost:1}),material('D',0,{name:'น้ำผึ้ง'}),material('OLD',500,{isDeleted:true})]
