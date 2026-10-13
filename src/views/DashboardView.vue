@@ -29,7 +29,7 @@
   <template v-else>
    <section class="dashboard-inventory-heading"><div><h3>คลังวัตถุดิบ · ยอดปัจจุบัน</h3><p>มูลค่าคงเหลือตามต้นทุนล่าสุด ไม่เปลี่ยนตามช่วงวันที่รายงานยอดขาย</p></div><button type="button" class="dashboard-primary" @click="store.switchTab('stock')">จัดการคลัง<ArrowRight :size="15" aria-hidden="true" /></button></section>
    <div class="dashboard-inventory-stats"><section><span>มูลค่าคลัง</span><strong class="font-number">฿{{ money(store.totalInventoryValuation) }}</strong><p v-if="store.draftInventoryValuationDiff">หลังยืนยันแบบร่าง ≈ ฿{{ money(store.projectedInventoryValuation) }}</p><p v-else>{{ store.activeMaterials.length }} รายการที่ใช้งาน</p></section><section><span>งบเติมสต็อกแนะนำ</span><strong class="font-number">฿{{ money(store.reorderBudgetNeeded) }}</strong><p>เติมรายการต่ำกว่าเกณฑ์ให้ถึง 2 เท่าของขั้นต่ำ</p></section><section><span>ควรตรวจสอบ</span><strong class="font-number">{{ store.lowStockMaterials.length }} <small>รายการ</small></strong><p>ในจำนวนนี้หมดสต็อก {{ store.outOfStockMaterials.length }} รายการ</p></section></div>
-   <section class="dashboard-panel"><DashboardBreakdown :title="inventoryGrouping==='category' ? 'มูลค่าคลังตามหมวดหมู่' : 'มูลค่าคลังตามรายชื่อวัตถุดิบ'" :subtitle="store.stockDraftSnapshot ? 'กราฟรวมแบบร่างที่ยังไม่ยืนยัน' : 'ยอดคงเหลือ × ต้นทุนต่อหน่วยล่าสุด'" :rows="inventoryRows" allow-donut><template #controls><label class="dashboard-inventory-grouping"><span>แสดงตาม</span><select v-model="inventoryGrouping" aria-label="แสดงมูลค่าคลังตาม"><option value="category">หมวดหมู่</option><option value="material">รายชื่อวัตถุดิบ</option></select></label></template></DashboardBreakdown></section>
+   <section class="dashboard-panel"><DashboardBreakdown :title="inventoryGrouping==='category' ? 'มูลค่าคลังตามหมวดหมู่' : 'มูลค่าคลังตามรายชื่อวัตถุดิบ'" :subtitle="store.stockDraftSnapshot ? 'กราฟรวมแบบร่างที่ยังไม่ยืนยัน' : 'ยอดคงเหลือ × ต้นทุนต่อหน่วยล่าสุด'" :rows="inventoryRows" allow-donut><template #controls><label class="dashboard-inventory-grouping"><span>แสดงตาม</span><AppSelect v-model="inventoryGrouping" aria-label="แสดงมูลค่าคลังตาม"><option value="category">หมวดหมู่</option><option value="material">รายชื่อวัตถุดิบ</option></AppSelect></label></template></DashboardBreakdown></section>
   </template>
  </div>
 </template>
@@ -40,6 +40,7 @@ import {usePosStore} from '@/stores/posStore'
 import {buildDashboard,dashboardRange,money,dateLabel} from '@/domain/dashboard'
 import {businessDateKey} from '@/domain/businessDate'
 import FilterDropdown from '@/components/ui/FilterDropdown.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import DashboardTrend from '@/components/dashboard/DashboardTrend.vue'
 import DashboardBreakdown from '@/components/dashboard/DashboardBreakdown.vue'
 import '@/assets/dashboard.css'

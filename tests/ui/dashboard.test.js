@@ -6,6 +6,13 @@ import DashboardBreakdown from '../../src/components/dashboard/DashboardBreakdow
 import {createTestStore,material} from '../helpers/createStore'
 vi.mock('canvas-confetti',()=>({default:()=>{}}))
 const sale=(id,date)=>({orderId:id,createdAt:date,platformId:'P',platformName:'หน้าร้าน',subtotal:100,gpAmount:0,netRevenue:100,foodCost:30,grossProfit:70,items:[{menuId:'M',menuName:'โยเกิร์ต',qty:1}]})
+async function selectInventoryGrouping(wrapper,value){
+ const control=wrapper.get('[role="combobox"][aria-label="แสดงมูลค่าคลังตาม"]')
+ await control.trigger('keydown',{key:'ArrowDown'})
+ await control.trigger('keydown',{key:value==='material'?'End':'Home'})
+ await control.trigger('keydown',{key:'Enter'})
+ expect(control.attributes('aria-expanded')).toBe('false')
+}
 it('switches inventory valuation between categories and individual materials without changing the total or chart mode',async()=>{
  const s=createTestStore();s.materials=[material('A',10,{name:'นม',unitCost:2}),material('B',30,{name:'นม',unitCost:3}),material('C',5,{name:'ถ้วย',inventoryType:'packaging',unitCost:1}),material('D',0,{name:'น้ำผึ้ง'}),material('OLD',500,{isDeleted:true})]
  const w=mount(DashboardView)
@@ -16,7 +23,7 @@ it('switches inventory valuation between categories and individual materials wit
   expect(chart.props('title')).toBe('มูลค่าคลังตามหมวดหมู่')
   expect(sum()).toBe(115)
   await chart.findAll('button').find(button=>button.text()==='วงแหวน').trigger('click')
-  await w.get('select[aria-label="แสดงมูลค่าคลังตาม"]').setValue('material')
+  await selectInventoryGrouping(w,'material')
   expect(chart.props('title')).toBe('มูลค่าคลังตามรายชื่อวัตถุดิบ')
   expect(chart.props('rows').map(row=>row.id)).toEqual(['B','A','C','D'])
   expect(chart.props('rows').map(row=>row.label)).toEqual(['นม','นม','ถ้วย','น้ำผึ้ง'])
@@ -24,7 +31,7 @@ it('switches inventory valuation between categories and individual materials wit
   expect(chart.findAll('[data-donut-id]')).toHaveLength(4)
   await w.get('[data-period="week"]').trigger('click')
   expect(sum()).toBe(115)
-  await w.get('select[aria-label="แสดงมูลค่าคลังตาม"]').setValue('category')
+  await selectInventoryGrouping(w,'category')
   expect(chart.props('rows')).toHaveLength(2)
   expect(chart.findAll('[data-donut-id]')).toHaveLength(2)
  }finally{w.unmount()}
@@ -36,7 +43,7 @@ it('uses the same pending draft valuation in both inventory views and updates wh
   await w.get('[data-view="inventory"]').trigger('click')
   const chart=w.findComponent(DashboardBreakdown)
   expect(chart.props('rows')[0].value).toBe(25)
-  await w.get('select[aria-label="แสดงมูลค่าคลังตาม"]').setValue('material')
+  await selectInventoryGrouping(w,'material')
   expect(chart.props('subtitle')).toContain('แบบร่าง')
   expect(chart.props('rows')[0].value).toBe(25)
   s.materials[0].stock=40;await w.vm.$nextTick()

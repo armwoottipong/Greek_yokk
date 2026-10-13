@@ -39,8 +39,6 @@
 .dashboard-ranking li:focus-visible{outline:2px solid var(--accent-brand)}
 .dashboard-breakdown-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
 .dashboard-inventory-grouping{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:11px}
-.dashboard-inventory-grouping select{min-height:38px;max-width:100%;padding:6px 10px;border:1px solid var(--accent-border);border-radius:10px;background:var(--bg-card);color:var(--text-main);font:inherit;cursor:pointer}
-.dashboard-inventory-grouping select:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}
 @media(max-width:640px){.dashboard-breakdown-controls{width:100%;justify-content:space-between;gap:10px}}
 .dashboard-breakdown-detail{min-height:34px;padding-top:15px;font-size:11px;text-align:center}
 .dashboard-breakdown-detail strong{color:var(--accent-brand);font-weight:500}

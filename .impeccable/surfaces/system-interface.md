@@ -21,6 +21,8 @@ States: default, empty, no-results, dirty, loading, error, success, disabled and
 Anti-goals: no backend changes, new auth, new payment processor, new report formulas, schema migration or data writes to the real shop during verification.
 
 ## Implemented direction promises
+Dropdowns use the shared `AppSelect` component, including the dashboard inventory grouping selector. Surface CSS arranges controls but does not restyle the select trigger or popup. Dashboard grouping tests exercise the shared keyboard selection flow.
+
 THESIS: A shop workspace with essential actions first and contextual details on demand.
 OWN-WORLD: Cream yogurt surfaces, burgundy #5E0205 mascot identity, rounded touch controls and restrained motion.
 STORY: Choose, review, act, then receive explicit feedback; preserve business drafts across device layouts.
