@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>POS — synthetic preview</title></head><body><div id="app"></div><script type="module">
+// Development-only preview: all storage writes stay in document-local memory.
+const memory=new Map();
+Object.defineProperty(window,'localStorage',{value:{getItem:key=>memory.get(key)??null,setItem:(key,value)=>memory.set(key,String(value)),removeItem:key=>memory.delete(key),clear:()=>memory.clear()}});
+const {createApp}=await import('vue');
+const {createPinia}=await import('pinia');
+const {usePosStore}=await import('/Greek_yokk/src/stores/posStore.js');
+const {default:App}=await import('/Greek_yokk/src/App.vue');
+await import('/Greek_yokk/src/assets/main.css');
+const app=createApp(App);const pinia=createPinia();app.use(pinia);
+const store=usePosStore(pinia);store.resetDemoData();store.gasApiUrl='';store.currentTab='pos';
+store.addToCart(store.menus[0],[],1);store.addToCart(store.menus[1],[],2);
+document.addEventListener('transitionrun',event=>{
+ if(event.propertyName!=='transform'||!event.target.classList.contains('dialog-frame-panel--drawer'))return;
+ const panel=event.target;
+ console.info('DRAWER_MOTION '+JSON.stringify({phase:panel.classList.contains('dialog-frame-enter-active')?'enter':'leave',classes:panel.className,transform:getComputedStyle(panel).transform,duration:getComputedStyle(panel).transitionDuration}));
+});
+app.mount('#app');
+</script></body></html>
