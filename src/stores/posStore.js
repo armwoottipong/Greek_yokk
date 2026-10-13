@@ -33,6 +33,7 @@ import {
 import {
   defineStore
 } from 'pinia'
+import { MATERIAL_KIND_OPTIONS, getMaterialKind, buildMaterialUsage } from '@/domain/materialClassification'
 import {
   DEFAULT_MATERIALS,
   DEFAULT_MENUS,
@@ -589,7 +590,10 @@ const posDefinition = {
           .join(', ')
       }
     },
-    // Category getters
+    materialKindOptions: () => MATERIAL_KIND_OPTIONS,
+    getMaterialKind: () => getMaterialKind,
+    materialUsageById: (state) => buildMaterialUsage(state),
+    // Legacy category fields are retained only for database compatibility.
     menuCategories: (state) => state.categories?.menu || [],
     materialCategories: (state) => state.categories?.material || [],
     addonCategories: (state) => state.categories?.addon || [],
@@ -633,12 +637,13 @@ const posDefinition = {
 
     // Main ingredients (ตักเสิร์ฟหน้าร้าน / เมนู)
     mainMaterials: (state) => {
-      return state.materials.filter(m => !m.isDeleted && !m.isSubIngredient)
+      return state.materials.filter(m => !m.isDeleted)
     },
 
     // Sub-ingredients (วัตถุดิบรอง สำหรับผลิต/หมักเบสโยเกิร์ต)
     subMaterials: (state) => {
-      return state.materials.filter(m => !m.isDeleted && Boolean(m.isSubIngredient))
+      const usage = buildMaterialUsage(state)
+      return state.materials.filter(m => !m.isDeleted && usage.get(m.id)?.production.length)
     },
 
     // Low stock materials
