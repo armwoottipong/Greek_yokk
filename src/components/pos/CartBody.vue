@@ -6,6 +6,7 @@
    <article v-for="(item,index) in store.cart" :key="index" :data-cart-item="index" class="cart-line">
     <div class="cart-line-title"><div><strong>{{ item.menu.name }}</strong><small>฿{{ money(menuPrice(item.menu,store.currentPlatformId)) }} / ชาม</small></div><b class="font-number">฿{{ money(itemPrice(item,store.currentPlatformId)) }}</b></div>
     <p v-if="item.isBackorder" class="cart-shortage">ของหมด · ยืนยันขายต่อ</p>
+    <p v-if="item.note" class="cart-item-note"><span>หมายเหตุ:</span> {{ item.note }}</p>
     <ul v-if="item.selectedAddons?.length" class="cart-addons"><li v-for="addon in item.selectedAddons" :key="addon.id">{{ addon.name }} <span>+฿{{ money(addonPrice(addon,store.currentPlatformId)) }}</span></li></ul>
     <div class="cart-line-actions"><div class="cart-quantity"><IconButton :label="'ลดจำนวน '+item.menu.name" :disabled="busy||item.qty<=1" @click="store.updateCartQty(index,item.qty-1)"><Minus :size="16" aria-hidden="true"/></IconButton><span class="font-number" :aria-label="'จำนวน '+item.menu.name">{{ item.qty }}</span><IconButton :label="'เพิ่มจำนวน '+item.menu.name" :disabled="busy" @click="store.updateCartQty(index,item.qty+1)"><Plus :size="16" aria-hidden="true"/></IconButton></div><Button variant="quiet" size="compact" :aria-label="'ลบ '+item.menu.name+' จากตะกร้า'" :disabled="busy" @click="store.removeFromCart(index)">ลบ</Button></div>
    </article>
@@ -43,6 +44,7 @@ async function clearCart(){
 }
 </script>
 <style scoped>
+.cart-item-note{margin-top:10px;padding:10px 12px;background:var(--bg-soft);border-radius:10px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text-main)}.cart-item-note>span{font-weight:500}
 .cart-body{display:grid;gap:20px;font-size:.8125rem}.cart-empty{padding:48px 12px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;color:var(--text-muted)}.cart-empty img{object-fit:contain;margin-bottom:8px}.cart-empty strong{font-size:.9375rem;color:var(--text-main)}.cart-empty p{font-size:.8125rem;line-height:1.8}
 .cart-list-heading,.cart-line-title,.cart-line-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.cart-list-heading{color:var(--text-muted)}.cart-line{padding-bottom:16px;border-bottom:1px solid var(--border-subtle);min-width:0}.cart-line-title{align-items:flex-start}.cart-line-title>div{min-width:0}.cart-line-title strong{display:block;font-weight:500;overflow-wrap:anywhere;line-height:1.6}.cart-line-title small{display:block;color:var(--text-muted);font-size:.75rem;margin-top:3px}.cart-line-title>b{white-space:nowrap;font-size:.875rem}
 .cart-quantity{display:flex;align-items:center;gap:4px;background:var(--bg-soft);border-radius:12px}.cart-quantity>span{min-width:28px;text-align:center}.cart-quantity :deep(.ui-button){background:transparent}.cart-line-actions{margin-top:12px}.cart-addons{font-size:.75rem;color:var(--text-muted);margin-top:8px;display:grid;gap:4px}.cart-addons li{display:flex;justify-content:space-between;gap:8px}.cart-shortage{color:var(--state-warning);font-size:.75rem;margin-top:5px}

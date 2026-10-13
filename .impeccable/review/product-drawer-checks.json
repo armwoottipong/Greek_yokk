@@ -1,0 +1,18 @@
+[
+  {
+    "documentWidth": 390,
+    "drawerWidth": 390,
+    "noteOutline": "none",
+    "viewport": 390
+  },
+  {
+    "documentWidth": 320,
+    "drawerWidth": 320,
+    "viewport": 320
+  },
+  {
+    "documentWidth": 820,
+    "drawerWidth": 520,
+    "viewport": 820
+  }
+]

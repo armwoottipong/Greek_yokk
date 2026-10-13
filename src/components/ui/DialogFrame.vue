@@ -1,6 +1,6 @@
 <template>
  <Teleport to="body" :disabled="!teleport">
-  <ModalShell :id="id" :open="present" :initial-focus="initialFocus" :labelled-by="`${id}-title`" class="dialog-frame-shell" :style="viewportStyle" @request-close="requestClose">
+  <ModalShell :id="id" :open="present" :initial-focus="initialFocus" :labelled-by="`${id}-title`" class="dialog-frame-shell" :class="{'dialog-frame-shell--drawer':presentation==='drawer'}" :style="viewportStyle" @request-close="requestClose">
    <Transition name="dialog-frame" @after-leave="finishLeave">
     <section v-if="open" class="dialog-frame-panel" :class="`dialog-frame-panel--${presentation}`" :aria-busy="busy||undefined">
      <header class="dialog-frame-header"><slot name="header"><div><h3 :id="`${id}-title`">{{ title }}</h3><p v-if="description">{{ description }}</p></div></slot><IconButton label="ปิดหน้าต่าง" :disabled="busy" @click="requestClose"><X aria-hidden="true" /></IconButton></header>
@@ -35,7 +35,11 @@ const viewportStyle=computed(()=>({'--dialog-viewport-height':`${viewport.value.
 .dialog-frame-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:24px 24px 12px;border:0;flex-shrink:0}.dialog-frame-header h3{font-size:1.125rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere}.dialog-frame-header p{font-size:.8125rem;color:var(--text-muted);margin-top:6px;line-height:1.7}.dialog-frame-header>div{min-width:0}.dialog-frame-header :deep(.ui-icon-button){background:var(--bg-soft);border-radius:12px;color:var(--text-muted)}
 .dialog-frame-body{min-height:0;overflow:auto;overscroll-behavior:contain;padding:24px;overflow-wrap:anywhere;font-size:.875rem}.dialog-frame-footer{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:16px 24px max(16px,env(safe-area-inset-bottom));border-top:1px solid transparent;flex-shrink:0;background:var(--bg-soft)}
 .dialog-frame-panel--panel{align-self:stretch;margin-left:auto;width:min(100%,480px);max-height:100%;border-radius:24px 0 0 24px}
+.dialog-frame-shell--drawer{padding:0;justify-content:flex-end}.dialog-frame-panel--drawer{width:min(100%,var(--dialog-width));height:100%;max-height:100%;border-radius:24px 0 0 24px}.dialog-frame-panel--drawer .dialog-frame-header{padding-bottom:16px}.dialog-frame-panel--drawer .dialog-frame-body{padding-top:8px}
+@media(max-width:767px){.dialog-frame-shell.dialog-frame-shell--drawer{padding:0;align-items:flex-end}.dialog-frame-panel.dialog-frame-panel--drawer{width:100%;height:auto;max-height:calc(var(--dialog-viewport-height) - 12px);border-radius:24px 24px 0 0;min-height:min(680px,calc(var(--dialog-viewport-height) - 12px))}}
 @media(max-width:767px){.dialog-frame-shell{padding:8px}.dialog-frame-panel{max-height:calc(var(--dialog-viewport-height) - 16px);border-radius:20px}.dialog-frame-header{padding:16px}.dialog-frame-body{padding:16px}.dialog-frame-footer{padding:12px 16px max(12px,env(safe-area-inset-bottom));flex-wrap:wrap}.dialog-frame-panel--sheet{align-self:flex-end;border-radius:24px 24px 0 0;max-height:calc(var(--dialog-viewport-height) - 24px)}.dialog-frame-panel--panel{border-radius:20px}}
 @media(prefers-reduced-motion:no-preference){.dialog-frame-enter-active{transition:opacity 200ms ease,transform 200ms cubic-bezier(.2,.8,.3,1)}.dialog-frame-leave-active{transition:opacity 160ms ease,transform 160ms ease}.dialog-frame-enter-from,.dialog-frame-leave-to{opacity:0;transform:translateY(12px)}}
+@media(prefers-reduced-motion:no-preference) and (min-width:768px){.dialog-frame-panel--drawer.dialog-frame-enter-from,.dialog-frame-panel--drawer.dialog-frame-leave-to{transform:translateX(100%)}}
+@media(prefers-reduced-motion:no-preference) and (max-width:767px){.dialog-frame-panel--drawer.dialog-frame-enter-from,.dialog-frame-panel--drawer.dialog-frame-leave-to{transform:translateY(100%)}}
 </style>
 

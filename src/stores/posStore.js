@@ -2736,7 +2736,7 @@ const posDefinition = {
       }
     },
 
-    addToCart(menu, selectedAddons = [], qty = 1, forceConfirm = false) {
+    addToCart(menu, selectedAddons = [], qty = 1, forceConfirm = false, note = '') {
       const stockCheck = this.checkStockAvailability(menu, selectedAddons, qty)
       if (stockCheck.outOfStockList.some(i => i.code !== 'SHORTAGE')) {
         this.showToast('ไม่สามารถขาย: วัตถุดิบหมดอายุ ถูกจัดเก็บ หรือสูตรไม่ถูกต้อง', 'error');
@@ -2756,7 +2756,7 @@ const posDefinition = {
           })),
           onConfirm: () => {
             this.modals.lowStockWarning.isOpen = false
-            this.executeAddToCart(menu, selectedAddons, qty, true)
+            this.executeAddToCart(menu, selectedAddons, qty, true, note)
           }
         }
         return false
@@ -2772,25 +2772,26 @@ const posDefinition = {
           warningItems: stockCheck.lowStockList,
           onConfirm: () => {
             this.modals.lowStockWarning.isOpen = false
-            this.executeAddToCart(menu, selectedAddons, qty, false)
+            this.executeAddToCart(menu, selectedAddons, qty, false, note)
           }
         }
         return false
       }
 
-      this.executeAddToCart(menu, selectedAddons, qty, false)
+      this.executeAddToCart(menu, selectedAddons, qty, false, note)
       return true
     },
 
-    executeAddToCart(menu, selectedAddons = [], qty = 1, isBackorder = false) {
+    executeAddToCart(menu, selectedAddons = [], qty = 1, isBackorder = false, note = '') {
       const plat = this.currentPlatform
       const basePrice = (menu.prices && menu.prices[plat.id] !== undefined) ?
         Number(menu.prices[plat.id]) :
         0
 
-      // Match item in cart with same menu and exact same add-ons
+      // Different preparation notes must remain separate order lines.
+      const itemNote = String(note || '').trim()
       const addonKey = selectedAddons.map(a => a.id).sort().join(',')
-      const existingIdx = this.cart.findIndex(i => i.menu.id === menu.id && i.addonKey === addonKey)
+      const existingIdx = this.cart.findIndex(i => i.menu.id === menu.id && i.addonKey === addonKey && (i.note || '') === itemNote)
 
       if (existingIdx >= 0) {
         this.cart[existingIdx].qty += qty
@@ -2800,6 +2801,7 @@ const posDefinition = {
           menu: clone(menu),
           selectedAddons: clone(selectedAddons),
           addonKey,
+          note: itemNote,
           qty,
           basePrice,
           isBackorder
@@ -3006,6 +3008,7 @@ const posDefinition = {
         return {
           menuId: item.menu.id,
           menuName: item.menu.name,
+          note: item.note || '',
           qty: item.qty,
           unitPrice: price,
           totalPrice: price * item.qty,

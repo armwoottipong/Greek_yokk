@@ -1,21 +1,23 @@
 <template>
- <button type="button" :data-pos-menu="menu.id" class="pos-menu-card" :class="{'is-out-of-stock':outOfStock}" :aria-label="'เลือก '+menu.name+' ราคา ฿'+money(price)" @click="$emit('select',menu.id)">
+ <button type="button" :data-pos-menu="menu.id" class="pos-menu-card" :class="{'is-out-of-stock':outOfStock,'has-cart-quantity':cartQuantity>0}" :aria-label="'เลือก '+menu.name+' ราคา ฿'+money(price)+(cartQuantity?' ในตะกร้า '+cartQuantity+' ชิ้น':'')" @click="$emit('select',menu.id)">
   <span class="pos-menu-art" aria-hidden="true">{{ menu.emoji }}</span>
   <h4>{{ menu.name }}</h4>
   <p v-if="menu.description">{{ menu.description }}</p>
   <span v-if="outOfStock" class="pos-menu-state">ของหมด · ยืนยันขายต่อได้</span>
   <span v-else-if="menu.hasAddons" class="pos-menu-state">เลือกท็อปปิ้งได้</span>
-  <span class="pos-menu-price"><strong class="font-number">฿{{ money(price) }}</strong><span>{{ menu.hasAddons?'เลือกท็อปปิ้ง':'เพิ่มลงตะกร้า' }}<Plus :size="15" aria-hidden="true"/></span></span>
+  <span class="pos-menu-price"><strong class="font-number">฿{{ money(price) }}</strong><span v-if="!cartQuantity">เลือกสินค้า<Plus :size="15" aria-hidden="true"/></span></span>
+  <span v-if="cartQuantity" data-menu-cart-count class="pos-menu-cart-count font-number" aria-hidden="true">{{ cartQuantity }}</span>
  </button>
 </template>
 <script setup>
 import {money} from '@/domain/dashboard'
 import {Plus} from 'lucide-vue-next'
-defineProps({menu:{type:Object,required:true},price:{type:Number,default:0},outOfStock:Boolean})
+defineProps({menu:{type:Object,required:true},price:{type:Number,default:0},cartQuantity:{type:Number,default:0},outOfStock:Boolean})
 defineEmits(['select'])
 </script>
 <style scoped>
-.pos-menu-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;min-height:228px;padding:18px;border:0;border-radius:var(--surface-radius);background:var(--bg-card);text-align:left;cursor:pointer;color:var(--text-main)}
+.pos-menu-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;min-height:228px;padding:18px;border:0;border-radius:var(--surface-radius);background:var(--bg-card);text-align:left;cursor:pointer;color:var(--text-main)}
+.pos-menu-cart-count{position:absolute;right:12px;bottom:12px;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--accent-brand);color:var(--bg-card);font-size:.8125rem;font-weight:600}.has-cart-quantity .pos-menu-price{padding-right:42px;min-height:42px}
 .pos-menu-art{font-size:40px;display:grid;place-items:center;width:100%;height:76px;background:var(--bg-primary);border-radius:12px;flex-shrink:0;margin-bottom:4px}
 .pos-menu-card h4{font-size:.875rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere}.pos-menu-card p{font-size:.75rem;line-height:1.6;color:var(--text-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pos-menu-state{font-size:.75rem;color:var(--text-muted);line-height:1.5}.is-out-of-stock .pos-menu-state{color:var(--state-warning)}.is-out-of-stock{background:#FFFBEB}

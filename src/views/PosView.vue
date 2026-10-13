@@ -1,6 +1,6 @@
 <template>
   <div ref="workspace" class="pos-workspace" :class="{'is-split':split}">
-    <PosCatalog :menus="filteredMenus" :platforms="store.platforms" :platform-id="store.currentPlatformId" v-model:search="searchQuery" :price-for="getMenuPrice" :unavailable-for="isMenuOutOfStock" @platform="store.setPlatform($event)" @select-menu="selectMenu" />
+    <PosCatalog :menus="filteredMenus" :platforms="store.platforms" :platform-id="store.currentPlatformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :price-for="getMenuPrice" :unavailable-for="isMenuOutOfStock" @platform="store.setPlatform($event)" @select-menu="selectMenu" />
 
     <CartPanel :presentation="split?'panel':'sheet'" :open="cartOpen" :checkout-pending="checkoutPending" @request-close="cartOpen=false" @checkout="handleCheckout" @switch-lot="handleSwitchLot"/>
     <CartReviewBar v-if="!split" :quantity="cartQuantity" :subtotal="Number(cartSummary.subtotal)" :open="cartOpen" @open="cartOpen=true"/>
@@ -20,6 +20,7 @@ const workspace=ref(null),width=useElementWidth(workspace)
 const split=computed(()=>width.value>=696)
 const cartOpen=ref(false),checkoutPending=ref(false)
 const cartQuantity=computed(()=>store.cart.reduce((n,item)=>n+item.qty,0))
+const cartQuantities=computed(()=>store.cart.reduce((counts,item)=>{counts[item.menu.id]=(counts[item.menu.id]||0)+item.qty;return counts},{}))
 watch(split,value=>{if(value)cartOpen.value=false})
 function selectMenu(id){const menu=store.menus.find(m=>m.id===id);if(menu)handleMenuClick(menu)}
 
@@ -46,11 +47,7 @@ function isMenuOutOfStock(menu) {
 }
 
 function handleMenuClick(menu) {
-  if (menu.hasAddons) {
-    store.modals.customOrder = { isOpen: true, menuId: menu.id }
-  } else {
-    store.addToCart(menu, [], 1)
-  }
+  store.modals.customOrder = { isOpen: true, menuId: menu.id }
 }
 
 async function handleSwitchLot(w) {

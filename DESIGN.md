@@ -223,9 +223,15 @@ AppChoiceGroup preserves its checkmark and switch variants and adds the reusable
 
 POS payment uses this variant with QR / PromptPay, เงินสด / Cash and Platform / Delivery labels. Stored payment values remain QR PromptPay, เงินสด and Platform Delivery. Checkout retains its 52px minimum height.
 
-### Packaging Review
+### POS Product Drawer
+
+Every menu opens the shared DialogFrame drawer: right side at 768px+, 520px width; full-width bottom drawer on phones. Header stays named, the body scrolls through the existing product emoji/name/description, price, optional topping rows and item note, while quantity and add action stay in the footer. Item notes use the popup fill without borders or outlines. Notes are trimmed, merge only with matching menu/addons/notes, and survive stock-warning confirmation, order saving and receipt printing. Whole-order notes retain their separate scope. Each menu card shows its total cart quantity in a 36px burgundy circle at bottom-right, including the count in its accessible name; zero quantities hide the circle.
+
+### Search Fields
 
 All search fields use native type="search" and one shared rule in main.css: no outline or box-shadow at rest, focus or focus-visible. Soft search fields keep their resting fill when focused. Stocktake search wrappers also keep their resting border without a focus-within ring. This follows the user's explicit search styling preference and preserves text entry and filtering. Browser evidence in search-no-focus-checks.json covers POS, menus, Add-on, stock, stocktake and activity history with focus=true and outline/box-shadow=none; the emoji search uses the same rule. Sixteen related tests, lint and build passed.
+
+### Packaging Review
 
 The cart shows the heading บรรจุภัณฑ์, a packaging-item count and its shared review Button; individual package names and quantities remain in the popup. PackageReviewModal uses AppSelect for adding packaging and choosing adjustment reasons, FormField for every field, StatusBadge for the effective quantity and Button for actions. Recipe sources sit in a disclosure. Each row places save/reset actions below its fields; numeric quantity and conditional note inputs keep the shared filled popup treatment. Shared AppQuantityInput uses existing 44px IconButtons to step by 1, clamps at zero and allows direct fractional entry; edits remain drafts until saved. Rows use spacing and separators; quantity/reason fields stack below 520px.
 

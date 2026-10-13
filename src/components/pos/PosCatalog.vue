@@ -7,7 +7,7 @@
   </div>
   <p class="pos-channel-context">{{ selectedPlatform?.gpPercent ? 'ค่าธรรมเนียมช่องทาง '+selectedPlatform.gpPercent+'%' : selectedPlatform ? 'ไม่มีค่าธรรมเนียมช่องทาง' : 'เลือกช่องทางขายก่อนเริ่มออเดอร์' }}</p>
   <div class="pos-catalog-scroll">
-   <div v-if="menus.length" class="pos-menu-grid"><PosMenuCard v-for="menu in menus" :key="menu.id" :menu="menu" :price="priceFor(menu)" :out-of-stock="unavailableFor(menu)" @select="$emit('select-menu',$event)"/></div>
+   <div v-if="menus.length" class="pos-menu-grid"><PosMenuCard v-for="menu in menus" :key="menu.id" :menu="menu" :price="priceFor(menu)" :cart-quantity="cartQuantities[menu.id]||0" :out-of-stock="unavailableFor(menu)" @select="$emit('select-menu',$event)"/></div>
    <div v-else class="interface-empty"><Search :size="28" aria-hidden="true"/><strong>{{ search ? 'ไม่พบเมนู' : 'ยังไม่มีเมนูพร้อมขาย' }}</strong><p>{{ search ? 'ลองค้นหาด้วยชื่อเมนูหรือรายละเอียดอื่น' : 'เพิ่มเมนูและตั้งราคาในหน้าจัดการเมนูก่อนเริ่มขาย' }}</p><Button v-if="search" variant="secondary" @click="$emit('update:search','')">แสดงเมนูทั้งหมด</Button></div>
   </div>
  </section>
@@ -18,7 +18,7 @@ import {Search} from 'lucide-vue-next'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import Button from '@/components/ui/Button.vue'
 import PosMenuCard from './PosMenuCard.vue'
-const props=defineProps({menus:{type:Array,required:true},platforms:{type:Array,required:true},platformId:String,search:String,priceFor:{type:Function,required:true},unavailableFor:{type:Function,required:true}})
+const props=defineProps({menus:{type:Array,required:true},platforms:{type:Array,required:true},cartQuantities:{type:Object,default:()=>({})},platformId:String,search:String,priceFor:{type:Function,required:true},unavailableFor:{type:Function,required:true}})
 defineEmits(['update:search','platform','select-menu'])
 const selectedPlatform=computed(()=>props.platforms.find(p=>p.id===props.platformId))
 </script>

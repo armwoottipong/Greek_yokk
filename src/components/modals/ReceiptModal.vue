@@ -39,6 +39,7 @@
               <span class="font-number shrink-0">฿{{ item.totalPrice }}</span>
             </div>
             <!-- Addons -->
+            <p v-if="item.note" class="receipt-item-note">หมายเหตุ: {{ item.note }}</p>
             <div v-if="item.selectedAddons && item.selectedAddons.length > 0" class="pl-3 text-[10px] text-stone-500 space-y-0.5">
               <div v-for="addon in item.selectedAddons" :key="addon.id" class="flex justify-between">
                 <span>+ {{ addon.name }}</span>
@@ -130,6 +131,7 @@ function printReceipt() {
 }
 </script>
 <style scoped>
+.receipt-item-note{font-size:.75rem;color:var(--text-muted);white-space:pre-wrap;overflow-wrap:anywhere}
 .receipt-paper{font-family:inherit;font-size:.8125rem;line-height:1.8;color:var(--text-main);background:var(--bg-card)}.receipt-paper :deep(.text-\[10px\]),.receipt-paper :deep(.text-\[9px\]){font-size:.75rem}.receipt-paper :deep(.text-stone-400),.receipt-paper :deep(.text-stone-500){color:var(--text-muted)}.receipt-paper :deep(.flex.justify-between){gap:12px;overflow-wrap:anywhere}.receipt-paper :deep(.font-number){font-variant-numeric:tabular-nums;white-space:nowrap}.receipt-item-name{flex:1;min-width:0;overflow-wrap:anywhere}.receipt-actions{display:flex;justify-content:space-between;gap:12px;width:100%}.receipt-actions>button{min-height:48px;font-size:.8125rem;justify-content:center}.receipt-actions>button:last-child{flex:1}
 @media print{.receipt-paper{font-size:12px;background:white}.receipt-paper :deep(.text-\[10px\]),.receipt-paper :deep(.text-\[9px\]){font-size:10px}}
 </style>
