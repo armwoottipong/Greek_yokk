@@ -32,29 +32,6 @@
           </div>
         </div>
 
-        <!-- Row 2: Category -->
-        <div>
-          <label class="block text-xs font-medium text-stone-700 mb-1.5">หมวดหมู่ Add-on</label>
-          <AppSelect aria-label="หมวดหมู่"
-            v-model="form.category"
-            class="w-full"
-          >
-            <option
-              v-for="cat in store.addonCategories"
-              :key="cat.id"
-              :value="cat.name"
-            >
-              {{ cat.icon || '✨' }} {{ cat.name }}
-            </option>
-            <option
-              v-if="form.category && !store.addonCategories.some(c => c.name === form.category)"
-              :value="form.category"
-            >
-              ✨ {{ form.category }}
-            </option>
-          </AppSelect>
-        </div>
-
         <!-- Row 3: Platform Prices (Compact capsules) -->
         <div class="space-y-1.5">
           <label class="block text-xs font-medium text-stone-700">ราคาบวกเพิ่มตามแต่ละ Platform (฿)</label>
@@ -133,6 +110,7 @@
 </template>
 
 <script setup>
+import {MATERIAL_KIND_OPTIONS, getMaterialKind} from '@/domain/materialClassification'
 import FormField from '@/components/ui/FormField.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
@@ -158,10 +136,10 @@ const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => form.valu
 
 const isEditing = computed(() => Boolean(store.modals.addonEdit.addonId))
 
-const materialGroups = computed(() => [
-  { type: 'ingredient', label: 'วัตถุดิบ' },
-  { type: 'packaging', label: 'บรรจุภัณฑ์' }
-].map(group => ({ ...group, materials: store.activeMaterials.filter(m => !m.isArchived && m.inventoryType === group.type) })))
+const materialGroups = computed(() => MATERIAL_KIND_OPTIONS.map(group => ({
+  type:group.id, label:group.label,
+  materials:store.activeMaterials.filter(m => !m.isArchived && getMaterialKind(m) === group.id)
+})))
 
 function isAvailableMaterial(id) {
   const material = store.matMap[id]
@@ -254,7 +232,6 @@ async function submit() {
   const result = store.saveAddon({
     id: form.value.id || undefined,
     name: form.value.name.trim(),
-    category: form.value.category,
     emoji: form.value.emoji || '🍓',
     prices: Object.fromEntries(Object.entries(form.value.prices).map(([id, value]) => [id, value === '' ? 0 : Number(value)])),
     recipe: form.value.recipe.map(row => ({ materialId: row.materialId, qty: Number(row.qty) }))

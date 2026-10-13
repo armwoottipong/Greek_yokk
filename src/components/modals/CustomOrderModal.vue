@@ -25,11 +25,10 @@
           </div>
 
           <!-- Grouped Add-ons -->
-          <div v-for="(group, catName) in groupedAddons" :key="catName" class="space-y-2">
-            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">{{ catName }}</div>
+          <div class="space-y-2">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button type="button" :aria-pressed="isAddonSelected(addon.id)"
-                v-for="addon in group"
+                v-for="addon in activeAddons"
                 :key="addon.id"
                 @click="toggleAddon(addon)"
                 :class="[
@@ -120,15 +119,7 @@ const selectedMenu = computed(() => {
   return menuId ? store.menus.find(m => m.id === menuId) : null
 })
 
-const groupedAddons = computed(() => {
-  const groups = {}
-  store.addons.filter(a => a.isActive !== false).forEach(addon => {
-    const cat = addon.category || 'ท็อปปิ้ง'
-    if (!groups[cat]) groups[cat] = []
-    groups[cat].push(addon)
-  })
-  return groups
-})
+const activeAddons = computed(() => store.addons.filter(a => a.isActive !== false))
 
 watch(() => store.modals.customOrder.isOpen, (open) => {
   if (open) {

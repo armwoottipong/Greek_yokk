@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-4">
-    <CatalogToolbar id="addon-catalog" label="Add-on" v-model:search="searchQuery" placeholder="ค้นหาชื่อ Add-on" :category="selectedCategory" :platform="displayPlatformId" :categories="addonFilterCategories" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddAddon" />
+    <CatalogToolbar id="addon-catalog" label="Add-on" v-model:search="searchQuery" placeholder="ค้นหาชื่อ Add-on" :platform="displayPlatformId" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddAddon" />
     <div class="adaptive-catalog-list"><AddonCard v-for="addon in filteredAddons" :key="addon.id" :addon="addon" :platforms="store.platforms" :selected-id="displayPlatformId" @details="detailAddonId=$event" @edit="editAddon" @delete="deleteAddon" /><p v-if="!filteredAddons.length" class="interface-empty">ไม่พบ Add-on ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div>
     <DialogFrame id="addon-details" title="รายละเอียด Add-on" :open="Boolean(detailAddonId)" presentation="sheet" @request-close="detailAddonId=null">
       <template v-if="detailAddon">
@@ -29,7 +29,6 @@
           <thead class="bg-stone-50/70 text-stone-400 font-medium border-b border-stone-100">
             <tr>
               <th class="py-3 px-4">ชื่อ Add-on</th>
-              <th class="py-3 px-4">หมวดหมู่</th>
               <th class="py-3 px-4">ราคาตามแต่ละ Platform</th>
               <th class="py-3 px-4">ผูกตัดวัตถุดิบในคลัง</th>
               <th class="py-3 px-4 text-center">จัดการ</th>
@@ -51,11 +50,6 @@
                 <span>{{ addon.name }}</span>
               </td>
 
-              <td class="py-3.5 px-4">
-                <span class="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-700 text-[11px] font-medium">
-                  {{ addon.category }}
-                </span>
-              </td>
 
               <td class="py-3.5 px-4">
                 <PlatformPriceSummary :prices="addon.prices||{}" :platforms="store.platforms" :selected-id="displayPlatformId" />
@@ -121,29 +115,14 @@ const detailRecipeGroups = computed(() => [
 }))
 const missingDetailRows = computed(() => (detailAddon.value?.recipe || []).filter(row => !store.matMap[row.materialId]))
 const searchQuery = ref('')
-const selectedCategory = ref('ทั้งหมด')
 const displayPlatformId=ref(store.platforms[0]?.id||'')
 watch(()=>store.platforms.map(p=>p.id),ids=>{if(!ids.includes(displayPlatformId.value))displayPlatformId.value=ids[0]||''})
-function applyCatalogFilters(values){selectedCategory.value=values.category;displayPlatformId.value=values.platform}
-const addonFilterCategories=computed(()=>[...new Set([...store.addonCategories.map(c=>c.name),...store.addons.map(a=>a.category)].filter(Boolean))])
-
-const otherAddonCategories = computed(() => {
-  const storeCatNames = store.addonCategories.map(c => c.name)
-  const others = new Set()
-  store.addons.forEach(a => {
-    if (a.category && !storeCatNames.includes(a.category)) {
-      others.add(a.category)
-    }
-  })
-  return Array.from(others)
-})
-
+function applyCatalogFilters(values){displayPlatformId.value=values.platform}
 const filteredAddons = computed(() => {
   return store.addons.filter(a => {
-    const matchCat = selectedCategory.value === 'ทั้งหมด' || a.category === selectedCategory.value
     const q = searchQuery.value.trim().toLowerCase()
     const matchQ = !q || a.name.toLowerCase().includes(q)
-    return matchCat && matchQ
+    return matchQ
   })
 })
 

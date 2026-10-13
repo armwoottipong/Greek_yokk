@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-4">
-    <CatalogToolbar id="menu-catalog" label="เมนู" v-model:search="searchQuery" placeholder="ค้นหาชื่อหรือคำอธิบายเมนู" :category="selectedCategory" :platform="displayPlatformId" :categories="categories" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddMenu" />
+    <CatalogToolbar id="menu-catalog" label="เมนู" v-model:search="searchQuery" placeholder="ค้นหาชื่อหรือคำอธิบายเมนู" :platform="displayPlatformId" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddMenu" />
     <div class="adaptive-catalog-list"><MenuCard v-for="menu in filteredMenus" :key="menu.id" :menu="menu" :platforms="store.platforms" :selected-id="displayPlatformId" @details="openBomModal" @edit="editMenu" @delete="deleteMenu" /><p v-if="!filteredMenus.length" class="interface-empty">ไม่พบเมนู ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div>
     <!-- Menus Management Table -->
     <div class="desktop-catalog-table editorial-card overflow-hidden">
@@ -9,7 +9,6 @@
           <thead class="bg-stone-50/70 text-stone-400 font-medium border-b border-stone-100">
             <tr>
               <th class="py-3 px-4">เมนู</th>
-              <th class="py-3 px-4">หมวดหมู่</th>
               <th class="py-3 px-4">ราคาตามแต่ละ Platform</th>
               <th class="py-3 px-4">สูตรวัตถุดิบ & บรรจุภัณฑ์ (BOM)</th>
               <th class="py-3 px-4 text-center">สิทธิ์</th>
@@ -18,7 +17,7 @@
           </thead>
           <tbody class="divide-y divide-stone-100">
             <tr v-if="filteredMenus.length === 0">
-              <td colspan="6" class="py-8 text-center text-stone-400 italic">
+              <td colspan="5" class="py-8 text-center text-stone-400 italic">
                 ไม่พบข้อมูลเมนูที่ค้นหา
               </td>
             </tr>
@@ -36,13 +35,6 @@
                     <div class="text-[10px] text-stone-400 truncate max-w-xs">{{ menu.description }}</div>
                   </div>
                 </div>
-              </td>
-
-              <!-- Category -->
-              <td class="py-3.5 px-4">
-                <span class="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-700 text-[11px] font-medium">
-                  {{ menu.category }}
-                </span>
               </td>
 
               <!-- Platform Prices -->
@@ -130,29 +122,20 @@ import { Search, Plus, Trash2, Eye, X, Edit3 } from 'lucide-vue-next'
 const store = usePosStore()
 
 const searchQuery = ref('')
-const selectedCategory = ref('ทั้งหมด')
 const displayPlatformId=ref(store.platforms[0]?.id||'')
 watch(()=>store.platforms.map(p=>p.id),ids=>{if(!ids.includes(displayPlatformId.value))displayPlatformId.value=ids[0]||''})
-function applyCatalogFilters(values){selectedCategory.value=values.category;displayPlatformId.value=values.platform}
+function applyCatalogFilters(values){displayPlatformId.value=values.platform}
 
 
 // BOM Modal State
 const isBomModalOpen = ref(false)
 const selectedMenuForBom = ref(null)
 
-const categories = computed(() => {
-  const set = new Set()
-  store.menuCategories.forEach(c => set.add(c.name))
-  store.menus.forEach(m => { if (m.category) set.add(m.category) })
-  return Array.from(set)
-})
-
 const filteredMenus = computed(() => {
   return store.menus.filter(m => {
-    const matchCat = selectedCategory.value === 'ทั้งหมด' || m.category === selectedCategory.value
     const q = searchQuery.value.trim().toLowerCase()
     const matchQ = !q || m.name.toLowerCase().includes(q) || (m.description || '').toLowerCase().includes(q)
-    return matchCat && matchQ
+    return matchQ
   })
 })
 

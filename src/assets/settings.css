@@ -37,17 +37,17 @@
 .settings-page .is-danger>button{background:var(--accent-soft);color:var(--accent-brand);border:1px solid var(--accent-border)}
 .settings-page .is-danger>button:hover{background:var(--accent-brand);color:var(--bg-card)}
 .settings-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 5px;color:var(--text-muted);font-size:10px}
-.settings-category-tabs{width:100%;background:var(--bg-soft);gap:4px}
-.settings-category-tabs button{flex:1;justify-content:center;min-height:38px;padding:8px;font-size:11px}
-.settings-category-form{padding:18px;background:var(--bg-soft);border:0}
-.settings-category-fields{flex-basis:100%;flex-wrap:wrap}.settings-category-fields input{min-width:0}.settings-category-fields input:first-of-type{flex:1;min-width:140px}
-.settings-category-list>div{background:var(--bg-soft);border-color:transparent;box-shadow:none;padding:16px}
+
+
+
+
+
 .settings-page input:not([type=file]){min-height:40px;min-width:0;background:var(--bg-card);border:1px solid var(--border-subtle)}.settings-page button{cursor:pointer}
 .settings-page button:disabled{cursor:not-allowed}
 .settings-page button:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px}
 .settings-nav-item[aria-pressed=true]:focus-visible{outline-offset:4px}
 @media(max-width:1000px){.settings-layout{grid-template-columns:185px minmax(0,1fr);gap:18px}.settings-local{display:none}.settings-reset-card{flex-wrap:wrap;gap:12px}.settings-reset-card>div{flex-basis:100%}.settings-backup-card{padding:20px}.settings-page [data-settings]{padding:22px}}
-@media(max-width:760px){.settings-page{gap:20px}.settings-intro h2{font-size:21px}.settings-layout{grid-template-columns:minmax(0,1fr);gap:18px}.settings-nav{grid-template-columns:repeat(2,minmax(0,1fr));position:static;gap:7px}.settings-nav-item{padding:12px;gap:9px;background:var(--bg-card)}.settings-nav-item strong{font-size:12px}.settings-nav-item small{font-size:9px}.settings-backup-actions{gap:12px}.settings-page [data-settings]{padding:20px}.settings-category-tabs button{flex-basis:100%;justify-content:space-between}.settings-footer{flex-wrap:wrap}}
-@media(max-width:440px){.settings-backup-actions{grid-template-columns:1fr}.settings-backup-card{gap:20px}.settings-page [data-settings]{padding:18px}.settings-page [data-settings]>div:first-child h3{font-size:15px}.settings-category-fields input{flex-basis:calc(100% - 48px)}.settings-category-fields input:last-child:not(:first-of-type){width:100%;flex-basis:100%}.settings-category-form>div:not(.settings-category-fields){flex-wrap:wrap}.settings-category-list{grid-template-columns:minmax(0,1fr)}.settings-reset-card>button{width:100%}}
+@media(max-width:760px){.settings-page{gap:20px}.settings-intro h2{font-size:21px}.settings-layout{grid-template-columns:minmax(0,1fr);gap:18px}.settings-nav{grid-template-columns:repeat(2,minmax(0,1fr));position:static;gap:7px}.settings-nav-item{padding:12px;gap:9px;background:var(--bg-card)}.settings-nav-item strong{font-size:12px}.settings-nav-item small{font-size:9px}.settings-backup-actions{gap:12px}.settings-page [data-settings]{padding:20px}.settings-footer{flex-wrap:wrap}}
+@media(max-width:440px){.settings-backup-actions{grid-template-columns:1fr}.settings-backup-card{gap:20px}.settings-page [data-settings]{padding:18px}.settings-page [data-settings]>div:first-child h3{font-size:15px}.settings-reset-card>button{width:100%}}
 @media(prefers-reduced-motion:no-preference){.settings-nav-item{transition:background-color 150ms ease,color 150ms ease}.settings-page button{transition:background-color 150ms ease}}
-.settings-page input:not([type=file]),.settings-page button{min-height:44px}.settings-category-list button:has(svg:only-child){min-width:44px}.settings-nav-item small{font-size:11px}.settings-page .soft-input{font-size:14px}@media(min-width:768px) and (max-width:1199px){.settings-layout{grid-template-columns:minmax(0,1fr)}.settings-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:static}.settings-nav-item{padding:12px 8px;flex-direction:column;align-items:flex-start}.settings-nav-item small{display:none}.settings-nav-item strong{font-size:12px}}
+.settings-page input:not([type=file]),.settings-page button{min-height:44px}.settings-nav-item small{font-size:11px}.settings-page .soft-input{font-size:14px}@media(min-width:768px) and (max-width:1199px){.settings-layout{grid-template-columns:minmax(0,1fr)}.settings-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:static}.settings-nav-item{padding:12px 8px;flex-direction:column;align-items:flex-start}.settings-nav-item small{display:none}.settings-nav-item strong{font-size:12px}}

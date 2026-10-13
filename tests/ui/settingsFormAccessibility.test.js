@@ -2,12 +2,13 @@ import {it,expect,vi} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore} from '../helpers/createStore'
 import Settings from '../../src/views/SettingsView.vue'
-it('names category actions with context and confirms deletion in the app',async()=>{
- const store=createTestStore();store.resetDemoData();store.categories.menu.push({id:'UNUSED',name:'Unused'})
- const confirm=vi.spyOn(store,'confirmDialog').mockResolvedValue(false),remove=vi.spyOn(store,'deleteCategory')
- const w=mount(Settings);await w.get('button[aria-controls="settings-categories"]').trigger('click')
- expect(w.find('button[aria-label="แก้ไขหมวดหมู่ Unused"]').exists()).toBe(true)
- await w.vm.handleDeleteCategory('menu',{id:'UNUSED',name:'Unused'});expect(confirm).toHaveBeenCalledOnce();expect(remove).not.toHaveBeenCalled();w.unmount()
+it('names the remaining settings destinations and omits category actions',async()=>{
+ const store=createTestStore();const before=JSON.stringify(store.categories)
+ const w=mount(Settings)
+ expect(w.find('button[aria-controls="settings-categories"]').exists()).toBe(false)
+ await w.get('button[aria-controls="settings-platforms"]').trigger('click')
+ expect(w.get('[data-settings="platforms"]').isVisible()).toBe(true)
+ expect(JSON.stringify(store.categories)).toBe(before);w.unmount()
 })
 it('does not report saving a URL as successful sync and makes retry explicit',async()=>{
  const store=createTestStore();const w=mount(Settings)

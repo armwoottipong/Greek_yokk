@@ -35,7 +35,8 @@ it.each([true,false])('groups recipes by saved type and preserves save payload w
  expect(w.vm.packagingMaterials.map(m=>m.id)).toEqual(['PACK'])
  await w.vm.submit()
  const payload=save.mock.calls[0][0]
- expect(payload).toMatchObject({name:'ทดสอบสูตร',category:'Classic Bowls',emoji:'🥣',description:'สูตรเดิม',hasAddons:false,hasPackage,recipe:hasPackage?[{materialId:'FOOD',qty:12.5},{materialId:'PACK',qty:2}]:[{materialId:'FOOD',qty:12.5}]})
+ expect(payload).toMatchObject({name:'ทดสอบสูตร',emoji:'🥣',description:'สูตรเดิม',hasAddons:false,hasPackage,recipe:hasPackage?[{materialId:'FOOD',qty:12.5},{materialId:'PACK',qty:2}]:[{materialId:'FOOD',qty:12.5}]})
+ expect(store.menus[0].category).toBe('Classic Bowls')
  expect(payload.prices[store.platforms[0].id]).toBe(125)
  w.unmount()
 })

@@ -14,7 +14,7 @@ import FilterDropdown from '../ui/FilterDropdown.vue'
 const props=defineProps({id:String,label:String,search:String,placeholder:String,category:String,platform:String,categories:Array,platforms:Array})
 defineEmits(['update:search','apply-filters','add'])
 const open=ref(false),anchor=ref(null)
-const fields=computed(()=>[{key:'category',label:'หมวดหมู่',defaultValue:'ทั้งหมด',options:[{id:'ทั้งหมด',label:'ทุกหมวดหมู่'},...(props.categories||[]).map(c=>({id:c,label:c}))]},{key:'platform',label:'ช่องทางที่แสดงราคา',defaultValue:props.platforms?.[0]?.id||'',options:(props.platforms||[]).map(p=>({id:p.id,label:p.name}))}])
+const fields=computed(()=>[...(props.categories?.length ? [{key:'category',label:'หมวดหมู่',defaultValue:'ทั้งหมด',options:[{id:'ทั้งหมด',label:'ทุกหมวดหมู่'},...(props.categories||[]).map(c=>({id:c,label:c}))]}] : []),{key:'platform',label:'ช่องทางที่แสดงราคา',defaultValue:props.platforms?.[0]?.id||'',options:(props.platforms||[]).map(p=>({id:p.id,label:p.name}))}])
 </script>
 <style scoped>
 .catalog-toolbar{display:flex;align-items:center;gap:10px;min-width:0}.catalog-toolbar input{flex:1;min-width:0;max-width:520px;min-height:44px;border:1px solid var(--border-subtle);border-radius:var(--control-radius);background:var(--bg-card);padding:10px 14px;font-size:14px}.catalog-toolbar input:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}.catalog-toolbar .ui-button{flex-shrink:0}@media(max-width:639px){.catalog-toolbar{flex-wrap:wrap}.catalog-toolbar input{flex-basis:100%;max-width:none}.catalog-toolbar .ui-button{flex:1}}

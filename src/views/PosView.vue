@@ -1,6 +1,6 @@
 <template>
   <div ref="workspace" class="pos-workspace" :class="{'is-split':split}">
-    <PosCatalog :menus="filteredMenus" :platforms="store.platforms" :platform-id="store.currentPlatformId" v-model:search="searchQuery" v-model:category="activeCategory" :categories="categories" :price-for="getMenuPrice" :unavailable-for="isMenuOutOfStock" @platform="store.setPlatform($event)" @select-menu="selectMenu" />
+    <PosCatalog :menus="filteredMenus" :platforms="store.platforms" :platform-id="store.currentPlatformId" v-model:search="searchQuery" :price-for="getMenuPrice" :unavailable-for="isMenuOutOfStock" @platform="store.setPlatform($event)" @select-menu="selectMenu" />
 
     <CartPanel :presentation="split?'panel':'sheet'" :open="cartOpen" :checkout-pending="checkoutPending" @request-close="cartOpen=false" @checkout="handleCheckout" @switch-lot="handleSwitchLot"/>
     <CartReviewBar v-if="!split" :quantity="cartQuantity" :subtotal="Number(cartSummary.subtotal)" :open="cartOpen" @open="cartOpen=true"/>
@@ -24,22 +24,12 @@ watch(split,value=>{if(value)cartOpen.value=false})
 function selectMenu(id){const menu=store.menus.find(m=>m.id===id);if(menu)handleMenuClick(menu)}
 
 const searchQuery = ref('')
-const activeCategory = ref('ทั้งหมด')
-
-const categories = computed(() => {
-  const set = new Set(['ทั้งหมด'])
-  store.menuCategories.forEach(c => set.add(c.name))
-  store.menus.forEach(m => { if (m.category) set.add(m.category) })
-  return Array.from(set)
-})
-
 const filteredMenus = computed(() => {
   return store.menus.filter(m => {
     if (m.isActive === false) return false
-    const matchCat = activeCategory.value === 'ทั้งหมด' || m.category === activeCategory.value
     const q = searchQuery.value.trim().toLowerCase()
     const matchQ = !q || m.name.toLowerCase().includes(q) || (m.description || '').toLowerCase().includes(q)
-    return matchCat && matchQ
+    return matchQ
   })
 })
 

@@ -33,7 +33,7 @@ import {
 import {
   defineStore
 } from 'pinia'
-import { MATERIAL_KIND_OPTIONS, getMaterialKind, buildMaterialUsage } from '@/domain/materialClassification'
+import { MATERIAL_KIND_OPTIONS, getMaterialKind, getMaterialKindLabel, buildMaterialUsage } from '@/domain/materialClassification'
 import { validateLotDates } from '@/domain/lotDates'
 import {
   DEFAULT_MATERIALS,
@@ -810,7 +810,7 @@ const posDefinition = {
     inventoryValuationByCategory: (state) => {
       const breakdown = {}
       state.materials.filter(m => !m.isDeleted).forEach(m => {
-        const cat = m.category || 'อื่นๆ'
+        const cat = getMaterialKindLabel(m)
         if (!breakdown[cat]) {
           breakdown[cat] = {
             category: cat,
@@ -2090,8 +2090,8 @@ const posDefinition = {
         const activeLot = mat.lots.find(l => l.isInUse && l.qty > 0 && !isExpired(l)) || mat.lots.find(l =>
           l.qty > 0) || mat.lots[0]
         if (activeLot) {
-          if (activeLot.receiveDate) mat.lastStockInDate = activeLot.receiveDate
-          if (activeLot.expiryDate) mat.expiryDate = activeLot.expiryDate
+          mat.lastStockInDate = activeLot.receiveDate || null
+          mat.expiryDate = activeLot.expiryDate || null
         }
       }
 

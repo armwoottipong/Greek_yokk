@@ -33,35 +33,7 @@
           </div>
         </div>
 
-        <!-- Section 2: Category & Description -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">หมวดหมู่</label>
-            <div class="relative">
-              <input aria-label="หมวดหมู่"
-                v-model="form.category"
-                type="text"
-                list="menu-categories-list"
-                placeholder="Classic Bowls"
-                class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-              />
-              <datalist id="menu-categories-list">
-                <option v-for="cat in store.menuCategories" :key="cat.id" :value="cat.name" />
-              </datalist>
-            </div>
-            <div class="flex items-center gap-1.5 mt-1.5 overflow-x-auto no-scrollbar">
-              <button
-                v-for="cat in store.menuCategories"
-                :key="cat.id"
-                type="button"
-                @click="form.category = cat.name"
-                class="px-2 py-0.5 rounded-md bg-[#FBF5EA] hover:bg-[#F4EBDD] text-[10px] text-stone-500 hover:text-stone-900 transition-colors flex items-center gap-1 shrink-0"
-              >
-                <span>{{ cat.icon }}</span>
-                <span>{{ cat.name }}</span>
-              </button>
-            </div>
-          </div>
+        <div>
           <div>
             <label class="block text-xs font-medium text-stone-700 mb-1.5">คำอธิบายสั้น</label>
             <input aria-label="คำอธิบายเมนู"
@@ -307,6 +279,7 @@
 </template>
 
 <script setup>
+import {getMaterialKindLabel} from '@/domain/materialClassification'
 import FormField from '@/components/ui/FormField.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
@@ -345,7 +318,7 @@ const recipeMaterialsByCategory = computed(() => {
   const nonPkgs = store.activeMaterials.filter(m => m.inventoryType === 'ingredient')
   const groups = {}
   nonPkgs.forEach(m => {
-    const cat = m.category || 'วัตถุดิบอื่นๆ'
+    const cat = getMaterialKindLabel(m)
     if (!groups[cat]) groups[cat] = []
     groups[cat].push(m)
   })
@@ -512,7 +485,6 @@ async function submit() {
   const result = store.saveMenu({
     id: form.value.id || undefined,
     name: form.value.name.trim(),
-    category: form.value.category.trim() || 'Classic Bowls',
     emoji: form.value.emoji || '🥣',
     description: form.value.description.trim(),
     prices: Object.fromEntries(Object.entries(form.value.prices).map(([id, value]) => [id, value === '' ? 0 : Number(value)])),
