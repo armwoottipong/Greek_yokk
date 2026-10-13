@@ -15,6 +15,27 @@ function setup(){
  return store
 }
 
+it('steps packaging quantities without going below zero and saves only on confirmation',async()=>{
+ const store=setup(),w=mount(PackageReviewModal,{attachTo:document.body})
+ try{
+  await flushPromises();const qty=w.get('[aria-label="จำนวนถ้วยเล็ก"]')
+  await w.get('[aria-label="เพิ่มจำนวนถ้วยเล็ก"]').trigger('click')
+  expect(qty.element.value).toBe('3');expect(store.packageAdjustments).toEqual([])
+  await w.get('[aria-label="ลดจำนวนถ้วยเล็ก"]').trigger('click')
+  expect(qty.element.value).toBe('2')
+  await qty.setValue('0')
+  expect(w.get('[aria-label="ลดจำนวนถ้วยเล็ก"]').element.disabled).toBe(true)
+  await w.get('[aria-label="ลดจำนวนถ้วยเล็ก"]').trigger('click')
+  expect(qty.element.value).toBe('0')
+  await qty.setValue('0.5');await w.get('[aria-label="เพิ่มจำนวนถ้วยเล็ก"]').trigger('click')
+  expect(qty.element.value).toBe('1.5')
+  const reason=w.findAllComponents(AppSelect)[1]
+  await reason.get('select').setValue('separate_bag')
+  await w.get('[data-save-package="BOWL"]').trigger('click')
+  expect(store.packageAdjustments[0].deltaQty).toBe(-0.5)
+ }finally{w.unmount()}
+})
+
 it('shows baseline, effective quantity, sources and only active package choices',async()=>{
  const store=setup(),w=mount(PackageReviewModal,{attachTo:document.body})
  try{

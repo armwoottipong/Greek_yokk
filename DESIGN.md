@@ -225,7 +225,7 @@ POS payment uses this variant with QR / PromptPay, เงินสด / Cash and
 
 ### Packaging Review
 
-The cart shows the heading บรรจุภัณฑ์, a packaging-item count and its shared review Button; individual package names and quantities remain in the popup. PackageReviewModal uses AppSelect for adding packaging and choosing adjustment reasons, FormField for every field, StatusBadge for the effective quantity and Button for actions. Recipe sources sit in a disclosure. Each row places save/reset actions below its fields; numeric quantity and conditional note inputs keep the shared filled popup treatment. Rows use spacing and separators; quantity/reason fields stack below 350px.
+The cart shows the heading บรรจุภัณฑ์, a packaging-item count and its shared review Button; individual package names and quantities remain in the popup. PackageReviewModal uses AppSelect for adding packaging and choosing adjustment reasons, FormField for every field, StatusBadge for the effective quantity and Button for actions. Recipe sources sit in a disclosure. Each row places save/reset actions below its fields; numeric quantity and conditional note inputs keep the shared filled popup treatment. Shared AppQuantityInput uses existing 44px IconButtons to step by 1, clamps at zero and allows direct fractional entry; edits remain drafts until saved. Rows use spacing and separators; quantity/reason fields stack below 520px.
 
 ### Platform Price Fields
 
