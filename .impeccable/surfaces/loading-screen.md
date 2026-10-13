@@ -40,8 +40,10 @@ Verification: 70 test files, 440 tests passed. Lint and production build exited 
 
 ## Loading within main-content
 
-Page switches show the same mascot and original wordmark inside main-content for at least three seconds, including cached pages. Header and navigation remain available. The covered page is inert and hidden from assistive technology; main exposes its busy state. Initial app opening continues to use the full-screen startup.
+Page switches show a small burgundy mascot and three dots on the theme's cream background only if loading is still pending after 1.5 seconds. Normal loading has no visible words or brand name; an accessible status remains available to screen readers. Fast and cached pages never flash the indicator. It disappears immediately when resources are ready, with no minimum display delay. Header and navigation remain available. The covered page is inert and hidden from assistive technology; main exposes its busy state. Initial app opening continues to use the full-screen startup.
 
 The selected page module and its eager images/fonts must be ready before the content cover disappears. A navigation version prevents an older request from dismissing a newer page's loader. Cached view instances remain in KeepAlive. Failed navigation offers a reload button and clears the busy announcement state.
 
-Verified desktop bounds exactly match main-content (x256/y80, 1024×640) and inspected the 390×844 mobile layout beneath the header. Navigation and cached-page tests were RED then GREEN; full suite passed 71 files / 442 tests, lint and build exited 0. No shop data was changed.
+The mascot uses `Logo_branding/SVG/Artboard 1 copy 4.svg` as `public/brand/content-mascot.svg`; its artboard background rectangle was removed for transparency, preserving all logo paths and colors. The vector asset is approximately 1.7KB. The image frame adapts from 112px to 160px, so the visible silhouette stays small within main-content.
+
+Verified cream background, no wordmark, and the smaller mascot on desktop and 390×844 mobile. A temporary local HTTP proxy delayed page requests to exercise real loading; it was stopped and removed before shipping. Delay-threshold and cached/rapid-navigation tests were RED then GREEN; full suite passed 71 files / 442 tests, lint and build exited 0. No shop data was changed.

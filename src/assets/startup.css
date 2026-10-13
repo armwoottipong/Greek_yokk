@@ -12,9 +12,14 @@
   font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .startup-content { width: min(100%, 360px); text-align: center; }
-.content-loading { position: absolute; z-index: 10; padding: 24px; }
-.content-loading .startup-mascot-stage { width: min(100%, 260px); }
-.content-loading .startup-brand { width: min(100%, 220px); height: 92px; }
+.content-loading { position: absolute; z-index: 10; padding: 24px; background: var(--bg-primary, #FBF5EA); color: var(--text-main, #352522); }
+.content-loading .startup-mascot-stage { width: clamp(112px, 15vw, 160px); max-width: 100%; }
+.content-loading .startup-mascot-stage::after { background: #7D675B; height: 4px; }
+.content-loading .startup-dots { margin-top: -12px; }
+.content-loading .startup-dots i { background: var(--accent-brand, #780608); width: 5px; height: 5px; }
+.content-loading .startup-message { color: var(--text-muted, #7D675B); }
+.content-loading .startup-retry { background: var(--accent-brand, #780608); color: var(--bg-card, #FFFCF6); }
+.content-loading .startup-retry:focus-visible { outline-color: var(--accent-brand, #780608); }
 .startup-mascot-stage { position: relative; width: min(100%, 320px); margin: 0 auto; }
 .startup-mascot {
   display: block;

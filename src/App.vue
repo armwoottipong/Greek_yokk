@@ -22,7 +22,7 @@
             </KeepAlive>
           </Suspense>
         </div>
-        <ContentLoading v-if="contentLoading" :error="contentError" @retry="reloadPage" />
+        <ContentLoading v-if="contentLoading && (contentIndicatorVisible || contentError)" :error="contentError" @retry="reloadPage" />
       </main>
     </div>
 
@@ -111,26 +111,32 @@ const mobileMenuOpen=ref(false)
 const contentRoot=ref(null)
 const pageContent=ref(null)
 const contentLoading=ref(false)
+const contentIndicatorVisible=ref(false)
 const contentError=ref(false)
+let contentDelayTimer=null
 let navigationVersion=0
 function reloadPage(){window.location.reload()}
 async function loadContent(tab) {
  const version=++navigationVersion
  contentLoading.value=true
+ contentIndicatorVisible.value=false
  contentError.value=false
- const minimumDisplay=new Promise(resolve=>setTimeout(resolve,3000))
+ clearTimeout(contentDelayTimer)
+ contentDelayTimer=setTimeout(()=>{if(version===navigationVersion)contentIndicatorVisible.value=true},1500)
  if(contentRoot.value)contentRoot.value.scrollTop=0
  try {
   await loadPage(tab)
   await nextTick()
   await nextTick()
-  await Promise.all([minimumDisplay,waitForPageImages(pageContent.value)])
+  await waitForPageImages(pageContent.value)
   if(version!==navigationVersion)return
+  clearTimeout(contentDelayTimer)
   contentLoading.value=false
+  contentIndicatorVisible.value=false
   await nextTick()
   finishViewFocus()
  } catch {
-  if(version===navigationVersion)contentError.value=true
+  if(version===navigationVersion){clearTimeout(contentDelayTimer);contentError.value=true}
  }
 }
 const viewNames={dashboard:'ภาพรวมร้าน',pos:'ขายหน้าร้าน',menu:'เมนูและสูตร',addon:'ท็อปปิ้ง',stock:'คลังวัตถุดิบ',settings:'ตั้งค่าระบบ'}
@@ -189,6 +195,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   navigationVersion++
+  clearTimeout(contentDelayTimer)
   if (handleHashChange) {
     window.removeEventListener('hashchange', handleHashChange)
   }
