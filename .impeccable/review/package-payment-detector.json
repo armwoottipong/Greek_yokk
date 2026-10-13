@@ -1,0 +1,62 @@
+[
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\modals\\PackageReviewModal.vue",
+    "line": 50,
+    "snippet": "font-size: .9375rem is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": ".9375rem"
+  },
+  {
+    "antipattern": "design-system-radius",
+    "name": "Radius outside DESIGN.md",
+    "description": "A border-radius value is outside the DESIGN.md rounded scale. Use a documented radius token or update the design system if the new shape is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\ui\\AppChoiceGroup.vue",
+    "line": 26,
+    "snippet": "border-radius: 6px is outside the DESIGN.md rounded scale",
+    "advisory": true,
+    "ignoreValue": "6px"
+  },
+  {
+    "antipattern": "design-system-radius",
+    "name": "Radius outside DESIGN.md",
+    "description": "A border-radius value is outside the DESIGN.md rounded scale. Use a documented radius token or update the design system if the new shape is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\ui\\AppChoiceGroup.vue",
+    "line": 33,
+    "snippet": "border-radius: 7px is outside the DESIGN.md rounded scale",
+    "advisory": true,
+    "ignoreValue": "7px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\pos\\CartBody.vue",
+    "line": 46,
+    "snippet": "font-size: .9375rem is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": ".9375rem"
+  },
+  {
+    "antipattern": "design-system-color",
+    "name": "Color outside DESIGN.md",
+    "description": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\pos\\CartBody.vue",
+    "line": 52,
+    "snippet": "Undocumented color #FEF3C7 is outside DESIGN.md colors",
+    "advisory": true,
+    "ignoreValue": "#FEF3C7"
+  }
+]

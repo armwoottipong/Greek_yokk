@@ -1,18 +1,18 @@
 <template>
-  <div class="app-choice-group" :class="{'app-choice-group--switch':variant==='switch'}" role="radiogroup">
+  <div class="app-choice-group" :class="`app-choice-group--${variant}`" role="radiogroup">
     <label v-for="option in options" :key="option.value" class="app-choice" :class="{'is-selected':modelValue===option.value,'is-disabled':disabled || option.disabled}">
       <span class="app-choice-control">
         <input v-model="selection" type="radio" :name="groupName" :value="option.value" :disabled="disabled || option.disabled" />
         <Check :size="12" :stroke-width="3" aria-hidden="true" />
       </span>
-      <span>{{ option.label }}</span>
+      <span class="app-choice-label">{{ option.label }}<small v-if="option.description" class="app-choice-description">{{ option.description }}</small></span>
     </label>
   </div>
 </template>
 <script setup>
 import {computed,useId} from 'vue'
 import {Check} from 'lucide-vue-next'
-const props=defineProps({modelValue:{type:[String,Number],required:true},options:{type:Array,required:true},disabled:Boolean,variant:{type:String,default:'checkmark',validator:value=>['checkmark','switch'].includes(value)}})
+const props=defineProps({modelValue:{type:[String,Number],required:true},options:{type:Array,required:true},disabled:Boolean,variant:{type:String,default:'checkmark',validator:value=>['checkmark','switch','cards'].includes(value)}})
 const emit=defineEmits(['update:modelValue'])
 const groupName=`app-choice-${useId()}`
 const selection=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)})
@@ -34,6 +34,14 @@ const selection=computed({get:()=>props.modelValue,set:value=>emit('update:model
 .app-choice-group--switch .app-choice.is-selected{background:var(--bg-card);color:var(--accent-brand);box-shadow:0 1px 4px #3525220d;font-weight:600}
 .app-choice-group--switch .app-choice-control{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 .app-choice-group--switch .app-choice:has(input:focus-visible){outline:2px solid var(--accent-brand);outline-offset:3px}
+.app-choice-group--cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+.app-choice-group--cards .app-choice{position:relative;display:flex;align-items:flex-end;min-width:0;min-height:90px;padding:30px 10px 12px;border:0;border-radius:12px;background:var(--bg-card);color:var(--text-main)}
+.app-choice-group--cards .app-choice-control{position:absolute;top:10px;right:10px;width:18px;height:18px}
+.app-choice-group--cards .app-choice-label{font-weight:500;line-height:1.5;min-width:0;overflow-wrap:anywhere}
+.app-choice-description{display:block;font-weight:400;font-size:inherit;color:var(--text-muted);margin-top:2px}
+.app-choice-group--cards .app-choice.is-selected{background:var(--accent-soft);color:var(--accent-brand)}
+.app-choice-group--cards .app-choice.is-selected .app-choice-description{color:var(--accent-brand)}
+.app-choice-group--cards .app-choice:not(.is-disabled):hover{background:var(--accent-soft)}
 @media(prefers-reduced-motion:reduce){.app-choice{transition:none}}
 @media(forced-colors:active){.app-choice input{appearance:auto}.app-choice-control svg{display:none}}
 </style>

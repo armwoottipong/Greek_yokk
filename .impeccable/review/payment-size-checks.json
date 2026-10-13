@@ -1,0 +1,182 @@
+[
+  {
+    "device": "mobile-320",
+    "before": [
+      {
+        "height": 90,
+        "width": 85.328125
+      },
+      {
+        "height": 90,
+        "width": 85.328125
+      },
+      {
+        "height": 90,
+        "width": 85.34375
+      }
+    ],
+    "after": [
+      {
+        "height": 90,
+        "width": 85.328125
+      },
+      {
+        "height": 90,
+        "width": 85.328125
+      },
+      {
+        "height": 90,
+        "width": 85.34375
+      }
+    ],
+    "stable": true,
+    "overflow": {
+      "documentWidth": 320,
+      "viewport": 320
+    }
+  },
+  {
+    "device": "mobile-390",
+    "before": [
+      {
+        "height": 90,
+        "width": 108.65625
+      },
+      {
+        "height": 90,
+        "width": 108.671875
+      },
+      {
+        "height": 90,
+        "width": 108.65625
+      }
+    ],
+    "after": [
+      {
+        "height": 90,
+        "width": 108.65625
+      },
+      {
+        "height": 90,
+        "width": 108.671875
+      },
+      {
+        "height": 90,
+        "width": 108.65625
+      }
+    ],
+    "stable": true,
+    "overflow": {
+      "documentWidth": 390,
+      "viewport": 390
+    }
+  },
+  {
+    "device": "ipad-portrait",
+    "before": [
+      {
+        "height": 90,
+        "width": 88
+      },
+      {
+        "height": 90,
+        "width": 88
+      },
+      {
+        "height": 90,
+        "width": 88
+      }
+    ],
+    "after": [
+      {
+        "height": 90,
+        "width": 88
+      },
+      {
+        "height": 90,
+        "width": 88
+      },
+      {
+        "height": 90,
+        "width": 88
+      }
+    ],
+    "stable": true,
+    "overflow": {
+      "documentWidth": 820,
+      "viewport": 820
+    }
+  },
+  {
+    "device": "ipad-landscape",
+    "before": [
+      {
+        "height": 90,
+        "width": 88
+      },
+      {
+        "height": 90,
+        "width": 88
+      },
+      {
+        "height": 90,
+        "width": 88
+      }
+    ],
+    "after": [
+      {
+        "height": 90,
+        "width": 88
+      },
+      {
+        "height": 90,
+        "width": 88
+      },
+      {
+        "height": 90,
+        "width": 88
+      }
+    ],
+    "stable": true,
+    "overflow": {
+      "documentWidth": 1180,
+      "viewport": 1180
+    }
+  },
+  {
+    "device": "desktop",
+    "before": [
+      {
+        "height": 90,
+        "width": 94.921875
+      },
+      {
+        "height": 90,
+        "width": 94.9375
+      },
+      {
+        "height": 90,
+        "width": 94.921875
+      }
+    ],
+    "after": [
+      {
+        "height": 90,
+        "width": 94.921875
+      },
+      {
+        "height": 90,
+        "width": 94.9375
+      },
+      {
+        "height": 90,
+        "width": 94.921875
+      }
+    ],
+    "stable": true,
+    "overflow": {
+      "documentWidth": 1440,
+      "viewport": 1440
+    }
+  }
+]

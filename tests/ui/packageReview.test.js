@@ -2,6 +2,7 @@ import {it,expect} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore,material} from '../helpers/createStore'
 import PackageReviewModal from '../../src/components/modals/PackageReviewModal.vue'
+import AppSelect from '../../src/components/ui/AppSelect.vue'
 
 function setup(){
  const store=createTestStore();store.materials=[
@@ -18,7 +19,8 @@ it('shows baseline, effective quantity, sources and only active package choices'
  const store=setup(),w=mount(PackageReviewModal,{attachTo:document.body})
  try{
   await flushPromises();expect(w.text()).toContain('จากสูตร 2');expect(w.text()).toContain('โยเกิร์ต')
-  const select=w.get('[aria-label="เพิ่มบรรจุภัณฑ์"]')
+  expect(w.findAllComponents(AppSelect)).toHaveLength(2)
+  const select=w.findAllComponents(AppSelect)[0].get('select')
   expect(select.text()).toContain('ถุง');expect(select.text()).not.toContain('น้ำผึ้ง')
  }finally{w.unmount()}
 })
@@ -28,10 +30,23 @@ it('requires reasons and an explanation for other, then supports row and all res
  try{
   await flushPromises();const qty=w.get('[aria-label="จำนวนถ้วยเล็ก"]');await qty.setValue('3')
   await w.get('[data-save-package="BOWL"]').trigger('click');expect(w.text()).toContain('เลือกเหตุผล')
-  await w.get('[aria-label="เหตุผลถ้วยเล็ก"]').setValue('other');await w.get('[data-save-package="BOWL"]').trigger('click');expect(w.text()).toContain('ระบุเหตุผลเพิ่มเติม')
+  const reason=w.findAllComponents(AppSelect)[1]
+  await reason.get('button').trigger('keydown',{key:'ArrowDown'});await reason.get('button').trigger('keydown',{key:'End'});await reason.get('button').trigger('keydown',{key:'Enter'})
+  await w.get('[data-save-package="BOWL"]').trigger('click');expect(w.text()).toContain('ระบุเหตุผลเพิ่มเติม')
   await w.get('[aria-label="หมายเหตุถ้วยเล็ก"]').setValue('ลูกค้าขอ');await w.get('[data-save-package="BOWL"]').trigger('click')
   expect(store.packageAdjustments).toHaveLength(1);await w.get('[data-reset-package="BOWL"]').trigger('click');expect(store.packageAdjustments).toEqual([])
   store.savePackageAdjustment({materialId:'BOWL',requestedQty:3,reason:'other',note:'ลูกค้าขอ'});await flushPromises()
   await w.get('[data-reset-all-packages]').trigger('click');expect(store.packageAdjustments).toEqual([])
+ }finally{w.unmount()}
+})
+
+it('adds packaging through the shared selector without changing the charge',async()=>{
+ const store=setup(),subtotal=store.cartSummary.subtotal,w=mount(PackageReviewModal,{attachTo:document.body})
+ try{
+  await flushPromises();const selector=w.findAllComponents(AppSelect)[0]
+  await selector.get('button').trigger('keydown',{key:'ArrowDown'});await selector.get('button').trigger('keydown',{key:'End'});await selector.get('button').trigger('keydown',{key:'Enter'})
+  await w.findAll('button').find(button=>button.text()==='เพิ่ม').trigger('click');await flushPromises()
+  expect(store.packageAdjustments.some(row=>row.materialId==='BAG')).toBe(true)
+  expect(store.cartSummary.subtotal).toBe(subtotal)
  }finally{w.unmount()}
 })

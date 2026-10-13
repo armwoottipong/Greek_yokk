@@ -118,6 +118,14 @@ components:
     textColor: "{colors.warning}"
     rounded: "{rounded.badge}"
     padding: "4px 8px"
+  choice-card:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.pos-field}"
+    padding: "30px 10px 12px"
+  choice-card-selected:
+    backgroundColor: "{colors.accent-soft}"
+    textColor: "{colors.brand}"
   catalog-card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.text}"
@@ -199,7 +207,7 @@ The mascot's soft silhouette is a shell detail. Touch actions target at least 44
 
 ## Components
 
-Use Button/IconButton for action hierarchy, FormField for real label/control association, DialogFrame with ModalShell for all protected overlays, AppSelect for typed choices, AppCheckbox for selections, and shared feedback semantics.
+Use Button/IconButton for action hierarchy, FormField for real label/control association, DialogFrame with ModalShell for all protected overlays, AppSelect for typed choices, AppCheckbox for independent selections, AppChoiceGroup for exclusive choices, and shared feedback semantics.
 
 ### Buttons
 
@@ -208,6 +216,16 @@ Primary is burgundy, secondary has a warm fill without a visible perimeter borde
 ### Inputs / Fields
 
 Ordinary soft fields outside dialogs use warm fill, a one-pixel control border and a burgundy focus ring. DialogFrame overrides native text/number/select/textarea and AppSelect triggers to warm soft fill with a transparent border and no outline or box-shadow, including focused and expanded states. Dialog fields retain a minimum height of 44px and desktop native type of 14px; package fields use 48px minimum height. Disabled popup fields use .55 opacity; aria-invalid fields use danger-soft fill and danger text while retaining their named error semantics. Below 1200px, native text/number inputs, textareas and selects in the app and dialogs use 16px type. This rule does not enlarge the button-based AppSelect typography. The named-field sample uses the 14px field radius; compact embedded fields also retain 8px corners. FormField associates its visible label, hint and error with the control. AppSelect supplies keyboard selection, disabled options and a floating list that closes on route deactivation. Its ordinary trigger is near-white with a control border and burgundy keyboard-focus outline; inside DialogFrame the filled-popup override applies. POS channel/search controls use a 48px minimum height and the scoped pos-field radius. The cart order note uses that radius with warm fill and no border, outline or box-shadow.
+
+### Exclusive Choice Cards
+
+AppChoiceGroup preserves its checkmark and switch variants and adds the reusable cards variant. Cards use native radios with a shared group name inside a named radiogroup; selection is exclusive. Optional option.description appears below the primary label. The cards grid has three equal minmax(0,1fr) columns with an 8px gap. Each card has a 90px minimum height, 12px corners and 30px 10px 12px padding. An 18px radio/checkmark occupies a reserved absolute position 10px from the top and right; its checked state changes fill and check visibility without moving the label or expanding the card. Selection uses soft burgundy fill and burgundy text; keyboard focus remains on the radio. Disabled choices retain shared disabled behavior.
+
+POS payment uses this variant with QR / PromptPay, เงินสด / Cash and Platform / Delivery labels. Stored payment values remain QR PromptPay, เงินสด and Platform Delivery. Checkout retains its 52px minimum height.
+
+### Packaging Review
+
+The cart shows the heading บรรจุภัณฑ์, a packaging-item count and its shared review Button; individual package names and quantities remain in the popup. PackageReviewModal uses AppSelect for adding packaging and choosing adjustment reasons, FormField for every field, StatusBadge for the effective quantity and Button for actions. Recipe sources sit in a disclosure. Each row places save/reset actions below its fields; numeric quantity and conditional note inputs keep the shared filled popup treatment. Rows use spacing and separators; quantity/reason fields stack below 350px.
 
 ### Platform Price Fields
 
