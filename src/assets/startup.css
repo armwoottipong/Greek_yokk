@@ -17,11 +17,13 @@
 #app-loading[data-state="exiting"] { overflow: hidden; }
 #app-loading[data-state="exiting"] .startup-mascot {
   animation: none;
-  transform-origin: 50% 50%;
+  transform-origin: 50% 62%;
   will-change: transform;
 }
 #app-loading[data-state="exiting"] .startup-dots,
 #app-loading[data-state="exiting"] .startup-mascot-stage::after { visibility: hidden; animation: none; }
+#app-loading[data-phase="covered"] { background: #FEFAF1; }
+#app-loading[data-phase="covered"] .startup-mascot { visibility: hidden; }
 #app-loading:not([data-state="error"]) [data-startup-message] {
   position: absolute;
   width: 1px;

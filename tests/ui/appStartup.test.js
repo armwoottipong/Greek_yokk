@@ -47,17 +47,22 @@ function animatedStartupFixture() {
   return { ...fixture, logo, animate, animations }
 }
 
-it('reveals the ready app through a zoom and crossfade, keeping interaction blocked until the exit finishes', async () => {
+it('finishes the zoom to a solid cream screen before crossfading, keeping interaction blocked until the exit finishes', async () => {
   const { screen, root, animate, animations } = animatedStartupFixture()
   const ready = finishAppStartup()
   const repeated = finishAppStartup()
   await flushPromises()
   expect(screen.dataset.state).toBe('exiting')
-  expect(animate).toHaveBeenCalledTimes(3)
+  expect(animate).toHaveBeenCalledTimes(1)
   expect(animate.mock.calls[0][0].at(-1).transform).toMatch(/scale\(/)
   expect(root.hasAttribute('inert')).toBe(true)
   await finishAppStartup()
+  expect(animate).toHaveBeenCalledTimes(1)
+  animations[0].resolve()
+  await flushPromises()
+  expect(screen.dataset.phase).toBe('covered')
   expect(animate).toHaveBeenCalledTimes(3)
+  expect(root.hasAttribute('inert')).toBe(true)
   animations.forEach(animation => animation.resolve())
   await ready
   await repeated
@@ -84,11 +89,15 @@ it('cancels the exit and preserves recovery if a startup error arrives during th
   const { screen, root, animations } = animatedStartupFixture()
   const ready = finishAppStartup()
   await flushPromises()
+  animations[0].resolve()
+  await flushPromises()
+  expect(animations).toHaveLength(3)
   showAppStartupError()
   expect(animations.every(animation => animation.cancel.mock.calls.length > 0)).toBe(true)
   animations.forEach(animation => animation.resolve())
   await ready
   expect(screen.dataset.state).toBe('error')
+  expect(screen.dataset.phase).toBeUndefined()
   expect(screen.isConnected).toBe(true)
   expect(root.hasAttribute('inert')).toBe(true)
 })

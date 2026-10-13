@@ -30,30 +30,33 @@ async function animateStartupExit(screen, app) {
   const logo = screen.querySelector('.startup-mascot')
   if (!logo?.animate || !screen.animate || !app?.animate) return
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-  const duration = reducedMotion ? 180 : 800
+  const duration = reducedMotion ? 180 : 520
   const options = { duration, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'both' }
   const animations = []
   startupExits.set(screen, animations)
   screen.dataset.state = 'exiting'
   try {
     if (!reducedMotion) {
-      // The mascot occupies roughly two thirds of its transparent artboard.
-      // Four viewport diagonals cover the corners even on tall phone screens.
-      const scale = Math.max(1, 4 * Math.hypot(window.innerWidth, window.innerHeight) / Math.max(1, logo.offsetWidth))
-      animations.push(logo.animate([
+      // Zoom into the solid belly, away from the transparent eyes and smile.
+      const scale = Math.max(1, 8 * Math.hypot(window.innerWidth, window.innerHeight) / Math.max(1, logo.offsetWidth))
+      const zoom = logo.animate([
         { transform: 'scale(1)' },
-        { transform: `scale(${scale})`, offset: .75 },
         { transform: `scale(${scale})` }
-      ], options))
+      ], { ...options, duration: 600 })
+      animations.push(zoom)
+      await zoom.finished
+      if (screen.dataset.state === 'error' || !screen.isConnected) return
+      // Keep a fully opaque cream viewport for 200ms before the 320ms fade.
+      screen.dataset.phase = 'covered'
     }
     animations.push(screen.animate([
       { opacity: 1 },
-      { opacity: 1, offset: reducedMotion ? 0 : .45 },
+      { opacity: 1, offset: reducedMotion ? 0 : 200 / duration },
       { opacity: 0 }
     ], options))
     animations.push(app.animate([
       { opacity: 0 },
-      { opacity: 0, offset: reducedMotion ? 0 : .35 },
+      { opacity: 0, offset: reducedMotion ? 0 : 200 / duration },
       { opacity: 1 }
     ], options))
     await Promise.all(animations.map(animation => animation.finished))
@@ -103,6 +106,7 @@ export function showAppStartupError() {
   if (!screen) return
   startupExits.get(screen)?.forEach(animation => animation.cancel())
   startupExits.delete(screen)
+  delete screen.dataset.phase
   screen.dataset.state = 'error'
   const message = screen.querySelector('[data-startup-message]')
   message.textContent = 'โหลดร้านไม่สำเร็จ ลองโหลดใหม่อีกครั้งนะ'
