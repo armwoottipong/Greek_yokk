@@ -3,6 +3,25 @@ import { validateLotDates } from '../../src/domain/lotDates'
 import { material, createTestStore } from '../helpers/createStore'
 
 describe('lot origin and optional expiry', () => {
+  it.each(['switchActiveLot', 'switchActiveLotSilently'])('%s clears dates absent from the selected lot', (action) => {
+    const s=createTestStore()
+    s.materials=[material('M',20,{lastStockInDate:'2026-10-01',expiryDate:'2026-10-20',lots:[
+      {id:'DATED',qty:10,isInUse:true,receiveDate:'2026-10-01',expiryDate:'2026-10-20'},
+      {id:'UNKNOWN',qty:10,isInUse:false,receiveDate:null,expiryDate:null}
+    ]})]
+    s[action]('M','UNKNOWN',true)
+    expect(s.materials[0].lastStockInDate).toBeNull()
+    expect(s.materials[0].expiryDate).toBeNull()
+    expect(s.materials[0].lots[1].isInUse).toBe(true)
+  })
+  it('previews a new lot for a different origin even when expiry matches', () => {
+    const s=createTestStore()
+    const m=material('M',10,{lots:[{id:'OLD',qty:10,receiveDate:'2026-10-01',expiryDate:'2026-10-20'}]})
+    expect(s.getLotActionPreview(m,'2026-10-13','2026-10-20').action).toBe('new_lot')
+    expect(s.getLotActionPreview(m,'2026-10-01','2026-10-20').action).toBe('merge')
+    m.lots[0].receiveDate=null
+    expect(s.getLotActionPreview(m,'2026-10-13','2026-10-20').action).toBe('new_lot')
+  })
   it('requires ingredient origin but permits no expiry', () => {
     expect(validateLotDates(material(), {}, 'receive')).toMatchObject({ok:false,code:'ORIGIN_DATE_REQUIRED'})
     expect(validateLotDates(material(), {expiryDate:'2026-10-15'}, 'produce').ok).toBe(false)

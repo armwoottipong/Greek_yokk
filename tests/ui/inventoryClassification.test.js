@@ -4,6 +4,22 @@ import { material, createTestStore } from '../helpers/createStore'
 import Stock from '../../src/views/StockView.vue'
 import MaterialEdit from '../../src/components/modals/MaterialEditModal.vue'
 import StockIn from '../../src/components/modals/StockInModal.vue'
+import StockAdjust from '../../src/components/modals/StockAdjustModal.vue'
+
+it('distinguishes adjustment lots by expiry and identifier with identical origin and quantity', async () => {
+  const s=createTestStore();s.materials=[material('M',20,{lots:[
+    {id:'LOT-A',qty:10,isInUse:true,receiveDate:'2026-10-13',expiryDate:'2026-10-20'},
+    {id:'LOT-B',qty:10,isInUse:false,receiveDate:'2026-10-13',expiryDate:null}
+  ]})]
+  const w=mount(StockAdjust)
+  s.modals.stockAdjust={isOpen:true,materialId:'M'};await flushPromises()
+  expect(w.get('option[value="LOT-A"]').text()).toContain('LOT-A')
+  expect(w.get('option[value="LOT-A"]').text()).toContain('หมดอายุ')
+  expect(w.get('option[value="LOT-B"]').text()).toContain('LOT-B')
+  expect(w.get('option[value="LOT-B"]').text()).toContain('ไม่ระบุวันหมดอายุ')
+  await w.get('[aria-label="เลือกล็อต"]').setValue('LOT-B')
+  expect(w.vm.selectedLotId).toBe('LOT-B');w.unmount()
+})
 
 it('filters by type and overlapping recipe roles immediately without producing', async () => {
   const s=createTestStore(); s.materials=[material('RAW'),material('OUT',0,{hasSubRecipe:true,subRecipe:[{materialId:'RAW',qty:10}]})]

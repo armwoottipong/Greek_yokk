@@ -61,7 +61,7 @@
               :key="l.id"
               :value="l.id"
             >
-              {{ l.isInUse ? '⭐ [กำลังใช้งาน] ' : '• ' }}ล็อตวันที่ {{ formatThaiDate(l.receiveDate) }} (คงเหลือ: {{ Number(l.qty || 0).toLocaleString() }} {{ selectedMaterial.unit }})
+              {{ l.isInUse ? '⭐ [กำลังใช้งาน] ' : '• ' }}{{ l.id }} · วันที่รับเข้า/ผลิต {{ formatThaiDate(l.receiveDate) }} · {{ l.expiryDate ? 'หมดอายุ ' + formatThaiDate(l.expiryDate) : 'ไม่ระบุวันหมดอายุ' }} (คงเหลือ: {{ Number(l.qty || 0).toLocaleString() }} {{ selectedMaterial.unit }})
             </option>
           </AppSelect>
         </div>

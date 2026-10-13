@@ -1,9 +1,9 @@
 # Inventory classification verification — 2026-10-13
 
-## Result before independent review
+## Final result after independent review
 
 - Baseline: 65 files, 398 tests passed.
-- Final suite: 69 files, 426 tests passed (`npm test`).
+- Final suite after review fixes: 69 files, 430 tests passed (`npm test`).
 - `npm run lint`: exit 0.
 - `npm run build`: exit 0; Vite production build successful.
 - No changes to seed data, database schema, local-storage implementation or GAS backend. No migration, live sync, deployment or live-data edits performed.
@@ -30,7 +30,12 @@ The mechanical design scan reported existing typography advisories and four exis
 - Used equivalent PowerShell task/ledger tracking for the POSIX helper scripts on this Windows host; commit history and test logs retain task evidence.
 - Dated lots merge only when both origin and expiry match; this preserves each receipt's dates and may produce more distinct lots.
 - Active-lot summary clears absent dates rather than showing a later receipt's expiry; old unknown dates remain unknown.
+- Regraded the preview mismatch as Important: promising a merge when receipt creates a new lot misleads lot control. Cost if overgraded: a small preview fix and regression test.
+- Retained legacy type inference for records missing inventoryType because migration/data repair is excluded. Cost: incomplete historical records remain ambiguous until edited.
+- Retained physical count corrections as adjustments, distinct from receipt/production events. Cost: corrections may retain unknown lot dates.
 
 ## Independent review
 
-Pending the final read-only whole-branch review; findings and resolution will be recorded here before integration.
+Independent whole-branch review identified stale summary dates on manual/automatic lot switches, indistinguishable adjustment-lot options, and receipt-preview matching that differed from receipt execution. All were addressed in one fix pass.
+
+Four regression cases first failed for the reported behavior; the targeted 18 tests then passed. The final full suite passed 430/430, lint and build exited 0, and diff whitespace checks passed. Selected lot summaries now clear absent dates, adjustment options show lot ID and optional expiry, and previews merge only when both origin and expiry match. No deferred minor findings remain.

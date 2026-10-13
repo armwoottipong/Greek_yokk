@@ -728,9 +728,8 @@ const posDefinition = {
 
       let matchingLot = null
       if (mode === 'expiry_and_receive') {
-        matchingLot = mat.lots.find(l => (l.receiveDate === recDate || !l.receiveDate) && (l.expiryDate ||
-            null) === expDate && l.qty > 0) ||
-          mat.lots.find(l => (l.expiryDate || null) === expDate && l.qty > 0)
+        matchingLot = mat.lots.find(l => l.receiveDate === recDate &&
+          (l.expiryDate || null) === expDate && l.qty > 0)
       } else if (mode === 'receive_only') {
         matchingLot = mat.lots.find(l => l.receiveDate === recDate && l.qty > 0)
       }
@@ -739,7 +738,7 @@ const posDefinition = {
         return {
           action: 'merge',
           targetLot: matchingLot,
-          label: `วันหมดอายุ/รอบรับตรงกับล็อตเดิม — จะรวมยอดเข้าล็อตเดิม (คงเหลือเดิม ${Number(matchingLot.qty || 0).toLocaleString()} ${mat.unit})`,
+          label: `วันที่รับเข้า/ผลิตและวันหมดอายุตรงกับล็อตเดิม — จะรวมยอดเข้าล็อตเดิม (คงเหลือเดิม ${Number(matchingLot.qty || 0).toLocaleString()} ${mat.unit})`,
           shortLabel: 'รวมเข้าล็อตเดิม',
           icon: '🔄',
           badgeClass: 'bg-sky-50 text-sky-800 border border-sky-200'
@@ -749,7 +748,7 @@ const posDefinition = {
       const expText = expDate ? ` (Exp: ${formatThaiDate(expDate)})` : ''
       return {
         action: 'new_lot',
-        label: `วันหมดอายุใหม่${expText} — จะเปิดเป็นล็อตใหม่ (จัดคิวใช้อัตโนมัติแบบ FIFO)`,
+        label: `วันที่รับเข้า/ผลิตหรือวันหมดอายุต่างจากล็อตเดิม${expText} — จะเปิดเป็นล็อตใหม่ (จัดคิวใช้อัตโนมัติแบบ FIFO)`,
         shortLabel: 'เปิดล็อตใหม่ (FIFO)',
         icon: '✨',
         badgeClass: 'bg-amber-50 text-amber-900 border border-amber-200'
@@ -1219,8 +1218,8 @@ const posDefinition = {
       })
       const targetLot = mat.lots.find(l => l.id === lotId)
       if (targetLot) {
-        if (targetLot.receiveDate) mat.lastStockInDate = targetLot.receiveDate
-        if (targetLot.expiryDate) mat.expiryDate = targetLot.expiryDate
+        mat.lastStockInDate = targetLot.receiveDate || null
+        mat.expiryDate = targetLot.expiryDate || null
       }
     },
 
@@ -2453,8 +2452,8 @@ const posDefinition = {
       })
       const targetLot = mat.lots.find(l => l.id === lotId)
       if (targetLot) {
-        if (targetLot.receiveDate) mat.lastStockInDate = targetLot.receiveDate
-        if (targetLot.expiryDate) mat.expiryDate = targetLot.expiryDate
+        mat.lastStockInDate = targetLot.receiveDate || null
+        mat.expiryDate = targetLot.expiryDate || null
       }
 
       if (asDraft) {
