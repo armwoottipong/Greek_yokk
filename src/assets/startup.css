@@ -14,6 +14,14 @@
 .startup-content { width: min(100%, 360px); text-align: center; }
 #app-loading .startup-mascot-stage { width: clamp(160px, 22vw, 200px); max-width: 100%; }
 #app-loading .startup-dots { margin-top: -8px; }
+#app-loading[data-state="exiting"] { overflow: hidden; }
+#app-loading[data-state="exiting"] .startup-mascot {
+  animation: none;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+#app-loading[data-state="exiting"] .startup-dots,
+#app-loading[data-state="exiting"] .startup-mascot-stage::after { visibility: hidden; animation: none; }
 #app-loading:not([data-state="error"]) [data-startup-message] {
   position: absolute;
   width: 1px;

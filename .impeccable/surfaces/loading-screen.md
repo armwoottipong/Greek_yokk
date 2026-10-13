@@ -10,6 +10,8 @@ OWN-WORLD: Burgundy #780608 behind the exact cream mascot; #FEFAF1 brand text, #
 
 STORY: The operator sees the mascot while the shop opens. At the user's request, the screen stays for at least three seconds from its first display, then releases the selected page as soon as its resources are ready. Loading failures offer a reload action.
 
+Completion motion: once resources and the minimum display time are ready, the original mascot expands from the center to cover the viewport, with the startup surface and the ready app crossfading over 800ms. Dots and the hopping shadow stop for this single exit. Transform and opacity use the native Web Animations API with no added dependency. The app stays inert until the transition finishes. Reduced-motion users receive only a 180ms crossfade. Interrupted animation falls back to releasing the ready app; a startup error cancels the exit and preserves recovery. Main-content loading retains its existing behavior.
+
 FIRST VIEWPORT: Centered original cream mascot in a 160–200px image frame with three small dots below. Normal loading shows no wordmark or visible status copy; the screen-reader status remains available, and failures reveal their recovery message. The composition fits a 390px mobile viewport.
 
 FORM: A full-screen welcome extends the existing identity. The user explicitly selected Artboard 1_2@3x; its silhouette and colors are preserved, and no alternate artwork is generated.
@@ -29,6 +31,8 @@ SHA-256: `3CB5E73A0725EA379C7CCB8FF1233589E1F0908901D8AB4DFF7BD67385E0F5AE`.
 The wordmark asset remains available in the repository but is no longer displayed or preloaded by the startup screen.
 
 ## Review and verification
+
+Completion transition: verified expanding mascot on desktop and 390×844 mobile, followed by an opaque, interactive app. Lifecycle tests cover interaction blocking, duplicate completion, reduced motion and errors during the exit. Full regression suite passed 71 files / 445 tests; lint and production build passed.
 
 Compact startup revision: verified the 200px desktop and 160px mobile image frames, only mascot and dots visible, and successful release of the app after loading. Existing startup/content-loading tests passed (12 tests), lint and production build exited 0.
 

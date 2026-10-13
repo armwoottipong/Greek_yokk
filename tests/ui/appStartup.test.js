@@ -28,6 +28,71 @@ function startupFixture() {
 }
 afterEach(() => { document.body.innerHTML = '' })
 
+function animatedStartupFixture() {
+  const fixture = startupFixture()
+  const logo = document.createElement('img')
+  logo.className = 'startup-mascot'
+  fixture.screen.append(logo)
+  Object.defineProperty(logo, 'offsetWidth', { value: 200 })
+  const animations = []
+  const animate = vi.fn(() => {
+    let resolve
+    const animation = { finished: new Promise(r => { resolve = r }), cancel: vi.fn(), resolve: () => resolve() }
+    animations.push(animation)
+    return animation
+  })
+  logo.animate = animate
+  fixture.screen.animate = animate
+  fixture.root.animate = animate
+  return { ...fixture, logo, animate, animations }
+}
+
+it('reveals the ready app through a zoom and crossfade, keeping interaction blocked until the exit finishes', async () => {
+  const { screen, root, animate, animations } = animatedStartupFixture()
+  const ready = finishAppStartup()
+  const repeated = finishAppStartup()
+  await flushPromises()
+  expect(screen.dataset.state).toBe('exiting')
+  expect(animate).toHaveBeenCalledTimes(3)
+  expect(animate.mock.calls[0][0].at(-1).transform).toMatch(/scale\(/)
+  expect(root.hasAttribute('inert')).toBe(true)
+  await finishAppStartup()
+  expect(animate).toHaveBeenCalledTimes(3)
+  animations.forEach(animation => animation.resolve())
+  await ready
+  await repeated
+  expect(screen.isConnected).toBe(false)
+  expect(root.hasAttribute('inert')).toBe(false)
+  expect(animations.every(animation => animation.cancel.mock.calls.length === 1)).toBe(true)
+})
+
+it('uses a short crossfade without the full-screen zoom for reduced motion', async () => {
+  const original = window.matchMedia
+  window.matchMedia = vi.fn(() => ({ matches: true }))
+  try {
+    const { animate, animations } = animatedStartupFixture()
+    const ready = finishAppStartup()
+    await flushPromises()
+    expect(animate).toHaveBeenCalledTimes(2)
+    expect(animate.mock.calls.every(([frames, options]) => options.duration === 180 && frames.every(frame => !frame.transform))).toBe(true)
+    animations.forEach(animation => animation.resolve())
+    await ready
+  } finally { window.matchMedia = original }
+})
+
+it('cancels the exit and preserves recovery if a startup error arrives during the crossfade', async () => {
+  const { screen, root, animations } = animatedStartupFixture()
+  const ready = finishAppStartup()
+  await flushPromises()
+  showAppStartupError()
+  expect(animations.every(animation => animation.cancel.mock.calls.length > 0)).toBe(true)
+  animations.forEach(animation => animation.resolve())
+  await ready
+  expect(screen.dataset.state).toBe('error')
+  expect(screen.isConnected).toBe(true)
+  expect(root.hasAttribute('inert')).toBe(true)
+})
+
 it('keeps startup visible until the initial page actually resolves, then releases the app', async () => {
   createTestStore()
   const { screen, root } = startupFixture()
