@@ -146,3 +146,44 @@ it('offers reload when the required branding image fails instead of revealing a 
   expect(screen.querySelector('[data-startup-retry]').hidden).toBe(false)
   expect(root.hasAttribute('inert')).toBe(true)
 })
+
+it.each([0, 2500])('shows loading for at least 3 seconds from first display, with %i ms already elapsed', async elapsed => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  vi.spyOn(performance, 'now').mockReturnValue(1000 + elapsed)
+  const { screen, root } = startupFixture()
+  screen.dataset.startedAt = '1000'
+  try {
+    const ready = finishAppStartup()
+    await flushPromises()
+    expect(screen.isConnected).toBe(true)
+    await vi.advanceTimersByTimeAsync(3000 - elapsed - 1)
+    expect(screen.isConnected).toBe(true)
+    expect(root.hasAttribute('inert')).toBe(true)
+    await vi.advanceTimersByTimeAsync(1)
+    await ready
+    expect(screen.isConnected).toBe(false)
+    expect(root.hasAttribute('inert')).toBe(false)
+  } finally { vi.useRealTimers() }
+})
+
+it('continues waiting beyond 3 seconds when assets are still loading, without adding another delay', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  vi.spyOn(performance, 'now').mockReturnValue(1000)
+  const { screen } = startupFixture()
+  screen.dataset.startedAt = '1000'
+  let finishFonts
+  const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts')
+  Object.defineProperty(document, 'fonts', { configurable: true, value: { ready: new Promise(resolve => { finishFonts = resolve }) } })
+  try {
+    const ready = finishAppStartup()
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(screen.isConnected).toBe(true)
+    finishFonts()
+    await ready
+    expect(screen.isConnected).toBe(false)
+  } finally {
+    vi.useRealTimers()
+    if (originalFonts) Object.defineProperty(document, 'fonts', originalFonts)
+    else delete document.fonts
+  }
+})

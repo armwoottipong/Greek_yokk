@@ -30,7 +30,11 @@ export async function finishAppStartup() {
     const logos = [...screen.querySelectorAll('img[src]')]
     const pageImages = [...(app?.querySelectorAll('img[src]') || [])]
       .filter(image => image.loading !== 'lazy')
+    const startedAt = Number(screen.dataset.startedAt)
+    const remaining = Number.isFinite(startedAt) ? Math.max(0, 3000 - (performance.now() - startedAt)) : 0
+    const minimumDisplay = remaining > 0 ? new Promise(resolve => setTimeout(resolve, remaining)) : undefined
     await Promise.all([
+      minimumDisplay,
       document.fonts?.ready,
       ...logos.map(image => waitForImage(image, true)),
       ...pageImages.map(image => waitForImage(image, false))

@@ -8,7 +8,7 @@ THESIS: The user's smiling yogurt mascot welcomes the operator while the real in
 
 OWN-WORLD: Burgundy #780608 behind the exact cream mascot; #FEFAF1 brand text, #F0D6CA status copy and #E8BEB0 waiting dots. Prompt follows the existing app typography, with system sans fallback before fonts arrive.
 
-STORY: The operator sees that the shop is opening, then enters the selected page immediately when it is ready. Loading failures offer a reload action.
+STORY: The operator sees the mascot while the shop opens. At the user's request, the screen stays for at least three seconds from its first display, then releases the selected page as soon as its resources are ready. Loading failures offer a reload action.
 
 FIRST VIEWPORT: Centered mascot at a 320px maximum image width, the original cream Yoggie wordmark below, one line of Thai status and three small dots. The composition fits a 390px mobile viewport.
 
@@ -36,4 +36,4 @@ The initial screen exists in HTML before JavaScript runs. After the initial Vue 
 
 The development preview was generated from the actual index HTML with only the app-entry script omitted, inspected, and removed before deployment. No preview route ships. Existing DESIGN.md remains the authority; this surface extends its palette. Verdict: ready after lifecycle tests, app regression suite, lint and production build.
 
-Verification: 70 test files, 437 tests passed. Lint and production build exited 0. The real development app removed the startup screen with document state complete, fonts loaded, eager page images loaded and keyboard focus restored to main-content.
+Verification: 70 test files, 440 tests passed. Lint and production build exited 0. The real development app removed the startup screen with document state complete, fonts loaded, eager page images loaded and keyboard focus restored to main-content. The three-second update was observed still visible at 493ms after reload and gone at 3197ms; controlled timer tests verify the exact minimum, elapsed-time accounting and continued waiting for slow assets.
