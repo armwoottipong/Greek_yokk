@@ -10,7 +10,7 @@ OWN-WORLD: Burgundy #780608 behind the exact cream mascot; #FEFAF1 brand text, #
 
 STORY: The operator sees the mascot while the shop opens. At the user's request, the screen stays for at least three seconds from its first display, then releases the selected page as soon as its resources are ready. Loading failures offer a reload action.
 
-FIRST VIEWPORT: Centered mascot at a 320px maximum image width, the original cream Yoggie wordmark below, one line of Thai status and three small dots. The composition fits a 390px mobile viewport.
+FIRST VIEWPORT: Centered original cream mascot in a 160–200px image frame with three small dots below. Normal loading shows no wordmark or visible status copy; the screen-reader status remains available, and failures reveal their recovery message. The composition fits a 390px mobile viewport.
 
 FORM: A full-screen welcome extends the existing identity. The user explicitly selected Artboard 1_2@3x; its silhouette and colors are preserved, and no alternate artwork is generated.
 
@@ -26,9 +26,11 @@ No raster edits, recoloring or replacement of the source logo.
 Wordmark source: `Logo_branding/PNG/Artboard 1_3@3x.png`.
 Shipping copy: `public/brand/loading-wordmark.png`, byte-identical.
 SHA-256: `3CB5E73A0725EA379C7CCB8FF1233589E1F0908901D8AB4DFF7BD67385E0F5AE`.
-The layout hides empty transparent artboard margins with CSS; the artwork itself remains intact.
+The wordmark asset remains available in the repository but is no longer displayed or preloaded by the startup screen.
 
 ## Review and verification
+
+Compact startup revision: verified the 200px desktop and 160px mobile image frames, only mascot and dots visible, and successful release of the app after loading. Existing startup/content-loading tests passed (12 tests), lint and production build exited 0.
 
 Desktop and 390×844 mobile renders show the selected asset against the brand background. Verified its successful load and the yogurt-hop animation. The reduced-motion media rule disables the mascot, shadow and dot animations.
 

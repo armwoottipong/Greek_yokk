@@ -12,6 +12,19 @@
   font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .startup-content { width: min(100%, 360px); text-align: center; }
+#app-loading .startup-mascot-stage { width: clamp(160px, 22vw, 200px); max-width: 100%; }
+#app-loading .startup-dots { margin-top: -8px; }
+#app-loading:not([data-state="error"]) [data-startup-message] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .content-loading { position: absolute; z-index: 10; padding: 24px; background: var(--bg-primary, #FBF5EA); color: var(--text-main, #352522); }
 .content-loading .startup-mascot-stage { width: clamp(112px, 15vw, 160px); max-width: 100%; }
 .content-loading .startup-mascot-stage::after { background: #7D675B; height: 4px; }
@@ -40,13 +53,6 @@
   filter: blur(3px);
   animation: yogurt-shadow 1.6s ease-in-out infinite;
 }
-.startup-brand {
-  width: min(100%, 260px);
-  height: 108px;
-  overflow: hidden;
-  margin: -28px auto 4px;
-}
-.startup-brand img { display: block; width: 100%; height: auto; position: relative; top: 50%; transform: translateY(-50%); }
 .startup-message { margin: 0; color: #F0D6CA; font-size: 14px; line-height: 1.8; }
 .startup-dots { display: flex; justify-content: center; gap: 8px; margin-top: 22px; }
 .startup-dots i { width: 6px; height: 6px; border-radius: 50%; background: #E8BEB0; animation: yogurt-dot 1.6s ease-in-out infinite; }
