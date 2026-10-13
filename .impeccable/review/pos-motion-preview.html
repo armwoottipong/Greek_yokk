@@ -12,7 +12,7 @@ const app=createApp(App);const pinia=createPinia();app.use(pinia);
 const store=usePosStore(pinia);store.resetDemoData();store.gasApiUrl='';store.currentTab='pos';
 store.addToCart(store.menus[0],[],1);store.addToCart(store.menus[1],[],2);
 document.addEventListener('transitionrun',event=>{
- if(event.propertyName!=='transform'||!event.target.classList.contains('dialog-frame-panel--drawer'))return;
+ if(event.propertyName!=='transform'||!event.target.matches('.dialog-frame-panel--drawer,.dialog-frame-panel--sheet'))return;
  const panel=event.target;
  console.info('DRAWER_MOTION '+JSON.stringify({phase:panel.classList.contains('dialog-frame-enter-active')?'enter':'leave',classes:panel.className,transform:getComputedStyle(panel).transform,duration:getComputedStyle(panel).transitionDuration}));
 });

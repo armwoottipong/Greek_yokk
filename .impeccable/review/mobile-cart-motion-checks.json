@@ -1,0 +1,14 @@
+[
+  {
+    "phase": "enter",
+    "classes": "dialog-frame-panel dialog-frame-panel--sheet dialog-frame-enter-active dialog-frame-enter-to",
+    "transform": "matrix(1, 0, 0, 1, 0, 820)",
+    "duration": "0.2s, 0.2s"
+  },
+  {
+    "phase": "leave",
+    "classes": "dialog-frame-panel dialog-frame-panel--sheet dialog-frame-leave-active dialog-frame-leave-to",
+    "transform": "matrix(1, 0, 0, 1, 0, 0)",
+    "duration": "0.16s, 0.16s"
+  }
+]

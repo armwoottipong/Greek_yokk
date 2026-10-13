@@ -178,7 +178,6 @@ input:not([type="checkbox"]):not([type="radio"]):focus-visible,textarea:focus-vi
 .dialog-frame-panel .price-editor-field{border-color:transparent;background:var(--bg-soft)}
 .dialog-frame-panel :is(input,textarea,select,.app-select-trigger):disabled{opacity:.55;cursor:not-allowed}
 .dialog-frame-panel :is(input,textarea,select,.app-select-trigger)[aria-invalid="true"]{background-color:#FEF2F2!important;color:var(--state-error)}
-.pos-workspace .cart-body textarea{border-color:transparent!important;outline:none!important;box-shadow:none!important;caret-color:var(--accent-brand)}
 
 /* Search fields keep their resting appearance during mouse and keyboard focus. */
 :root input[type="search"],

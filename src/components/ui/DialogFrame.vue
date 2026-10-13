@@ -1,7 +1,7 @@
 <template>
  <Teleport to="body" :disabled="!teleport">
   <ModalShell :id="id" :open="present" :initial-focus="initialFocus" :labelled-by="`${id}-title`" class="dialog-frame-shell" :class="{'dialog-frame-shell--drawer':presentation==='drawer'}" :style="viewportStyle" @request-close="requestClose">
-   <Transition name="dialog-frame" :appear="presentation==='drawer'" @after-leave="finishLeave">
+   <Transition name="dialog-frame" :appear="presentation==='drawer'||presentation==='sheet'" @after-leave="finishLeave">
     <section v-if="open" class="dialog-frame-panel" :class="`dialog-frame-panel--${presentation}`" :aria-busy="busy||undefined">
      <header class="dialog-frame-header"><slot name="header"><div><h3 :id="`${id}-title`">{{ title }}</h3><p v-if="description">{{ description }}</p></div></slot><IconButton label="ปิดหน้าต่าง" :disabled="busy" @click="requestClose"><X aria-hidden="true" /></IconButton></header>
      <div class="dialog-frame-body"><slot /></div>
@@ -40,5 +40,6 @@ const viewportStyle=computed(()=>({'--dialog-viewport-height':`${viewport.value.
 @media(max-width:767px){.dialog-frame-shell{padding:8px}.dialog-frame-panel{max-height:calc(var(--dialog-viewport-height) - 16px);border-radius:20px}.dialog-frame-header{padding:16px}.dialog-frame-body{padding:16px}.dialog-frame-footer{padding:12px 16px max(12px,env(safe-area-inset-bottom));flex-wrap:wrap}.dialog-frame-panel--sheet{align-self:flex-end;border-radius:24px 24px 0 0;max-height:calc(var(--dialog-viewport-height) - 24px)}.dialog-frame-panel--panel{border-radius:20px}}
 @media(prefers-reduced-motion:no-preference){.dialog-frame-enter-active{transition:opacity 200ms ease,transform 200ms cubic-bezier(.2,.8,.3,1)}.dialog-frame-leave-active{transition:opacity 160ms ease,transform 160ms ease}.dialog-frame-enter-from,.dialog-frame-leave-to{opacity:0;transform:translateY(12px)}}
 @media(prefers-reduced-motion:no-preference){.dialog-frame-panel--drawer.dialog-frame-enter-from,.dialog-frame-panel--drawer.dialog-frame-leave-to{transform:translateY(100%)}}
+@media(prefers-reduced-motion:no-preference) and (max-width:767px){.dialog-frame-panel--sheet.dialog-frame-enter-from,.dialog-frame-panel--sheet.dialog-frame-leave-to{transform:translateY(100%)}}
 </style>
 
