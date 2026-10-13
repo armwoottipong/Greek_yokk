@@ -94,8 +94,8 @@ const mobileMenuOpen=ref(false)
 const contentRoot=ref(null)
 const viewNames={dashboard:'ภาพรวมร้าน',pos:'ขายหน้าร้าน',menu:'เมนูและสูตร',addon:'ท็อปปิ้ง',stock:'คลังวัตถุดิบ',settings:'ตั้งค่าระบบ'}
 function focusContent(){contentRoot.value?.focus({preventScroll:true})}
-function finishStartup() {
- finishAppStartup()
+async function finishStartup() {
+ await finishAppStartup()
  finishViewFocus()
 }
 let pendingViewFocus=false

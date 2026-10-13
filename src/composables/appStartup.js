@@ -1,8 +1,47 @@
-export function finishAppStartup() {
+async function waitForImage(image, required) {
+  if (!image.complete) {
+    await new Promise(resolve => {
+      function settled() {
+        image.removeEventListener('load', settled)
+        image.removeEventListener('error', settled)
+        resolve()
+      }
+      image.addEventListener('load', settled)
+      image.addEventListener('error', settled)
+    })
+  }
+  if (!image.naturalWidth) {
+    if (required) throw new Error('Startup logo could not load')
+    return
+  }
+  if (typeof image.decode === 'function') {
+    try { await image.decode() } catch (error) { if (required) throw error }
+  }
+}
+
+export async function finishAppStartup() {
   const screen = document.getElementById('app-loading')
   if (!screen || screen.dataset.state === 'error') return
+  const app = document.getElementById('app')
+  try {
+    if (document.readyState !== 'complete') {
+      await new Promise(resolve => window.addEventListener('load', resolve, { once: true }))
+    }
+    const logos = [...screen.querySelectorAll('img[src]')]
+    const pageImages = [...(app?.querySelectorAll('img[src]') || [])]
+      .filter(image => image.loading !== 'lazy')
+    await Promise.all([
+      document.fonts?.ready,
+      ...logos.map(image => waitForImage(image, true)),
+      ...pageImages.map(image => waitForImage(image, false))
+    ])
+  } catch {
+    if (document.getElementById('app-loading') === screen) showAppStartupError()
+    return
+  }
+  if (document.getElementById('app-loading') !== screen || screen.dataset.state === 'error') return
   screen.remove()
-  document.getElementById('app')?.removeAttribute('inert')
+  app?.removeAttribute('inert')
 }
 
 export function showAppStartupError() {

@@ -36,6 +36,9 @@ it('keeps startup visible until the initial page actually resolves, then release
     await flushPromises()
     expect(screen.isConnected).toBe(true)
     expect(root.hasAttribute('inert')).toBe(true)
+    for (const image of document.images) {
+      Object.defineProperties(image, { complete: { configurable: true, value: true }, naturalWidth: { configurable: true, value: 100 } })
+    }
     initialView.resolve()
     await flushPromises()
     expect(wrapper.text()).toContain('หน้าร้านพร้อมแล้ว')
@@ -44,14 +47,14 @@ it('keeps startup visible until the initial page actually resolves, then release
   } finally { wrapper.unmount() }
 })
 
-it('offers recovery instead of continuing the bouncing loader after a loading failure', () => {
+it('offers recovery instead of continuing the bouncing loader after a loading failure', async () => {
   const { screen, root } = startupFixture()
   showAppStartupError()
   expect(screen.dataset.state).toBe('error')
   expect(screen.querySelector('[data-startup-message]').getAttribute('role')).toBe('alert')
   expect(screen.textContent).toContain('โหลดร้านไม่สำเร็จ')
   expect(screen.querySelector('button').hidden).toBe(false)
-  finishAppStartup()
+  await finishAppStartup()
   expect(screen.isConnected).toBe(true)
   expect(root.hasAttribute('inert')).toBe(true)
 })
@@ -70,10 +73,76 @@ it('offers recovery even when the entry JavaScript cannot be downloaded', async 
   } finally { page.window.close() }
 })
 
-it('does not release a dialog-owned inert app after the startup screen has already gone', () => {
+it('does not release a dialog-owned inert app after the startup screen has already gone', async () => {
   const { root } = startupFixture()
-  finishAppStartup()
+  await finishAppStartup()
   root.setAttribute('inert', '')
-  finishAppStartup()
+  await finishAppStartup()
+  expect(root.hasAttribute('inert')).toBe(true)
+})
+
+it('keeps loading until the document, logo image decode and fonts are all ready', async () => {
+  const { screen, root } = startupFixture()
+  const logo = document.createElement('img')
+  logo.src = '/brand/loading-wordmark.png'
+  screen.prepend(logo)
+  Object.defineProperties(logo, {
+    complete: { configurable: true, get: () => false },
+    naturalWidth: { configurable: true, get: () => 100 }
+  })
+  let finishDecode, finishFonts
+  logo.decode = () => new Promise(resolve => { finishDecode = resolve })
+  const fontsReady = new Promise(resolve => { finishFonts = resolve })
+  const originalFonts = Object.getOwnPropertyDescriptor(document, 'fonts')
+  Object.defineProperty(document, 'fonts', { configurable: true, value: { ready: fontsReady } })
+  const state = vi.spyOn(document, 'readyState', 'get').mockReturnValue('loading')
+  try {
+    const ready = finishAppStartup()
+    await flushPromises()
+    expect(screen.isConnected).toBe(true)
+    state.mockReturnValue('complete')
+    window.dispatchEvent(new Event('load'))
+    await flushPromises()
+    expect(screen.isConnected).toBe(true)
+    logo.dispatchEvent(new Event('load'))
+    await flushPromises()
+    expect(screen.isConnected).toBe(true)
+    finishDecode()
+    await flushPromises()
+    expect(screen.isConnected).toBe(true)
+    finishFonts()
+    await ready
+    expect(screen.isConnected).toBe(false)
+    expect(root.hasAttribute('inert')).toBe(false)
+  } finally {
+    if (originalFonts) Object.defineProperty(document, 'fonts', originalFonts)
+    else delete document.fonts
+  }
+})
+
+it('does not hold the shop behind loading for lazy or failed optional page images', async () => {
+  const { screen, root } = startupFixture()
+  const lazy = document.createElement('img')
+  lazy.src = '/below-the-fold.png'
+  lazy.loading = 'lazy'
+  const broken = document.createElement('img')
+  broken.src = '/optional-photo.png'
+  Object.defineProperties(broken, { complete: { value: true }, naturalWidth: { value: 0 } })
+  root.append(lazy, broken)
+  await finishAppStartup()
+  expect(screen.isConnected).toBe(false)
+  expect(root.hasAttribute('inert')).toBe(false)
+})
+
+it('offers reload when the required branding image fails instead of revealing a broken startup', async () => {
+  const { screen, root } = startupFixture()
+  const logo = document.createElement('img')
+  logo.src = '/brand/loading-wordmark.png'
+  Object.defineProperties(logo, { complete: { value: true }, naturalWidth: { value: 0 } })
+  screen.prepend(logo)
+  await finishAppStartup()
+  expect(screen.isConnected).toBe(true)
+  expect(screen.dataset.state).toBe('error')
+  expect(screen.querySelector('[data-startup-retry]').hidden).toBe(false)
   expect(root.hasAttribute('inert')).toBe(true)
 })
