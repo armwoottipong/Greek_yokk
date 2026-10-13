@@ -1,0 +1,63 @@
+.startup-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  background: #780608;
+  color: #FEFAF1;
+  padding: 32px 24px;
+  box-sizing: border-box;
+  font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.startup-content { width: min(100%, 360px); text-align: center; }
+.startup-mascot-stage { position: relative; width: min(100%, 320px); margin: 0 auto; }
+.startup-mascot {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform-origin: 50% 80%;
+  animation: yogurt-hop 1.6s cubic-bezier(.22,.68,.35,1) infinite;
+}
+.startup-mascot-stage::after {
+  content: '';
+  position: absolute;
+  bottom: 13%;
+  left: 36%;
+  width: 28%;
+  height: 7px;
+  border-radius: 50%;
+  background: #3F0203;
+  filter: blur(3px);
+  animation: yogurt-shadow 1.6s ease-in-out infinite;
+}
+.startup-brand {
+  margin: -16px 0 10px;
+  color: #FEFAF1;
+  font-size: clamp(28px, 6vw, 34px);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -.035em;
+}
+.startup-message { margin: 0; color: #F0D6CA; font-size: 14px; line-height: 1.8; }
+.startup-dots { display: flex; justify-content: center; gap: 8px; margin-top: 22px; }
+.startup-dots i { width: 6px; height: 6px; border-radius: 50%; background: #E8BEB0; animation: yogurt-dot 1.6s ease-in-out infinite; }
+.startup-dots i:nth-child(2) { animation-delay: .16s; }
+.startup-dots i:nth-child(3) { animation-delay: .32s; }
+.startup-retry { margin: 24px auto 0; border: 0; border-radius: 12px; padding: 12px 20px; background: #FEFAF1; color: #780608; font: inherit; font-size: 14px; cursor: pointer; }
+.startup-retry:focus-visible { outline: 2px solid #FEFAF1; outline-offset: 4px; }
+.startup-screen[data-state="error"] .startup-mascot,
+.startup-screen[data-state="error"] .startup-mascot-stage::after { animation: none; }
+.startup-screen[data-state="error"] .startup-dots { display: none; }
+@keyframes yogurt-hop {
+  0%, 70%, 100% { transform: translateY(0) scale(1); }
+  12% { transform: translateY(2px) scale(1.035, .96); }
+  35% { transform: translateY(-18px) rotate(-3deg) scale(.98, 1.025); }
+  56% { transform: translateY(2px) rotate(1deg) scale(1.025, .975); }
+}
+@keyframes yogurt-shadow { 0%, 70%, 100% { transform: scaleX(1); opacity: .4; } 35% { transform: scaleX(.72); opacity: .22; } }
+@keyframes yogurt-dot { 0%, 60%, 100% { opacity: .35; transform: translateY(0); } 25% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .startup-mascot, .startup-mascot-stage::after, .startup-dots i { animation: none; }
+}

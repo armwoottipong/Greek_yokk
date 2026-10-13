@@ -15,9 +15,11 @@
 
       <!-- Active View Content -->
       <main id="main-content" ref="contentRoot" tabindex="-1" :inert="mobileMenuOpen ? true : undefined" class="flex-1 overflow-y-auto p-4 md:p-6 outline-none">
-        <KeepAlive>
-          <component :is="currentViewComponent" />
-        </KeepAlive>
+        <Suspense @resolve="finishStartup">
+          <KeepAlive>
+            <component :is="currentViewComponent" />
+          </KeepAlive>
+        </Suspense>
       </main>
     </div>
 
@@ -47,18 +49,28 @@
 import { computed, ref, onMounted, onUnmounted, defineAsyncComponent, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import {overlayStack} from '@/composables/overlayState'
+import { finishAppStartup, showAppStartupError } from '@/composables/appStartup'
 
 import Sidebar from '@/components/layout/Sidebar.vue'
 import HeaderBar from '@/components/layout/HeaderBar.vue'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 // Views
-const DashboardView = defineAsyncComponent(() => import('@/views/DashboardView.vue'))
-const PosView = defineAsyncComponent(() => import('@/views/PosView.vue'))
-const MenuView = defineAsyncComponent(() => import('@/views/MenuView.vue'))
-const AddonView = defineAsyncComponent(() => import('@/views/AddonView.vue'))
-const StockView = defineAsyncComponent(() => import('@/views/StockView.vue'))
-const SettingsView = defineAsyncComponent(() => import('@/views/SettingsView.vue'))
+function asyncView(loader) {
+  return defineAsyncComponent({
+    loader,
+    onError(_error, _retry, fail) {
+      showAppStartupError()
+      fail()
+    }
+  })
+}
+const DashboardView = asyncView(() => import('@/views/DashboardView.vue'))
+const PosView = asyncView(() => import('@/views/PosView.vue'))
+const MenuView = asyncView(() => import('@/views/MenuView.vue'))
+const AddonView = asyncView(() => import('@/views/AddonView.vue'))
+const StockView = asyncView(() => import('@/views/StockView.vue'))
+const SettingsView = asyncView(() => import('@/views/SettingsView.vue'))
 
 // Modals
 import MenuEditModal from '@/components/modals/MenuEditModal.vue'
@@ -82,6 +94,10 @@ const mobileMenuOpen=ref(false)
 const contentRoot=ref(null)
 const viewNames={dashboard:'ภาพรวมร้าน',pos:'ขายหน้าร้าน',menu:'เมนูและสูตร',addon:'ท็อปปิ้ง',stock:'คลังวัตถุดิบ',settings:'ตั้งค่าระบบ'}
 function focusContent(){contentRoot.value?.focus({preventScroll:true})}
+function finishStartup() {
+ finishAppStartup()
+ finishViewFocus()
+}
 let pendingViewFocus=false
 function finishViewFocus(){
  if(!pendingViewFocus||overlayStack.length||document.getElementById('app')?.hasAttribute('inert'))return

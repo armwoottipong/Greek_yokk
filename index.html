@@ -6,9 +6,41 @@
   <title>Greek Yogg. — Stock, POS & Menu Management</title>
   <meta name="theme-color" content="#780608">
   <link rel="icon" type="image/png" href="%BASE_URL%brand/mascot.png">
+  <link rel="stylesheet" href="/src/assets/startup.css">
+  <link rel="preload" as="image" href="%BASE_URL%brand/loading-mascot.png">
+  <script>
+    window.addEventListener('error', function (event) {
+      if (event.target?.tagName !== 'SCRIPT' || event.target.type !== 'module') return
+      function showFailure() {
+        const screen = document.getElementById('app-loading')
+        if (!screen) return
+        screen.dataset.state = 'error'
+        const message = screen.querySelector('[data-startup-message]')
+        message.textContent = 'โหลดร้านไม่สำเร็จ ลองโหลดใหม่อีกครั้งนะ'
+        message.setAttribute('role', 'alert')
+        const retry = screen.querySelector('[data-startup-retry]')
+        retry.hidden = false
+        retry.onclick = function () { window.location.reload() }
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showFailure, { once: true })
+      else showFailure()
+    }, true)
+  </script>
 </head>
 <body class="h-full bg-[#FBF5EA] text-stone-900 flex flex-col md:flex-row overflow-hidden antialiased">
-  <div id="app" class="w-full h-full flex flex-col md:flex-row overflow-hidden"></div>
+  <section id="app-loading" class="startup-screen" aria-label="กำลังเปิด Greek Yogg.">
+    <div class="startup-content">
+      <div class="startup-mascot-stage" aria-hidden="true">
+        <img class="startup-mascot" src="/brand/loading-mascot.png" width="6000" height="6001" alt="">
+      </div>
+      <p class="startup-brand">Greek Yogg.</p>
+      <p class="startup-message" data-startup-message role="status" aria-live="polite">กำลังเตรียมร้านให้พร้อม…</p>
+      <div class="startup-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <button class="startup-retry" data-startup-retry type="button" hidden>ลองโหลดใหม่</button>
+      <noscript><p class="startup-message">เปิด JavaScript ในเบราว์เซอร์เพื่อเข้าใช้งานร้านนะ</p></noscript>
+    </div>
+  </section>
+  <div id="app" inert class="w-full h-full flex flex-col md:flex-row overflow-hidden"></div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
