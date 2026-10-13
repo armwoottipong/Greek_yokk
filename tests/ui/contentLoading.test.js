@@ -21,7 +21,7 @@ vi.mock('../../src/views/SettingsView.vue', async () => {
   return { __esModule: true, default: { template: '<h2>Settings ready</h2>' } }
 })
 
-it('shows the main loader only after 1.5 seconds, then removes it immediately when ready', async () => {
+it('shows the main loader only after 1 second, then removes it immediately when ready', async () => {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
   vi.spyOn(performance, 'now').mockReturnValue(1000)
   const s = createTestStore()
@@ -34,7 +34,7 @@ it('shows the main loader only after 1.5 seconds, then removes it immediately wh
     expect(w.get('#main-content').attributes('aria-busy')).toBe('true')
     expect(w.get('[data-page-content]').attributes('inert')).toBeDefined()
     expect(w.get('#main-sidebar').attributes('inert')).toBeUndefined()
-    await vi.advanceTimersByTimeAsync(1499)
+    await vi.advanceTimersByTimeAsync(999)
     expect(w.find('[data-content-loading]').exists()).toBe(false)
     await vi.advanceTimersByTimeAsync(1)
     expect(w.find('[data-content-loading]').exists()).toBe(true)

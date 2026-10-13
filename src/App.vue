@@ -122,7 +122,7 @@ async function loadContent(tab) {
  contentIndicatorVisible.value=false
  contentError.value=false
  clearTimeout(contentDelayTimer)
- contentDelayTimer=setTimeout(()=>{if(version===navigationVersion)contentIndicatorVisible.value=true},1500)
+ contentDelayTimer=setTimeout(()=>{if(version===navigationVersion)contentIndicatorVisible.value=true},1000)
  if(contentRoot.value)contentRoot.value.scrollTop=0
  try {
   await loadPage(tab)
