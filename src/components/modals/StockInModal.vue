@@ -1,10 +1,10 @@
 <template>
  <DialogFrame :open="store.modals.stockIn.isOpen" id="StockInModal" :title="isProducedFromRecipe?'ผลิตตามสูตร':'รับเข้าสต็อก'" description="ระบุจำนวน ราคา และวันที่ของล็อตใหม่" :teleport="false" width="720px" @request-close="requestClose(close)">
 
- <div class="stock-form">
+ <div class="stock-form stock-receive-form">
         <!-- 1. Select Material -->
         <div>
-          <div class="flex items-center justify-between mb-1">
+          <div class="stock-selection-heading flex items-center justify-between mb-1">
             <label class="block text-[11px] font-medium text-stone-600">เลือกวัตถุดิบ</label>
             <Button variant="quiet"
               v-if="selectedMatId"
@@ -37,7 +37,7 @@
         <div v-if="!isProducedFromRecipe" class="space-y-3.5">
           <!-- Quantity input with mini unit toggle -->
           <div>
-            <div class="flex items-center justify-between mb-1">
+            <div class="stock-quantity-heading flex items-center justify-between mb-1">
               <label class="text-[11px] font-medium text-stone-600">จำนวนที่รับเข้า</label>
               <!-- Mini unit capsule -->
               <div v-if="currentMat?.packUnit && currentMat?.packSize > 1" class="flex items-center p-0.5 bg-stone-100 rounded-lg text-[10px] font-semibold">
@@ -64,7 +64,7 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-1.5">
+            <div class="stock-quantity-controls flex items-center gap-1.5">
               <Button variant="quiet"
                 type="button"
                 @click="stepDirectQty(-1)"
@@ -146,7 +146,7 @@
         <div v-else class="space-y-3.5">
           <!-- Quantity to Produce -->
           <div>
-            <div class="flex items-center justify-between mb-1">
+            <div class="stock-quantity-heading flex items-center justify-between mb-1">
               <label class="text-[11px] font-medium text-stone-600">จำนวนที่ต้องการผลิต</label>
               <!-- Mini unit capsule -->
               <div class="flex items-center p-0.5 bg-stone-100 rounded-lg text-[10px] font-semibold">
@@ -173,7 +173,7 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-1.5">
+            <div class="stock-quantity-controls flex items-center gap-1.5">
               <Button variant="quiet"
                 type="button"
                 @click="stepProduceQty(-1)"
@@ -226,7 +226,7 @@
           </div>
 
           <!-- Deducted Sub-ingredients (Compact list) -->
-          <div class="space-y-1.5 p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50">
+          <div class="stock-recipe-preview space-y-1.5 p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50">
             <div class="flex items-center justify-between text-[11px] font-medium text-stone-700 mb-1">
               <span>ส่วนผสมที่จะถูกหัก:</span>
               <span class="text-[10px] text-stone-400 font-number">สัดส่วน {{ (produceYieldQty / formulaYield).toFixed(2) }}x</span>
@@ -235,13 +235,13 @@
             <div
               v-for="sub in scaledSubIngredients"
               :key="sub.materialId"
-              class="flex items-center justify-between text-xs py-1 border-b border-stone-100 last:border-0"
+              class="stock-recipe-row flex items-center justify-between text-xs py-1 border-b border-stone-100 last:border-0"
             >
-              <div class="flex items-center gap-1.5">
+              <div class="stock-recipe-name flex items-center gap-1.5">
                 <span>{{ store.matMap[sub.materialId]?.emoji }}</span>
                 <span class="text-stone-800 font-medium">{{ store.matMap[sub.materialId]?.name }}</span>
               </div>
-              <div class="flex items-center gap-2 font-number">
+              <div class="stock-recipe-amount flex items-center gap-2 font-number">
                 <span class="text-rose-600 font-semibold">-{{ sub.qty.toLocaleString() }} {{ store.matMap[sub.materialId]?.unit }}</span>
                 <span
                   v-if="store.checkLotDepletion(sub.materialId, sub.qty).willDeplete"
@@ -267,7 +267,7 @@
             </div>
 
             <!-- Cost Line -->
-            <div class="flex items-center justify-between pt-1.5 text-[11px] text-stone-500 font-number">
+            <div class="stock-recipe-cost flex items-center justify-between pt-1.5 text-[11px] text-stone-500 font-number">
               <span>ต้นทุนวัตถุดิบรอบนี้:</span>
               <span class="font-bold text-stone-800">฿{{ totalProduceCost.toFixed(2) }} (฿{{ produceYieldQty > 0 ? (totalProduceCost / produceYieldQty).toFixed(4) : 0 }}/{{ currentMat?.unit }})</span>
             </div>
@@ -276,8 +276,8 @@
 
         <!-- วันที่รับเข้า/ผลิต & วันหมดอายุ ปรับตาม trackingMode ของหมวดหมู่ -->
         <div v-if="trackingMode === 'expiry_and_receive'" class="space-y-2">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
+          <div class="stock-date-fields grid grid-cols-2 gap-3">
+            <div class="stock-date-field">
               <label class="block text-[11px] font-medium text-stone-600 mb-1">
                 {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
               </label>
@@ -286,10 +286,13 @@
                 type="date"
                 class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white" />
             </div>
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="text-[11px] font-medium text-stone-600">วันหมดอายุ</label>
-                <div class="flex items-center gap-1.5 text-[10px]">
+            <div class="stock-date-field">
+              <label class="block text-[11px] font-medium text-stone-600 mb-1">วันหมดอายุ</label>
+              <AppInput aria-label="วันหมดอายุ"
+                v-model="expiryDate"
+                type="date"
+                class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white" />
+                <div class="stock-expiry-actions flex items-center gap-1.5 text-[10px]">
                   <Button variant="quiet"
                     v-if="currentMat?.shelfLifeDays && expiryDate !== addDays(receiveDate, currentMat.shelfLifeDays)"
                     type="button"
@@ -309,11 +312,6 @@
                     ล้าง
                   </Button>
                 </div>
-              </div>
-              <AppInput aria-label="วันหมดอายุ"
-                v-model="expiryDate"
-                type="date"
-                class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white" />
             </div>
           </div>
         </div>
