@@ -48,7 +48,7 @@
       </div>
 
       <template #footer><footer class="stocktake-footer">
-        <div class="stocktake-summary" aria-live="polite"><p>ยอดต่างทั้งหมด <strong>{{ varianceStats.changedCount }} รายการ</strong><span class="stocktake-impact" :class="varianceStats.netCostImpact>0 ? 'text-emerald-700' : varianceStats.netCostImpact<0 ? 'text-rose-700' : ''">{{ formatImpact(varianceStats.netCostImpact) }}</span></p><small>ยังไม่ปรับสต็อกจนกว่าจะยืนยันแบบร่าง</small></div>
+        <div class="stocktake-summary" aria-live="polite"><p class="stocktake-summary-line"><span>ยอดต่างทั้งหมด</span><strong>{{ varianceStats.changedCount }} รายการ</strong><span class="stocktake-impact" :class="varianceStats.netCostImpact>0 ? 'text-emerald-700' : varianceStats.netCostImpact<0 ? 'text-rose-700' : ''">{{ formatImpact(varianceStats.netCostImpact) }}</span></p><small>ยังไม่ปรับสต็อกจนกว่าจะยืนยันแบบร่าง</small></div>
         <div class="stocktake-actions"><Button variant="quiet" @click="close" class="stocktake-cancel">ยกเลิก</Button><Button data-stage-stocktake @click="submitStocktake" :disabled="varianceStats.changedCount === 0" class="stocktake-submit"><Check :size="16" aria-hidden="true" />เพิ่มเข้าแบบร่าง<span v-if="varianceStats.changedCount">({{ varianceStats.changedCount }})</span></Button></div>
       </footer></template>
   </DialogFrame>
@@ -263,3 +263,4 @@ function submitStocktake() {
 <style scoped>.stocktake-search{background:var(--bg-soft);padding:0 12px}.stocktake-category :deep(.app-select-trigger){background:var(--bg-soft);border:0;outline:0;box-shadow:none}.stocktake-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}.stocktake-footer{width:100%;padding:0;border:0}:deep(.dialog-frame-body){padding:0}:deep(.dialog-frame-footer){padding:16px 24px}@media(max-width:767px){:deep(.dialog-frame-footer){padding:12px 16px}}</style><style scoped>.stocktake-units button{min-width:44px}</style>
 <style scoped>@media(min-width:640px) and (max-width:1199px){.stocktake-count-control{flex-wrap:wrap}.stocktake-count-control>.app-input{flex-basis:100%;width:100%}}</style>
 <style scoped>.stocktake-body:focus{outline:none}</style>
+<style scoped>.stocktake-summary-line{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 12px;font-size:12px!important;line-height:1.6}.stocktake-summary-line strong{font-size:13px;margin:0;color:var(--accent-brand)}.stocktake-summary-line .stocktake-impact{margin:0;padding-left:12px;font-size:12px}.stocktake-summary>small{font-size:11px;line-height:1.6;margin-top:4px}</style>

@@ -22,3 +22,15 @@ it('keeps review open when commit fails and requires confirmation before discard
  w.vm.showDraftDetails=true;await w.vm.savePendingChanges();expect(w.vm.showDraftDetails).toBe(true)
  await w.vm.revertPendingChanges();expect(store.hasStockDrafts).toBe(true);w.unmount()
 })
+it('closes the review and restores the snapshot only after confirming discard',async()=>{
+ const store=createTestStore();store.materials=[material('M',100)];store.initStockDraftSnapshot();store.stockAdjust('M',75,'test','',true)
+ vi.spyOn(store,'confirmDialog').mockResolvedValue(true)
+ const w=mount(Stock)
+ try{
+  w.vm.showDraftDetails=true
+  await w.vm.revertPendingChanges();await flushPromises()
+  expect(store.materials[0].stock).toBe(100)
+  expect(store.hasStockDrafts).toBe(false)
+  expect(w.vm.showDraftDetails).toBe(false)
+ }finally{w.unmount()}
+})
