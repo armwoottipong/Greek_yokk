@@ -1,5 +1,5 @@
 <template>
-  <DialogFrame id="StocktakeModal" title="ตรวจนับสต็อกปิดร้าน" description="กรอกยอดจริง แล้วตรวจผลต่างก่อนบันทึก" :open="Boolean(store.modals.stocktake?.isOpen)" width="980px" :teleport="false" @request-close="close">
+  <DialogFrame id="StocktakeModal" title="ตรวจนับสต็อกปิดร้าน" description="กรอกยอดจริง แล้วตรวจผลต่างก่อนบันทึก" :open="Boolean(store.modals.stocktake?.isOpen)" width="980px" :teleport="false" contained-body @request-close="close">
 
 
       <div class="stocktake-toolbar">
@@ -14,7 +14,7 @@
         </div>
       </div>
 
-      <div class="stocktake-body">
+      <div class="stocktake-body" role="region" aria-label="รายการตรวจนับ" tabindex="0">
         <table class="stocktake-table">
           <thead><tr><th>วัตถุดิบ</th><th>ยอดในระบบ</th><th>ยอดนับจริง</th><th class="stocktake-variance-heading">ผลต่าง</th></tr></thead>
           <tbody>
@@ -260,5 +260,6 @@ function submitStocktake() {
 </style>
 
 <style scoped>.stocktake-search{padding:0;border:0;min-width:0}.stocktake-count-control>.app-input{flex:1;width:0;min-width:0;border-radius:12px;min-height:48px}.stocktake-count-control :deep(.app-input input){padding:12px 0;width:100%;min-width:0;height:48px;background:transparent;font-size:1rem}.stocktake-search :deep(input){width:100%;padding:12px 0}</style>
-<style scoped>.stocktake-search{background:var(--bg-soft);padding:0 12px}.stocktake-category :deep(.app-select-trigger){background:var(--bg-soft);border:0;outline:0;box-shadow:none}.stocktake-body{overflow:visible}.stocktake-footer{width:100%;padding:0;border:0}:deep(.dialog-frame-body){padding:0}:deep(.dialog-frame-footer){padding:16px 24px}@media(max-width:767px){:deep(.dialog-frame-footer){padding:12px 16px}}</style><style scoped>.stocktake-units button{min-width:44px}</style>
+<style scoped>.stocktake-search{background:var(--bg-soft);padding:0 12px}.stocktake-category :deep(.app-select-trigger){background:var(--bg-soft);border:0;outline:0;box-shadow:none}.stocktake-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}.stocktake-footer{width:100%;padding:0;border:0}:deep(.dialog-frame-body){padding:0}:deep(.dialog-frame-footer){padding:16px 24px}@media(max-width:767px){:deep(.dialog-frame-footer){padding:12px 16px}}</style><style scoped>.stocktake-units button{min-width:44px}</style>
 <style scoped>@media(min-width:640px) and (max-width:1199px){.stocktake-count-control{flex-wrap:wrap}.stocktake-count-control>.app-input{flex-basis:100%;width:100%}}</style>
+<style scoped>.stocktake-body:focus{outline:none}</style>
