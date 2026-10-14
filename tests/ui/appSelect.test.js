@@ -6,6 +6,18 @@ import AppSelect from '../../src/components/ui/AppSelect.vue'
 function open(props={}){
  return mount(AppSelect,{attachTo:document.body,props:{modelValue:2,...props},attrs:{'aria-label':'หมวดหมู่'},slots:{default:()=>[h('optgroup',{label:'กลุ่ม A'},[h('option',{value:1,disabled:true},'ปิดใช้งาน'),h('option',{value:2},'โยเกิร์ต'),h('option',{value:3},'ผลไม้')])]}})
 }
+it('allows content-sized menus beyond the default cap while respecting available space',async()=>{
+ const wrapper=open({fitContent:true})
+ await nextTick()
+ const trigger=wrapper.get('[role=combobox]')
+ trigger.element.getBoundingClientRect=()=>({top:300,bottom:328,left:100,width:100})
+ await trigger.trigger('click')
+ const menu=document.querySelector('[role=listbox]')
+ expect(Number.parseFloat(menu.style.maxHeight)).toBe(window.innerHeight-328-16)
+ expect(Number.parseFloat(menu.style.maxHeight)).toBeGreaterThan(300)
+ expect(menu.style.top).toBe('334px')
+ wrapper.unmount()
+})
 it('renders styled grouped options and emits the original typed value',async()=>{
  const wrapper=open(); await nextTick()
  const trigger=wrapper.get('[role=combobox]')

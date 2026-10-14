@@ -25,7 +25,7 @@ import {topOverlayLayer} from '@/composables/overlayState'
 import {useOverlayScrollLock} from '@/composables/useOverlayScrollLock'
 import {ChevronDown,Check} from 'lucide-vue-next'
 defineOptions({inheritAttrs:false})
-const props=defineProps({modelValue:{type:[String,Number],default:''},disabled:Boolean,placeholder:{type:String,default:'เลือกรายการ'},displayLabel:String})
+const props=defineProps({modelValue:{type:[String,Number],default:''},disabled:Boolean,placeholder:{type:String,default:'เลือกรายการ'},displayLabel:String,fitContent:Boolean})
 const emit=defineEmits(['update:modelValue','change'])
 const attrs=useAttrs(),menuId=`app-select-${useId()}`
 const root=ref(null),source=ref(null),trigger=ref(null),menu=ref(null)
@@ -46,8 +46,11 @@ function positionMenu(){
   const anchor=trigger.value?.getBoundingClientRect()
   if(!anchor) return
   const margin=8,width=Math.min(Math.max(anchor.width,220),window.innerWidth-margin*2)
-  const below=window.innerHeight-anchor.bottom-margin*2,above=anchor.top-margin*2,useAbove=below<160 && above>below
-  const height=Math.min(300,Math.max(80,useAbove?above:below))
+  const below=window.innerHeight-anchor.bottom-margin*2,above=anchor.top-margin*2
+  const contentHeight=props.fitContent?(menu.value?.scrollHeight||options.value.length*44+new Set(options.value.map(option=>option.group).filter(Boolean)).size*36+12):160
+  const useAbove=below<contentHeight && above>below
+  const availableHeight=Math.max(80,useAbove?above:below)
+  const height=props.fitContent?availableHeight:Math.min(300,availableHeight)
   position.value={zIndex:topOverlayLayer()+10,left:`${Math.max(margin,Math.min(anchor.left,window.innerWidth-width-margin))}px`,top:useAbove?undefined:`${anchor.bottom+6}px`,bottom:useAbove?`${window.innerHeight-anchor.top+6}px`:undefined,width:`${width}px`,maxHeight:`${height}px`}
 }
 function outside(event){if(!root.value?.contains(event.target) && !menu.value?.contains(event.target)) close(false)}
@@ -65,7 +68,7 @@ async function open(){
   active.value=options.value.findIndex(option=>option.value===String(props.modelValue) && !option.disabled)
   if(active.value<0) active.value=options.value.findIndex(option=>!option.disabled)
   document.addEventListener('pointerdown',outside,true);window.addEventListener('resize',positionMenu);window.addEventListener('scroll',scroll,true)
-  await nextTick();revealActive()
+  await nextTick();if(props.fitContent)positionMenu();revealActive()
 }
 function revealActive(){menu.value?.querySelector(`[id="${menuId}-${active.value}"]`)?.scrollIntoView?.({block:'nearest'})}
 function choose(index){
