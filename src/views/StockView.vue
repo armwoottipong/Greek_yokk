@@ -15,7 +15,7 @@
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/70 text-[11px] font-semibold text-stone-600 tracking-wider">
               <th scope="col" :aria-sort="ariaSort('name')" class="py-3.5 px-4 text-left whitespace-nowrap"><TableSortButton label="วัตถุดิบ / สินค้า" data-sort="name" :direction="sortDirection('name')" @sort="toggleStockSort('name')"/></th>
-              <th scope="col" aria-label="วันที่" :aria-sort="ariaSort('receive','expiry')" class="py-3.5 px-4 text-left"><div class="stock-date-sort"><TableSortButton label="รับล่าสุด" data-sort="receive" :direction="sortDirection('receive')" @sort="toggleStockSort('receive')"/><TableSortButton label="หมดอายุ" data-sort="expiry" :direction="sortDirection('expiry')" @sort="toggleStockSort('expiry')"/></div></th>
+              <th scope="col" aria-label="วันที่" :aria-sort="ariaSort('receive','expiry')" class="py-3.5 px-4 text-left"><div class="stock-date-sort" :class="{'is-sorted':dateSortValue!==''}"><AppSelect class="stock-date-select" display-label="วันที่" aria-label="เรียงตามวันที่" :title="dateSortTitle" :aria-description="dateSortTitle" :model-value="dateSortValue" @update:model-value="setDateSort"><option value="">ลำดับเดิม</option><optgroup label="รับล่าสุด"><option value="receive:asc">รับล่าสุด · เก่า → ใหม่</option><option value="receive:desc">รับล่าสุด · ใหม่ → เก่า</option></optgroup><optgroup label="หมดอายุ"><option value="expiry:asc">หมดอายุ · ก่อน → หลัง</option><option value="expiry:desc">หมดอายุ · หลัง → ก่อน</option></optgroup></AppSelect><ArrowUp v-if="dateSortValue&&stockSort.direction==='asc'" :size="12" aria-hidden="true"/><ArrowDown v-else-if="dateSortValue" :size="12" aria-hidden="true"/><ArrowUpDown v-else :size="12" aria-hidden="true"/></div></th>
               <th scope="col" :aria-sort="ariaSort('kind')" class="py-3.5 px-4 text-left whitespace-nowrap"><TableSortButton label="ประเภท" data-sort="kind" :direction="sortDirection('kind')" @sort="toggleStockSort('kind')"/></th>
               <th scope="col" :aria-sort="ariaSort('stock')" class="py-3.5 px-4 text-center whitespace-nowrap"><TableSortButton label="คงเหลือในคลัง" data-sort="stock" :direction="sortDirection('stock')" @sort="toggleStockSort('stock')"/></th>
               <th scope="col" :aria-sort="ariaSort('cost')" class="py-3.5 px-4 text-right whitespace-nowrap"><TableSortButton label="ต้นทุน/หน่วย" data-sort="cost" :direction="sortDirection('cost')" @sort="toggleStockSort('cost')"/></th>
@@ -431,7 +431,7 @@ import {
   Zap,
   Archive,
   AlertTriangle,
-  ClipboardCheck
+  ClipboardCheck, ArrowUp, ArrowDown, ArrowUpDown
 } from 'lucide-vue-next'
 
 const store = usePosStore()
@@ -444,6 +444,9 @@ const selectedRole = ref('all') // 'all' | 'main' | 'sub'
 const selectedKind = ref('all')
 const showDeleted = ref(false)
 const stockSort=ref({key:null,direction:null})
+const dateSortValue=computed(()=>['receive','expiry'].includes(stockSort.value.key)?`${stockSort.value.key}:${stockSort.value.direction}`:'')
+const dateSortTitle=computed(()=>dateSortValue.value?`${stockSort.value.key==='receive'?'รับล่าสุด':'หมดอายุ'} · ${stockSort.value.direction==='asc'?'เก่าไปใหม่':'ใหม่ไปเก่า'}`:'เลือกเรียงตามรับล่าสุดหรือหมดอายุ')
+function setDateSort(value){const [key,direction]=value.split(':');stockSort.value=value?{key,direction}:{key:null,direction:null}}
 function toggleStockSort(key){
  const current=stockSort.value
  stockSort.value=current.key!==key||!current.direction?{key,direction:'asc'}:current.direction==='asc'?{key,direction:'desc'}:{key:null,direction:null}

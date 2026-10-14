@@ -2,7 +2,7 @@
   <span ref="root" class="app-select" :class="$attrs.class" :style="$attrs.style">
     <select ref="source" v-model="selection" hidden aria-hidden="true" tabindex="-1" :aria-label="$attrs['aria-label']" :disabled="disabled" @change="$emit('change',$event)"><slot /></select>
     <button ref="trigger" v-bind="controlAttrs()" type="button" role="combobox" aria-haspopup="listbox" :aria-expanded="isOpen" :aria-controls="isOpen ? menuId : undefined" :aria-activedescendant="isOpen && active >= 0 ? `${menuId}-${active}` : undefined" :disabled="disabled || !options.length" class="app-select-trigger" @click="isOpen ? close() : open()" @keydown="handleKey">
-      <span class="app-select-value" :class="selected ? '' : 'app-select-placeholder'">{{ selected?.label || placeholder }}</span><ChevronDown :size="15" aria-hidden="true" class="app-select-chevron" :class="isOpen ? 'is-open' : ''" />
+      <span class="app-select-value" :class="selected ? '' : 'app-select-placeholder'">{{ displayLabel || selected?.label || placeholder }}</span><ChevronDown :size="15" aria-hidden="true" class="app-select-chevron" :class="isOpen ? 'is-open' : ''" />
     </button>
     <Teleport to="body">
       <div v-if="isOpen" :id="menuId" ref="menu" role="listbox" :aria-label="$attrs['aria-label'] || 'ตัวเลือก'" :style="position" class="app-select-menu">
@@ -25,7 +25,7 @@ import {topOverlayLayer} from '@/composables/overlayState'
 import {useOverlayScrollLock} from '@/composables/useOverlayScrollLock'
 import {ChevronDown,Check} from 'lucide-vue-next'
 defineOptions({inheritAttrs:false})
-const props=defineProps({modelValue:{type:[String,Number],default:''},disabled:Boolean,placeholder:{type:String,default:'เลือกรายการ'}})
+const props=defineProps({modelValue:{type:[String,Number],default:''},disabled:Boolean,placeholder:{type:String,default:'เลือกรายการ'},displayLabel:String})
 const emit=defineEmits(['update:modelValue','change'])
 const attrs=useAttrs(),menuId=`app-select-${useId()}`
 const root=ref(null),source=ref(null),trigger=ref(null),menu=ref(null)
