@@ -111,6 +111,4 @@ async function deleteMenu(menu) {
 </script>
 
 
-<style scoped>
-.menu-workspace{display:grid;gap:24px;min-width:0}.menu-directory{min-width:0}.menu-directory-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.menu-directory-heading h3{font-size:.9375rem;font-weight:500}.menu-directory-heading>span{font-size:.75rem;color:var(--text-muted)}.menu-directory-list{background:var(--bg-card);border-radius:16px;overflow:hidden}.menu-directory-empty{text-align:center;padding:48px 16px;color:var(--text-muted);font-size:.875rem;line-height:1.8}.menu-directory-empty strong{color:var(--text-main);font-weight:500}.menu-directory-empty p{margin:8px 0 16px}@media(max-width:639px){.menu-workspace{gap:20px}}
-</style>
+<style scoped src="@/components/catalog/catalogManagement.css"></style>

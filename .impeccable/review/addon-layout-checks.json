@@ -1,0 +1,33 @@
+[
+  {
+    "bodyScrollWidth": 368,
+    "bodyWidth": 368,
+    "documentWidth": 390,
+    "surface": "editor390",
+    "width": 390
+  },
+  {
+    "documentWidth": 390,
+    "surface": "directory390",
+    "width": 390
+  },
+  {
+    "documentWidth": 820,
+    "surface": "directory820",
+    "width": 820
+  },
+  {
+    "bodyScrollWidth": 720,
+    "bodyWidth": 720,
+    "documentWidth": 820,
+    "surface": "editor820",
+    "width": 820
+  },
+  {
+    "bodyScrollWidth": 298,
+    "bodyWidth": 298,
+    "documentWidth": 320,
+    "surface": "editor320",
+    "width": 320
+  }
+]

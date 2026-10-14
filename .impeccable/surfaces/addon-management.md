@@ -1,0 +1,9 @@
+# Add-on management — shared menu style
+
+Mode: Operate. Extend the approved menu-management surface and existing cream/burgundy identity. User direction, 14 October 2026: renovate Add-on using the same style, including add/edit popups and responsive layouts.
+
+One responsive list shows name, recipe summary, selected-channel price and named edit/delete actions. All prices remain in details/edit. Reuse the menu layout, shared toolbar and shared field/search/select/recipe controls. Add/edit has identity, prices and recipe disclosures with existing smooth motion and fixed save/cancel. Preserve ingredient/packaging groups, missing/archived material warnings, duplicate checks, positive quantity validation, save/discard and store payloads. Do not change checkout pricing or inventory behavior.
+
+Code-led extension of the inherited system; no replacement identity, concept roll or generated imagery. Inspect PC/iPad/mobile, run relevant regression tests and finish reviewer/documenter.
+
+Finish: reviewer disposition ship in review/addon-finish-review.md after all twelve captures and source. Documentation comparison in review/addon-documentation-review.md; incumbent token values preserved. Captures: review/addon-directory-{desktop,mobile,ipad}.jpg, addon-edit-{desktop,mobile,ipad,320}.jpg, addon-recipe-editor-mobile.jpg, addon-add-{desktop,mobile}.jpg and addon-details-{desktop,mobile}.jpg. Layout measurements in addon-layout-checks.json report no document/editor horizontal overflow at320/390/820px. Synthetic in-memory preview add/save with0price and emptyrecipe succeeded. Full77files469tests, lint/build and diffcheck passed. Detector advisory type findings retained without a palette/type change. Physical iPad/Safari, screen-reader and physical keyboard are not certified by viewport emulation.

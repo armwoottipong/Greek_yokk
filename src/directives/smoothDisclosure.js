@@ -1,5 +1,10 @@
 // Keep native details semantics and mounted form drafts while animating its measured height.
 const cleanups = new WeakMap()
+export function revealDisclosure(el) {
+ const cleanup = cleanups.get(el)
+ if (cleanup) cleanup.reveal()
+ else el.open = true
+}
 export const vSmoothDisclosure = {
  mounted(el) {
   const summary = el.querySelector(':scope > summary')
@@ -24,6 +29,7 @@ export const vSmoothDisclosure = {
   const toggle = event => {
    event.preventDefault()
    const start = el.getBoundingClientRect().height
+   if (!animation) expanded = el.open
    stop()
    expanded = !expanded
    summary.setAttribute('aria-expanded', String(expanded))
@@ -52,7 +58,9 @@ export const vSmoothDisclosure = {
   }
   summary.setAttribute('aria-expanded', String(expanded))
   summary.addEventListener('click', toggle)
-  cleanups.set(el, () => { stop(); restore(); summary.removeEventListener('click', toggle) })
+  const cleanup = () => { stop(); restore(); summary.removeEventListener('click', toggle) }
+  cleanup.reveal = () => { stop(); restore(); expanded = true; el.open = true; summary.setAttribute('aria-expanded', 'true') }
+  cleanups.set(el, cleanup)
  },
  unmounted(el) { cleanups.get(el)?.(); cleanups.delete(el) }
 }

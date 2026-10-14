@@ -1,5 +1,5 @@
 import {it,expect,vi} from 'vitest'
-import {vSmoothDisclosure} from '../../src/directives/smoothDisclosure'
+import {vSmoothDisclosure,revealDisclosure} from '../../src/directives/smoothDisclosure'
 
 function setup(reduced=false) {
  const el=document.createElement('details')
@@ -32,5 +32,17 @@ it('uses immediate native state changes for reduced motion',()=>{
   summary.click();expect(el.open).toBe(true)
   summary.click();expect(el.open).toBe(false)
   expect(el.animate).not.toHaveBeenCalled()
+ }finally{cleanup()}
+})
+it('reveals an invalid section during collapse without leaving the row inert',()=>{
+ const {el,summary,animations,cleanup}=setup()
+ try {
+  summary.click();animations[0].onfinish();summary.click()
+  revealDisclosure(el)
+  expect(animations[1].cancel).toHaveBeenCalled()
+  expect(el.open).toBe(true)
+  expect(el.querySelector('div').hasAttribute('inert')).toBe(false)
+  expect(summary.getAttribute('aria-expanded')).toBe('true')
+  summary.click();animations[2].onfinish();expect(el.open).toBe(false)
  }finally{cleanup()}
 })

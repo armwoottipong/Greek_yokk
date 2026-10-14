@@ -196,7 +196,7 @@ POS splits catalog and cart at a workspace width of 696px, retaining 360px catal
 
 Keep one page title, grouped controls and a main vertical scrolling region. Phone management uses concise lists/cards; deeper data remains available. A table may scroll inside a clearly bounded desktop container.
 
-Desktop navigation occupies 256px; tablet rail occupies 72px. Compact drawers are bounded by min(300px,85vw). POS catalog cards use an auto-fill grid with a 200px minimum; at catalog container widths of 440px or less, keep two minmax(0,1fr) columns and stack channel/search controls. Management catalog cards retain two columns below the desktop threshold and one below 640px. Settings and dashboard retain local layout breakpoints; the sidecar records these separately from the shell boundaries.
+Desktop navigation occupies 256px; tablet rail occupies 72px. Compact drawers are bounded by min(300px,85vw). POS catalog cards use an auto-fill grid with a 200px minimum; at catalog container widths of 440px or less, keep two minmax(0,1fr) columns and stack channel/search controls. Menu and Add-on management share one responsive row list: four columns on wide screens, reflowed recipe content at 1100px and below, and identity/recipe above price/actions at 639px and below. Settings and dashboard retain local layout breakpoints; the sidecar records these separately from the shell boundaries.
 
 **The One Transaction Rule.** Presentation changes never duplicate checkout or commit a draft.
 
@@ -228,7 +228,11 @@ Ordinary soft fields outside dialogs use warm fill, a one-pixel control border a
 
 AppInput composes a full-width warm-fill field with prefix/suffix slots, a 48px minimum height, the existing pos-field radius and 12px horizontal padding. The native input retains its id, label/error attributes and keyboard behavior; number inputs use tabular numerals. FormField supplies the visible label. Its inner input is transparent, with body typography on desktop and the existing 16px native-field override below 1200px. DialogFrame supplies the established filled-popup treatment; this component does not replace the ordinary-field focus rule outside dialogs.
 
-RecipeEditorRow composes FormField, AppSelect, AppInput and a named remove IconButton. Material, quantity with unit suffix and remove action share an 8px gap; quantity occupies 136px and remove occupies 44px. At 480px and below the material selector takes a full row, with quantity and remove beneath it. Ingredient and packaging rows use the same controls while their callers supply the appropriate minimum and step.
+RecipeEditorRow composes FormField, AppSelect, AppInput and a named remove IconButton. Material, quantity with unit suffix and remove action share an 8px gap; quantity occupies 136px and remove occupies 44px. At 480px and below the material selector takes a full row, with quantity and remove beneath it. Ingredient and packaging rows use the same controls while their callers supply the appropriate minimum and step. Callers can pass an invalid state and error id to associate both controls with the row's visible error; validation and recovery remain with the editor.
+
+### Shared Management Rows
+
+CatalogManagementRow gives Menu and Add-on the same name/emoji, recipe summary, selected-channel price and named edit/delete composition. Name and recipe actions open contextual details with all channel prices and separate ingredient/packaging groups. Rows wrap long names and retain explicit missing-price text; a real zero remains zero. The shared catalog management, recipe detail and editor styles keep both surfaces aligned without changing POS catalog cards.
 
 ### Exclusive Choice Cards
 
@@ -252,7 +256,7 @@ The cart shows the heading บรรจุภัณฑ์, a packaging-item coun
 
 ### Platform Price Fields
 
-Menu and Add-on editors show the full platform name beside a named numeric price field. The existing Add-on warm-fill containers use a two-column grid with an 8px gap, becoming one column below 768px. MenuEditModal now composes FormField and affixed AppInput in a two-column grid with a 16px gap (14px at 480px and below), becoming one column below 360px. Labels stay in the available column rather than collapsing to two-character prefixes. Inside DialogFrame both the price group boundary and input outline/ring are removed by the shared popup treatment; outside dialogs the ordinary focus treatment remains.
+Menu and Add-on editors show the full platform name above a named numeric price field. Both compose FormField and affixed AppInput in the shared two-column grid with a 16px gap (14px at 480px and below), becoming one column below 360px. Labels wrap in the available column rather than collapsing to two-character prefixes. Inside DialogFrame both the price group boundary and input outline/ring are removed by the shared popup treatment; outside dialogs the ordinary focus treatment remains.
 
 ### Chips / Cards / Navigation
 
@@ -263,6 +267,8 @@ StatusBadge uses named semantic states. Catalog cards have a cream fill without 
 Dialogs have a bounded scrolling body and reachable header/footer. Their headings use the section-title token, with 13px descriptions and line height 1.7. Desktop header padding is 24px 24px 12px; phone header padding is 16px. Their headers use spacing rather than a divider; the soft-fill footer separates actions without a border. Filters likewise avoid outer/header/footer outlines and a nested calendar frame. Desktop body padding is 24px and phone body padding 16px. Confirmation uses the same constrained frame at 440px width and starts focus on cancel. Nested overlays keep one focus/inert/scroll-lock stack; deactivation closes transient UI and releases its participation in that stack. Error messages name a recovery action. Loading reflects actual work. Toasts announce changes without stealing focus. Success and information messages use a dedicated polite announcer; errors use alerts and remain until dismissed. Other messages expire after five seconds, pausing while hovered or focused. Each toast has a named 44px dismiss action with an inherited-color focus outline. Toasts wrap within the viewport, sit above the safe-area bottom on desktop and move to the safe-area top below 768px.
 
 Archived materials retain contextual edit and permanent-delete routes without requiring restoration. Stock drafts, recipe details and cart review open in contextual panels/sheets; closing their presentation is not a commit.
+
+Menu and Add-on editor disclosures preserve mounted drafts while measured-height motion opens and closes their native details elements. Closing bodies become inert; reduced motion changes native state immediately. The revealDisclosure helper cancels an active animation, clears its temporary height/overflow and inert state, and synchronizes the open/expanded state before Add-on validation focuses an invalid recipe control. Save/cancel remain in the shared dialog footer.
 
 Automated source/regression evidence covers constrained confirmation, overlay deactivation, archived edit/delete and explicit missing prices. Physical iPad, Safari, physical keyboard, VoiceOver, NVDA, 200% zoom and paper receipt output remain unverified; viewport emulation does not establish those results.
 

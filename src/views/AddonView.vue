@@ -1,97 +1,27 @@
 <template>
-  <div class="space-y-4">
-    <CatalogToolbar id="addon-catalog" label="Add-on" v-model:search="searchQuery" placeholder="ค้นหาชื่อ Add-on" :platform="displayPlatformId" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddAddon" />
-    <div class="adaptive-catalog-list"><AddonCard v-for="addon in filteredAddons" :key="addon.id" :addon="addon" :platforms="store.platforms" :selected-id="displayPlatformId" @details="detailAddonId=$event" @edit="editAddon" @delete="deleteAddon" /><p v-if="!filteredAddons.length" class="interface-empty">ไม่พบ Add-on ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div>
-    <DialogFrame id="addon-details" title="รายละเอียด Add-on" :open="Boolean(detailAddonId)" presentation="sheet" @request-close="detailAddonId=null">
-      <template v-if="detailAddon">
-        <h4 class="font-semibold">{{ detailAddon.name }}</h4>
-        <PlatformPriceSummary all :prices="detailAddon.prices||{}" :platforms="store.platforms" :selected-id="displayPlatformId" />
-        <p v-if="!detailAddon.recipe?.length" class="mt-3">ไม่ตัดวัตถุดิบหรือบรรจุภัณฑ์</p>
-        <section v-for="group in detailRecipeGroups" :key="group.type" :data-addon-ingredients="group.type === 'ingredient' ? '' : undefined" :data-addon-packaging="group.type === 'packaging' ? '' : undefined" :aria-label="group.label" class="mt-6 space-y-3">
-          <div class="flex items-center justify-between gap-3">
-            <h4 class="font-semibold">{{ group.label }}</h4>
-            <span class="text-xs text-stone-500">ต้นทุนประมาณ ฿{{ group.cost.toFixed(2) }}</span>
-          </div>
-          <p v-if="!group.rows.length" class="text-sm text-stone-500">ไม่มีรายการ{{ group.label }}</p>
-          <ul v-else class="space-y-2 text-sm">
-            <li v-for="(row, idx) in group.rows" :key="idx">{{ row.material.name }} · {{ row.qty }} {{ row.material.unit }}<span v-if="row.material.isDeleted || row.material.isArchived" class="text-amber-700"> · ถูกจัดเก็บ กรุณาแก้ไขสูตร</span></li>
-          </ul>
-        </section>
-        <p v-for="(row, idx) in missingDetailRows" :key="idx" role="status" class="mt-3 text-amber-700">ไม่พบวัตถุดิบ {{ row.materialId }} · {{ row.qty }} กรุณาแก้ไข Add-on เพื่อเลือกใหม่หรือลบรายการจากสูตร</p>
-      </template>
-      <p v-else>ไม่พบ Add-on รายการนี้อาจถูกลบแล้ว</p>
-      <template #footer><Button v-if="detailAddon" @click="editAddon(detailAddon.id);detailAddonId=null">แก้ไข Add-on</Button></template>
-    </DialogFrame>
-    <!-- Addons Management Table -->
-    <div class="desktop-catalog-table editorial-card overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs text-stone-700">
-          <thead class="bg-stone-50/70 text-stone-400 font-medium border-b border-stone-100">
-            <tr>
-              <th class="py-3 px-4">ชื่อ Add-on</th>
-              <th class="py-3 px-4">ราคาตามแต่ละ Platform</th>
-              <th class="py-3 px-4">ผูกตัดวัตถุดิบในคลัง</th>
-              <th class="py-3 px-4 text-center">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-stone-100">
-            <tr v-if="filteredAddons.length === 0">
-              <td colspan="5" class="py-8 text-center text-stone-400 italic">
-                ไม่พบข้อมูล Add-on ที่ค้นหา
-              </td>
-            </tr>
-            <tr
-              v-for="addon in filteredAddons"
-              :key="addon.id"
-              class="hover:bg-stone-50/70 transition-colors"
-            >
-              <td class="py-3.5 px-4 font-semibold text-stone-900 flex items-center gap-2.5">
-                <span class="text-2xl p-1.5 rounded-xl bg-[#FBF5EA] border border-stone-100">{{ addon.emoji || '🍓' }}</span>
-                <span>{{ addon.name }}</span>
-              </td>
-
-
-              <td class="py-3.5 px-4">
-                <PlatformPriceSummary :prices="addon.prices||{}" :platforms="store.platforms" :selected-id="displayPlatformId" />
-              </td>
-
-              <td class="py-3.5 px-4">
-                <div v-for="(row, idx) in addon.recipe || []" :key="idx" class="flex items-center gap-1.5 text-stone-800">
-                  <template v-if="store.matMap[row.materialId]">
-                    <span>{{ store.matMap[row.materialId].emoji }}</span>
-                    <span class="font-medium">{{ store.matMap[row.materialId].name }}</span>
-                    <span class="text-stone-400">({{ row.qty }} {{ store.matMap[row.materialId].unit }})</span>
-                  </template>
-                  <span v-else class="text-stone-500">ไม่พบวัตถุดิบ {{ row.materialId }} · แก้ไขเพื่อเลือกใหม่</span>
-                </div>
-                <span v-if="!addon.recipe?.length" class="text-stone-500">ไม่ตัดวัตถุดิบหรือบรรจุภัณฑ์</span>
-              </td>
-
-              <td class="py-3.5 px-4 text-center">
-                <div class="flex items-center justify-center gap-1.5">
-                  <button
-                    @click="editAddon(addon.id)"
-                    class="px-2.5 py-1 text-xs text-stone-700 hover:text-stone-900 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
-                  >
-                    แก้ไข
-                  </button>
-                  <button
-                    @click="deleteAddon(addon)"
-                    class="p-1 text-stone-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                    title="ลบ Add-on"
-                  >
-                    <Trash2 class="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+ <div class="menu-workspace">
+  <CatalogToolbar id="addon-catalog" label="Add-on" v-model:search="searchQuery" placeholder="ค้นหาชื่อ Add-on" :platform="displayPlatformId" :platforms="store.platforms" inline-platform @apply-filters="applyCatalogFilters" @add="openAddAddon"/>
+  <section class="menu-directory" aria-label="รายการ Add-on">
+   <header class="menu-directory-heading"><h3>รายการ Add-on</h3><span>{{ filteredAddons.length }} รายการ</span></header>
+   <div class="menu-directory-list"><AddonCard v-for="addon in filteredAddons" :key="addon.id" :addon="addon" :platforms="store.platforms" :selected-id="displayPlatformId" :ingredient-count="(addon.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType!=='packaging').length" :package-count="(addon.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType==='packaging').length" @details="detailAddonId=$event" @edit="editAddon" @delete="deleteAddon"/></div>
+   <div v-if="!filteredAddons.length" class="menu-directory-empty"><strong>{{ searchQuery?'ไม่พบ Add-on ที่ค้นหา':'ยังไม่มี Add-on' }}</strong><p>{{ searchQuery?'ลองค้นหาด้วยชื่ออื่น':'เพิ่มท็อปปิ้งแรก พร้อมกำหนดราคาและสูตรที่ใช้' }}</p><Button v-if="searchQuery" variant="secondary" @click="searchQuery=''">แสดง Add-on ทั้งหมด</Button></div>
+  </section>
+  <DialogFrame id="addon-details" :title="detailAddon?.name||'รายละเอียด Add-on'" description="สูตรและราคาบวกเพิ่มของ Add-on นี้" :open="Boolean(detailAddonId)" presentation="sheet" @request-close="detailAddonId=null">
+   <template v-if="detailAddon">
+    <section class="recipe-prices"><h4>ราคาบวกเพิ่มแต่ละช่องทาง</h4><PlatformPriceSummary all :prices="detailAddon.prices||{}" :platforms="store.platforms" :selected-id="displayPlatformId"/></section>
+    <p v-if="!detailAddon.recipe?.length" class="recipe-help">ไม่ตัดวัตถุดิบหรือบรรจุภัณฑ์</p>
+    <section v-for="group in detailRecipeGroups" :key="group.type" :data-addon-ingredients="group.type==='ingredient'?'':undefined" :data-addon-packaging="group.type==='packaging'?'':undefined" :aria-label="group.label" class="recipe-group">
+     <h4>{{ group.label }} <span>ต่อ 1 ที่ · {{ group.rows.length }} รายการ</span></h4>
+     <p class="recipe-help">ต้นทุนประมาณ ฿{{ group.cost.toFixed(2) }}</p>
+     <p v-if="!group.rows.length" class="recipe-help">ไม่มีรายการ{{ group.label }}</p>
+     <article v-for="(row,idx) in group.rows" :key="idx" class="recipe-item"><div><strong>{{ row.material.name }}</strong><p>{{ row.qty }} {{ row.material.unit }}</p><small v-if="row.material.isDeleted||row.material.isArchived">ถูกจัดเก็บ กรุณาแก้ไขสูตร</small></div><b>฿{{ (Math.max(0,Number(row.qty)||0)*Math.max(0,Number(row.material.unitCost)||0)).toFixed(2) }}</b></article>
+    </section>
+    <p v-for="(row,idx) in missingDetailRows" :key="idx" role="status" class="stock-form-error">ไม่พบวัตถุดิบ {{ row.materialId }} · {{ row.qty }} กรุณาแก้ไข Add-on เพื่อเลือกใหม่หรือลบรายการจากสูตร</p>
+   </template><p v-else>ไม่พบ Add-on รายการนี้อาจถูกลบแล้ว</p>
+   <template #footer><Button variant="secondary" @click="detailAddonId=null">ปิด</Button><Button v-if="detailAddon" @click="editAddon(detailAddon.id);detailAddonId=null">แก้ไข Add-on</Button></template>
+  </DialogFrame>
+ </div>
 </template>
-
 <script setup>
 import AddonCard from '@/components/catalog/AddonCard.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
@@ -100,7 +30,7 @@ import CatalogToolbar from '@/components/catalog/CatalogToolbar.vue'
 import PlatformPriceSummary from '@/components/catalog/PlatformPriceSummary.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { Search, Plus, Trash2 } from 'lucide-vue-next'
+
 
 const store = usePosStore()
 
@@ -140,3 +70,6 @@ async function deleteAddon(addon) {
   }
 }
 </script>
+
+<style scoped src="@/components/catalog/catalogManagement.css"></style>
+<style scoped src="@/components/catalog/catalogRecipe.css"></style>

@@ -1,11 +1,8 @@
 <template>
- <article class="catalog-card"><button type="button" :data-addon-details="addon.id" class="catalog-card-main" :aria-label="`ดูรายละเอียด ${addon.name}`" @click="$emit('details',addon.id)"><span aria-hidden="true" class="catalog-card-emoji">{{ addon.emoji }}</span><span><strong>{{ addon.name }}</strong></span></button><PlatformPriceSummary :prices="addon.prices||{}" :platforms="platforms" :selected-id="selectedId" /><div class="catalog-card-actions"><Button variant="secondary" :aria-label="`แก้ไข ${addon.name}`" @click="$emit('edit',addon.id)">แก้ไข</Button><IconButton :label="`ลบ Add-on ${addon.name}`" @click="$emit('delete',addon)"><Trash2 :size="16" /></IconButton></div></article>
+ <CatalogManagementRow :item="addon" details-attribute="data-addon-details" :platforms="platforms" :selected-id="selectedId" :recipe-summary="addon.recipe?.length?`${ingredientCount} วัตถุดิบ · ${packageCount} บรรจุภัณฑ์`:'ไม่ตัดวัตถุดิบหรือบรรจุภัณฑ์'" @details="$emit('details',addon.id)" @edit="$emit('edit',$event)" @delete="$emit('delete',$event)"/>
 </template>
 <script setup>
-import {Trash2} from 'lucide-vue-next'
-import Button from '../ui/Button.vue'
-import IconButton from '../ui/IconButton.vue'
-import PlatformPriceSummary from './PlatformPriceSummary.vue'
-defineProps({addon:Object,platforms:Array,selectedId:String})
+import CatalogManagementRow from './CatalogManagementRow.vue'
+defineProps({addon:Object,platforms:{type:Array,default:()=>[]},selectedId:String,ingredientCount:{type:Number,default:0},packageCount:{type:Number,default:0}})
 defineEmits(['details','edit','delete'])
 </script>

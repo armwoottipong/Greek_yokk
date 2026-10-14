@@ -1,8 +1,8 @@
 <template>
  <div class="recipe-editor-row">
-  <FormField :label="label" v-slot="{controlId}"><AppSelect :id="controlId" :aria-label="label" :model-value="materialId" @update:model-value="$emit('update:materialId',$event)"><slot/></AppSelect></FormField>
-  <FormField label="ปริมาณ" v-slot="{controlId}"><AppInput :id="controlId" :model-value="qty" type="number" :min="min" :step="step" :aria-label="quantityLabel" @update:model-value="$emit('update:qty',$event)"><template #suffix>{{ unit }}</template></AppInput></FormField>
-  <IconButton :label="removeLabel" @click="$emit('remove')"><Trash2 :size="18" aria-hidden="true"/></IconButton>
+  <FormField :label="label" v-slot="{controlId}"><AppSelect :id="controlId" :aria-label="label" :aria-invalid="invalid||undefined" :aria-describedby="errorId" :model-value="materialId" @update:model-value="$emit('update:materialId',$event)"><slot/></AppSelect></FormField>
+  <FormField label="ปริมาณ" v-slot="{controlId}"><AppInput :id="controlId" :model-value="qty" type="number" :min="min" :step="step" :aria-invalid="invalid||undefined" :aria-describedby="errorId" :aria-label="quantityLabel" @update:model-value="$emit('update:qty',$event)"><template #suffix>{{ unit }}</template></AppInput></FormField>
+  <IconButton :label="removeLabel" title="ลบรายการ" @click="$emit('remove')"><Trash2 :size="18" aria-hidden="true"/></IconButton>
  </div>
 </template>
 <script setup>
@@ -11,7 +11,7 @@ import AppInput from './AppInput.vue'
 import IconButton from './IconButton.vue'
 import FormField from './FormField.vue'
 import {Trash2} from 'lucide-vue-next'
-defineProps({materialId:String,qty:[String,Number],label:String,quantityLabel:String,removeLabel:String,unit:String,min:{type:Number,default:0},step:{type:[String,Number],default:'any'}})
+defineProps({materialId:String,qty:[String,Number],label:String,quantityLabel:String,removeLabel:String,unit:String,invalid:Boolean,errorId:String,min:{type:Number,default:0},step:{type:[String,Number],default:'any'}})
 defineEmits(['update:materialId','update:qty','remove'])
 </script>
 <style scoped>
