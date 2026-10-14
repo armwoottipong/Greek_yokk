@@ -1,383 +1,69 @@
 <template>
- <DialogFrame :open="store.modals.stockIn.isOpen" id="StockInModal" :title="isProducedFromRecipe?'ผลิตตามสูตร':'รับเข้าสต็อก'" description="ระบุจำนวน ราคา และวันที่ของล็อตใหม่" :teleport="false" width="720px" @request-close="requestClose(close)">
+ <DialogFrame :open="store.modals.stockIn.isOpen" id="StockInModal" :title="isProducedFromRecipe?'ผลิตตามสูตร':'รับเข้าสต็อก'" :description="isProducedFromRecipe?'ระบุจำนวนผลิต ตรวจส่วนผสม และวันที่ของล็อต':'ระบุจำนวน ต้นทุน และวันที่ของล็อตที่รับเข้า'" :teleport="false" width="680px" compact @request-close="requestClose(close)">
+  <div class="stock-receipt-form" :class="{'is-production':isProducedFromRecipe}">
+   <section class="receipt-material">
+    <div class="receipt-heading"><label>วัตถุดิบ</label><IconButton v-if="selectedMatId" label="ดูประวัติการรับเข้า/ผลิต" @click="store.openActivityLog('stock',selectedMatId)"><History :size="16"/></IconButton></div>
+    <p v-if="!store.activeMaterials.length" class="receipt-hint">ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าคลังก่อน</p>
+    <AppSelect v-else v-model="selectedMatId" aria-label="เลือกวัตถุดิบ" class="receipt-material-select"><optgroup v-for="kind in store.materialKindOptions" :key="kind.id" :label="kind.label"><option v-for="m in store.activeMaterials.filter(item=>store.getMaterialKind(item)===kind.id)" :key="m.id" :value="m.id">{{ m.emoji }} {{ m.name }}</option></optgroup></AppSelect>
+   </section>
 
- <div class="stock-form stock-receive-form">
-        <!-- 1. Select Material -->
-        <div>
-          <div class="stock-selection-heading flex items-center justify-between mb-1">
-            <label class="block text-[11px] font-medium text-stone-600">เลือกวัตถุดิบ</label>
-            <Button variant="quiet"
-              v-if="selectedMatId"
-              type="button"
-              @click="store.openActivityLog('stock', selectedMatId)"
-              class="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900 hover:underline cursor-pointer"
-              title="ดูประวัติการรับเข้าและผลิตของวัตถุดิบนี้"
-            >
-              <History class="w-3.5 h-3.5" />
-              <span>ดูประวัติการรับเข้า/ผลิต</span>
-            </Button>
-          </div>
-          <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FBF5EA] rounded-xl border border-stone-100">
-            ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าคลังก่อน
-          </div>
-          <AppSelect aria-label="เลือกวัตถุดิบ"
-            v-else
-            v-model="selectedMatId"
-            class="w-full"
-          >
-            <optgroup v-for="kind in store.materialKindOptions" :key="kind.id" :label="kind.label">
-              <option v-for="m in store.activeMaterials.filter(item => store.getMaterialKind(item) === kind.id)" :key="m.id" :value="m.id">{{ m.emoji }} {{ m.name }}</option>
-            </optgroup>
-          </AppSelect>
-        </div>
+   <section class="receipt-amount-grid" :class="{'is-production':isProducedFromRecipe}">
+    <div class="receipt-quantity">
+     <div class="receipt-heading"><label>{{ isProducedFromRecipe?'จำนวนที่ต้องการผลิต':'จำนวนที่รับเข้า' }}</label>
+      <div v-if="isProducedFromRecipe" class="receipt-unit-toggle" aria-label="หน่วยผลิต"><Button size="compact" :variant="produceUnitMode==='batch'?'primary':'secondary'" :aria-pressed="produceUnitMode==='batch'" @click="produceUnitMode='batch'">รอบ (Batch)</Button><Button size="compact" :variant="produceUnitMode==='base'?'primary':'secondary'" :aria-pressed="produceUnitMode==='base'" @click="produceUnitMode='base'">{{ currentMat?.unit }}</Button></div>
+      <div v-else-if="currentMat?.packUnit&&currentMat?.packSize>1" class="receipt-unit-toggle" aria-label="หน่วยรับเข้า"><Button size="compact" :variant="unitMode==='pack'?'primary':'secondary'" :aria-pressed="unitMode==='pack'" @click="unitMode='pack'">{{ currentMat.packUnit }}</Button><Button size="compact" :variant="unitMode==='base'?'primary':'secondary'" :aria-pressed="unitMode==='base'" @click="unitMode='base'">{{ currentMat.unit }}</Button></div>
+     </div>
+     <div class="receipt-stepper" v-if="isProducedFromRecipe">
+      <IconButton label="ลด 1 รอบ" :disabled="produceUnitMode==='batch'?produceBatchCount<=1:produceYieldQty<=formulaYield" @click="stepProduceQty(-1)"><Minus :size="16"/></IconButton>
+      <AppInput v-if="produceUnitMode==='batch'" v-model.number="produceBatchCount" aria-label="จำนวนรอบผลิต" type="number" min="0.1" step="any" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined" @update:model-value="syncProduceFromBatch"><template #suffix>รอบ</template></AppInput>
+      <AppInput v-else v-model.number="produceYieldQty" aria-label="จำนวนที่ต้องการผลิต" type="number" min="1" step="any" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined" @update:model-value="syncProduceFromYield"><template #suffix>{{ currentMat?.unit }}</template></AppInput>
+      <IconButton label="เพิ่ม 1 รอบ" @click="stepProduceQty(1)"><Plus :size="16"/></IconButton>
+     </div>
+     <div class="receipt-stepper" v-else>
+      <IconButton label="ลด 1" :disabled="unitMode==='pack'?inputPackQty<=1:inputBaseQty<=(currentMat?.packSize||1)" @click="stepDirectQty(-1)"><Minus :size="16"/></IconButton>
+      <AppInput v-if="unitMode==='pack'" v-model.number="inputPackQty" aria-label="จำนวนแพ็คที่รับเข้า" type="number" min="0.1" step="any" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined" @update:model-value="syncFromPackQty"><template #suffix>{{ currentMat?.packUnit }}</template></AppInput>
+      <AppInput v-else v-model.number="inputBaseQty" aria-label="จำนวนหน่วยที่รับเข้า" type="number" min="0.1" step="any" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined" @update:model-value="syncFromBaseQty"><template #suffix>{{ currentMat?.unit }}</template></AppInput>
+      <IconButton label="เพิ่ม 1" @click="stepDirectQty(1)"><Plus :size="16"/></IconButton>
+     </div>
+     <p class="receipt-hint" v-if="isProducedFromRecipe">ผลผลิตที่จะได้ <strong>+{{ produceYieldQty.toLocaleString() }} {{ currentMat?.unit }}</strong><template v-if="currentMat?.packSize>1"> ≈ {{ (produceYieldQty/currentMat.packSize).toFixed(1) }} {{ currentMat.packUnit }}</template></p>
+     <p class="receipt-hint" v-else-if="currentMat?.packSize>1"><template v-if="unitMode==='pack'">= {{ inputBaseQty.toLocaleString() }} {{ currentMat.unit }} · 1 {{ currentMat.packUnit }} = {{ currentMat.packSize }} {{ currentMat.unit }}</template><template v-else>= {{ inputPackQty }} {{ currentMat.packUnit }}</template></p>
+    </div>
+    <div v-if="!isProducedFromRecipe" class="receipt-price"><div class="receipt-heading"><label>ราคาซื้อ / {{ currentMat?.packUnit||currentMat?.unit }}</label></div><AppInput v-model.number="inputPackCost" aria-label="ราคาซื้อ" type="number" step="any"><template #prefix>฿</template></AppInput></div>
+    <div v-if="!isProducedFromRecipe" class="receipt-total"><span>รวมงบซื้อรอบนี้</span><strong>฿{{ calculatedDirectTotal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) }}</strong></div>
+   </section>
 
-        <!-- ============================================================= -->
-        <!-- CASE A: DIRECT PURCHASE (วัตถุดิบทั่วไป เช่น นม, ผลไม้, ถ้วย)   -->
-        <!-- ============================================================= -->
-        <div v-if="!isProducedFromRecipe" class="space-y-3.5">
-          <!-- Quantity input with mini unit toggle -->
-          <div>
-            <div class="stock-quantity-heading flex items-center justify-between mb-1">
-              <label class="text-[11px] font-medium text-stone-600">จำนวนที่รับเข้า</label>
-              <!-- Mini unit capsule -->
-              <div v-if="currentMat?.packUnit && currentMat?.packSize > 1" class="flex items-center p-0.5 bg-stone-100 rounded-lg text-[10px] font-semibold">
-                <Button :variant="unitMode==='pack'?'primary':'secondary'" :aria-pressed="unitMode==='pack'"
-                  type="button"
-                  @click="unitMode = 'pack'"
-                  :class="[
-                    'px-2 py-0.5 rounded transition-all',
-                    unitMode === 'pack' ? 'bg-white text-stone-900 shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'
-                  ]"
-                >
-                  {{ currentMat.packUnit }}
-                </Button>
-                <Button :variant="unitMode==='base'?'primary':'secondary'" :aria-pressed="unitMode==='base'"
-                  type="button"
-                  @click="unitMode = 'base'"
-                  :class="[
-                    'px-2 py-0.5 rounded transition-all',
-                    unitMode === 'base' ? 'bg-white text-stone-900 shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'
-                  ]"
-                >
-                  {{ currentMat.unit }}
-                </Button>
-              </div>
-            </div>
+   <section v-if="isProducedFromRecipe" class="receipt-recipe">
+    <div class="receipt-recipe-heading"><h4>ส่วนผสมที่จะถูกหัก</h4><span>สัดส่วน {{ (produceYieldQty/formulaYield).toFixed(2) }}x</span></div>
+    <div v-for="sub in scaledSubIngredients" :key="sub.materialId" class="receipt-recipe-row"><span class="receipt-ingredient">{{ store.matMap[sub.materialId]?.emoji }} {{ store.matMap[sub.materialId]?.name }}</span><div class="receipt-consumption"><strong>-{{ sub.qty.toLocaleString() }} {{ store.matMap[sub.materialId]?.unit }}</strong><StatusBadge v-if="store.checkLotDepletion(sub.materialId,sub.qty).willDeplete" label="ล็อตหมด" tone="error"/><StatusBadge v-else-if="store.checkLotDepletion(sub.materialId,sub.qty).isLow" label="ใกล้หมด" tone="warning"/><StatusBadge :label="sub.isSufficient?'พอ':'ไม่พอ'" :tone="sub.isSufficient?'success':'error'"/></div></div>
+    <div class="receipt-total receipt-production-cost"><span>ต้นทุนรอบนี้</span><div><strong>฿{{ totalProduceCost.toFixed(2) }}</strong><small>฿{{ produceYieldQty>0?(totalProduceCost/produceYieldQty).toFixed(4):0 }} / {{ currentMat?.unit }}</small></div></div>
+   </section>
 
-            <div class="stock-quantity-controls flex items-center gap-1.5">
-              <Button variant="quiet"
-                type="button"
-                @click="stepDirectQty(-1)"
-                :disabled="unitMode === 'pack' ? inputPackQty <= 1 : inputBaseQty <= (currentMat?.packSize || 1)"
-                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
-                title="ลด 1"
-              >
-                <Minus class="w-3.5 h-3.5" />
-              </Button>
-
-              <div class="relative flex-1">
-                <AppInput aria-label="จำนวนแพ็คที่รับเข้า" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined"
-                  v-if="unitMode === 'pack'"
-                  v-model.number="inputPackQty"
-                  @update:model-value="syncFromPackQty"
-                  type="number"
-                  min="0.1"
-                  step="any"
-                  placeholder="0"
-                  class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-stone-900" />
-                <AppInput aria-label="จำนวนหน่วยที่รับเข้า" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined"
-                  v-else
-                  v-model.number="inputBaseQty"
-                  @update:model-value="syncFromBaseQty"
-                  type="number"
-                  min="0.1"
-                  step="any"
-                  placeholder="0"
-                  class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-stone-900" />
-              </div>
-
-              <Button variant="quiet"
-                type="button"
-                @click="stepDirectQty(1)"
-                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
-                title="เพิ่ม 1"
-              >
-                <Plus class="w-3.5 h-3.5" />
-              </Button>
-
-              <span class="text-stone-500 font-medium shrink-0 w-12 text-center text-xs">
-                {{ unitMode === 'pack' ? currentMat?.packUnit : currentMat?.unit }}
-              </span>
-            </div>
-
-            <!-- Light conversion helper -->
-            <p v-if="currentMat?.packSize > 1" class="text-[11px] text-stone-400 mt-1 font-number">
-              <span v-if="unitMode === 'pack'">
-                = {{ inputBaseQty.toLocaleString() }} {{ currentMat?.unit }} (1 {{ currentMat.packUnit }} = {{ currentMat.packSize }} {{ currentMat.unit }})
-              </span>
-              <span v-else>
-                = {{ inputPackQty }} {{ currentMat?.packUnit }}
-              </span>
-            </p>
-          </div>
-
-          <!-- Price & Valuation summary -->
-          <div class="grid grid-cols-2 gap-3 items-center p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50">
-            <div>
-              <label class="block text-[10px] text-stone-500 mb-0.5">ราคาซื้อ (฿ / {{ currentMat?.packUnit || currentMat?.unit }})</label>
-              <AppInput aria-label="ราคาซื้อ"
-                v-model.number="inputPackCost"
-                type="number"
-                step="any"
-                class="w-full bg-white px-2.5 py-1 rounded-lg border border-stone-200 text-xs font-number font-semibold text-stone-900 focus:outline-none" />
-            </div>
-            <div class="text-right">
-              <span class="block text-[10px] text-stone-400 mb-0.5">รวมงบซื้อรอบนี้</span>
-              <span class="font-number font-bold text-amber-950 text-sm">
-                ฿{{ calculatedDirectTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ============================================================= -->
-        <!-- CASE B: PRODUCE FROM SUB-RECIPE (เช่น กรีกโยเกิร์ต)             -->
-        <!-- ============================================================= -->
-        <div v-else class="space-y-3.5">
-          <!-- Quantity to Produce -->
-          <div>
-            <div class="stock-quantity-heading flex items-center justify-between mb-1">
-              <label class="text-[11px] font-medium text-stone-600">จำนวนที่ต้องการผลิต</label>
-              <!-- Mini unit capsule -->
-              <div class="flex items-center p-0.5 bg-stone-100 rounded-lg text-[10px] font-semibold">
-                <Button :variant="produceUnitMode==='batch'?'primary':'secondary'" :aria-pressed="produceUnitMode==='batch'"
-                  type="button"
-                  @click="produceUnitMode = 'batch'"
-                  :class="[
-                    'px-2 py-0.5 rounded transition-all',
-                    produceUnitMode === 'batch' ? 'bg-white text-stone-900 shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'
-                  ]"
-                >
-                  รอบ (Batch)
-                </Button>
-                <Button :variant="produceUnitMode==='base'?'primary':'secondary'" :aria-pressed="produceUnitMode==='base'"
-                  type="button"
-                  @click="produceUnitMode = 'base'"
-                  :class="[
-                    'px-2 py-0.5 rounded transition-all',
-                    produceUnitMode === 'base' ? 'bg-white text-stone-900 shadow-2xs font-bold' : 'text-stone-500 hover:text-stone-900'
-                  ]"
-                >
-                  {{ currentMat?.unit }}
-                </Button>
-              </div>
-            </div>
-
-            <div class="stock-quantity-controls flex items-center gap-1.5">
-              <Button variant="quiet"
-                type="button"
-                @click="stepProduceQty(-1)"
-                :disabled="produceUnitMode === 'batch' ? produceBatchCount <= 1 : produceYieldQty <= formulaYield"
-                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
-                title="ลด 1 รอบ"
-              >
-                <Minus class="w-3.5 h-3.5" />
-              </Button>
-
-              <div class="relative flex-1">
-                <AppInput aria-label="จำนวนรอบผลิต" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined"
-                  v-if="produceUnitMode === 'batch'"
-                  v-model.number="produceBatchCount"
-                  @update:model-value="syncProduceFromBatch"
-                  type="number"
-                  min="0.1"
-                  step="any"
-                  class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-amber-950" />
-                <AppInput aria-label="จำนวนที่ต้องการผลิต"
-                  v-else
-                  v-model.number="produceYieldQty"
-                  @update:model-value="syncProduceFromYield"
-                  type="number"
-                  min="1"
-                  step="any"
-                  class="soft-input w-full px-3 py-2 rounded-xl text-center text-xs font-number font-bold text-amber-950" />
-              </div>
-
-              <Button variant="quiet"
-                type="button"
-                @click="stepProduceQty(1)"
-                class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
-                title="เพิ่ม 1 รอบ"
-              >
-                <Plus class="w-3.5 h-3.5" />
-              </Button>
-
-              <span class="text-stone-500 font-medium shrink-0 w-12 text-center text-xs">
-                {{ produceUnitMode === 'batch' ? 'รอบ' : currentMat?.unit }}
-              </span>
-            </div>
-
-            <p class="text-[11px] text-stone-400 mt-1 font-number">
-              ผลผลิตที่จะได้: +{{ produceYieldQty.toLocaleString() }} {{ currentMat?.unit }}
-              <span v-if="currentMat?.packSize > 1">
-                (≈ {{ (produceYieldQty / currentMat.packSize).toFixed(1) }} {{ currentMat.packUnit }})
-              </span>
-            </p>
-          </div>
-
-          <!-- Deducted Sub-ingredients (Compact list) -->
-          <div class="stock-recipe-preview space-y-1.5 p-3 rounded-xl bg-[#FBF5EA] border border-stone-200/50">
-            <div class="flex items-center justify-between text-[11px] font-medium text-stone-700 mb-1">
-              <span>ส่วนผสมที่จะถูกหัก:</span>
-              <span class="text-[10px] text-stone-400 font-number">สัดส่วน {{ (produceYieldQty / formulaYield).toFixed(2) }}x</span>
-            </div>
-
-            <div
-              v-for="sub in scaledSubIngredients"
-              :key="sub.materialId"
-              class="stock-recipe-row flex items-center justify-between text-xs py-1 border-b border-stone-100 last:border-0"
-            >
-              <div class="stock-recipe-name flex items-center gap-1.5">
-                <span>{{ store.matMap[sub.materialId]?.emoji }}</span>
-                <span class="text-stone-800 font-medium">{{ store.matMap[sub.materialId]?.name }}</span>
-              </div>
-              <div class="stock-recipe-amount flex items-center gap-2 font-number">
-                <span class="text-rose-600 font-semibold">-{{ sub.qty.toLocaleString() }} {{ store.matMap[sub.materialId]?.unit }}</span>
-                <span
-                  v-if="store.checkLotDepletion(sub.materialId, sub.qty).willDeplete"
-                  class="text-[9px] px-1.5 py-0.5 rounded font-sans font-bold bg-rose-100 text-rose-800"
-                  title="สต็อกในล็อตปัจจุบันจะหมดลง"
-                >
-                  ล็อตหมด
-                </span>
-                <span
-                  v-else-if="store.checkLotDepletion(sub.materialId, sub.qty).isLow"
-                  class="text-[9px] px-1.5 py-0.5 rounded font-sans font-bold bg-amber-100 text-amber-800"
-                  title="สต็อกในล็อตปัจจุบันใกล้หมด"
-                >
-                  ล็อตใกล้หมด
-                </span>
-                <span
-                  class="text-[9px] px-1.5 py-0.5 rounded font-sans font-medium"
-                  :class="sub.isSufficient ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700 font-bold'"
-                >
-                  {{ sub.isSufficient ? 'พอ' : 'ไม่พอ' }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Cost Line -->
-            <div class="stock-recipe-cost flex items-center justify-between pt-1.5 text-[11px] text-stone-500 font-number">
-              <span>ต้นทุนวัตถุดิบรอบนี้:</span>
-              <span class="font-bold text-stone-800">฿{{ totalProduceCost.toFixed(2) }} (฿{{ produceYieldQty > 0 ? (totalProduceCost / produceYieldQty).toFixed(4) : 0 }}/{{ currentMat?.unit }})</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- วันที่รับเข้า/ผลิต & วันหมดอายุ ปรับตาม trackingMode ของหมวดหมู่ -->
-        <div v-if="trackingMode === 'expiry_and_receive'" class="space-y-2">
-          <div class="stock-date-fields grid grid-cols-2 gap-3">
-            <div class="stock-date-field">
-              <label class="block text-[11px] font-medium text-stone-600 mb-1">
-                {{ isProducedFromRecipe ? 'วันที่ผลิต' : 'วันที่รับเข้า' }}
-              </label>
-              <AppInput :aria-label="isProducedFromRecipe ? 'วันผลิต' : 'วันที่รับเข้า'" required :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined"
-                v-model="receiveDate"
-                type="date"
-                class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white" />
-            </div>
-            <div class="stock-date-field">
-              <label class="block text-[11px] font-medium text-stone-600 mb-1">วันหมดอายุ</label>
-              <AppInput aria-label="วันหมดอายุ"
-                v-model="expiryDate"
-                type="date"
-                class="soft-input w-full px-2.5 py-1.5 rounded-xl text-xs font-number font-medium text-stone-900 bg-white" />
-                <div class="stock-expiry-actions flex items-center gap-1.5 text-[10px]">
-                  <Button variant="quiet"
-                    v-if="currentMat?.shelfLifeDays && expiryDate !== addDays(receiveDate, currentMat.shelfLifeDays)"
-                    type="button"
-                    @click="expiryDate = addDays(receiveDate, currentMat.shelfLifeDays)"
-                    class="text-sky-600 hover:text-sky-800 transition-colors cursor-pointer"
-                    title="คำนวณวันหมดอายุอัตโนมัติตามอายุเก็บรักษา"
-                  >
-                    +{{ currentMat.shelfLifeDays }}วัน
-                  </Button>
-                  <Button variant="quiet"
-                    v-if="expiryDate"
-                    type="button"
-                    @click="expiryDate = ''"
-                    class="text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
-                    title="ล้างวันหมดอายุ (ไม่ระบุวันหมดอายุ)"
-                  >
-                    ล้าง
-                  </Button>
-                </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- สินค้าไม่คุมวันหมดอายุ (บรรจุภัณฑ์ / แก้ว / ช้อน) -->
-        <div v-else class="flex items-center gap-2.5 p-3 rounded-xl bg-stone-50 border border-stone-200/60 text-stone-600">
-          <span class="text-base shrink-0">📦</span>
-          <div class="text-[11px] leading-tight">
-            <span class="font-bold text-stone-800">สินค้าไม่คุมวันหมดอายุ</span>
-            <p class="text-[10px] text-stone-400 mt-0.5">ระบบจะบวกทบยอดเข้าสต็อกรวมทันที ไม่แยกเป็นหลายล็อตย่อยให้สับสน</p>
-          </div>
-        </div>
-
-        <!-- Smart Lot Action Preview Banner -->
-        <div
-          v-if="currentMat && lotPreview && trackingMode !== 'none'"
-          class="flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] leading-tight transition-all"
-          :class="lotPreview.badgeClass"
-        >
-          <span class="text-sm shrink-0">{{ lotPreview.icon }}</span>
-          <div class="flex-1 min-w-0">
-            <span class="font-bold">{{ lotPreview.shortLabel }}:</span>
-            <span class="ml-1 opacity-90">{{ lotPreview.label }}</span>
-          </div>
-        </div>
-
-        <!-- Note (Unified) -->
-        <div>
-          <label class="block text-[11px] font-medium text-stone-600 mb-1">หมายเหตุ (ถ้ามี)</label>
-          <AppInput aria-label="หมายเหตุ"
-            v-model="note"
-            type="text"
-            :placeholder="isProducedFromRecipe ? 'เช่น หมักนมสด Meiji + หัวเชื้อ 16 ชม.' : 'เช่น ซื้อจากแม็คโคร, ล็อต 25/10'"
-            class="soft-input w-full px-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400" />
-        </div>
-      </div>
- <p v-if="formError" id="StockInModal-error" role="alert" class="stock-form-error">{{ formError }}</p>
- <template #footer><div class="stock-form-footer">
-        <Button variant="quiet"
-          type="button"
-          @click="requestClose(close)"
-        >
-          ยกเลิก
-        </Button>
-        <Button variant="primary"
-          type="button"
-          @click="submit"
-          :disabled="isProducedFromRecipe && (!canProduce || produceYieldQty <= 0)"
-        >
-          <Check class="w-3.5 h-3.5" />
-          <span>{{ isProducedFromRecipe ? 'บันทึกการผลิต' : 'บันทึกรับเข้าสต็อก' }}</span>
-        </Button>
-      </div></template>
+   <section class="receipt-lot">
+    <div v-if="trackingMode==='expiry_and_receive'" class="receipt-date-grid">
+     <div class="receipt-date-field"><label>{{ isProducedFromRecipe?'วันที่ผลิต':'วันที่รับเข้า' }}</label><AppInput v-model="receiveDate" :aria-label="isProducedFromRecipe?'วันผลิต':'วันที่รับเข้า'" type="date" required :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockInModal-error':undefined"/></div>
+     <div class="receipt-date-field"><label>วันหมดอายุ</label><AppInput v-model="expiryDate" aria-label="วันหมดอายุ" type="date"><template v-if="expiryDate" #suffix><IconButton label="ล้างวันหมดอายุ (ไม่ระบุวันหมดอายุ)" class="receipt-clear-date" @click="expiryDate=''"><X :size="14"/></IconButton></template></AppInput><Button v-if="currentMat?.shelfLifeDays&&expiryDate!==addDays(receiveDate,currentMat.shelfLifeDays)" variant="quiet" size="compact" class="receipt-auto-date" title="คำนวณวันหมดอายุอัตโนมัติตามอายุเก็บรักษา" @click="expiryDate=addDays(receiveDate,currentMat.shelfLifeDays)">คำนวณ +{{ currentMat.shelfLifeDays }} วัน</Button></div>
+    </div>
+    <p v-else class="receipt-lot-hint"><Package :size="16" aria-hidden="true"/><span>สินค้าไม่คุมวันหมดอายุ · บวกเข้าสต็อกรวม ไม่แยกล็อต</span></p>
+    <div v-if="currentMat&&lotPreview&&trackingMode!=='none'" class="receipt-lot-hint"><Layers :size="16" aria-hidden="true"/><span><strong>{{ lotPreview.shortLabel }}</strong> · {{ lotPreview.label }}</span></div>
+   </section>
+   <div class="receipt-note"><label>หมายเหตุ <span>(ถ้ามี)</span></label><AppInput v-model="note" aria-label="หมายเหตุ" :placeholder="isProducedFromRecipe?'เช่น หมักนมสด Meiji + หัวเชื้อ 16 ชม.':'เช่น ซื้อจากแม็คโคร, ล็อต 25/10'"/></div>
+   <p v-if="formError" id="StockInModal-error" role="alert" class="stock-form-error">{{ formError }}</p>
+  </div>
+  <template #footer><div class="receipt-footer"><Button variant="quiet" @click="requestClose(close)">ยกเลิก</Button><Button :disabled="isProducedFromRecipe&&(!canProduce||produceYieldQty<=0)" @click="submit"><Check :size="16"/><span>{{ isProducedFromRecipe?'บันทึกการผลิต':'บันทึกรับเข้าสต็อก' }}</span></Button></div></template>
  </DialogFrame>
 </template>
-
 <script setup>
 import AppInput from '@/components/ui/AppInput.vue'
 import Button from '@/components/ui/Button.vue'
+import IconButton from '@/components/ui/IconButton.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import {validateLotDates} from '@/domain/lotDates'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore, getTodayString, addDays, formatThaiDate } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
-import { Check, Plus, Minus, History } from 'lucide-vue-next'
+import { Check, Plus, Minus, History, X, Package, Layers } from 'lucide-vue-next'
 
 const store = usePosStore()
 
@@ -636,4 +322,6 @@ async function submit() {
 }
 </script>
 
-<style scoped src="@/components/inventory/stockForms.css"></style>
+
+
+<style scoped src="@/components/inventory/stockReceipt.css"></style>
