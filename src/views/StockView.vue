@@ -10,20 +10,12 @@
     <!-- Material Inventory Table -->
     <div class="desktop-material-table stock-table-surface">
       <div class="stock-table-scroll">
-        <table class="stock-inventory-table w-full min-w-[1120px] table-fixed text-left text-xs">
-          <colgroup>
-            <col class="w-[28%]" />
-            <col class="w-[11%]" />
-            <col class="w-[18%]" />
-            <col class="w-[12%]" />
-            <col class="w-[13%]" />
-            <col class="w-[9%]" />
-            <col class="w-[9%]" />
-          </colgroup>
+        <table class="stock-inventory-table w-full min-w-[1280px] table-fixed text-left text-xs">
+          <colgroup><col class="w-[23%]"/><col class="w-[13%]"/><col class="w-[10%]"/><col class="w-[15%]"/><col class="w-[11%]"/><col class="w-[12%]"/><col class="w-[8%]"/><col class="w-[8%]"/></colgroup>
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/70 text-[11px] font-semibold text-stone-600 tracking-wider">
               <th class="py-3.5 px-4 text-left whitespace-nowrap">วัตถุดิบ / สินค้า</th>
-              <th class="py-3.5 px-4 text-left whitespace-nowrap">ประเภท</th>
+              <th class="py-3.5 px-4 text-left whitespace-nowrap">วันที่</th><th class="py-3.5 px-4 text-left whitespace-nowrap">ประเภท</th>
               <th class="py-3.5 px-4 text-center whitespace-nowrap">คงเหลือในคลัง</th>
               <th class="py-3.5 px-4 text-right whitespace-nowrap">ต้นทุน/หน่วย</th>
               <th class="py-3.5 px-4 text-right whitespace-nowrap">มูลค่าสต็อกคงเหลือ</th>
@@ -72,43 +64,12 @@
                         <ChevronDown class="w-3 h-3 transition-transform duration-300 ease-in-out" :class="isExpanded(mat.id) ? 'rotate-180' : ''" />
                       </Button>
                     </div>
-                    <div class="text-[11px] text-stone-500 flex items-center gap-1.5 mt-1 font-number whitespace-nowrap overflow-hidden">
-                      <!-- วันที่รับ -->
-                      <span v-if="mat.lastStockInDate && store.getMaterialTrackingMode(mat) !== 'none'" class="inline-flex items-center gap-1 shrink-0">
-                        <span class="text-stone-500 font-sans">รับล่าสุด :</span>
-                        <span class="text-stone-700 font-medium">{{ formatDisplayDate(mat.lastStockInDate) }}</span>
-                        <span v-if="store.getMaterialTrackingMode(mat) === 'receive_only' && getReceiveAgeStatus(mat.lastStockInDate).daysAgo !== null" class="text-[12px] text-stone-500 font-sans">
-                          ({{ getReceiveAgeStatus(mat.lastStockInDate).shortText }})
-                        </span>
-                      </span>
 
-                      <!-- ตัวคั่นจุดกลม หากมีทั้งสองค่า -->
-                      <span v-if="mat.lastStockInDate && mat.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'" class="text-stone-300 mx-0.5 shrink-0">•</span>
-
-                      <!-- วันที่หมดอายุ -->
-                      <span
-                        v-if="mat.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'"
-                        class="inline-flex items-center gap-1 shrink-0"
-                        :class="isExpired(mat) ? 'text-rose-600 font-bold' : 'text-stone-700 font-medium'"
-                      >
-                        <span class="font-sans" :class="isExpired(mat) ? 'text-rose-600 font-semibold' : 'text-stone-500'">หมดอายุ :</span>
-                        <span>{{ formatDisplayDate(mat.expiryDate) }}</span>
-                        <span
-                          v-if="isExpired(mat)"
-                          class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[12px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1"
-                        >
-                          หมดอายุ
-                        </span>
-                      </span>
-
-                      <!-- กรณีไม่มีการบันทึกวันที่หรือหมวดหมู่ none -->
-                      <span v-if="store.getMaterialTrackingMode(mat) === 'none'" class="text-stone-500 font-sans text-[12px] shrink-0">ไม่ระบุวันที่</span>
-                      <span v-else-if="!mat.lastStockInDate && !mat.expiryDate" class="text-stone-300 shrink-0">-</span>
-                    </div>
                   </div>
                 </div>
               </td>
 
+              <td class="py-3 px-4"><StockDates :receive-date="mat.lastStockInDate" :expiry-date="mat.expiryDate" :mode="store.getMaterialTrackingMode(mat)" /></td>
               <!-- Category (Borderless Pill Badge) -->
               <td class="py-3.5 px-4">
                 <span :data-inventory-type="mat.inventoryType" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-semibold bg-stone-100 text-stone-600 truncate max-w-full">
@@ -260,22 +221,14 @@
 
             <!-- Expanded Sub-lots Rows (Smooth Grid-Row Expansion & Exact Column Alignment) -->
             <tr v-if="hasMultipleLots(mat)" class="border-0">
-              <td colspan="7" class="p-0 border-0">
+              <td colspan="8" class="p-0 border-0">
                 <div
                   :id="`stock-lots-${mat.id}`" class="accordion-grid overflow-hidden"
                   :class="{ 'is-expanded': isExpanded(mat.id) }"
                 >
                   <div class="accordion-content">
-                    <table class="stock-inventory-table w-full min-w-[1120px] table-fixed text-left text-xs">
-                      <colgroup>
-                        <col class="w-[28%]" />
-                        <col class="w-[11%]" />
-                        <col class="w-[18%]" />
-                        <col class="w-[12%]" />
-                        <col class="w-[13%]" />
-                        <col class="w-[9%]" />
-                        <col class="w-[9%]" />
-                      </colgroup>
+                    <table class="stock-inventory-table w-full min-w-[1280px] table-fixed text-left text-xs">
+                      <colgroup><col class="w-[23%]"/><col class="w-[13%]"/><col class="w-[10%]"/><col class="w-[15%]"/><col class="w-[11%]"/><col class="w-[12%]"/><col class="w-[8%]"/><col class="w-[8%]"/></colgroup>
                       <tbody class="divide-y divide-stone-100 bg-[#FBF5EA] border-t border-stone-200/60 border-b border-stone-200/60">
                         <tr
                           v-for="(lot, lIdx) in getDisplayLots(mat)"
@@ -292,31 +245,12 @@
                                   <span>ล็อตที่ {{ lIdx + 1 }}</span>
                                   <span v-if="lot.note" class="text-[12px] text-stone-500 font-normal truncate" :title="lot.note">({{ lot.note }})</span>
                                 </div>
-                                <div class="text-[12px] text-stone-500 flex items-center gap-1.5 mt-1 font-number whitespace-nowrap overflow-hidden">
-                                  <!-- วันที่รับ -->
-                                  <span v-if="lot.receiveDate" class="inline-flex items-center gap-1 shrink-0">
-                                    <span class="text-stone-500 font-sans">รับ :</span>
-                                    <span class="text-stone-700 font-medium">{{ formatDisplayDate(lot.receiveDate) }}</span>
-                                    <span v-if="getLotAge(lot)" class="text-stone-500 font-sans text-[12px]">({{ getLotAge(lot).shortText }})</span>
-                                  </span>
 
-                                  <span v-if="lot.receiveDate && lot.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'" class="text-stone-300 mx-0.5 shrink-0">•</span>
-
-                                  <!-- วันที่หมดอายุ -->
-                                  <span
-                                    v-if="lot.expiryDate && store.getMaterialTrackingMode(mat) === 'expiry_and_receive'"
-                                    class="inline-flex items-center gap-1 shrink-0"
-                                    :class="isLotExpired(lot) ? 'text-rose-600 font-bold' : ''"
-                                  >
-                                    <span class="font-sans" :class="isLotExpired(lot) ? 'text-rose-600 font-semibold' : 'text-stone-500'">หมดอายุ :</span>
-                                    <span>{{ formatDisplayDate(lot.expiryDate) }}</span>
-                                    <span v-if="isLotExpired(lot)" class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[12px] font-semibold bg-rose-100 text-rose-700 font-sans ml-1">หมดอายุ</span>
-                                  </span>
-                                </div>
                               </div>
                             </div>
                           </td>
 
+                          <td class="py-3 px-4"><StockDates lot :receive-date="lot.receiveDate" :expiry-date="lot.expiryDate" :mode="store.getMaterialTrackingMode(mat)" /></td>
                           <!-- 2. Category (Left clean to avoid clutter) -->
                           <td class="py-3 px-4"></td>
 
@@ -417,7 +351,7 @@
 
             <!-- Empty Row -->
             <tr v-if="filteredMaterials.length === 0">
-              <td colspan="7" class="py-12 text-center text-stone-500">
+              <td colspan="8" class="py-12 text-center text-stone-500">
                 <div class="text-3xl mb-2">🔍</div>
                 <p class="text-xs font-medium">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก</p>
               </td>
@@ -461,6 +395,7 @@ import MaterialDetails from '@/components/inventory/MaterialDetails.vue'
 import StockToolbar from '@/components/inventory/StockToolbar.vue'
 import StockSummary from '@/components/inventory/StockSummary.vue'
 import MaterialUsage from '@/components/inventory/MaterialUsage.vue'
+import StockDates from '@/components/inventory/StockDates.vue'
 import { getMaterialKindLabel, matchesMaterialFilter } from '@/domain/materialClassification'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
@@ -470,11 +405,11 @@ import {
   usePosStore,
   getExpiryStatus,
   formatThaiDate,
-  formatDisplayDate,
+
   isExpired,
   getTodayString,
   addDays,
-  getReceiveAgeStatus
+
 } from '@/stores/posStore'
 import {
   Plus,
@@ -537,9 +472,6 @@ function getDisplayLots(mat) {
   return store.getMaterialLots(mat)
 }
 
-function getLotAge(lot) {
-  return lot?.receiveDate ? getReceiveAgeStatus(lot.receiveDate) : null
-}
 
 function isLotExpired(lot) {
   return lot?.expiryDate ? isExpired({ expiryDate: lot.expiryDate }) : false
