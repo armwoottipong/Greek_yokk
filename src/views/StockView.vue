@@ -14,12 +14,13 @@
           <colgroup><col class="w-[23%]"/><col class="w-[13%]"/><col class="w-[10%]"/><col class="w-[15%]"/><col class="w-[11%]"/><col class="w-[12%]"/><col class="w-[8%]"/><col class="w-[8%]"/></colgroup>
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/70 text-[11px] font-semibold text-stone-600 tracking-wider">
-              <th class="py-3.5 px-4 text-left whitespace-nowrap">วัตถุดิบ / สินค้า</th>
-              <th class="py-3.5 px-4 text-left whitespace-nowrap">วันที่</th><th class="py-3.5 px-4 text-left whitespace-nowrap">ประเภท</th>
-              <th class="py-3.5 px-4 text-center whitespace-nowrap">คงเหลือในคลัง</th>
-              <th class="py-3.5 px-4 text-right whitespace-nowrap">ต้นทุน/หน่วย</th>
-              <th class="py-3.5 px-4 text-right whitespace-nowrap">มูลค่าสต็อกคงเหลือ</th>
-              <th class="py-3.5 px-4 text-center whitespace-nowrap">สถานะ</th>
+              <th scope="col" :aria-sort="ariaSort('name')" class="py-3.5 px-4 text-left whitespace-nowrap"><TableSortButton label="วัตถุดิบ / สินค้า" data-sort="name" :direction="sortDirection('name')" @sort="toggleStockSort('name')"/></th>
+              <th scope="col" aria-label="วันที่" :aria-sort="ariaSort('receive','expiry')" class="py-3.5 px-4 text-left"><div class="stock-date-sort"><TableSortButton label="รับล่าสุด" data-sort="receive" :direction="sortDirection('receive')" @sort="toggleStockSort('receive')"/><TableSortButton label="หมดอายุ" data-sort="expiry" :direction="sortDirection('expiry')" @sort="toggleStockSort('expiry')"/></div></th>
+              <th scope="col" :aria-sort="ariaSort('kind')" class="py-3.5 px-4 text-left whitespace-nowrap"><TableSortButton label="ประเภท" data-sort="kind" :direction="sortDirection('kind')" @sort="toggleStockSort('kind')"/></th>
+              <th scope="col" :aria-sort="ariaSort('stock')" class="py-3.5 px-4 text-center whitespace-nowrap"><TableSortButton label="คงเหลือในคลัง" data-sort="stock" :direction="sortDirection('stock')" @sort="toggleStockSort('stock')"/></th>
+              <th scope="col" :aria-sort="ariaSort('cost')" class="py-3.5 px-4 text-right whitespace-nowrap"><TableSortButton label="ต้นทุน/หน่วย" data-sort="cost" :direction="sortDirection('cost')" @sort="toggleStockSort('cost')"/></th>
+              <th scope="col" :aria-sort="ariaSort('value')" class="py-3.5 px-4 text-right whitespace-nowrap"><TableSortButton label="มูลค่าสต็อกคงเหลือ" data-sort="value" :direction="sortDirection('value')" @sort="toggleStockSort('value')"/></th>
+              <th scope="col" :aria-sort="ariaSort('status')" class="py-3.5 px-4 text-center whitespace-nowrap"><TableSortButton label="สถานะ" data-sort="status" :direction="sortDirection('status')" @sort="toggleStockSort('status')"/></th>
               <th class="py-3.5 px-4 text-center whitespace-nowrap">การจัดการ</th>
             </tr>
           </thead>
@@ -396,6 +397,7 @@ import StockToolbar from '@/components/inventory/StockToolbar.vue'
 import StockSummary from '@/components/inventory/StockSummary.vue'
 import MaterialUsage from '@/components/inventory/MaterialUsage.vue'
 import StockDates from '@/components/inventory/StockDates.vue'
+import TableSortButton from '@/components/ui/TableSortButton.vue'
 import { getMaterialKindLabel, matchesMaterialFilter } from '@/domain/materialClassification'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
@@ -441,6 +443,26 @@ const searchQuery = ref('')
 const selectedRole = ref('all') // 'all' | 'main' | 'sub'
 const selectedKind = ref('all')
 const showDeleted = ref(false)
+const stockSort=ref({key:null,direction:null})
+function toggleStockSort(key){
+ const current=stockSort.value
+ stockSort.value=current.key!==key||!current.direction?{key,direction:'asc'}:current.direction==='asc'?{key,direction:'desc'}:{key:null,direction:null}
+}
+function sortDirection(key){return stockSort.value.key===key?stockSort.value.direction:null}
+function ariaSort(...keys){return keys.includes(stockSort.value.key)?stockSort.value.direction==='asc'?'ascending':'descending':'none'}
+const stockCollator=new Intl.Collator('th',{numeric:true,sensitivity:'base'})
+function stockSortValue(mat,key){
+ if(key==='name')return mat.name||''
+ if(key==='kind')return getMaterialKindLabel(mat)
+ if(key==='stock')return Number(mat.stock)||0
+ if(key==='cost')return getDisplayPackCost(mat)
+ if(key==='value')return Math.max(0,Number(mat.stock)||0)*(Number(mat.unitCost)||0)
+ if(key==='status')return mat.isDeleted?4:isExpired(mat)?0:mat.stock<=0?1:mat.stock<=mat.minAlert?2:3
+ const mode=store.getMaterialTrackingMode(mat)
+ const date=mode==='none'||(key==='expiry'&&mode!=='expiry_and_receive')?null:key==='receive'?mat.lastStockInDate:mat.expiryDate
+ const timestamp=date?Date.parse(date):NaN
+ return Number.isFinite(timestamp)?timestamp:null
+}
 
 // Expandable sub-lots state
 const expandedMaterialIds = ref(new Set())
@@ -659,7 +681,7 @@ const deletedCount = computed(() => {
 })
 
 const filteredMaterials = computed(() => {
-  return store.materials.filter(m => {
+  const materials=store.materials.filter(m => {
     // Deleted filter
     if (!showDeleted.value && m.isDeleted) return false
 
@@ -676,6 +698,14 @@ const filteredMaterials = computed(() => {
     }
 
     return true
+  })
+  const {key,direction}=stockSort.value
+  if(!key||!direction)return materials
+  return materials.sort((a,b)=>{
+   const av=stockSortValue(a,key),bv=stockSortValue(b,key)
+   if(av===null||bv===null)return av===bv?0:av===null?1:-1
+   const comparison=typeof av==='string'?stockCollator.compare(av,bv):av-bv
+   return direction==='asc'?comparison:-comparison
   })
 })
 

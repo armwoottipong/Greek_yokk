@@ -12,7 +12,7 @@ it('retains the inventory columns with a separate date column and contextual lot
  store.materials=[mat];store.menus=[];store.addons=[]
  const wrapper=mount(Stock,{attachTo:document.body})
  try {
-  expect(wrapper.findAll('.desktop-material-table thead th').map(th=>th.text())).toEqual(['วัตถุดิบ / สินค้า','วันที่','ประเภท','คงเหลือในคลัง','ต้นทุน/หน่วย','มูลค่าสต็อกคงเหลือ','สถานะ','การจัดการ'])
+  expect(wrapper.findAll('.desktop-material-table thead th').map(th=>th.attributes('aria-label')||th.text())).toEqual(['วัตถุดิบ / สินค้า','วันที่','ประเภท','คงเหลือในคลัง','ต้นทุน/หน่วย','มูลค่าสต็อกคงเหลือ','สถานะ','การจัดการ'])
   const row=wrapper.get('.desktop-material-table>div>table>tbody>tr')
   expect(row.findAll('td')[0].findAll('time')).toHaveLength(0)
   expect(row.findAll('td')[1].findAll('time')).toHaveLength(2)

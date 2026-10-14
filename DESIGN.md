@@ -293,3 +293,5 @@ Automated source/regression evidence covers constrained confirmation, overlay de
 - Don't expose global reset commands as equal peers of everyday selling actions.
 - Don't change fonts or mascot colors merely to clear detector heuristics.
 - Don't certify physical Safari, keyboard, zoom or screen-reader behavior from desktop viewport emulation alone.
+
+Stock table sorting uses shared TableSortButton controls with neutral up/down indicators and a burgundy active direction. Name/type sort with Thai numeric-aware collation; receipt and expiry dates sort independently, with missing or untracked dates last in either direction. Quantity, displayed purchase-unit cost and remaining value use numeric values. Status ascending prioritizes expired, empty, low, normal and archived items. Each header cycles ascending, descending and original order; sorting applies after filters/search, updates reactively and never mutates store order or inventory. Expanded lots remain attached to their material row. Header cells expose aria-sort and controls support keyboard activation.
