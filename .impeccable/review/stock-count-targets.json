@@ -1,0 +1,32 @@
+[
+  {
+    "buttons": [
+      {
+        "height": 44,
+        "width": 44
+      },
+      {
+        "height": 44,
+        "width": 44
+      }
+    ],
+    "controlWidth": 169.03125,
+    "inputWidth": 145.03125,
+    "value": "3500"
+  },
+  {
+    "buttons": [
+      {
+        "height": 44,
+        "width": 44
+      },
+      {
+        "height": 44,
+        "width": 44
+      }
+    ],
+    "controlWidth": 169.03125,
+    "inputWidth": 145.03125,
+    "value": "16200"
+  }
+]

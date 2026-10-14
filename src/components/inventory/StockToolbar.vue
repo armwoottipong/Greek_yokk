@@ -6,8 +6,7 @@
       <IconButton label="งานอื่นในคลังสต็อก" @click="moreOpen=true"><MoreHorizontal :size="20" /></IconButton>
     </div>
     <div class="stock-search">
-      <Search :size="17" aria-hidden="true" />
-      <input type="search" :value="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาชื่อ รหัส หรือประเภท" @input="$emit('update:search',$event.target.value)" />
+      <AppSearch :model-value="search" label="ค้นหาวัตถุดิบ" placeholder="ค้นหาชื่อ รหัส หรือประเภท" @update:model-value="$emit('update:search',$event)"/>
       <Button ref="filterButton" variant="secondary" data-stock-filter :aria-expanded="filterOpen" @click="filterOpen=true"><SlidersHorizontal :size="16" />ตัวกรอง<span v-if="filterCount">{{ filterCount }}</span></Button>
     </div>
     <FilterDropdown teleport id="stock-filters" title="กรองวัตถุดิบ" :open="filterOpen" :anchor="filterButton?.$el" :include-dates="false" :values="{role,kind,showDeleted}" :fields="fields" @close="filterOpen=false" @apply="$emit('apply-filters',$event)" />
@@ -22,7 +21,8 @@
 </template>
 <script setup>
 import {computed,ref} from 'vue'
-import {ArrowDownToLine,ClipboardCheck,MoreHorizontal,Search,SlidersHorizontal} from 'lucide-vue-next'
+import {ArrowDownToLine,ClipboardCheck,MoreHorizontal,SlidersHorizontal} from 'lucide-vue-next'
+import AppSearch from '../ui/AppSearch.vue'
 import Button from '../ui/Button.vue'
 import IconButton from '../ui/IconButton.vue'
 import FilterDropdown from '../ui/FilterDropdown.vue'
@@ -40,9 +40,5 @@ const fields=computed(()=>[
 function run(action){moreOpen.value=false;emit(action)}
 </script>
 <style scoped>
-.receive-short{display:none}.stock-actions .ui-button{white-space:nowrap}
-.stock-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-width:0}
-.stock-actions,.stock-search{display:flex;align-items:center;gap:8px;min-width:0}.stock-search{flex:1;max-width:520px}.stock-search>svg{flex-shrink:0;color:var(--text-muted)}
-.stock-search input{min-width:0;flex:1;height:44px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;padding:0 12px;font-size:13px}.stock-more{display:grid;gap:10px}
-@media(max-width:767px){.receive-full{display:none}.receive-short{display:inline}.stock-toolbar{gap:12px}.stock-actions,.stock-search{width:100%;max-width:none}.stock-actions>:first-child{flex:1}.stock-search>svg{display:none}.stock-search input{width:0}.stock-search .ui-button{flex-shrink:0}}
+.receive-short{display:none}.stock-toolbar{display:flex;align-items:end;gap:12px;flex-wrap:wrap;min-width:0}.stock-actions,.stock-search{display:flex;align-items:center;gap:8px;min-width:0}.stock-actions{order:2}.stock-search{flex:1;order:1}.stock-search>.app-search{flex:1;min-width:0;background:var(--bg-card)}.stock-actions>.ui-button,.stock-search>.ui-button{min-height:48px;white-space:nowrap}.stock-more{display:grid;gap:10px}@media(max-width:767px){.receive-full{display:none}.receive-short{display:inline}.stock-search{flex-basis:100%}.stock-actions{width:100%}.stock-actions>:first-child{flex:1}.stock-search>.ui-button{flex-shrink:0}}
 </style>

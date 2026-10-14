@@ -1,18 +1,10 @@
 <template>
-  <ModalShell labelled-by="StocktakeModal-title" @request-close="close" :open="store.modals.stocktake?.isOpen"
-    class="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-5 bg-stone-900/60">
-    <section class="stocktake-sheet" @click.stop>
-      <header class="stocktake-header">
-        <div class="stocktake-heading">
-          <span class="stocktake-icon"><ClipboardCheck :size="21" aria-hidden="true" /></span>
-          <div><h3 id="StocktakeModal-title">ตรวจนับสต็อกปิดร้าน</h3><p>กรอกยอดจริง แล้วตรวจผลต่างก่อนบันทึก</p></div>
-        </div>
-        <button type="button" @click="close" class="stocktake-close" aria-label="ปิดหน้าต่าง"><X :size="19" /></button>
-      </header>
+  <DialogFrame id="StocktakeModal" title="ตรวจนับสต็อกปิดร้าน" description="กรอกยอดจริง แล้วตรวจผลต่างก่อนบันทึก" :open="Boolean(store.modals.stocktake?.isOpen)" width="980px" :teleport="false" @request-close="close">
+
 
       <div class="stocktake-toolbar">
         <div class="stocktake-controls">
-          <div class="stocktake-search"><Search :size="16" aria-hidden="true" /><input v-model="searchQuery" type="search" aria-label="ค้นหาวัตถุดิบ" placeholder="ค้นหาวัตถุดิบหรือประเภท" /></div>
+          <AppSearch v-model="searchQuery" label="ค้นหาวัตถุดิบ" placeholder="ค้นหาวัตถุดิบหรือประเภท" class="stocktake-search"/>
           <AppSelect v-model="selectedCategory" aria-label="ประเภทตรวจนับ" class="stocktake-category"><option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.label }}</option></AppSelect>
           <AppCheckbox v-model="onlyDifferences" label="เฉพาะยอดต่าง" class="stocktake-diff-filter" />
         </div>
@@ -34,8 +26,8 @@
               <td class="stocktake-count">
                 <span class="stocktake-mobile-label">ยอดนับจริง</span>
                 <div class="stocktake-count-control">
-                  <input data-count-input type="number" inputmode="decimal" step="any" min="0" :aria-label="`ยอดนับจริง ${mat.name}`" :aria-describedby="mat.packUnit && mat.packSize > 1 ? `stocktake-unit-${mat.id}` : undefined"
-                    :value="counts[mat.id].value" @focus="editingMaterialId = mat.id" @blur="editingMaterialId = null" @input="setCountValue(mat.id,$event.target.value)" @keydown.enter.prevent="focusNextCount($event)" />
+                  <AppInput data-count-input type="number" inputmode="decimal" step="any" min="0" :aria-label="`ยอดนับจริง ${mat.name}`" :aria-describedby="mat.packUnit && mat.packSize > 1 ? `stocktake-unit-${mat.id}` : undefined"
+                    :model-value="counts[mat.id].value" @focus="editingMaterialId = mat.id" @blur="editingMaterialId = null" @input="setCountValue(mat.id,$event.target.value)" @keydown.enter.prevent="focusNextCount($event)" />
                   <div v-if="mat.packUnit && mat.packSize > 1" class="stocktake-units" :aria-label="`หน่วยนับ ${mat.name}`">
                     <button type="button" :aria-label="`นับ ${mat.name} เป็น ${mat.unit}`" :aria-pressed="counts[mat.id].unitMode === 'base'" @click="counts[mat.id].unitMode !== 'base' && toggleCountUnit(mat.id)">{{ mat.unit }}</button>
                     <button type="button" :aria-label="`นับ ${mat.name} เป็น ${mat.packUnit}`" :aria-pressed="counts[mat.id].unitMode === 'pack'" @click="counts[mat.id].unitMode !== 'pack' && toggleCountUnit(mat.id)">{{ mat.packUnit }}</button>
@@ -55,22 +47,24 @@
         </table>
       </div>
 
-      <footer class="stocktake-footer">
+      <template #footer><footer class="stocktake-footer">
         <div class="stocktake-summary" aria-live="polite"><p>ยอดต่างทั้งหมด <strong>{{ varianceStats.changedCount }} รายการ</strong><span class="stocktake-impact" :class="varianceStats.netCostImpact>0 ? 'text-emerald-700' : varianceStats.netCostImpact<0 ? 'text-rose-700' : ''">{{ formatImpact(varianceStats.netCostImpact) }}</span></p><small>ยังไม่ปรับสต็อกจนกว่าจะยืนยันแบบร่าง</small></div>
-        <div class="stocktake-actions"><button type="button" @click="close" class="stocktake-cancel">ยกเลิก</button><button type="button" data-stage-stocktake @click="submitStocktake" :disabled="varianceStats.changedCount === 0" class="stocktake-submit"><Check :size="16" aria-hidden="true" />เพิ่มเข้าแบบร่าง<span v-if="varianceStats.changedCount">({{ varianceStats.changedCount }})</span></button></div>
-      </footer>
-    </section>
-  </ModalShell>
+        <div class="stocktake-actions"><Button variant="quiet" @click="close" class="stocktake-cancel">ยกเลิก</Button><Button data-stage-stocktake @click="submitStocktake" :disabled="varianceStats.changedCount === 0" class="stocktake-submit"><Check :size="16" aria-hidden="true" />เพิ่มเข้าแบบร่าง<span v-if="varianceStats.changedCount">({{ varianceStats.changedCount }})</span></Button></div>
+      </footer></template>
+  </DialogFrame>
 </template>
 
 <script setup>
+import AppInput from '@/components/ui/AppInput.vue'
+import AppSearch from '@/components/ui/AppSearch.vue'
 import {getMaterialKind, getMaterialKindLabel} from '@/domain/materialClassification'
-import ModalShell from '@/components/ui/ModalShell.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
+import Button from '@/components/ui/Button.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { X, Check, Search, RotateCcw, ClipboardCheck } from 'lucide-vue-next'
+import { Check, Search, RotateCcw } from 'lucide-vue-next'
 
 const store = usePosStore()
 
@@ -264,3 +258,7 @@ function submitStocktake() {
 .stocktake-close,.stocktake-reset-all,.stocktake-cancel,.stocktake-submit,.stocktake-units button,.stocktake-count-help button{min-height:44px}.stocktake-close{min-width:44px}.stocktake-count-control input{min-height:44px;font-size:14px}.stocktake-count-help small{font-size:11px}.stocktake-heading p,.stocktake-summary small{font-size:12px}
 @media(max-width:639px){.stocktake-table tr{grid-template-columns:1fr}.stocktake-table .stocktake-count{grid-column:1/-1}.stocktake-units button{min-width:44px;max-width:none;font-size:12px}}
 </style>
+
+<style scoped>.stocktake-search{padding:0;border:0;min-width:0}.stocktake-count-control>.app-input{flex:1;width:0;min-width:0;border-radius:12px;min-height:48px}.stocktake-count-control :deep(.app-input input){padding:12px 0;width:100%;min-width:0;height:48px;background:transparent;font-size:1rem}.stocktake-search :deep(input){width:100%;padding:12px 0}</style>
+<style scoped>.stocktake-search{background:var(--bg-soft);padding:0 12px}.stocktake-category :deep(.app-select-trigger){background:var(--bg-soft);border:0;outline:0;box-shadow:none}.stocktake-body{overflow:visible}.stocktake-footer{width:100%;padding:0;border:0}:deep(.dialog-frame-body){padding:0}:deep(.dialog-frame-footer){padding:16px 24px}@media(max-width:767px){:deep(.dialog-frame-footer){padding:12px 16px}}</style><style scoped>.stocktake-units button{min-width:44px}</style>
+<style scoped>@media(min-width:640px) and (max-width:1199px){.stocktake-count-control{flex-wrap:wrap}.stocktake-count-control>.app-input{flex-basis:100%;width:100%}}</style>

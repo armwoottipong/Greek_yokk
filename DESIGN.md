@@ -200,6 +200,8 @@ Desktop navigation occupies 256px; tablet rail occupies 72px. Compact drawers ar
 
 **The One Transaction Rule.** Presentation changes never duplicate checkout or commit a draft.
 
+Stock management likewise uses one responsive inventory list at every width. Its wide rows expose identity, remaining quantity, purchase-unit cost, remaining value and actions. At 1199px and below identity spans the row; at 639px and below the metrics and actions reflow into two columns. The toolbar search/filter group takes a full row below 768px, followed by receive/count actions. These are Stock surface arrangements, not replacements for other tables or catalog layouts.
+
 ## Elevation & Depth
 
 Resting catalog, dashboard, inventory summary and editorial surfaces use cream fills and spacing without visible perimeter borders or editorial shadows. Decorative nesting should not repeat outlines; table separators and control boundaries remain functional. Floating menus and dialogs use the shared popup shadow. Compact navigation drawers use a lateral shadow. The sidecar records their exact values.
@@ -233,6 +235,14 @@ RecipeEditorRow composes FormField, AppSelect, AppInput and a named remove IconB
 ### Shared Management Rows
 
 CatalogManagementRow gives Menu and Add-on the same name/emoji, recipe summary, selected-channel price and named edit/delete composition. Name and recipe actions open contextual details with all channel prices and separate ingredient/packaging groups. Rows wrap long names and retain explicit missing-price text; a real zero remains zero. The shared catalog management, recipe detail and editor styles keep both surfaces aligned without changing POS catalog cards.
+
+### Stock Management Rows and Forms
+
+StockMaterialCard composes one inventory row with a named identity/detail button, type and usage metadata, current quantity and pending draft delta, purchase-unit cost, remaining value, lot access and receive/produce actions. Text names every stock state; quantity is prominent burgundy, while pending changes use warning text. Names and numeric values wrap. The row has a functional bottom separator rather than a repeated enclosing card; spacing is 20px on wide screens, 16px below 1200px and 12px below 640px. Contextual action sheets retain edit/history/waste/archive and archived restore/permanent-delete routes.
+
+StockToolbar uses AppSearch, shared Button filters and named IconButton actions. Receive and count remain directly available; adjustment, creation and history sit in its contextual action sheet. MaterialEdit, StockIn, StockAdjust and Waste use the shared DialogFrame header at a bounded desktop width of 720px, AppInput/AppSelect fields and shared Button variants. Their common stock form composition uses warm filled 48px controls with 12px corners, separated sections without nested perimeter frames, a 24px group gap (20px at 480px and below), and reachable footer actions. The shared filled-popup treatment remains authoritative. Narrow form grids stack at 480px; the material unit choices keep three columns and recipe selectors can span their own row.
+
+Stocktake uses the same DialogFrame at a bounded desktop width of 980px, AppSearch and AppInput, with a dedicated count table that reflows to labeled rows below 640px. Expected quantity, named actual-count fields, unit choice and variance remain adjacent; Enter advances to the next visible count field. Unit toggles retain 44px minimum width and height; at 640–1199px they sit below the full-width count field so the larger targets do not squeeze entry. The footer reports changed items/cost impact and stages changes into the existing draft review. Search, filters and presentation changes do not confirm inventory changes; this control renovation preserves the existing count and draft behavior.
 
 ### Exclusive Choice Cards
 

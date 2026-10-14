@@ -1,18 +1,7 @@
 <template>
- <DialogFrame :open="store.modals.waste.isOpen && Boolean(currentMaterial)" id="WasteModal" title="บันทึกของเสีย" :teleport="false" @request-close="requestWasteClose">
- <template #header><div class="flex items-center justify-between bg-white">
-        <div>
-          <h3 id="WasteModal-title" class="text-sm font-semibold text-rose-900 flex items-center gap-2">
-            <span>🗑️</span>
-            <span>บันทึกตัดทิ้งของเสีย (Waste Spoilage)</span>
-          </h3>
-          <p class="text-[11px] text-stone-500 mt-0.5">
-            ตัดสต็อกจากล็อตที่เสียหาย พร้อมคำนวณมูลค่าขาดทุนจริง
-          </p>
-        </div>
-        
-      </div></template>
- <div class="space-y-4 text-sm">
+ <DialogFrame :open="store.modals.waste.isOpen && Boolean(currentMaterial)" id="WasteModal" title="บันทึกของเสีย" description="เลือกจำนวนและเหตุผล เพื่อตัดสต็อกจากล็อตที่เสียหาย" :teleport="false" width="720px" @request-close="requestWasteClose">
+
+ <div class="stock-form">
         <!-- Target Material & Lot Info Card -->
         <div class="p-3.5 rounded-xl bg-stone-50 border border-stone-200/70 space-y-2">
           <div class="flex items-center justify-between">
@@ -65,27 +54,26 @@
             <label class="text-xs font-semibold text-stone-800">
               จำนวนที่ต้องการตัดทิ้ง <span class="text-rose-500">*</span>
             </label>
-            <button
+            <Button variant="quiet"
               type="button"
               @click="dumpAll"
               class="text-[11px] font-medium text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
             >
               ทิ้งทั้งหมดในล็อตนี้ ({{ currentLotQty }} {{ currentMaterial.unit }})
-            </button>
+            </Button>
           </div>
 
           <FormField id="waste-quantity" label="จำนวนที่ตัดทิ้ง" :error="wasteQty<0 || wasteQty>currentLotQty?'ระบุจำนวนตั้งแต่ 0 ถึง '+currentLotQty+' '+currentMaterial.unit:''">
           <template #default="{controlId,describedBy,invalid}">
           <div class="flex items-center gap-2">
-            <input :id="controlId" :aria-describedby="describedBy" :aria-invalid="invalid" aria-label="จำนวนที่ตัดทิ้ง"
+            <AppInput :id="controlId" :aria-describedby="describedBy" :aria-invalid="invalid" aria-label="จำนวนที่ตัดทิ้ง"
               v-model.number="wasteQty"
               type="number"
               min="0.1"
               :max="currentLotQty"
               step="any"
               placeholder="0"
-              class="soft-input flex-1 px-3.5 py-2.5 rounded-xl text-center text-sm font-bold font-number text-rose-900 placeholder:text-stone-300"
-            />
+              class="soft-input flex-1 px-3.5 py-2.5 rounded-xl text-center text-sm font-bold font-number text-rose-900 placeholder:text-stone-300" />
             <span class="text-xs font-medium text-stone-600 shrink-0 w-12 text-center">
               {{ currentMaterial.unit }}
             </span>
@@ -96,7 +84,7 @@
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-stone-800 block">สาเหตุการตัดทิ้ง</label>
           <div class="flex flex-wrap gap-1.5">
-            <button
+            <Button :variant="selectedReason===r?'primary':'secondary'" :aria-pressed="selectedReason===r"
               v-for="r in reasonPresets"
               :key="r"
               type="button"
@@ -109,19 +97,18 @@
               ]"
             >
               {{ r }}
-            </button>
+            </Button>
           </div>
         </div>
 
         <!-- Optional Note -->
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-stone-800 block">หมายเหตุเพิ่มเติม (ถ้ามี)</label>
-          <input aria-label="หมายเหตุของเสีย"
+          <AppInput aria-label="หมายเหตุของเสีย"
             v-model="wasteNote"
             type="text"
             placeholder="เช่น ผลช้ำที่ก้นลัง, ลืมแช่ตู้เย็นข้ามคืน..."
-            class="soft-input w-full px-3 py-2 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-          />
+            class="soft-input w-full px-3 py-2 rounded-xl text-xs text-stone-900 placeholder:text-stone-400" />
         </div>
 
         <!-- Financial Loss Preview Card -->
@@ -137,28 +124,28 @@
           </div>
         </div>
       </div>
- <template #footer><div class="bg-stone-50 flex items-center justify-end gap-2.5">
-        <button
+ <template #footer><div class="stock-form-footer">
+        <Button variant="quiet"
           type="button"
           @click="requestWasteClose"
-          class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-200 transition-colors cursor-pointer"
         >
           ยกเลิก
-        </button>
-        <button
+        </Button>
+        <Button variant="danger"
           type="button"
           @click="confirmWaste"
           :disabled="!isValid"
-          class="px-5 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
         >
           <Trash2 class="w-3.5 h-3.5" />
           <span>บันทึกตัดของเสีย</span>
-        </button>
+        </Button>
       </div></template>
  </DialogFrame>
 </template>
 
 <script setup>
+import AppInput from '@/components/ui/AppInput.vue'
+import Button from '@/components/ui/Button.vue'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
 import FormField from '@/components/ui/FormField.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
@@ -289,3 +276,5 @@ async function confirmWaste() {
   }
 }
 </script>
+
+<style scoped src="@/components/inventory/stockForms.css"></style>

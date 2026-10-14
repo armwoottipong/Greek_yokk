@@ -25,18 +25,18 @@ it('filters by type and overlapping recipe roles immediately without producing',
   const s=createTestStore(); s.materials=[material('RAW'),material('OUT',0,{hasSubRecipe:true,subRecipe:[{materialId:'RAW',qty:10}]})]
   s.menus=[];s.addons=[{id:'A',name:'Extra raw',recipe:[{materialId:'RAW',qty:2}]}]
   const w=mount(Stock)
-  expect(w.get('.desktop-material-table').text()).toContain('ใช้ในการผลิต')
-  expect(w.get('.desktop-material-table').text()).toContain('ใช้ใน Add-on')
+  expect(w.get('.menu-directory-list').text()).toContain('ใช้ในการผลิต')
+  expect(w.get('.menu-directory-list').text()).toContain('ใช้ใน Add-on')
   w.vm.applyStockFilters({kind:'normal',role:'addon',showDeleted:false});await flushPromises()
-  expect(w.findAll('.desktop-material-table [data-material-details]').map(x=>x.attributes('data-material-details'))).toEqual(['RAW'])
+  expect(w.findAll('.menu-directory-list [data-material-details]').map(x=>x.attributes('data-material-details'))).toEqual(['RAW'])
   s.addons[0].recipe=[];await flushPromises()
-  expect(w.findAll('.desktop-material-table [data-material-details]')).toHaveLength(0)
+  expect(w.findAll('.menu-directory-list [data-material-details]')).toHaveLength(0)
   expect(s.materials.map(m=>m.stock)).toEqual([100,0]);w.unmount()
 })
 it('shows direct addon references with quantities on material details', async () => {
   const s=createTestStore();s.materials=[material('RAW')];s.addons=[{id:'A',name:'Extra raw',recipe:[{materialId:'RAW',qty:2}]}];s.menus=[]
   const w=mount(Stock,{attachTo:document.body})
-  await w.get('.desktop-material-table [data-material-details="RAW"]').trigger('click');await flushPromises()
+  await w.get('.menu-directory-list [data-material-details="RAW"]').trigger('click');await flushPromises()
   const detail=document.querySelector('#material-details')
   expect(detail.textContent).toContain('Extra raw');expect(detail.textContent).toContain('2 g')
   w.unmount()
@@ -73,6 +73,6 @@ it('creates a new dated lot from the material editor without changing legacy cat
 it('identifies the origin of produced lots as production dates', async () => {
   const s=createTestStore();s.materials=[material('OUT',100,{hasSubRecipe:true})];s.menus=[];s.addons=[]
   const w=mount(Stock,{attachTo:document.body})
-  await w.get('.desktop-material-table [data-material-details="OUT"]').trigger('click');await flushPromises()
+  await w.get('.menu-directory-list [data-material-details="OUT"]').trigger('click');await flushPromises()
   expect(document.querySelector('#material-details .lot-dates dt').textContent).toBe('วันผลิต');w.unmount()
 })

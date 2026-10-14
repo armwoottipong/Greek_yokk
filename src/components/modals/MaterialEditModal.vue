@@ -1,58 +1,29 @@
 <template>
- <DialogFrame :open="store.modals.materialEdit.isOpen" id="MaterialEditModal" title="ข้อมูลวัตถุดิบ" :teleport="false" @request-close="requestClose(close)">
- <template #header><div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-y-3 bg-white">
-        <div class="min-w-0 w-full sm:w-auto sm:flex-1 sm:pr-3">
-          <div class="flex items-center gap-2">
-            <h3 id="MaterialEditModal-title" class="text-sm font-semibold text-stone-900 truncate">
-              {{ isEditing 
-                ? (form.hasSubRecipe ? `แก้ไขสูตรผลิต: ${form.name}` : `แก้ไขวัตถุดิบ: ${form.name}`)
-                : (form.hasSubRecipe ? 'วัตถุดิบมีส่วนผสม (สูตรผลิต)' : 'เพิ่มวัตถุดิบ / สินค้า') 
-              }}
-            </h3>
-            <span 
-              v-if="form.hasSubRecipe"
-              class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-semibold text-[10px] shrink-0"
-            >
-              สูตรผลิต
-            </span>
-          </div>
-          <p class="text-[11px] text-stone-400 mt-0.5 truncate">
-            {{ form.hasSubRecipe 
-              ? 'ตั้งสูตรส่วนผสม คำนวณต้นทุนรวมและตัดสต็อกส่วนผสมอัตโนมัติ'
-              : 'ระบุหน่วยนับ ข้อมูลแพ็คสั่งซื้อ และสต็อกปัจจุบัน' 
-            }}
-          </p>
-        </div>
+ <DialogFrame :open="store.modals.materialEdit.isOpen" id="MaterialEditModal" :title="isEditing?'แก้ไขวัตถุดิบ':'เพิ่มวัตถุดิบใหม่'" description="ชื่อและประเภท ตามด้วยหน่วยซื้อ ต้นทุน และสูตรผลิต" :teleport="false" width="720px" @request-close="requestClose(close)">
 
-        <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0 w-full sm:w-auto">
-          <!-- Close Modal Button -->
-          
-        </div>
-      </div></template>
- <div class="space-y-4 text-sm">
-        
+ <div class="stock-form">
+
         <MaterialUsage :usage="store.materialUsageById.get(form.id)" />
 
         <!-- Emoji, Name & Category -->
         <div class="flex items-center gap-3">
-          <button
+          <Button variant="quiet"
             type="button"
             @click="openEmojiPicker"
             title="เปลี่ยนไอคอน"
             class="w-11 h-11 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-2xl transition-colors shrink-0 cursor-pointer"
           >
             {{ form.emoji }}
-          </button>
+          </Button>
           <div class="flex-1 min-w-0">
             <label class="block text-[11px] font-medium text-stone-600 mb-1">
               ชื่อ{{ form.hasSubRecipe ? 'สูตร / วัตถุดิบผลิต' : 'วัตถุดิบ' }} <span class="text-rose-500">*</span>
             </label>
-            <input aria-label="ชื่อรายการ"
+            <AppInput aria-label="ชื่อรายการ"
               v-model="form.name"
               type="text"
               :placeholder="form.hasSubRecipe ? 'เช่น กรีกโยเกิร์ต รสธรรมชาติ' : 'เช่น นมสดพาสเจอร์ไรส์, ถ้วยกระดาษ'"
-              class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
-            />
+              class="soft-input w-full px-3 py-2 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400" />
           </div>
         </div>
 
@@ -72,20 +43,20 @@
           <label class="block text-[11px] font-medium text-stone-700">
             หน่วยใช้ (ชั่ง / ตักขาย / ใส่ในสูตร) <span class="text-rose-500">*</span>
           </label>
-          <div class="grid grid-cols-3 gap-2">
-            <button
+          <div class="grid grid-cols-3 gap-2 stock-unit-options">
+            <Button :variant="form.unit===u.value?'primary':'secondary'" :aria-pressed="form.unit===u.value"
               v-for="u in unitOptions"
               :key="u.value"
               type="button"
               @click="setUnit(u.value)"
-              :class="form.unit === u.value 
+              :class="form.unit === u.value
                 ? 'bg-brand-600 text-white font-semibold shadow-xs'
                 : 'bg-[#FBF5EA] border border-stone-200/80 hover:bg-stone-100 text-stone-700'"
               class="py-2 px-3 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <span class="text-sm">{{ u.icon }}</span>
               <span>{{ u.label }}</span>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -96,26 +67,25 @@
               <span>📦</span>
               <span>การสั่งซื้อเข้าสต็อกและคิดต้นทุน (Pack Purchase & Cost)</span>
             </div>
-            <button
+            <Button variant="quiet"
               type="button"
               @click="setSingleUnitPack"
               class="text-[10px] text-stone-500 hover:text-stone-800 underline transition-colors cursor-pointer"
               title="ตั้งค่ากรณีซื้อสินค้าแยกชิ้นเดี่ยว (1 ต่อ 1)"
             >
               ซื้อแยกชิ้น (1:1)
-            </button>
+            </Button>
           </div>
 
           <div class="grid grid-cols-3 gap-2.5">
             <!-- 1. หน่วยซื้อเข้า -->
             <div>
               <label class="block text-[10px] text-stone-500 mb-1">หน่วยสั่งซื้อเข้า</label>
-              <input aria-label="หน่วยสั่งซื้อ"
+              <AppInput aria-label="หน่วยสั่งซื้อ"
                 v-model="form.packUnit"
                 type="text"
                 placeholder="เช่น ถุง, ขวด, ลัง, แพ็ค"
-                class="soft-input w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-900"
-              />
+                class="soft-input w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-stone-900" />
             </div>
 
             <!-- 2. ขนาดบรรจุ -->
@@ -124,14 +94,13 @@
                 1 {{ form.packUnit || 'แพ็ค' }} บรรจุ
               </label>
               <div class="flex items-center soft-input px-2.5 py-1.5 rounded-lg bg-white">
-                <input aria-label="จำนวนหน่วยใช้ต่อแพ็ค"
+                <AppInput aria-label="จำนวนหน่วยใช้ต่อแพ็ค"
                   v-model.number="form.packSize"
                   type="number"
                   min="0.001"
                   step="any"
                   placeholder="1000"
-                  class="w-full text-right font-number font-semibold text-xs bg-transparent focus:outline-none"
-                />
+                  class="w-full text-right font-number font-semibold text-xs bg-transparent focus:outline-none" />
                 <span class="text-[10px] text-stone-400 ml-1 shrink-0">{{ form.unit }}</span>
               </div>
             </div>
@@ -143,14 +112,13 @@
               </label>
               <div class="flex items-center soft-input px-2.5 py-1.5 rounded-lg bg-white">
                 <span class="text-[10px] text-stone-400 mr-0.5">฿</span>
-                <input aria-label="ราคาซื้อต่อแพ็ค"
+                <AppInput aria-label="ราคาซื้อต่อแพ็ค"
                   v-model.number="form.packCost"
                   type="number"
                   min="0"
                   step="any"
                   placeholder="0"
-                  class="w-full text-right font-number font-semibold text-xs bg-transparent focus:outline-none"
-                />
+                  class="w-full text-right font-number font-semibold text-xs bg-transparent focus:outline-none" />
               </div>
             </div>
           </div>
@@ -185,7 +153,7 @@
                 <span>สูตรการผลิต (Sub-Recipe)</span>
               </span>
               <!-- Max Batches Badge -->
-              <span 
+              <span
                 v-if="form.subRecipe && form.subRecipe.length > 0"
                 class="px-2 py-0.5 rounded-md font-number font-semibold text-[10px]"
                 :class="maxPossibleProductionRounds > 0 ? 'bg-amber-100 text-amber-900' : 'bg-rose-100 text-rose-700'"
@@ -194,14 +162,14 @@
               </span>
             </div>
 
-            <button
+            <Button variant="quiet"
               type="button"
               @click="addSubRecipeRow"
               class="text-[11px] font-semibold text-amber-900 hover:text-amber-950 flex items-center gap-1 transition-colors cursor-pointer"
             >
               <Plus class="w-3.5 h-3.5" />
               <span>เพิ่มส่วนผสม</span>
-            </button>
+            </Button>
           </div>
 
           <!-- ปริมาณผลผลิตต่อ 1 รอบ -->
@@ -211,13 +179,12 @@
               <span class="text-[10px] text-stone-400">ปริมาณเนื้อวัตถุดิบที่ได้ต่อ 1 หม้อ/รอบ</span>
             </div>
             <div class="flex items-center soft-input px-3 py-1 rounded-lg bg-stone-50">
-              <input aria-label="ปริมาณผลิตได้ต่อสูตร"
+              <AppInput aria-label="ปริมาณผลิตได้ต่อสูตร"
                 v-model.number="form.yieldQty"
                 type="number"
                 min="1"
                 step="any"
-                class="w-20 text-right font-number font-bold text-xs text-amber-950 bg-transparent focus:outline-none"
-              />
+                class="w-20 text-right font-number font-bold text-xs text-amber-950 bg-transparent focus:outline-none" />
               <span class="text-xs font-semibold text-stone-600 ml-1.5 shrink-0">{{ form.unit }}</span>
             </div>
           </div>
@@ -230,7 +197,7 @@
               class="bg-white p-2.5 rounded-xl border border-stone-200/60 hover:border-amber-300 transition-colors space-y-1.5"
             >
               <!-- Primary Line: Material, Qty, Cost, Delete -->
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 stock-subrecipe-controls">
                 <AppSelect aria-label="วัตถุดิบในสูตร"
                   v-model="row.materialId"
                   class="flex-1"
@@ -246,14 +213,13 @@
 
                 <div class="flex items-center gap-1 bg-stone-50/70 px-2 py-1 rounded-lg border border-stone-200/70">
                   <span class="text-[10px] text-stone-400">ใช้</span>
-                  <input :aria-label="`ปริมาณ ${store.matMap[row.materialId]?.name || 'วัตถุดิบในสูตร'}`"
+                  <AppInput :aria-label="`ปริมาณ ${store.matMap[row.materialId]?.name || 'วัตถุดิบในสูตร'}`"
                     v-model.number="row.qty"
                     type="number"
                     min="0.01"
                     step="any"
                     placeholder="0"
-                    class="w-16 text-right font-number font-semibold text-xs text-stone-900 bg-transparent focus:outline-none"
-                  />
+                    class="w-16 text-right font-number font-semibold text-xs text-stone-900 bg-transparent focus:outline-none" />
                   <span class="text-[10px] text-stone-500 w-6">
                     {{ getSubMat(row.materialId)?.unit || 'g' }}
                   </span>
@@ -263,19 +229,19 @@
                   ฿{{ ((row.qty || 0) * (getSubMat(row.materialId)?.unitCost || 0)).toFixed(2) }}
                 </span>
 
-                <button
+                <Button variant="quiet"
                   type="button"
                   @click="removeSubRecipeRow(idx)"
                   class="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
                   title="ลบส่วนผสมนี้"
                  aria-label="ลบวัตถุดิบจากสูตร">
                   <X class="w-3.5 h-3.5" />
-                </button>
+                </Button>
               </div>
 
               <!-- Sleek Meta Status Line (Clean, No Visual Clutter) -->
-              <div 
-                v-if="compMap[row.materialId]" 
+              <div
+                v-if="compMap[row.materialId]"
                 class="flex items-center justify-between text-[11px] text-stone-500 pt-0.5"
               >
                 <div class="flex items-center gap-1.5 font-number">
@@ -284,7 +250,7 @@
                   <template v-if="compMap[row.materialId].usedQty > 0">
                     <span class="text-stone-300">→</span>
                     <span class="text-stone-400">หลังทำ:</span>
-                    <span 
+                    <span
                       class="font-semibold"
                       :class="compMap[row.materialId].status === 'out_of_stock' ? 'text-rose-600' : (compMap[row.materialId].status === 'low_stock' ? 'text-amber-600' : 'text-stone-800')"
                     >
@@ -345,7 +311,7 @@
               </span>
             </div>
             <div class="flex items-center gap-1.5">
-              <button
+              <Button variant="quiet"
                 type="button"
                 @click="stepStock(-1)"
                 :disabled="form.hasSubRecipe ? (form.stock <= initialStock) : (packStockCount <= 0)"
@@ -353,21 +319,20 @@
                 :title="form.hasSubRecipe ? (form.stock > initialStock ? 'ยกเลิกการผลิต 1 รอบ' : 'วัตถุดิบที่ผลิตไว้แล้ว ไม่สามารถลดยอดได้') : 'ลดสต็อก 1 แพ็ค'"
               >
                 <Minus class="w-3.5 h-3.5" />
-              </button>
+              </Button>
               <div class="flex-1 flex items-center bg-white border border-stone-200 px-2.5 py-1.5 rounded-lg justify-center focus-within:border-brand-600">
-                <input aria-label="สต็อกปัจจุบันเป็นแพ็ค"
-                  :value="displayStockPacks"
+                <AppInput aria-label="สต็อกปัจจุบันเป็นแพ็ค"
+                  :model-value="displayStockPacks"
                   @input="onStockPacksInput($event.target.value)"
                   type="number"
                   min="0"
                   step="any"
-                  class="w-full text-center font-number font-bold text-xs text-stone-900 bg-transparent focus:outline-none"
-                />
+                  class="w-full text-center font-number font-bold text-xs text-stone-900 bg-transparent focus:outline-none" />
                 <span class="text-[10px] font-medium text-stone-500 ml-1 shrink-0">
                   {{ form.hasSubRecipe ? 'รอบ' : (form.packUnit || 'แพ็ค') }}
                 </span>
               </div>
-              <button
+              <Button variant="quiet"
                 type="button"
                 @click="stepStock(1)"
                 :disabled="form.hasSubRecipe && !canAddRound"
@@ -375,7 +340,7 @@
                 :title="form.hasSubRecipe ? (canAddRound ? 'เพิ่ม 1 รอบผลิต (หักส่วนผสม)' : 'ส่วนผสมไม่พอผลิตเพิ่ม') : 'เพิ่มสต็อก 1 แพ็ค'"
               >
                 <Plus class="w-3.5 h-3.5" />
-              </button>
+              </Button>
             </div>
             <p v-if="form.hasSubRecipe && !canAddRound" class="text-[9px] text-rose-600 font-medium">
               * ส่วนผสมในคลังหมด ไม่พอผลิตเพิ่ม
@@ -393,7 +358,7 @@
               </span>
             </div>
             <div class="flex items-center gap-1.5">
-              <button
+              <Button variant="quiet"
                 type="button"
                 @click="stepMinAlert(-1)"
                 :disabled="packMinAlertCount <= 0"
@@ -401,38 +366,37 @@
                 title="ลดการเตือน 1 แพ็ค"
               >
                 <Minus class="w-3.5 h-3.5" />
-              </button>
+              </Button>
               <div class="flex-1 flex items-center bg-white border border-stone-200 px-2.5 py-1.5 rounded-lg justify-center focus-within:border-brand-600">
-                <input aria-label="ระดับเตือนสต็อกเป็นแพ็ค"
-                  :value="displayMinAlertPacks"
+                <AppInput aria-label="ระดับเตือนสต็อกเป็นแพ็ค"
+                  :model-value="displayMinAlertPacks"
                   @input="onMinAlertPacksInput($event.target.value)"
                   type="number"
                   min="0"
                   step="any"
-                  class="w-full text-center font-number font-bold text-xs text-stone-900 bg-transparent focus:outline-none"
-                />
+                  class="w-full text-center font-number font-bold text-xs text-stone-900 bg-transparent focus:outline-none" />
                 <span class="text-[10px] font-medium text-stone-500 ml-1 shrink-0">
                   {{ form.hasSubRecipe ? 'รอบ' : (form.packUnit || 'แพ็ค') }}
                 </span>
               </div>
-              <button
+              <Button variant="quiet"
                 type="button"
                 @click="stepMinAlert(1)"
                 class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 flex items-center justify-center font-bold text-stone-700 transition-colors cursor-pointer shrink-0"
                 title="เพิ่มการเตือน 1 แพ็ค"
               >
                 <Plus class="w-3.5 h-3.5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         <div v-if="form.stock > initialStock && materialKind !== 'packaging'" class="grid grid-cols-2 gap-3">
           <label class="text-xs text-stone-700">{{ form.hasSubRecipe ? 'วันผลิต' : 'วันรับเข้า' }}
-            <input v-model="form.lastStockInDate" type="date" :aria-label="form.hasSubRecipe ? 'วันผลิต' : 'วันที่รับเข้า'" required class="soft-input w-full px-3 py-2 mt-1" />
+            <AppInput v-model="form.lastStockInDate" type="date" :aria-label="form.hasSubRecipe ? 'วันผลิต' : 'วันที่รับเข้า'" required class="soft-input w-full px-3 py-2 mt-1" />
           </label>
           <label class="text-xs text-stone-700">วันหมดอายุ (ไม่บังคับ)
-            <input v-model="form.expiryDate" type="date" aria-label="วันหมดอายุ" :min="form.lastStockInDate || undefined" class="soft-input w-full px-3 py-2 mt-1" />
+            <AppInput v-model="form.expiryDate" type="date" aria-label="วันหมดอายุ" :min="form.lastStockInDate || undefined" class="soft-input w-full px-3 py-2 mt-1" />
           </label>
         </div>
         <p v-if="formError" role="alert" class="text-sm text-rose-700">{{ formError }}</p>
@@ -448,63 +412,60 @@
             </span>
           </div>
           <div class="flex items-center gap-1.5 w-28">
-            <input aria-label="อายุการเก็บรักษาเป็นวัน"
+            <AppInput aria-label="อายุการเก็บรักษาเป็นวัน"
               v-model.number="form.shelfLifeDays"
               type="number"
               min="0"
               placeholder="ไม่ระบุ"
-              class="soft-input w-full px-2.5 py-1.5 rounded-lg text-right text-xs font-number font-semibold text-stone-900 bg-white"
-            />
+              class="soft-input w-full px-2.5 py-1.5 rounded-lg text-right text-xs font-number font-semibold text-stone-900 bg-white" />
             <span class="text-xs text-stone-500 shrink-0 font-medium">วัน</span>
           </div>
         </div>
 
       </div>
- <template #footer><div class="bg-white flex items-center justify-between">
+ <template #footer><div class="stock-form-footer material-editor-footer">
         <div v-if="isEditing" class="flex items-center gap-2">
-          <button
+          <Button variant="quiet"
             type="button"
             @click="handleArchiveToggle"
-            class="px-3 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
             :title="form.isDeleted ? 'ยกเลิกการจัดเก็บ คืนสู่วัตถุดิบใช้งานปกติ' : 'จัดเก็บวัตถุดิบเพื่อซ่อนจากหน้าหลัก'"
           >
             <Archive class="w-3.5 h-3.5 text-stone-500" />
             <span>{{ form.isDeleted ? 'ยกเลิกจัดเก็บ' : 'จัดเก็บ' }}</span>
-          </button>
-          <button
+          </Button>
+          <Button variant="quiet"
             type="button"
             @click="handlePermanentDelete"
-            class="px-3 py-2 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
             title="ลบวัตถุดิบนี้ออกจากระบบอย่างถาวร"
           >
             <Trash2 class="w-3.5 h-3.5" />
             <span>ลบถาวร</span>
-          </button>
+          </Button>
         </div>
         <div v-else></div>
 
-        <div class="flex items-center gap-2.5">
-          <button
+        <div class="stock-form-footer material-editor-footer">
+          <Button variant="quiet"
             type="button"
             @click="requestClose(close)"
-            class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
           >
             ยกเลิก
-          </button>
-          <button
+          </Button>
+          <Button variant="primary"
             type="button"
             @click="submit"
-            class="px-5 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Check class="w-3.5 h-3.5" />
             <span>บันทึก</span>
-          </button>
+          </Button>
         </div>
       </div></template>
  </DialogFrame>
 </template>
 
 <script setup>
+import AppInput from '@/components/ui/AppInput.vue'
+import Button from '@/components/ui/Button.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
@@ -1026,3 +987,5 @@ async function submit() {
   else formError.value = result?.message || 'บันทึกไม่สำเร็จ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง'
 }
 </script>
+
+<style scoped src="@/components/inventory/stockForms.css"></style>

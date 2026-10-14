@@ -70,9 +70,9 @@ describe('material inventory type', () => {
     store.materials = [material('M', 12.5, { inventoryType: type, category: 'หมวดใหม่' })]
     const wrapper = mount(Stock, { attachTo: document.body })
     try {
-      expect(wrapper.get('.desktop-material-table [data-inventory-type]').text()).toBe(label)
-      expect(wrapper.get('.adaptive-material-list [data-inventory-type]').text()).toBe(label)
-      await wrapper.get('.desktop-material-table [data-material-details="M"]').trigger('click')
+      expect(wrapper.get('.menu-directory-list [data-inventory-type]').text()).toBe(label)
+      expect(wrapper.findAll('[data-material-details]')).toHaveLength(1)
+      await wrapper.get('.menu-directory-list [data-material-details="M"]').trigger('click')
       await flushPromises()
       expect(document.querySelector('#material-details [data-inventory-type]').textContent).toBe(label)
       expect(store.matMap.M.stock).toBe(12.5)

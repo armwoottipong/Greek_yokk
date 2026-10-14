@@ -1,0 +1,35 @@
+[
+  {
+    "bodyScrollWidth": 368,
+    "bodyWidth": 368,
+    "documentWidth": 390,
+    "surface": "material390",
+    "width": 390
+  },
+  {
+    "bodyScrollWidth": 368,
+    "bodyWidth": 368,
+    "documentWidth": 390,
+    "surface": "count390",
+    "width": 390
+  },
+  {
+    "documentWidth": 820,
+    "surface": "directory820",
+    "width": 820
+  },
+  {
+    "bodyScrollWidth": 720,
+    "bodyWidth": 720,
+    "documentWidth": 820,
+    "surface": "receive820",
+    "width": 820
+  },
+  {
+    "bodyScrollWidth": 368,
+    "bodyWidth": 368,
+    "documentWidth": 390,
+    "surface": "recipe390",
+    "width": 390
+  }
+]

@@ -1,20 +1,11 @@
 <template>
- <DialogFrame :open="store.modals.stockAdjust.isOpen" id="StockAdjustModal" title="ปรับยอดนับจริง" :teleport="false" @request-close="requestClose(close)">
- <template #header><div class="flex items-center justify-between bg-white">
-        <div>
-          <h3 id="StockAdjustModal-title" class="text-base font-semibold text-stone-900 flex items-center gap-2">
-            <span>⚖️</span>
-            <span>ปรับยอดสต็อกจริง (Stock Adjust)</span>
-          </h3>
-          <p class="text-[11px] text-stone-500 mt-0.5">เทียบยอดนับจริงกับระบบและบันทึกเหตุผลผลต่าง</p>
-        </div>
-        
-      </div></template>
- <div class="space-y-5 text-sm">
+ <DialogFrame :open="store.modals.stockAdjust.isOpen" id="StockAdjustModal" title="ปรับยอดนับจริง" description="เทียบยอดจริงกับระบบ และระบุเหตุผลของผลต่าง" :teleport="false" width="720px" @request-close="requestClose(close)">
+
+ <div class="stock-form">
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <label class="block text-xs font-medium text-stone-700">เลือกวัตถุดิบ <span class="text-rose-500">*</span></label>
-            <button
+            <Button variant="quiet"
               v-if="selectedMatId"
               type="button"
               @click="store.openActivityLog('stock', selectedMatId)"
@@ -23,7 +14,7 @@
             >
               <History class="w-3.5 h-3.5" />
               <span>ดูประวัติการเคลื่อนไหว</span>
-            </button>
+            </Button>
           </div>
           <div v-if="store.activeMaterials.length === 0" class="p-4 text-center text-stone-400 bg-[#FBF5EA] rounded-xl border border-stone-100">
             ยังไม่มีรายการวัตถุดิบในระบบ กรุณาเพิ่มวัตถุดิบในหน้าคลังก่อน
@@ -70,7 +61,7 @@
         <div v-if="selectedMaterial?.packUnit && selectedMaterial?.packSize > 1" class="space-y-1.5">
           <label class="block text-xs font-medium text-stone-700">หน่วยที่ใช้นับตรวจนับจริง</label>
           <div class="flex items-center gap-1.5 p-1 bg-[#F4EBDD] rounded-xl text-xs font-semibold">
-            <button
+            <Button :variant="unitMode==='pack'?'primary':'secondary'" :aria-pressed="unitMode==='pack'"
               type="button"
               @click="setUnitMode('pack')"
               :class="[
@@ -81,8 +72,8 @@
               ]"
             >
               <span>📦 นับเป็น{{ selectedMaterial.packUnit }} (1 {{ selectedMaterial.packUnit }} = {{ selectedMaterial.packSize }} {{ selectedMaterial.unit }})</span>
-            </button>
-            <button
+            </Button>
+            <Button :variant="unitMode==='base'?'primary':'secondary'" :aria-pressed="unitMode==='base'"
               type="button"
               @click="setUnitMode('base')"
               :class="[
@@ -93,7 +84,7 @@
               ]"
             >
               <span>⚖️ นับเป็น{{ selectedMaterial.unit }}</span>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -113,7 +104,7 @@
               ยอดนับจริงใหม่ ({{ unitMode === 'pack' ? selectedMaterial?.packUnit : selectedMaterial?.unit }}) <span class="text-rose-500">*</span>
             </label>
             <div class="flex items-center gap-1.5">
-              <button
+              <Button variant="quiet"
                 type="button"
                 @click="stepAdjustStock(-1)"
                 :disabled="unitMode === 'pack' ? actualPackStock <= 0 : actualStock <= 0"
@@ -121,10 +112,10 @@
                 title="ลด 1"
               >
                 <Minus class="w-4 h-4" />
-              </button>
+              </Button>
 
               <div class="relative flex-1">
-                <input aria-label="ยอดนับจริงเป็นแพ็ค" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockAdjustModal-error':undefined"
+                <AppInput aria-label="ยอดนับจริงเป็นแพ็ค" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockAdjustModal-error':undefined"
                   v-if="unitMode === 'pack'"
                   v-model.number="actualPackStock"
                   @input="onPackStockInput"
@@ -132,9 +123,8 @@
                   min="0"
                   step="any"
                   placeholder="0"
-                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-center text-xs font-number font-semibold text-stone-900"
-                />
-                <input aria-label="ยอดนับจริงเป็นหน่วยใช้" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockAdjustModal-error':undefined"
+                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-center text-xs font-number font-semibold text-stone-900" />
+                <AppInput aria-label="ยอดนับจริงเป็นหน่วยใช้" :aria-invalid="Boolean(formError)||undefined" :aria-describedby="formError?'StockAdjustModal-error':undefined"
                   v-else
                   v-model.number="actualStock"
                   @input="onBaseStockInput"
@@ -142,18 +132,17 @@
                   min="0"
                   step="any"
                   placeholder="0"
-                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-center text-xs font-number font-semibold text-stone-900"
-                />
+                  class="soft-input w-full px-3.5 py-2.5 rounded-xl text-center text-xs font-number font-semibold text-stone-900" />
               </div>
 
-              <button
+              <Button variant="quiet"
                 type="button"
                 @click="stepAdjustStock(1)"
                 class="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition-colors cursor-pointer shrink-0"
                 title="เพิ่ม 1"
               >
                 <Plus class="w-4 h-4" />
-              </button>
+              </Button>
 
               <span class="text-stone-500 text-xs shrink-0 font-medium w-8 text-center">
                 {{ unitMode === 'pack' ? selectedMaterial?.packUnit : selectedMaterial?.unit }}
@@ -192,36 +181,35 @@
 
         <div>
           <label class="block text-xs font-medium text-stone-700 mb-1.5">หมายเหตุเพิ่มเติม</label>
-          <input aria-label="หมายเหตุ"
+          <AppInput aria-label="หมายเหตุ"
             v-model="note"
             type="text"
             placeholder="เช่น ปรับยอดหลังปิดกะรอบเย็น"
-            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-          />
+            class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400" />
         </div>
       </div>
  <p v-if="formError" id="StockAdjustModal-error" role="alert" class="stock-form-error">{{ formError }}</p>
- <template #footer><div class="bg-white flex items-center justify-end gap-3">
-        <button
+ <template #footer><div class="stock-form-footer">
+        <Button variant="quiet"
           type="button"
           @click="requestClose(close)"
-          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
         >
           ยกเลิก
-        </button>
-        <button
+        </Button>
+        <Button variant="primary"
           type="button"
           @click="submit"
-          class="px-6 py-2.5 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
         >
           <Check class="w-4 h-4" />
           <span>บันทึกปรับยอด</span>
-        </button>
+        </Button>
       </div></template>
  </DialogFrame>
 </template>
 
 <script setup>
+import AppInput from '@/components/ui/AppInput.vue'
+import Button from '@/components/ui/Button.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
@@ -430,3 +418,5 @@ async function submit() {
   if (result?.ok || result?.success) close()
 }
 </script>
+
+<style scoped src="@/components/inventory/stockForms.css"></style>
