@@ -29,3 +29,5 @@ The sidecar parses as JSON with schemaVersion 2 and 12 components; its read-back
 ## Not canonized
 
 Local dense metadata and detector type/font advisories are not promoted into normative primitives or repaired. This pass records only the authorized Stock composition and shared-control use while preserving incumbent design authority.
+
+Post-review functional verification on resume found that StockIn's native input synchronization ran before AppInput emitted the new model value. The parent moved all four purchase/production conversion callbacks to update:model-value, preserving the conversion formulas. New regression tests first reproduced the stale pack quantity, then passed for purchase packs/base units and production batches/yield. The targeted 14-test stock form set passed. This event-order correction changes no visual style; it is parent-tested evidence and is not attributed to the earlier visual reviewer.
