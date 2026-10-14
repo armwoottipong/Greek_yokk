@@ -5,11 +5,11 @@ import DialogFrame from '../../src/components/ui/DialogFrame.vue'
 import CartPanel from '../../src/components/pos/CartPanel.vue'
 import {createTestStore} from '../helpers/createStore'
 
-it('starts the drawer entry transition when opening inserts the modal shell',async()=>{
- const w=mount(DialogFrame,{props:{open:false,id:'motion-drawer',title:'รายละเอียดสินค้า',presentation:'drawer',teleport:false},global:{stubs:{transition:false}}})
+it.each(['dialog','panel','drawer','sheet'])('starts the %s entry transition when opening inserts the modal shell',async(presentation)=>{
+ const w=mount(DialogFrame,{props:{open:false,id:'motion-drawer',title:'รายละเอียดสินค้า',presentation,teleport:false},global:{stubs:{transition:false}}})
  try{
   await w.setProps({open:true});await nextTick()
-  const panel=w.get('.dialog-frame-panel--drawer')
+  const panel=w.get(`.dialog-frame-panel--${presentation}`)
   expect(panel.classes()).toContain('dialog-frame-enter-from')
   expect(panel.classes()).toContain('dialog-frame-enter-active')
  }finally{w.unmount()}
