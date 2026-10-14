@@ -1,293 +1,49 @@
 <template>
- <DialogFrame :open="store.modals.menuEdit.isOpen" id="MenuEditModal" title="ข้อมูลเมนู" :teleport="false" @request-close="requestClose(close)">
- <template #header><div class="flex items-center justify-between bg-white">
-        <div>
-          <h3 id="MenuEditModal-title" class="text-base font-semibold text-stone-900">
-            {{ isEditing ? `แก้ไขเมนู: ${form.name}` : 'เพิ่มเมนูใหม่' }}
-          </h3>
-          <p class="text-[11px] text-stone-500 mt-0.5">กำหนดราคาขายแต่ละแพลตฟอร์ม สูตรวัตถุดิบ และบรรจุภัณฑ์ที่ตัดสต็อก</p>
-        </div>
-        
-      </div></template>
- <div class="space-y-5 text-xs">
-        <!-- Section 1: Emoji Icon & Menu Name -->
-        <div class="flex items-start gap-3.5">
-          <div class="shrink-0">
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">ไอคอน</label>
-            <button
-              type="button"
-              @click="openEmojiPicker"
-              class="soft-input flex items-center justify-center w-12 h-11 rounded-xl transition-all hover:bg-[#E8DCCB]"
-              title="คลิกเพื่อเปลี่ยนไอคอน"
-            >
-              <span class="text-2xl leading-none">{{ form.emoji }}</span>
-            </button>
-          </div>
-          <div class="flex-1">
-            <FormField id="menu-name" label="ชื่อเมนู" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><input :id="controlId" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true"
-              v-model="form.name"
-              type="text"
-              placeholder="เช่น Greek Yogurt Bowl (M)"
-              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs font-medium text-stone-900 placeholder:text-stone-400"
-            /></FormField>
-          </div>
-        </div>
-
-        <div>
-          <div>
-            <label class="block text-xs font-medium text-stone-700 mb-1.5">คำอธิบายสั้น</label>
-            <input aria-label="คำอธิบายเมนู"
-              v-model="form.description"
-              type="text"
-              placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด"
-              class="soft-input w-full px-3.5 py-2.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-            />
-          </div>
-        </div>
-
-        <!-- Section 3: Platform Prices (Compact capsules) -->
-        <details class="editor-section" data-menu-prices open><summary>ราคาขายแต่ละช่องทาง</summary><div class="editor-section-body"><div class="space-y-1.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-medium text-stone-700 flex items-center gap-1.5">
-              <span>🏷️</span>
-              <span>ราคาขายแต่ละช่องทาง</span>
-            </span>
-            <span class="text-[10px] text-stone-400">บาท (฿)</span>
-          </div>
-          <div class="price-editor-grid">
-            <div
-              v-for="p in store.platforms"
-              :key="p.id"
-              class="price-editor-field flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-[#F4EBDD] focus-within:bg-[#E8DCCB] focus-within:ring-1 focus-within:ring-brand-600/40 transition-all"
-            >
-              <div class="flex items-center gap-1 min-w-0">
-                <span class="price-editor-label text-xs font-medium text-stone-700">
-                  {{ p.name }}
-                </span>
-                <span
-                  v-if="p.gpPercent > 0"
-                  class="text-[9px] font-number text-amber-800 bg-amber-100/80 px-1 py-0.5 rounded leading-none shrink-0"
-                >
-                  {{ p.gpPercent }}%
-                </span>
-              </div>
-              <div class="flex items-center gap-0.5 shrink-0">
-                <span class="text-stone-400 text-xs font-number">฿</span>
-                <input :aria-label="`ราคา ${p.name}`"
-                  v-model.number="form.prices[p.id]"
-                  type="number"
-                  placeholder="0"
-                  class="w-14 bg-transparent border-0 text-right font-number font-semibold text-xs text-stone-900 focus:outline-none placeholder:text-stone-500"
-                />
-              </div>
-            </div>
-          </div>
-        </div></div></details>
-
-        <!-- Section 4: Dual Functional Toggle Tiles -->
-        <details class="editor-section" data-menu-permissions ><summary>ตัวเลือกการขาย</summary><div class="editor-section-body"><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <ToggleSwitch
-            v-model="form.hasAddons"
-            label="อนุญาตให้เลือก Add-on"
-            description="เปิดให้ลูกค้าสั่งท็อปปิ้งเพิ่มเติมได้"
-            icon="🍓"
-            color="purple"
-          />
-          <ToggleSwitch
-            v-model="form.hasPackage"
-            label="ตัดสต็อกบรรจุภัณฑ์"
-            description="หัก ถ้วย ช้อน ถุง ในสต็อกอัตโนมัติ"
-            icon="📦"
-            color="amber"
-          />
-        </div></div></details>
-
-        <!-- Section 5: Base Recipe (Flat tabular rows) -->
-        <details class="editor-section" data-menu-recipe open><summary>สูตรวัตถุดิบ</summary><div class="editor-section-body"><div class="space-y-2.5 pt-2 border-t border-stone-100">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
-              <span>🥣</span>
-              <span>สูตรวัตถุดิบหลัก & ผลไม้</span>
-            </span>
-            <button
-              type="button"
-              @click="addBaseRecipeRow"
-              class="text-xs text-amber-900 hover:text-amber-950 font-medium flex items-center gap-1 py-1 px-2.5 rounded-lg hover:bg-amber-50/80 transition-colors"
-            >
-              <Plus class="w-3.5 h-3.5" />
-              <span>เพิ่มวัตถุดิบ</span>
-            </button>
-          </div>
-
-          <div v-if="baseRecipeRows.length === 0" class="text-stone-400 text-xs py-3 text-center bg-[#FBF5EA] rounded-xl italic">
-            ยังไม่มีวัตถุดิบหลัก — คลิก "+ เพิ่มวัตถุดิบ" เพื่อใส่สูตร
-          </div>
-
-          <div v-else class="space-y-2">
-            <div
-              v-for="(row, idx) in baseRecipeRows"
-              :key="idx"
-              class="flex items-center gap-2.5 text-xs"
-            >
-              <AppSelect aria-label="วัตถุดิบในสูตร"
-                v-model="row.materialId"
-                class="flex-1"
-              >
-                <optgroup
-                  v-for="(mats, catName) in recipeMaterialsByCategory"
-                  :key="catName"
-                  :label="catName"
-                >
-                  <option
-                    v-for="m in mats"
-                    :key="m.id"
-                    :value="m.id"
-                  >
-                    {{ m.emoji }} {{ m.name }} ({{ m.unit }})
-                  </option>
-                </optgroup>
-              </AppSelect>
-
-              <div class="w-28 shrink-0 flex items-center gap-1.5">
-                <input :aria-label="`ปริมาณ ${store.matMap[row.materialId]?.name || 'วัตถุดิบในสูตร'}`"
-                  v-model.number="row.qty"
-                  type="number"
-                  step="any"
-                  placeholder="ปริมาณ"
-                  class="soft-input w-full px-2.5 py-2 rounded-xl text-xs font-number font-semibold text-stone-900 placeholder:text-stone-500"
-                />
-                <span class="text-[11px] text-stone-400 font-medium shrink-0 w-6">
-                  {{ getUnit(row.materialId) }}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                :aria-label="`ลบ ${store.matMap[row.materialId]?.name || 'วัตถุดิบ'} จากสูตร`" @click="removeBaseRecipeRow(idx)"
-                class="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
-                title="ลบรายการ"
-              >
-                <Trash2 class="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div></div></details>
-
-        <!-- Section 6: Packaging BOM -->
-        <details class="editor-section" data-menu-packaging open><summary>บรรจุภัณฑ์</summary><div class="editor-section-body"><div class="space-y-2.5 pt-2 border-t border-stone-100">
-          <div class="flex items-center justify-between flex-wrap gap-2">
-            <span class="text-xs font-medium text-stone-800 flex items-center gap-1.5">
-              <span>📦</span>
-              <span>บรรจุภัณฑ์ & อุปกรณ์ที่ใช้</span>
-            </span>
-
-            <div v-if="form.hasPackage" class="flex items-center gap-1.5 flex-wrap">
-              <button
-                v-for="pkg in packagingMaterials.slice(0, 3)"
-                :key="pkg.id"
-                type="button"
-                @click="quickAddPackage(pkg.id)"
-                class="px-2.5 py-1 bg-[#FBF5EA] hover:bg-[#F4EBDD] text-stone-600 rounded-full text-[11px] font-medium transition-colors border border-stone-100"
-              >
-                + {{ pkg.name }}
-              </button>
-              <button
-                type="button"
-                @click="addPackageRecipeRow"
-                class="ml-1 text-xs text-amber-900 hover:text-amber-950 font-medium py-1 px-2 rounded-lg hover:bg-amber-50/80 transition-colors"
-              >
-                + เพิ่ม Package
-              </button>
-            </div>
-          </div>
-
-          <!-- Disabled notice -->
-          <div
-            v-if="!form.hasPackage"
-            class="py-2.5 px-3.5 rounded-xl bg-amber-50/70 border border-amber-200/50 text-amber-900 text-xs flex items-center gap-2"
-          >
-            <span class="text-sm">ℹ️</span>
-            <span><strong>ปิดใช้งานตัดสต็อก Package:</strong> เมนูนี้จะไม่หักสต็อกบรรจุภัณฑ์ใดๆ เมื่อมีคำสั่งซื้อ</span>
-          </div>
-
-          <!-- Package rows -->
-          <div v-else class="space-y-2">
-            <div v-if="packageRecipeRows.length === 0" class="text-stone-400 text-xs py-3 text-center bg-[#FBF5EA] rounded-xl italic">
-              ยังไม่มีบรรจุภัณฑ์ — คลิกปุ่มด้านบน เช่น "+ ถ้วย A" หรือ "+ ช้อนไม้"
-            </div>
-
-            <div
-              v-for="(row, idx) in packageRecipeRows"
-              :key="idx"
-              class="flex items-center gap-2.5 text-xs"
-            >
-              <AppSelect aria-label="วัตถุดิบในสูตร"
-                v-model="row.materialId"
-                class="flex-1"
-              >
-                <option
-                  v-for="m in packagingMaterials"
-                  :key="m.id"
-                  :value="m.id"
-                >
-                  {{ m.emoji }} {{ m.name }}
-                </option>
-              </AppSelect>
-
-              <div class="w-28 shrink-0 flex items-center gap-1.5">
-                <input :aria-label="`ปริมาณ ${store.matMap[row.materialId]?.name || 'วัตถุดิบในสูตร'}`"
-                  v-model.number="row.qty"
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="จำนวน"
-                  class="soft-input w-full px-2.5 py-2 rounded-xl text-xs font-number font-semibold text-stone-900 placeholder:text-stone-500"
-                />
-                <span class="text-[11px] text-stone-400 font-medium shrink-0 w-6">ชิ้น</span>
-              </div>
-
-              <button
-                type="button"
-                :aria-label="`ลบ ${store.matMap[row.materialId]?.name || 'บรรจุภัณฑ์'} จากสูตร`" @click="removePackageRecipeRow(idx)"
-                class="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors shrink-0"
-                title="ลบรายการ"
-              >
-                <Trash2 class="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div></div></details>
-      </div>
- <template #footer><div class="bg-stone-50/70 flex items-center justify-end gap-3">
-        <button
-          type="button"
-          @click="requestClose(close)"
-          class="px-5 py-2.5 text-xs font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 rounded-xl transition-colors cursor-pointer"
-        >
-          ยกเลิก
-        </button>
-        <button
-          type="button"
-          @click="submit"
-          class="px-6 py-2.5 text-xs font-semibold bg-brand-600 hover:bg-brand-800 text-white rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer"
-        >
-          <Check class="w-4 h-4" />
-          <span>บันทึกข้อมูลเมนู</span>
-        </button>
-      </div></template>
+ <DialogFrame :open="store.modals.menuEdit.isOpen" id="MenuEditModal" :title="isEditing?'แก้ไขเมนู':'เพิ่มเมนูใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 เสิร์ฟ" width="720px" :teleport="false" initial-focus="#menu-name" @request-close="requestClose(close)">
+  <div class="menu-editor">
+   <section class="menu-editor-basics" aria-label="ข้อมูลเมนู">
+    <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอนเมนู" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="menu-name" label="ชื่อเมนู" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น Greek Yogurt Bowl (M)"/></FormField></div>
+    <FormField id="menu-description" label="คำอธิบายสั้น" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.description" aria-label="คำอธิบายเมนู" placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด"/></FormField>
+   </section>
+   <details class="menu-editor-section" data-menu-prices open><summary><span>ราคาขายแต่ละช่องทาง</span><small>{{ store.platforms.length }} ช่องทาง</small></summary><div class="menu-editor-section-body">
+    <div class="menu-editor-prices"><FormField v-for="p in store.platforms" :key="p.id" :label="p.name" :hint="p.gpPercent>0?'ค่าธรรมเนียมช่องทาง '+p.gpPercent+'%':undefined" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.prices[p.id]" type="number" min="0" step="any" :aria-label="`ราคา ${p.name}`" placeholder="0"><template #prefix>฿</template></AppInput></FormField></div>
+   </div></details>
+   <details class="menu-editor-section" data-menu-permissions><summary><span>ตัวเลือกการขาย</span><small>ท็อปปิ้งและบรรจุภัณฑ์</small></summary><div class="menu-editor-section-body menu-editor-options">
+    <AppCheckbox v-model="form.hasAddons" variant="switch" label="อนุญาตให้เลือก Add-on"><strong>อนุญาตให้เลือก Add-on</strong><small>ลูกค้าสั่งท็อปปิ้งเพิ่มเติมได้</small></AppCheckbox>
+    <AppCheckbox v-model="form.hasPackage" variant="switch" label="ตัดสต็อกบรรจุภัณฑ์"><strong>ตัดสต็อกบรรจุภัณฑ์</strong><small>ใช้ถ้วย ช้อน และถุงตามสูตรด้านล่าง</small></AppCheckbox>
+   </div></details>
+   <details class="menu-editor-section" data-menu-recipe open><summary><span>สูตรวัตถุดิบ</span><small>{{ baseRecipeRows.length }} รายการ</small></summary><div class="menu-editor-section-body">
+    <p class="menu-editor-help">ปริมาณที่ใช้ต่อ 1 เสิร์ฟ รวมวัตถุดิบหลักและผลไม้</p>
+    <div class="menu-editor-recipe-list"><RecipeEditorRow v-for="(row,idx) in baseRecipeRows" :key="idx" v-model:material-id="row.materialId" v-model:qty="row.qty" label="วัตถุดิบในสูตร" :quantity-label="`ปริมาณ ${store.matMap[row.materialId]?.name||'วัตถุดิบในสูตร'}`" :unit="getUnit(row.materialId)" :remove-label="`ลบ ${store.matMap[row.materialId]?.name||'วัตถุดิบ'} จากสูตร`" @remove="removeBaseRecipeRow(idx)"><optgroup v-for="(mats,catName) in recipeMaterialsByCategory" :key="catName" :label="catName"><option v-for="m in mats" :key="m.id" :value="m.id">{{ m.emoji }} {{ m.name }} ({{ m.unit }})</option></optgroup></RecipeEditorRow></div>
+    <p v-if="!baseRecipeRows.length" class="menu-editor-empty">ยังไม่มีวัตถุดิบ เพิ่มรายการเพื่อกำหนดสูตร</p>
+    <Button variant="secondary" size="compact" @click="addBaseRecipeRow"><Plus :size="16" aria-hidden="true"/>เพิ่มวัตถุดิบ</Button>
+   </div></details>
+   <details class="menu-editor-section" data-menu-packaging><summary><span>บรรจุภัณฑ์</span><small>{{ form.hasPackage?packageRecipeRows.length+' รายการ':'ไม่ตัดสต็อก' }}</small></summary><div class="menu-editor-section-body">
+    <p v-if="!form.hasPackage" class="menu-editor-help">เมนูนี้ไม่หักสต็อกบรรจุภัณฑ์ เปิดได้ในตัวเลือกการขาย</p>
+    <template v-else>
+     <p class="menu-editor-help">จำนวนที่ใช้ต่อ 1 เสิร์ฟ</p>
+     <div class="menu-editor-recipe-list"><RecipeEditorRow v-for="(row,idx) in packageRecipeRows" :key="idx" v-model:material-id="row.materialId" v-model:qty="row.qty" label="บรรจุภัณฑ์ในสูตร" :quantity-label="`ปริมาณ ${store.matMap[row.materialId]?.name||'บรรจุภัณฑ์ในสูตร'}`" :unit="getUnit(row.materialId)" :min="1" :step="1" :remove-label="`ลบ ${store.matMap[row.materialId]?.name||'บรรจุภัณฑ์'} จากสูตร`" @remove="removePackageRecipeRow(idx)"><option v-for="m in packagingMaterials" :key="m.id" :value="m.id">{{ m.emoji }} {{ m.name }}</option></RecipeEditorRow></div>
+     <p v-if="!packageRecipeRows.length" class="menu-editor-empty">ยังไม่มีบรรจุภัณฑ์ เพิ่มถ้วย ช้อน หรือถุงที่ใช้</p>
+     <div class="menu-editor-package-actions"><Button variant="secondary" size="compact" @click="addPackageRecipeRow"><Plus :size="16" aria-hidden="true"/>เพิ่มบรรจุภัณฑ์</Button><Button v-for="pkg in packagingMaterials.slice(0,3)" :key="pkg.id" variant="quiet" size="compact" @click="quickAddPackage(pkg.id)">+ {{ pkg.name }}</Button></div>
+    </template>
+   </div></details>
+  </div>
+  <template #footer><div class="menu-editor-footer"><Button variant="quiet" @click="requestClose(close)">ยกเลิก</Button><Button @click="submit"><Check :size="18" aria-hidden="true"/>บันทึกข้อมูลเมนู</Button></div></template>
  </DialogFrame>
 </template>
-
 <script setup>
 import {getMaterialKindLabel} from '@/domain/materialClassification'
 import FormField from '@/components/ui/FormField.vue'
-import AppSelect from '@/components/ui/AppSelect.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import RecipeEditorRow from '@/components/ui/RecipeEditorRow.vue'
+import Button from '@/components/ui/Button.vue'
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { useModalForm } from '@/composables/useModalForm'
-import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
-import { Plus, Trash2, Check } from 'lucide-vue-next'
+
+import { Plus, Check } from 'lucide-vue-next'
 
 const store = usePosStore()
 const nameError=ref('')
@@ -497,3 +253,8 @@ async function submit() {
 }
 </script>
 
+
+<style scoped>
+.menu-editor{display:grid;gap:24px;min-width:0}.menu-editor-basics{display:grid;gap:16px}.menu-editor-identity{display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px;align-items:start}.menu-editor-emoji{width:64px;min-height:48px;padding:6px;font-size:28px;border-radius:12px}.menu-editor-section{border-top:1px solid var(--border-subtle)}.menu-editor-section>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:12px 0;cursor:pointer;list-style:none;font-weight:500;font-size:.9375rem;color:var(--text-main)}.menu-editor-section>summary::-webkit-details-marker{display:none}.menu-editor-section>summary>span{display:flex;gap:10px;align-items:center}.menu-editor-section>summary>span::before{content:'';width:7px;height:7px;border-right:1.5px solid var(--accent-brand);border-bottom:1.5px solid var(--accent-brand);transform:rotate(-45deg);flex-shrink:0}.menu-editor-section[open]>summary>span::before{transform:rotate(45deg)}.menu-editor-section>summary>small{font-size:.75rem;font-weight:400;color:var(--text-muted);text-align:right}.menu-editor-section>summary:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px;border-radius:8px}.menu-editor-section-body{display:grid;gap:14px;padding:4px 0 0}.menu-editor-prices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.menu-editor-prices :deep(input){text-align:right}.menu-editor-recipe-list{display:grid;gap:16px}.menu-editor-help,.menu-editor-empty{font-size:.75rem;color:var(--text-muted);line-height:1.7;margin:0}.menu-editor-empty{padding:12px 0}.menu-editor-section-body>.ui-button{justify-self:start}.menu-editor-options>.app-checkbox{display:flex;justify-content:space-between;gap:16px;flex-direction:row-reverse;min-height:56px;width:100%}.menu-editor-options :deep(.app-checkbox-content){flex:1}.menu-editor-options strong{display:block;font-weight:500;font-size:.8125rem}.menu-editor-options small{display:block;font-size:.75rem;color:var(--text-muted);margin-top:4px}.menu-editor-package-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.menu-editor-package-actions>.ui-button{max-width:100%;white-space:normal;overflow-wrap:anywhere;font-size:.75rem}.menu-editor-footer{display:flex;gap:12px;width:100%;justify-content:flex-end}.menu-editor-footer>.ui-button:last-child{min-width:200px}@media(max-width:480px){.menu-editor{gap:20px}.menu-editor-prices{gap:14px}.menu-editor-footer>.ui-button:last-child{flex:1;min-width:0}.menu-editor-section>summary{font-size:.875rem}.menu-editor-section>summary>small{font-size:.6875rem}}
+@media(max-width:359px){.menu-editor-prices{grid-template-columns:1fr}}
+</style>

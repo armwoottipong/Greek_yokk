@@ -6,34 +6,22 @@
     <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-sm w-full p-4 overflow-hidden space-y-3 animate-in fade-in zoom-in-95 duration-150">
       <!-- Search & Header -->
       <div class="flex items-center justify-between gap-2 border-b border-stone-100 pb-2.5">
-        <div class="flex-1 relative">
-          <Search class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <input aria-label="ค้นหาไอคอน"
-            v-model="searchQuery"
-            type="search"
-            placeholder="ค้นหาไอคอน เช่น สตรอว์เบอร์รี, ถ้วย..."
-            class="soft-input w-full pl-8 pr-3 py-1.5 rounded-xl text-xs text-stone-900 placeholder:text-stone-400"
-            autofocus
-          />
-        </div>
-        <button @click="close" class="p-1 text-stone-400 hover:text-stone-700 rounded-lg" aria-label="ปิดหน้าต่าง">
-          <X class="w-4 h-4" />
-        </button>
+        <AppSearch v-model="searchQuery" label="ค้นหาไอคอน" placeholder="เช่น สตรอว์เบอร์รี หรือถ้วย" autofocus class="flex-1 min-w-0"/>
+        <IconButton label="ปิดหน้าต่าง" @click="close"><X :size="18" aria-hidden="true"/></IconButton>
       </div>
 
       <!-- Category Filter Pills -->
       <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[11px] pb-1">
-        <button
+        <Button
           v-for="cat in categories"
           :key="cat"
+          :variant="activeCategory === cat ? 'primary' : 'secondary'"
+          :aria-pressed="activeCategory === cat"
           @click="activeCategory = cat"
-          :class="[
-            'px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors',
-            activeCategory === cat ? 'bg-brand-600 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-          ]"
+          class="shrink-0 whitespace-nowrap"
         >
           {{ cat }}
-        </button>
+        </Button>
       </div>
 
       <!-- Emoji Grid -->
@@ -57,7 +45,10 @@
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { Search, X } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next'
+import AppSearch from '@/components/ui/AppSearch.vue'
+import IconButton from '@/components/ui/IconButton.vue'
+import Button from '@/components/ui/Button.vue'
 
 const store = usePosStore()
 const searchQuery = ref('')

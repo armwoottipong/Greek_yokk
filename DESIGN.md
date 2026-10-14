@@ -103,6 +103,13 @@ components:
   input-popup-filled:
     backgroundColor: "{colors.soft}"
     textColor: "{colors.text}"
+  input-affixed:
+    typography: "{typography.body}"
+    backgroundColor: "{colors.soft}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.pos-field}"
+    padding: "0 12px"
+    height: "48px"
   input-pos-note:
     backgroundColor: "{colors.soft}"
     textColor: "{colors.text}"
@@ -207,7 +214,7 @@ The mascot's soft silhouette is a shell detail. Touch actions target at least 44
 
 ## Components
 
-Use Button/IconButton for action hierarchy, FormField for real label/control association, DialogFrame with ModalShell for all protected overlays, AppSelect for typed choices, AppCheckbox for independent selections, AppChoiceGroup for exclusive choices, and shared feedback semantics.
+Use Button/IconButton for action hierarchy, FormField for real label/control association, AppInput for shared text/number fields with optional affixes, AppSearch for named search and clear actions, RecipeEditorRow for material/quantity editing, DialogFrame with ModalShell for all protected overlays, AppSelect for typed choices, AppCheckbox for independent selections, AppChoiceGroup for exclusive choices, and shared feedback semantics.
 
 ### Buttons
 
@@ -216,6 +223,12 @@ Primary is burgundy, secondary has a warm fill without a visible perimeter borde
 ### Inputs / Fields
 
 Ordinary soft fields outside dialogs use warm fill, a one-pixel control border and a burgundy focus ring. DialogFrame overrides native text/number/select/textarea and AppSelect triggers to warm soft fill with a transparent border and no outline or box-shadow, including focused and expanded states. Dialog fields retain a minimum height of 44px and desktop native type of 14px; package fields use 48px minimum height. Disabled popup fields use .55 opacity; aria-invalid fields use danger-soft fill and danger text while retaining their named error semantics. Below 1200px, native text/number inputs, textareas and selects in the app and dialogs use 16px type. This rule does not enlarge the button-based AppSelect typography. The named-field sample uses the 14px field radius; compact embedded fields also retain 8px corners. FormField associates its visible label, hint and error with the control. AppSelect supplies keyboard selection, disabled options and a floating list that closes on route deactivation. Its ordinary trigger is near-white with a control border and burgundy keyboard-focus outline; inside DialogFrame the filled-popup override applies. POS channel/search controls use a 48px minimum height and the scoped pos-field radius. Product item notes use warm fill with no border, outline or box-shadow.
+
+### Shared Affixed Fields and Recipe Rows
+
+AppInput composes a full-width warm-fill field with prefix/suffix slots, a 48px minimum height, the existing pos-field radius and 12px horizontal padding. The native input retains its id, label/error attributes and keyboard behavior; number inputs use tabular numerals. FormField supplies the visible label. Its inner input is transparent, with body typography on desktop and the existing 16px native-field override below 1200px. DialogFrame supplies the established filled-popup treatment; this component does not replace the ordinary-field focus rule outside dialogs.
+
+RecipeEditorRow composes FormField, AppSelect, AppInput and a named remove IconButton. Material, quantity with unit suffix and remove action share an 8px gap; quantity occupies 136px and remove occupies 44px. At 480px and below the material selector takes a full row, with quantity and remove beneath it. Ingredient and packaging rows use the same controls while their callers supply the appropriate minimum and step.
 
 ### Exclusive Choice Cards
 
@@ -229,6 +242,8 @@ Every menu opens the shared DialogFrame drawer from the bottom at every viewport
 
 ### Search Fields
 
+AppSearch reuses AppInput with an 18px SVG search prefix and a named 44px clear IconButton when text is present. Clearing restores focus to the native search field. CatalogToolbar and the icon picker share this component; toolbar context may use the near-white surface fill.
+
 All search fields use native type="search" and one shared rule in main.css: no outline or box-shadow at rest, focus or focus-visible. Soft search fields keep their resting fill when focused. Stocktake search wrappers also keep their resting border without a focus-within ring. This follows the user's explicit search styling preference and preserves text entry and filtering. Browser evidence in search-no-focus-checks.json covers POS, menus, Add-on, stock, stocktake and activity history with focus=true and outline/box-shadow=none; the emoji search uses the same rule. Sixteen related tests, lint and build passed.
 
 ### Packaging Review
@@ -237,7 +252,7 @@ The cart shows the heading บรรจุภัณฑ์, a packaging-item coun
 
 ### Platform Price Fields
 
-Menu and Add-on editors show the full platform name beside a named numeric price field. Their warm-fill containers use a two-column grid with an 8px gap, becoming one column below 768px; labels stay in the available column rather than collapsing to two-character prefixes. Inside DialogFrame both the price group boundary and input outline/ring are removed by the shared popup treatment; outside dialogs the ordinary focus treatment remains.
+Menu and Add-on editors show the full platform name beside a named numeric price field. The existing Add-on warm-fill containers use a two-column grid with an 8px gap, becoming one column below 768px. MenuEditModal now composes FormField and affixed AppInput in a two-column grid with a 16px gap (14px at 480px and below), becoming one column below 360px. Labels stay in the available column rather than collapsing to two-character prefixes. Inside DialogFrame both the price group boundary and input outline/ring are removed by the shared popup treatment; outside dialogs the ordinary focus treatment remains.
 
 ### Chips / Cards / Navigation
 

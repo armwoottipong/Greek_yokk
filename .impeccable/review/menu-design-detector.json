@@ -1,0 +1,110 @@
+[
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\views\\MenuView.vue",
+    "line": 115,
+    "snippet": "font-size: .9375rem is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": ".9375rem"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\catalog\\MenuCard.vue",
+    "line": 21,
+    "snippet": "font-size: 30px is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": "30px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\catalog\\MenuCard.vue",
+    "line": 21,
+    "snippet": "font-size: .6875rem is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": ".6875rem"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\catalog\\MenuRecipeDetails.vue",
+    "line": 24,
+    "snippet": "font-size: .6875rem is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": ".6875rem"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\catalog\\MenuRecipeDetails.vue",
+    "line": 24,
+    "snippet": "font-size: 1rem is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": "1rem"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\modals\\MenuEditModal.vue",
+    "line": 258,
+    "snippet": "font-size: 28px is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": "28px"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\modals\\MenuEditModal.vue",
+    "line": 258,
+    "snippet": "font-size: .9375rem is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": ".9375rem"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\modals\\MenuEditModal.vue",
+    "line": 258,
+    "snippet": "font-size: .6875rem is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": ".6875rem"
+  },
+  {
+    "antipattern": "design-system-font-size",
+    "name": "Font size outside DESIGN.md",
+    "description": "A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.",
+    "severity": "advisory",
+    "category": "quality",
+    "file": "D:\\Greek_yogg\\src\\components\\modals\\EmojiPickerPopover.vue",
+    "line": 14,
+    "snippet": "text-[…] class: 11px is off the DESIGN.md type ramp",
+    "advisory": true,
+    "ignoreValue": "11px"
+  }
+]

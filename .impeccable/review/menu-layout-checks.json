@@ -1,0 +1,38 @@
+[
+  {
+    "documentWidth": 390,
+    "surface": "directory",
+    "viewport": 390
+  },
+  {
+    "bodyScrollWidth": 368,
+    "bodyWidth": 368,
+    "documentWidth": 390,
+    "surface": "editor",
+    "viewport": 390
+  },
+  {
+    "bodyScrollWidth": 298,
+    "bodyWidth": 298,
+    "documentWidth": 320,
+    "surface": "editor-320",
+    "viewport": 320
+  },
+  {
+    "documentWidth": 390,
+    "surface": "recipe-details",
+    "viewport": 390
+  },
+  {
+    "documentWidth": 820,
+    "surface": "directory-ipad",
+    "viewport": 820
+  },
+  {
+    "bodyScrollWidth": 720,
+    "bodyWidth": 720,
+    "documentWidth": 820,
+    "surface": "editor-ipad",
+    "viewport": 820
+  }
+]

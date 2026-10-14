@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-13T11:52:40Z",
+  "generatedAt": "2026-10-14T03:02:21Z",
   "title": "Design System: Greek Yogg.",
   "extensions": {
     "colorMeta": {
@@ -142,6 +142,11 @@
         "purpose": "Catalog container query: stacked controls and two minmax(0,1fr) columns"
       }
     ],
+    "sharedControlRoles": {
+      "AppInput": "Affixed text/number control; native label/error attributes forwarded; DialogFrame and compact native typography rules inherited",
+      "AppSearch": "Named native search with SVG prefix and 44px clear action that returns focus to the field; search focus treatment inherited",
+      "RecipeEditorRow": "Shared named material/quantity/unit/remove composition; caller owns quantity constraints; material selector spans a row at 480px and below"
+    },
     "fieldTreatments": {
       "popup-filled": {
         "scope": ".dialog-frame-panel native text/number/select/textarea and .app-select-trigger",
@@ -176,6 +181,14 @@
     }
   },
   "components": [
+    {
+      "name": "Shared affixed field",
+      "kind": "input",
+      "refersTo": "input-affixed",
+      "description": "AppInput composition for named text/number values and optional unit or currency affixes; sample uses DialogFrame's filled-field treatment",
+      "html": "<label class=\"ds-affix-label\" for=\"ds-affix-price\">ราคา หน้าร้าน</label><span class=\"ds-affix-field\"><span>฿</span><input id=\"ds-affix-price\" type=\"number\" min=\"0\" step=\"any\" value=\"120\"></span>",
+      "css": ".ds-affix-label{display:block;margin-bottom:6px;font:500 .8125rem/1.5 Prompt,sans-serif;color:var(--text-main)}.ds-affix-field{display:flex;align-items:center;gap:8px;min-width:0;min-height:48px;border-radius:12px;padding:0 12px;background:var(--bg-soft);color:var(--text-main)}.ds-affix-field>span{flex-shrink:0;color:var(--text-muted);font-size:.8125rem}.ds-affix-field input{width:100%;min-width:0;flex:1;min-height:48px;background:transparent;border:0;padding:12px 0;font:400 .875rem/1.5 Prompt,sans-serif;font-variant-numeric:tabular-nums;color:var(--text-main);caret-color:var(--accent-brand);outline:none;box-shadow:none}.ds-affix-field input:hover,.ds-affix-field input:focus,.ds-affix-field input:focus-visible{background:transparent;outline:none;box-shadow:none}.ds-affix-field:has(input:disabled){opacity:.55}@media(max-width:1199px){.ds-affix-field input{font-size:1rem}}"
+    },
     {
       "name": "primary button",
       "description": "Shared touch action; minimum height rather than fixed height",
@@ -251,7 +264,7 @@
     {
       "name": "Platform price grid",
       "kind": "custom",
-      "description": "Dialog price groups: full channel names, warm fill without input outlines or rings, two columns above 768px and one below",
+      "description": "Existing Add-on dialog price groups: full channel names, warm fill without input outlines or rings, two columns above 768px and one below; MenuEditModal uses the shared affixed-field composition",
       "html": "<div class=\"ds-price-grid\"><label class=\"ds-price-field\"><span class=\"ds-price-label\">หน้าร้าน</span><span>฿ <input class=\"ds-price-input\" type=\"number\" aria-label=\"ราคา หน้าร้าน\" value=\"120\"></span></label><label class=\"ds-price-field\"><span class=\"ds-price-label\">Delivery Platform</span><span>฿ <input class=\"ds-price-input\" type=\"number\" aria-label=\"ราคา Delivery Platform\" value=\"150\"></span></label></div>",
       "css": ".ds-price-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-family:Prompt,sans-serif}.ds-price-field{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;min-height:44px;padding:6px 12px;border:1px solid transparent;border-radius:12px;background:var(--bg-soft);color:var(--text-main);font-size:12px}.ds-price-label{min-width:0;overflow-wrap:anywhere;line-height:1.5}.ds-price-field>span:last-child{flex-shrink:0}.ds-price-input{width:56px;border:0;background:var(--bg-soft);min-height:44px;outline:none;box-shadow:none;color:var(--text-main);font:600 12px/1.5 \"Plus Jakarta Sans\",sans-serif;text-align:right}.ds-price-field:focus-within{background:var(--bg-soft)}.ds-price-input:focus,.ds-price-input:focus-visible{background:var(--bg-soft);outline:none;box-shadow:none}@media(max-width:1199px){.ds-price-input{font-size:1rem}}@media(max-width:767px){.ds-price-grid{grid-template-columns:1fr}}"
     },

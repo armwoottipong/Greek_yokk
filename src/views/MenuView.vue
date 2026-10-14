@@ -1,123 +1,23 @@
 <template>
-  <div class="space-y-4">
-    <CatalogToolbar id="menu-catalog" label="เมนู" v-model:search="searchQuery" placeholder="ค้นหาชื่อหรือคำอธิบายเมนู" :platform="displayPlatformId" :platforms="store.platforms" @apply-filters="applyCatalogFilters" @add="openAddMenu" />
-    <div class="adaptive-catalog-list"><MenuCard v-for="menu in filteredMenus" :key="menu.id" :menu="menu" :platforms="store.platforms" :selected-id="displayPlatformId" @details="openBomModal" @edit="editMenu" @delete="deleteMenu" /><p v-if="!filteredMenus.length" class="interface-empty">ไม่พบเมนู ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p></div>
-    <!-- Menus Management Table -->
-    <div class="desktop-catalog-table editorial-card overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs text-stone-700">
-          <thead class="bg-stone-50/70 text-stone-400 font-medium border-b border-stone-100">
-            <tr>
-              <th class="py-3 px-4">เมนู</th>
-              <th class="py-3 px-4">ราคาตามแต่ละ Platform</th>
-              <th class="py-3 px-4">สูตรวัตถุดิบ & บรรจุภัณฑ์ (BOM)</th>
-              <th class="py-3 px-4 text-center">สิทธิ์</th>
-              <th class="py-3 px-4 text-center">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-stone-100">
-            <tr v-if="filteredMenus.length === 0">
-              <td colspan="5" class="py-8 text-center text-stone-400 italic">
-                ไม่พบข้อมูลเมนูที่ค้นหา
-              </td>
-            </tr>
-            <tr
-              v-for="menu in filteredMenus"
-              :key="menu.id"
-              class="hover:bg-stone-50/70 transition-colors"
-            >
-              <!-- Name & Icon -->
-              <td class="py-3.5 px-4">
-                <div class="flex items-center gap-2.5">
-                  <span class="text-2xl p-1.5 rounded-xl bg-[#FBF5EA] border border-stone-100">{{ menu.emoji }}</span>
-                  <div>
-                    <div class="font-bold text-stone-900">{{ menu.name }}</div>
-                    <div class="text-[10px] text-stone-400 truncate max-w-xs">{{ menu.description }}</div>
-                  </div>
-                </div>
-              </td>
-
-              <!-- Platform Prices -->
-              <td class="py-3.5 px-4">
-                <PlatformPriceSummary :prices="menu.prices||{}" :platforms="store.platforms" :selected-id="displayPlatformId" />
-              </td>
-
-              <!-- BOM Recipe Collapsed Button (ยุบเป็นปุ่มกดเพื่อเปิด popup) -->
-              <td class="py-3.5 px-4">
-                <button
-                  type="button"
-                  @click="openBomModal(menu)"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-medium transition-all hover:shadow-2xs group"
-                  title="คลิกเพื่อดูสูตรวัตถุดิบและบรรจุภัณฑ์ (BOM)"
-                >
-                  <span>🥣</span>
-                  <span class="font-semibold">{{ menu.recipe?.length || 0 }} รายการ</span>
-                  <Eye class="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-800 ml-0.5 transition-colors" />
-                </button>
-              </td>
-
-              <!-- Permissions Badges -->
-              <td class="py-3.5 px-4 text-center">
-                <div class="flex items-center justify-center gap-1 text-[10px]">
-                  <span
-                    :class="[
-                      'px-1.5 py-0.5 rounded font-medium',
-                      menu.hasAddons ? 'bg-purple-100 text-purple-800' : 'bg-stone-100 text-stone-400'
-                    ]"
-                  >
-                    {{ menu.hasAddons ? '🍓 Add-on' : 'ไม่มี Add-on' }}
-                  </span>
-                  <span
-                    :class="[
-                      'px-1.5 py-0.5 rounded font-medium',
-                      menu.hasPackage ? 'bg-amber-100 text-amber-900' : 'bg-stone-100 text-stone-400'
-                    ]"
-                  >
-                    {{ menu.hasPackage ? '📦 Package' : 'ไม่ตัด Pack' }}
-                  </span>
-                </div>
-              </td>
-
-              <!-- Actions -->
-              <td class="py-3.5 px-4 text-center">
-                <div class="flex items-center justify-center gap-1.5">
-                  <button
-                    @click="editMenu(menu.id)"
-                    class="px-2.5 py-1 text-xs text-stone-700 hover:text-stone-900 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
-                  >
-                    แก้ไข
-                  </button>
-                  <button
-                    @click="deleteMenu(menu)"
-                    class="p-1 text-stone-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                    title="ลบเมนู"
-                  >
-                    <Trash2 class="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ======================================================== -->
-    <!-- POPUP MODAL: รายละเอียดสูตรวัตถุดิบ & บรรจุภัณฑ์ (BOM)       -->
-    <!-- ======================================================== -->
-    <MenuRecipeDetails :open="isBomModalOpen" :menu="selectedMenuForBom && store.menus.find(m=>m.id===selectedMenuForBom.id)" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :store-price="selectedMenuStorePrice" :margin="selectedMenuGpPercent" :platforms="store.platforms" :selected-id="displayPlatformId" @close="closeBomModal" @edit="editFromBom" />
-  </div>
+ <div class="menu-workspace">
+  <CatalogToolbar id="menu-catalog" label="เมนู" v-model:search="searchQuery" placeholder="ค้นหาชื่อหรือคำอธิบายเมนู" :platform="displayPlatformId" :platforms="store.platforms" inline-platform @apply-filters="applyCatalogFilters" @add="openAddMenu"/>
+  <section class="menu-directory" aria-label="รายการเมนู">
+   <header class="menu-directory-heading"><h3>รายการเมนู</h3><span>{{ filteredMenus.length }} รายการ</span></header>
+   <div class="menu-directory-list"><MenuCard v-for="menu in filteredMenus" :key="menu.id" :menu="menu" :platforms="store.platforms" :selected-id="displayPlatformId" :ingredient-count="(menu.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType!=='packaging').length" :package-count="(menu.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType==='packaging').length" @details="openBomModal" @edit="editMenu" @delete="deleteMenu"/></div>
+   <div v-if="!filteredMenus.length" class="menu-directory-empty"><strong>{{ searchQuery?'ไม่พบเมนูที่ค้นหา':'ยังไม่มีเมนู' }}</strong><p>{{ searchQuery?'ลองค้นหาด้วยชื่อหรือคำอธิบายอื่น':'เพิ่มเมนูแรก พร้อมกำหนดราคาและสูตรที่ใช้' }}</p><Button v-if="searchQuery" variant="secondary" @click="searchQuery=''">แสดงเมนูทั้งหมด</Button></div>
+  </section>
+  <MenuRecipeDetails :open="isBomModalOpen" :menu="selectedMenuForBom && store.menus.find(m=>m.id===selectedMenuForBom.id)" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :store-price="selectedMenuStorePrice" :margin="selectedMenuGpPercent" :platforms="store.platforms" :selected-id="displayPlatformId" @close="closeBomModal" @edit="editFromBom"/>
+ </div>
 </template>
-
 <script setup>
 import MenuCard from '@/components/catalog/MenuCard.vue'
 import MenuRecipeDetails from '@/components/catalog/MenuRecipeDetails.vue'
-import AppSelect from '@/components/ui/AppSelect.vue'
+import Button from '@/components/ui/Button.vue'
 import CatalogToolbar from '@/components/catalog/CatalogToolbar.vue'
-import PlatformPriceSummary from '@/components/catalog/PlatformPriceSummary.vue'
+
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
-import { Search, Plus, Trash2, Eye, X, Edit3 } from 'lucide-vue-next'
+
 
 const store = usePosStore()
 
@@ -210,3 +110,7 @@ async function deleteMenu(menu) {
 }
 </script>
 
+
+<style scoped>
+.menu-workspace{display:grid;gap:24px;min-width:0}.menu-directory{min-width:0}.menu-directory-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.menu-directory-heading h3{font-size:.9375rem;font-weight:500}.menu-directory-heading>span{font-size:.75rem;color:var(--text-muted)}.menu-directory-list{background:var(--bg-card);border-radius:16px;overflow:hidden}.menu-directory-empty{text-align:center;padding:48px 16px;color:var(--text-muted);font-size:.875rem;line-height:1.8}.menu-directory-empty strong{color:var(--text-main);font-weight:500}.menu-directory-empty p{margin:8px 0 16px}@media(max-width:639px){.menu-workspace{gap:20px}}
+</style>
