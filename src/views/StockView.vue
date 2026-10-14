@@ -46,11 +46,13 @@
                 <td class="py-3.5 px-4">
                 <div class="flex items-center gap-3 min-w-0">
                   <span class="text-xl shrink-0">{{ mat.emoji }}</span>
-                  <div class="min-w-0 flex-1 truncate">
-                    <div class="font-bold text-stone-900 flex items-center gap-1.5 truncate">
+                  <div class="min-w-0 flex-1">
+                    <div class="stock-table-name">
                       <Button variant="secondary" size="compact" type="button" :data-material-details="mat.id" :aria-label="`ดูรายละเอียด ${mat.name}`" class="text-left underline-offset-4 hover:underline focus-visible:underline" @click="detailMaterialId=mat.id">{{ mat.name }}</Button>
 
-                      <MaterialUsage :usage="store.materialUsageById.get(mat.id)" />
+                    </div>
+                    <div class="stock-table-meta">
+                      <MaterialUsage compact :usage="store.materialUsageById.get(mat.id)" />
                       <span
                         v-if="mat.isDeleted"
                         class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-stone-200/90 text-stone-700 shrink-0"
