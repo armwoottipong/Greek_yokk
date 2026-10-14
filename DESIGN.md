@@ -303,3 +303,5 @@ Stock table sorting uses shared TableSortButton controls with neutral up/down in
 The date-sort AppSelect opts into fitContent: its menu takes natural content height within the larger available side of the viewport, without the default 300px cap. It opens above when needed and retains bounded scrolling only if the viewport cannot fit all options. Other selectors retain their existing cap.
 
 Stocktake opts into DialogFrame containedBody mode: the frame body is a flex column with overflow hidden, the toolbar does not shrink, and only stocktake-body scrolls. Desktop/tablet table headings remain sticky inside that region, with footer outside it. Compact mobile keeps the labeled-row presentation and fixed search/footer. The named scroll region supports keyboard paging. Receipt/production steppers use warm filled 44px icon targets with burgundy marks, hover fill and muted disabled state.
+
+Receipt amount/cost and desktop production quantity/recipe columns share a 50/50 split and 12px column gap with the date grid. Their left edges and widths align exactly with receipt/production and expiry fields; compact stacking breakpoints remain unchanged.
