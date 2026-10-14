@@ -1,0 +1,13 @@
+# Stock table correction — documentation comparison
+
+Scope: merge the user's 14 October 2026 correction into the existing stock documentation: preserve the original desktop table layout while keeping the renovated styling and shared popup/input/button patterns. No visual identity or primitive change is authorized by this correction.
+
+Evidence checked: PRODUCT.md; DESIGN.md; stock-management.md; system-interface.md; the documenter role and reference/document.md; src/views/StockView.vue; src/components/inventory/stockTable.css, StockMaterialCard.vue and stockForms.css. Read stock-table-layout-scan.json once before editing; its finding array is empty. Visually inspected stock-table-desktop.jpg (1280×720), stock-table-tablet.jpg (820×1180) and stock-table-mobile.jpg (390×844).
+
+Source confirms a seven-column desktop table at 1200px and above, with column proportions 28% / 11% / 18% / 12% / 13% / 9% / 9%, matching lot-row columns and a 1120px minimum width. The wrapper owns horizontal scrolling. The desktop capture shows the table extending beyond the wrapper's visible area; tablet and phone captures retain the renovated list. Parent-reported browser measurements show document widths matching all three viewports and desktop wrapper client width 970px / scroll width 1120px. These measurements were not independently rerun by the documenter.
+
+System comparison: the table uses incumbent near-white/cream surfaces, warm text and header fill, burgundy action/expanded-state accents, functional row separators and focus outlines. Responsive StockMaterialCard styling and shared stock forms remain consistent with the existing filled-popup rules. No new primitive, component identity or global visual rule is needed. Changed only Stock layout/component paragraphs in DESIGN.md and relevant stock sections in the two surface briefs; preserved YAML frontmatter, .impeccable/design.json, PRODUCT.md and all unrelated sections. Earlier renovation evidence remains explicitly historical.
+
+Parent-reported validation: 79 test files / 472 tests passed; lint and production build passed. This documentation-only comparison does not independently rerun application checks. It does not supply or anticipate a finish-review verdict; that belongs to stock-table-finish-review.md when the separate reviewer completes its review. Physical iPad/Safari, screen-reader and zoom behavior remain outside these viewport captures.
+
+Not canonized or repaired: no new defect rule was added from the empty scan. Existing small secondary metadata and physical-device verification limits retain their incumbent treatment; this correction does not authorize a wider system repair.

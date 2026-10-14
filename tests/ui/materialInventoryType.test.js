@@ -71,7 +71,8 @@ describe('material inventory type', () => {
     const wrapper = mount(Stock, { attachTo: document.body })
     try {
       expect(wrapper.get('.menu-directory-list [data-inventory-type]').text()).toBe(label)
-      expect(wrapper.findAll('[data-material-details]')).toHaveLength(1)
+      expect(wrapper.findAll('.menu-directory-list [data-material-details]')).toHaveLength(1)
+      expect(wrapper.get('.desktop-material-table [data-inventory-type]').text()).toBe(label)
       await wrapper.get('.menu-directory-list [data-material-details="M"]').trigger('click')
       await flushPromises()
       expect(document.querySelector('#material-details [data-inventory-type]').textContent).toBe(label)
