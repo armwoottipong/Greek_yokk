@@ -1,0 +1,26 @@
+{
+  "groupDirectory": [
+    {
+      "documentWidth": 820,
+      "width": 820
+    },
+    {
+      "documentWidth": 1280,
+      "width": 1280
+    }
+  ],
+  "mobileEditor": {
+    "width": 390,
+    "documentWidth": 390,
+    "client": 368,
+    "scroll": 368,
+    "focus": "addon-group-name",
+    "inert": false
+  },
+  "mobilePos": {
+    "width": 390,
+    "documentWidth": 390,
+    "client": 384,
+    "scroll": 384
+  }
+}

@@ -1,6 +1,7 @@
 <template>
  <div class="menu-workspace">
   <CatalogToolbar id="addon-catalog" label="Add-on" v-model:search="searchQuery" placeholder="ค้นหาชื่อ Add-on" :platform="displayPlatformId" :platforms="store.platforms" inline-platform @apply-filters="applyCatalogFilters" @add="openAddAddon"/>
+  <AddonGroupManager/>
   <section class="menu-directory" aria-label="รายการ Add-on">
    <header class="menu-directory-heading"><h3>รายการ Add-on</h3><span>{{ filteredAddons.length }} รายการ</span></header>
    <div class="menu-directory-list"><AddonCard v-for="addon in filteredAddons" :key="addon.id" :addon="addon" :platforms="store.platforms" :selected-id="displayPlatformId" :ingredient-count="(addon.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType!=='packaging').length" :package-count="(addon.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType==='packaging').length" @details="detailAddonId=$event" @edit="editAddon" @delete="deleteAddon"/></div>
@@ -24,6 +25,7 @@
 </template>
 <script setup>
 import AddonCard from '@/components/catalog/AddonCard.vue'
+import AddonGroupManager from '@/components/catalog/AddonGroupManager.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import Button from '@/components/ui/Button.vue'
 import CatalogToolbar from '@/components/catalog/CatalogToolbar.vue'

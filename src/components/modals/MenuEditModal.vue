@@ -17,6 +17,15 @@
      </div>
     </div>
    </div></details>
+   <details v-smooth-disclosure class="menu-editor-section" data-menu-groups open><summary><span>กลุ่มตัวเลือก</span><small>{{ form.addonGroupIds?.length || 0 }} กลุ่ม</small></summary><div class="menu-editor-section-body menu-editor-options">
+    <FormField id="menu-option-mode" label="รูปแบบตัวเลือก" v-slot="{controlId}"><AppSelect :id="controlId" :model-value="Array.isArray(form.addonGroupIds) ? 'groups' : 'legacy'" @update:model-value="form.addonGroupIds = $event === 'groups' ? [] : undefined"><option value="legacy">ใช้ Add-on ทั้งหมดตามเดิม</option><option value="groups">ใช้กลุ่มตัวเลือกที่กำหนด</option></AppSelect></FormField>
+    <template v-if="Array.isArray(form.addonGroupIds)">
+     <p class="menu-editor-help">เลือกได้หลายกลุ่ม กำหนดรายการ จำนวน และราคาได้ที่หน้า Add-on หากไม่เลือกกลุ่ม เมนูนี้จะไม่มีตัวเลือก</p>
+     <p v-if="!form.hasAddons" class="menu-editor-help">เปิด “อนุญาตให้เลือก Add-on” ในตัวเลือกการขาย เพื่อใช้กลุ่มที่เลือกไว้</p>
+     <AppCheckbox v-for="group in store.addonGroups" :key="group.id" :model-value="form.addonGroupIds.includes(group.id)" :label="group.name" @update:model-value="toggleGroup(group.id, $event)">{{ group.name }} · {{ group.pricingMode === 'included' ? 'รวมในราคา' : 'เพิ่มเงิน' }} · {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่' : 'ชนิด' }}</AppCheckbox>
+     <p v-if="!store.addonGroups.length" class="menu-editor-empty">ยังไม่มีกลุ่มตัวเลือก สร้างกลุ่มได้ที่หน้า Add-on</p>
+    </template>
+   </div></details>
    <details v-smooth-disclosure class="menu-editor-section" data-menu-permissions><summary><span>ตัวเลือกการขาย</span><small>ท็อปปิ้งและบรรจุภัณฑ์</small></summary><div class="menu-editor-section-body menu-editor-options">
     <AppCheckbox v-model="form.hasAddons" variant="switch" label="อนุญาตให้เลือก Add-on"><strong>อนุญาตให้เลือก Add-on</strong><small>ลูกค้าสั่งท็อปปิ้งเพิ่มเติมได้</small></AppCheckbox>
     <AppCheckbox v-model="form.hasPackage" variant="switch" label="ตัดสต็อกบรรจุภัณฑ์"><strong>ตัดสต็อกบรรจุภัณฑ์</strong><small>ใช้ถ้วย ช้อน และถุงตามสูตรด้านล่าง</small></AppCheckbox>
@@ -49,6 +58,7 @@ import AppInput from '@/components/ui/AppInput.vue'
 import RecipeEditorRow from '@/components/ui/RecipeEditorRow.vue'
 import Button from '@/components/ui/Button.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { usePosStore } from '@/stores/posStore'
@@ -123,6 +133,7 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
       description: menu ? (menu.description || '') : '',
       prices: menu ? { ...menu.prices } : {},
       hasAddons: menu ? (menu.hasAddons !== false) : true,
+      addonGroupIds: menu ? (menu.addonGroupIds ? [...menu.addonGroupIds] : undefined) : [],
       hasPackage: menu ? (menu.hasPackage !== false) : true
     }
 
@@ -174,6 +185,10 @@ function addBaseRecipeRow() {
     materialId: defaultMat.id,
     qty: 30
   })
+}
+
+function toggleGroup(id, checked) {
+  form.value.addonGroupIds = checked ? [...form.value.addonGroupIds, id] : form.value.addonGroupIds.filter(value => value !== id)
 }
 
 function removeBaseRecipeRow(idx) {
@@ -260,6 +275,7 @@ async function submit() {
     prices: Object.fromEntries(Object.entries(form.value.prices).map(([id, value]) => [id, value === '' ? 0 : Number(value)])),
     recipe: combinedRecipe,
     hasAddons: form.value.hasAddons,
+    addonGroupIds: form.value.addonGroupIds === undefined ? undefined : [...form.value.addonGroupIds],
     hasPackage: form.value.hasPackage
   })
 

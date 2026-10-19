@@ -36,6 +36,7 @@ import {
 import { MATERIAL_KIND_OPTIONS, getMaterialKind, getMaterialKindLabel, buildMaterialUsage } from '@/domain/materialClassification'
 import { validateLotDates } from '@/domain/lotDates'
 import { isValidGp } from '@/domain/pricing'
+import { groupError, optionPrices, resolveSelections, selectionPrice, selectionKey } from '@/domain/addonGroups'
 import {
   DEFAULT_MATERIALS,
   DEFAULT_MENUS,
@@ -400,6 +401,7 @@ const posDefinition = {
       stockShortages: database.stockShortages,
       menus: storedMenus,
       addons: storedAddons,
+      addonGroups: database.addonGroups,
       platforms: storedPlatforms,
       orders: storedOrders,
       activityLogs: storedActivityLogs,
@@ -947,9 +949,7 @@ const posDefinition = {
         // Add-ons price
         if (item.selectedAddons && item.selectedAddons.length > 0) {
           item.selectedAddons.forEach(addon => {
-            const addPrice = (addon.prices && addon.prices[plat.id] !== undefined) ?
-              Number(addon.prices[plat.id]) :
-              0
+            const addPrice = selectionPrice(addon, plat.id)
             itemUnitPrice += addPrice
           })
         }
@@ -1227,13 +1227,17 @@ const posDefinition = {
     setPlatform(platId) {
       if (!this.platforms.some(p => p.id === platId && p.isActive !== false) || platId === this.currentPlatformId) return
       // Keep the order and recipe snapshots; refresh only channel price lists.
-      this.cart = this.cart.map(item => ({
-        ...item,
-        menu: { ...item.menu, prices: clone(this.menus.find(m => m.id === item.menu.id)?.prices || item.menu.prices || {}) },
-        selectedAddons: (item.selectedAddons || []).map(addon => ({
-          ...addon, prices: clone(this.addons.find(a => a.id === addon.id)?.prices || addon.prices || {})
+      this.cart = this.cart.map(item => {
+        const selectedAddons = (item.selectedAddons || []).map(addon => ({
+          ...addon, prices: clone(this.selectionPrices(addon))
         }))
-      }))
+        return {
+          ...item,
+          menu: { ...item.menu, prices: clone(this.menus.find(m => m.id === item.menu.id)?.prices || item.menu.prices || {}) },
+          selectedAddons,
+          addonKey: selectionKey(selectedAddons)
+        }
+      })
       this.currentPlatformId = platId
     },
 
@@ -1796,6 +1800,35 @@ const posDefinition = {
     // ========================================================
     // ADDON CRUD & MANAGEMENT
     // ========================================================
+    selectionPrices(selection) {
+      const addon = this.addons.find(a => a.id === selection.id) || selection
+      if (!selection.groupId) return addon.prices || {}
+      const group = this.addonGroups.find(g => g.id === selection.groupId)
+      const option = group?.options.find(o => o.addonId === selection.id)
+      return group && option ? optionPrices(group, option, addon) : selection.prices || {}
+    },
+    saveAddonGroup(data) {
+      const message = groupError(data, this.addons)
+      if (message) { this.showToast(message, 'error'); return { ok: false, message } }
+      const candidate = this.databaseSnapshot()
+      const id = data.id || createEntityId('GROUP', this.addonGroups.map(g => g.id))
+      const index = candidate.addonGroups.findIndex(g => g.id === id)
+      const group = { ...clone(data), id, name: data.name.trim() }
+      if (index < 0) candidate.addonGroups.push(group)
+      else candidate.addonGroups[index] = group
+      const result = this.commitDatabase(candidate, { preserveDraft: true })
+      if (result.ok) this.showToast(`บันทึกกลุ่ม "${group.name}" แล้ว`, 'success')
+      return result
+    },
+    deleteAddonGroup(id) {
+      if (this.menus.some(m => m.addonGroupIds?.includes(id))) {
+        const message = 'กลุ่มนี้ใช้ในเมนูอยู่ กรุณานำออกจากเมนูก่อนลบ'
+        this.showToast(message, 'error'); return { ok: false, message }
+      }
+      const candidate = this.databaseSnapshot()
+      candidate.addonGroups = candidate.addonGroups.filter(g => g.id !== id)
+      return this.commitDatabase(candidate, { preserveDraft: true })
+    },
     saveAddon(addonData) {
       if (addonData.id) {
         const idx = this.addons.findIndex(a => a.id === addonData.id)
@@ -1818,6 +1851,10 @@ const posDefinition = {
     },
 
     deleteAddon(addonId) {
+      if (this.addonGroups.some(g => g.options.some(o => o.addonId === addonId))) {
+        this.showToast('Add-on นี้อยู่ในกลุ่มตัวเลือก กรุณานำออกจากกลุ่มก่อนลบ', 'error')
+        return { ok: false }
+      }
       const idx = this.addons.findIndex(a => a.id === addonId)
       if (idx >= 0) {
         const name = this.addons[idx].name
@@ -2761,6 +2798,10 @@ const posDefinition = {
     },
 
     addToCart(menu, selectedAddons = [], qty = 1, forceConfirm = false, note = '') {
+      const current = this.menus.find(m => m.id === menu.id) || menu
+      const resolved = resolveSelections(current, selectedAddons, this.addonGroups, this.addons)
+      if (!resolved.ok) { this.showToast(resolved.message, 'error'); return false }
+      selectedAddons = resolved.selections
       const stockCheck = this.checkStockAvailability(menu, selectedAddons, qty)
       if (stockCheck.outOfStockList.some(i => i.code !== 'SHORTAGE')) {
         this.showToast('ไม่สามารถขาย: วัตถุดิบหมดอายุ ถูกจัดเก็บ หรือสูตรไม่ถูกต้อง', 'error');
@@ -2807,6 +2848,10 @@ const posDefinition = {
     },
 
     executeAddToCart(menu, selectedAddons = [], qty = 1, isBackorder = false, note = '') {
+      const current = this.menus.find(m => m.id === menu.id) || menu
+      const resolved = resolveSelections(current, selectedAddons, this.addonGroups, this.addons)
+      if (!resolved.ok) { this.showToast(resolved.message, 'error'); return false }
+      selectedAddons = resolved.selections
       const plat = this.currentPlatform
       const basePrice = (menu.prices && menu.prices[plat.id] !== undefined) ?
         Number(menu.prices[plat.id]) :
@@ -2814,7 +2859,7 @@ const posDefinition = {
 
       // Different preparation notes must remain separate order lines.
       const itemNote = String(note || '').trim()
-      const addonKey = selectedAddons.map(a => a.id).sort().join(',')
+      const addonKey = selectionKey(selectedAddons)
       const existingIdx = this.cart.findIndex(i => i.menu.id === menu.id && i.addonKey === addonKey && (i.note || '') === itemNote)
 
       if (existingIdx >= 0) {
@@ -2922,6 +2967,8 @@ const posDefinition = {
             code: 'MENU_UNAVAILABLE',
             issues: []
           }
+          const resolved = resolveSelections(current, item.selectedAddons || [], this.addonGroups, this.addons)
+          if (!resolved.ok) return { ...resolved, message: `${resolved.message} · นำรายการนี้ออกจากตะกร้าแล้วเลือกใหม่`, issues: [] }
           for (const addon of item.selectedAddons || [])
             if (!this.addons.some(a => a.id === addon.id && a.isActive !== false)) return {
               ok: false,
@@ -2996,7 +3043,7 @@ const posDefinition = {
               })
             }
           }
-        } else this.showToast('ไม่สามารถบันทึกออเดอร์: วัตถุดิบหรือรายการไม่พร้อมใช้', 'error')
+        } else this.showToast(prepared.message || 'ไม่สามารถบันทึกออเดอร์: วัตถุดิบหรือรายการไม่พร้อมใช้', 'error')
         return null
       }
       const {
@@ -3028,7 +3075,7 @@ const posDefinition = {
       const orderId = createEntityId('ORD', this.orders.map(o => o.orderId))
       const items = this.cart.map(item => {
         const price = Number(item.menu.prices?.[plat.id] || 0) + (item.selectedAddons || []).reduce((n,
-          a) => n + Number(a.prices?.[plat.id] || 0), 0);
+          a) => n + selectionPrice(a, plat.id), 0);
         return {
           menuId: item.menu.id,
           menuName: item.menu.name,

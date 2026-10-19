@@ -41,9 +41,9 @@
             <!-- Addons -->
             <p v-if="item.note" class="receipt-item-note">หมายเหตุ: {{ item.note }}</p>
             <div v-if="item.selectedAddons && item.selectedAddons.length > 0" class="pl-3 text-[10px] text-stone-500 space-y-0.5">
-              <div v-for="addon in item.selectedAddons" :key="addon.id" class="flex justify-between">
-                <span>+ {{ addon.name }}</span>
-                <span class="font-number text-stone-400">+฿{{ addon.price }} (รวมในยอดแล้ว)</span>
+              <div v-for="addon in item.selectedAddons" :key="`${addon.groupId || ''}:${addon.id}`" class="flex justify-between">
+                <span>+ {{ addon.name }}{{ addon.selectionQty > 1 ? ' ×'+addon.selectionQty : '' }}{{ addon.groupName ? ' · '+addon.groupName : '' }}</span>
+                <span class="font-number text-stone-400">+฿{{ addon.price * (addon.selectionQty || 1) }} (รวมในยอดแล้ว)</span>
               </div>
             </div>
           </div>

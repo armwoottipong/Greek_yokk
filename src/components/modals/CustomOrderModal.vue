@@ -1,7 +1,23 @@
 <template>
  <DialogFrame :open="store.modals.customOrder.isOpen && Boolean(selectedMenu)" id="CustomOrderModal" title="รายละเอียดสินค้า" presentation="drawer" width="520px" :teleport="false" @request-close="requestClose">
   <div class="product-detail"><div class="product-visual" aria-hidden="true">{{ selectedMenu.emoji }}</div><div class="bowl-heading"><h3>{{ selectedMenu.name }}</h3><p>{{ selectedMenu.description }}</p><strong class="product-base-price font-number">฿{{ basePrice }}</strong></div></div>
-  <section v-if="selectedMenu.hasAddons" class="bowl-options" aria-label="ปรับแต่งท็อปปิ้ง">
+  <div v-if="selectedMenu.hasAddons !== false && Array.isArray(selectedMenu.addonGroupIds)" class="bowl-groups">
+   <section v-for="group in groups" :key="group.id" class="bowl-options" :aria-label="group.name">
+    <header><div><h4>{{ group.name }}</h4><p>{{ groupRule(group) }} · {{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }}</p></div><span aria-live="polite">{{ groupCount(group.id) }}/{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่' : 'ชนิด' }}</span></header>
+    <div class="bowl-addon-grid">
+     <div v-for="addon in groupOptions(group)" :key="addon.id" class="bowl-group-option">
+      <button type="button" class="bowl-addon" :data-group-option="group.id" :class="{'is-selected':isGroupSelected(group.id,addon.id),'is-unavailable':isAddonOutOfStock(addon)}" :aria-pressed="isGroupSelected(group.id,addon.id)" :disabled="!isGroupSelected(group.id,addon.id) && groupCount(group.id)>=group.maxSelections" @click="toggleGroupAddon(group,addon)">
+       <span class="bowl-addon-emoji" aria-hidden="true">{{ addon.emoji }}</span><span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="isAddonOutOfStock(addon)">ของหมด · ยืนยันเลือกต่อได้</small></span><span class="bowl-addon-price font-number">{{ getAddonPrice(addon) === 0 ? 'รวมในราคา' : '+฿'+getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isGroupSelected(group.id,addon.id)" :size="15"/><Plus v-else :size="15"/></span>
+      </button>
+      <div v-if="group.allowRepeat && isGroupSelected(group.id,addon.id)" class="bowl-option-quantity"><span>จำนวน {{ addon.name }}</span><IconButton :label="`ลด ${group.name} ${addon.name}`" @click="adjustGroupQty(group,addon,-1)"><Minus :size="16" aria-hidden="true"/></IconButton><span class="font-number">{{ groupSelection(group.id,addon.id)?.selectionQty }}</span><IconButton :label="`เพิ่ม ${group.name} ${addon.name}`" :disabled="groupCount(group.id)>=group.maxSelections" @click="adjustGroupQty(group,addon,1)"><Plus :size="16" aria-hidden="true"/></IconButton></div>
+     </div>
+    </div>
+    <p v-if="!groupOptions(group).length" class="bowl-no-addons">ยังไม่มีตัวเลือกที่เปิดขาย กรุณาตรวจรายการ Add-on</p>
+    <p v-else-if="groupCount(group.id)>=group.maxSelections" class="bowl-group-hint">เลือกครบจำนวนสูงสุดแล้ว ยกเลิกตัวเลือกเดิมเพื่อเปลี่ยนได้</p>
+   </section>
+   <p v-if="!selectionCheck.ok" class="bowl-group-hint" role="status">{{ selectionCheck.message }}</p>
+  </div>
+  <section v-else-if="selectedMenu.hasAddons" class="bowl-options" aria-label="ปรับแต่งท็อปปิ้ง">
    <header><div><h4>เลือกท็อปปิ้งเพิ่ม</h4><p>ราคาบน {{ store.currentPlatform.name }}</p></div><span>{{ selectedAddons.length ? 'เลือกแล้ว '+selectedAddons.length+' รายการ' : 'เลือกได้ตามชอบ' }}</span></header>
    <p v-if="!selectedMenu.hasAddons" class="bowl-no-addons">เมนูนี้ไม่อนุญาตให้เลือก Add-on เพิ่มเติม</p>
    <p v-else-if="!activeAddons.length" class="bowl-no-addons">ยังไม่มีท็อปปิ้งเพิ่มเติม เพิ่มชามนี้ลงตะกร้าได้เลย</p>
@@ -16,7 +32,7 @@
   <FormField id="product-item-note" label="หมายเหตุรายการนี้" hint="หมายเหตุนี้ใช้กับจำนวนที่เลือกในรายการนี้" class="product-note" v-slot="{controlId,describedBy}"><textarea :id="controlId" v-model="itemNote" :aria-describedby="describedBy" aria-label="หมายเหตุรายการนี้" rows="3" placeholder="เช่น ไม่ใส่น้ำผึ้ง แยกท็อปปิ้ง หรือไม่รับช้อน"/></FormField>
   <template #footer><div class="custom-order-footer">
    <div class="bowl-total"><span>ราคารวมต่อชาม</span><strong class="font-number">฿{{ totalBowlPrice }}</strong></div>
-   <div class="custom-order-footer-actions"><div class="bowl-quantity"><IconButton label="ลดจำนวนชาม" :disabled="qty<=1" @click="qty = Math.max(1, qty - 1)"><Minus :size="18" aria-hidden="true"/></IconButton><span class="font-number" aria-label="จำนวนชาม">{{ qty }}</span><IconButton label="เพิ่มจำนวนชาม" @click="qty += 1"><Plus :size="18" aria-hidden="true"/></IconButton></div><Button @click="addToCart"><ShoppingBag :size="18" aria-hidden="true"/>เพิ่มลงตะกร้า · ฿{{ totalBowlPrice * qty }}</Button></div>
+   <div class="custom-order-footer-actions"><div class="bowl-quantity"><IconButton label="ลดจำนวนชาม" :disabled="qty<=1" @click="qty = Math.max(1, qty - 1)"><Minus :size="18" aria-hidden="true"/></IconButton><span class="font-number" aria-label="จำนวนชาม">{{ qty }}</span><IconButton label="เพิ่มจำนวนชาม" @click="qty += 1"><Plus :size="18" aria-hidden="true"/></IconButton></div><Button :disabled="!selectionCheck.ok" @click="addToCart"><ShoppingBag :size="18" aria-hidden="true"/>เพิ่มลงตะกร้า · ฿{{ totalBowlPrice * qty }}</Button></div>
   </div></template>
  </DialogFrame>
 </template>
@@ -29,6 +45,7 @@ import FormField from '@/components/ui/FormField.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { Minus, Plus, Check, ShoppingBag } from 'lucide-vue-next'
+import { menuGroups, optionPrices, resolveSelections, selectionPrice } from '@/domain/addonGroups'
 
 const store = usePosStore()
 
@@ -42,6 +59,33 @@ const selectedMenu = computed(() => {
 })
 
 const activeAddons = computed(() => store.addons.filter(a => a.isActive !== false))
+const groups = computed(() => menuGroups(selectedMenu.value, store.addonGroups))
+const selectionCheck = computed(() => selectedMenu.value ? resolveSelections(selectedMenu.value, selectedAddons.value, store.addonGroups, store.addons) : { ok: false })
+const groupSelection = (groupId, addonId) => selectedAddons.value.find(a => a.groupId === groupId && a.id === addonId)
+const isGroupSelected = (groupId, addonId) => Boolean(groupSelection(groupId, addonId))
+const groupCount = groupId => selectedAddons.value.filter(a => a.groupId === groupId).reduce((sum, a) => sum + a.selectionQty, 0)
+function groupOptions(group) {
+  return group.options.flatMap(option => {
+    const addon = activeAddons.value.find(a => a.id === option.addonId)
+    return addon ? [{ ...addon, prices: optionPrices(group, option, addon) }] : []
+  })
+}
+function groupRule(group) {
+  const unit = group.allowRepeat ? 'ที่' : 'ชนิด'
+  if (group.minSelections === group.maxSelections) return `เลือกให้ครบ ${group.maxSelections} ${unit}`
+  return group.minSelections === 0 ? `ไม่บังคับ · เลือกได้สูงสุด ${group.maxSelections} ${unit}` : `เลือก ${group.minSelections}–${group.maxSelections} ${unit}`
+}
+function toggleGroupAddon(group, addon) {
+  const index = selectedAddons.value.findIndex(a => a.groupId === group.id && a.id === addon.id)
+  if (index >= 0) selectedAddons.value.splice(index, 1)
+  else if (groupCount(group.id) < group.maxSelections) selectedAddons.value.push({ ...addon, groupId: group.id, selectionQty: 1 })
+}
+function adjustGroupQty(group, addon, delta) {
+  const selection = groupSelection(group.id, addon.id)
+  if (!selection || (delta > 0 && groupCount(group.id) >= group.maxSelections)) return
+  if (selection.selectionQty + delta <= 0) toggleGroupAddon(group, addon)
+  else selection.selectionQty += delta
+}
 
 watch(() => store.modals.customOrder.isOpen, (open) => {
   if (open) {
@@ -85,7 +129,7 @@ function toggleAddon(addon) {
 const basePrice = computed(() => Number(selectedMenu.value?.prices?.[store.currentPlatformId] || 0))
 const totalBowlPrice = computed(() => {
   if (!selectedMenu.value) return 0
-  const addonTotal = selectedAddons.value.reduce((sum, a) => sum + getAddonPrice(a), 0)
+  const addonTotal = selectedAddons.value.reduce((sum, a) => sum + selectionPrice({ ...a, prices: a.groupId ? store.selectionPrices(a) : a.prices }, store.currentPlatformId), 0)
   return basePrice.value + addonTotal
 })
 
@@ -117,6 +161,7 @@ function addToCart() {
 }
 </script>
 <style scoped>
+.bowl-groups{display:grid;gap:28px}.bowl-group-option>.bowl-addon{width:100%}.bowl-group-hint{font-size:.8125rem;color:var(--text-muted);line-height:1.7}.bowl-addon:disabled{opacity:.5;cursor:not-allowed}.bowl-option-quantity{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.8125rem}.bowl-option-quantity>span:first-child{flex:1;min-width:0;overflow-wrap:anywhere}
 .product-detail{display:grid;gap:20px;margin-bottom:28px}.product-visual{display:grid;place-items:center;height:160px;background:var(--bg-soft);border-radius:16px;font-size:72px}.product-detail .bowl-heading{display:block}.product-detail .bowl-heading h3{font-size:1.375rem}.product-base-price{display:block;margin-top:12px;font-size:1.375rem;color:var(--accent-brand)}.product-note{margin-top:28px;padding-top:24px;border-top:1px solid var(--border-subtle)}.product-note textarea{width:100%;padding:14px;border:0;border-radius:12px;resize:vertical;line-height:1.7;font-size:.875rem;min-height:96px}.product-note textarea::placeholder{color:var(--text-muted);opacity:1}.product-detail+.product-note{margin-top:0}
 .bowl-heading{display:flex;gap:16px;align-items:center;min-width:0}.bowl-heading>div{min-width:0}.bowl-heading h3{font-size:1.125rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere}.bowl-emoji{display:grid;place-items:center;width:64px;height:64px;flex-shrink:0;border-radius:16px;background:var(--bg-soft);font-size:34px}.bowl-heading p{font-size:.8125rem;color:var(--text-muted);margin-top:6px;line-height:1.7}
 .bowl-options{display:grid;gap:20px}.bowl-options>header{display:flex;justify-content:space-between;align-items:center;gap:12px}.bowl-options h4{font-size:.9375rem;font-weight:600}.bowl-options header p,.bowl-options header>span{font-size:.75rem;color:var(--text-muted);margin-top:5px}.bowl-options header>span{flex-shrink:0}.bowl-no-addons{color:var(--text-muted);font-size:.8125rem;padding:24px 0}

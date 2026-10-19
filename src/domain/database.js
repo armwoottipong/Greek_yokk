@@ -2,6 +2,7 @@ import {
   DEFAULT_CATEGORIES,
   DEFAULT_PLATFORMS
 } from '../data/initialData'
+import { groupError } from './addonGroups'
 export const clone = value => JSON.parse(JSON.stringify(value))
 export const CURRENT_SCHEMA_VERSION = 4
 export function inferInventoryType(material) {
@@ -10,7 +11,7 @@ export function inferInventoryType(material) {
   return category.includes('packag') || category.includes('บรรจุ') ||
     ['ถ้วย', 'ช้อน', 'ถุง', 'แก้ว'].some(word => name.includes(word)) ? 'packaging' : 'ingredient'
 }
-export const DATABASE_FIELDS = ['materials', 'menus', 'addons', 'platforms', 'orders', 'activityLogs',
+export const DATABASE_FIELDS = ['materials', 'menus', 'addons', 'addonGroups', 'platforms', 'orders', 'activityLogs',
   'categories', 'gasApiUrl', 'stockShortages'
 ]
 export function normalizeDatabase(raw, {
@@ -57,7 +58,7 @@ export function normalizeDatabase(raw, {
     gasApiUrl: typeof raw.gasApiUrl === 'string' ? raw.gasApiUrl : '',
     stockShortages: []
   }
-  for (const field of ['materials', 'menus', 'addons', 'platforms', 'orders', 'activityLogs',
+  for (const field of ['materials', 'menus', 'addons', 'addonGroups', 'platforms', 'orders', 'activityLogs',
       'stockShortages']) {
     const records = raw[field] ?? (field === 'platforms' ? DEFAULT_PLATFORMS : [])
     if (!Array.isArray(records)) {
@@ -189,6 +190,14 @@ export function normalizeDatabase(raw, {
       return item
     })
   }
+  value.addonGroups.forEach((group, index) => {
+    const message = groupError(group, value.addons)
+    if (message) fail(`addonGroups[${index}]`, 'INVALID_ADDON_GROUP', message)
+  })
+  value.menus.forEach((menu, index) => {
+    if (menu.addonGroupIds === undefined) return
+    if (!Array.isArray(menu.addonGroupIds) || new Set(menu.addonGroupIds).size !== menu.addonGroupIds.length || menu.addonGroupIds.some(id => !value.addonGroups.some(g => g.id === id))) fail(`menus[${index}].addonGroupIds`, 'INVALID_ADDON_GROUP_REFERENCE')
+  })
   for (const [type, field] of [['menu', 'menus'], ['material', 'materials'], ['addon', 'addons']]) {
     if (!Array.isArray(value.categories?.[type])) {
       fail(`categories.${type}`, 'INVALID_COLLECTION')

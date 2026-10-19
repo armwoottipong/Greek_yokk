@@ -4,6 +4,7 @@ import {
 import {
   businessDateKey
 } from './businessDate'
+import { selectionQty } from './addonGroups'
 const round = n => Math.round(n * 100) / 100
 export const isExpiredOn = (expiryDate, businessDate = businessDateKey(new Date())) => !!expiryDate &&
   expiryDate < businessDate
@@ -34,8 +35,10 @@ export function expandItemRequirements(menu, addons = [], qty = 1, materials = [
         new Error('ประเภทวัตถุดิบไม่ถูกต้อง'), { code: 'INVALID_INVENTORY_TYPE', materialId: row.materialId })
       if (sourceType === 'menu' && menu.hasPackage === false && material.inventoryType === 'packaging') return []
       // Ingredients retain precision until the existing running-total aggregation.
+      const portions = sourceType === 'addon' ? selectionQty(source) : 1
+      if (!Number.isSafeInteger(portions) || portions < 1) throw new Error('จำนวนตัวเลือกไม่ถูกต้อง')
       const expandedQty = material.inventoryType === 'ingredient'
-        ? Number(row.qty) * qty : round(Number(row.qty) * qty)
+        ? Number(row.qty) * qty * portions : round(Number(row.qty) * qty * portions)
       if (!Number.isFinite(expandedQty) || !Number.isFinite(round(expandedQty))) throw new Error('สูตรวัตถุดิบไม่ถูกต้อง')
       return expandedQty > 0 ? [{
         materialId: row.materialId,
