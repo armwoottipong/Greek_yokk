@@ -65,11 +65,11 @@
             <span>ยอดชำระสุทธิ (Total):</span>
             <span class="text-sm font-number">฿{{ order.subtotal }}</span>
           </div>
-          <div v-if="order.gpAmount > 0" class="flex justify-between text-[10px] text-stone-400 pt-1">
+          <div class="flex justify-between text-[10px] text-stone-400 pt-1">
             <span>หักค่าธรรมเนียม GP ({{ orderGpPercent }}%):</span>
             <span class="font-number">-฿{{ order.gpAmount }}</span>
           </div>
-          <div v-if="order.gpAmount > 0" class="flex justify-between text-[10px] text-emerald-800 font-semibold">
+          <div class="flex justify-between text-[10px] text-emerald-800 font-semibold">
             <span>รายรับสุทธิร้าน (Net):</span>
             <span class="font-number">฿{{ order.netRevenue }}</span>
           </div>
@@ -110,8 +110,9 @@ const store = usePosStore()
 const order = computed(() => store.modals.receipt.order)
 
 const orderGpPercent = computed(() => {
+  if (order.value?.gpPercent != null) return order.value.gpPercent
   if (!order.value || !order.value.gpAmount || !order.value.subtotal) return 0
-  return Math.round((order.value.gpAmount / order.value.subtotal) * 100)
+  return Math.round((order.value.gpAmount / order.value.subtotal) * 10000) / 100
 })
 
 const formattedDate = computed(() => {

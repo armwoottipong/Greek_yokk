@@ -12,7 +12,7 @@
 .settings-nav-item[aria-pressed=true] small{color:#F0D6CA}
 .settings-content{min-width:0;display:grid;gap:18px}
 .settings-gp-form{display:grid;gap:20px}.settings-gp-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 16px}.settings-gp-help,.settings-gp-error{font-size:.75rem;line-height:1.7;color:var(--text-muted)}.settings-gp-error{color:var(--accent-red)}.settings-gp-actions{display:flex;justify-content:flex-end}.settings-gp-fields input{text-align:right;font-variant-numeric:tabular-nums}.settings-page .settings-gp-fields input{background:transparent;border:0}.settings-gp-fields .app-input{border:1px solid var(--control-border)}@media(max-width:440px){.settings-gp-fields{grid-template-columns:minmax(0,1fr)}}
-.settings-page .settings-gp-fields .app-input input{border:0}
+.settings-page .settings-gp-fields .app-input{border:0;box-shadow:none}.settings-page .settings-gp-fields .app-input input,.settings-page .settings-gp-fields .app-input input:focus-visible{border:0!important;outline:none!important;box-shadow:none!important}
 .settings-page [data-settings]{background:var(--bg-card);border:1px solid transparent;border-radius:20px;padding:26px;box-shadow:none;min-width:0}
 .settings-page [data-settings]>div:first-child{padding-bottom:20px;border-bottom:0;align-items:flex-start}
 .settings-page [data-settings]>div:first-child h3{font-size:17px;font-weight:500;color:var(--text-main);line-height:1.5}

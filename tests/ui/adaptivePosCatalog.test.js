@@ -3,14 +3,17 @@ import {mount} from '@vue/test-utils'
 import {nextTick} from 'vue'
 import {createTestStore} from '../helpers/createStore'
 import Pos from '../../src/views/PosView.vue'
-it('selects a channel with the shared control and updates displayed prices',async()=>{
+it('selects a channel with visible tabs and updates displayed prices',async()=>{
  const store=createTestStore();store.resetDemoData()
  const w=mount(Pos)
  try{
   await nextTick()
-  const selector=w.get('[data-pos-platform]')
-  await selector.trigger('keydown',{key:'ArrowDown'});await selector.trigger('keydown',{key:'ArrowDown'});await selector.trigger('keydown',{key:'Enter'})
+  const tabs=w.findAll('[role="tab"]')
+  expect(tabs[0].attributes('aria-selected')).toBe('true')
+  await tabs[1].trigger('click')
   expect(store.currentPlatformId).toBe(store.platforms[1].id)
+  expect(tabs[1].attributes('aria-selected')).toBe('true')
+  expect(tabs[0].attributes('aria-selected')).toBe('false')
   expect(w.text()).toContain('฿95')
  }finally{w.unmount()}
 })

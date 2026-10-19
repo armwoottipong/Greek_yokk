@@ -1225,6 +1225,15 @@ const posDefinition = {
     },
 
     setPlatform(platId) {
+      if (!this.platforms.some(p => p.id === platId && p.isActive !== false) || platId === this.currentPlatformId) return
+      // Keep the order and recipe snapshots; refresh only channel price lists.
+      this.cart = this.cart.map(item => ({
+        ...item,
+        menu: { ...item.menu, prices: clone(this.menus.find(m => m.id === item.menu.id)?.prices || item.menu.prices || {}) },
+        selectedAddons: (item.selectedAddons || []).map(addon => ({
+          ...addon, prices: clone(this.addons.find(a => a.id === addon.id)?.prices || addon.prices || {})
+        }))
+      }))
       this.currentPlatformId = platId
     },
 
@@ -3042,6 +3051,7 @@ const posDefinition = {
         platformName: plat.name,
         subtotal: summary.subtotal,
         discount: 0,
+        gpPercent: summary.gpPercent,
         gpAmount: summary.gpAmount,
         netRevenue: summary.netRevenue,
         ingredientCost,
