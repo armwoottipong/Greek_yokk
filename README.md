@@ -54,10 +54,8 @@ npm run preview
 
 โปรเจกต์นี้มี CI/CD ผ่าน GitHub Actions อัตโนมัติ (`.github/workflows/deploy.yml`):
 1. ไปที่ GitHub Repository: **Settings** -> **Pages**
-2. ภายใต้หัวข้อ **Build and deployment** > **Source**:
-   - เลือก **Deploy from a branch**
-   - Branch: **gh-pages**, Folder: **/(root)**
-3. ทุกครั้งที่มีการ `git push` ขึ้น Branch `main` ระบบจะทำการ Build และ Deploy เวอร์ชันล่าสุดให้ทันที
+2. ภายใต้หัวข้อ **Build and deployment** > **Source** เลือก **GitHub Actions**
+3. ทุกครั้งที่มีการ `git push` ขึ้น Branch `main` ระบบจะทดสอบ Build และเผยแพร่ผ่าน GitHub Pages โดยตรง จากนั้นตรวจว่า `version.json` บนเว็บจริงมี commit ตรงกับเวอร์ชันที่ส่งขึ้น หากยังไม่ตรง workflow จะไม่รายงานว่าสำเร็จ
 4. เข้าใช้งานได้ที่: `https://armwoottipong.github.io/Greek_yokk/`
 
 
