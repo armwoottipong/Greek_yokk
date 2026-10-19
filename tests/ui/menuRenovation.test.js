@@ -20,11 +20,40 @@ it('changes the displayed channel inline without changing checkout pricing',asyn
  const store=createTestStore();store.resetDemoData();const original=store.currentPlatformId,w=mount(Menu)
  try{
   await flushPromises()
-  await w.get('[aria-label="ช่องทางที่แสดงราคา"][role="combobox"]').trigger('keydown',{key:'ArrowDown'})
-  await w.get('[aria-label="ช่องทางที่แสดงราคา"][role="combobox"]').trigger('keydown',{key:'ArrowDown'})
-  await w.get('[aria-label="ช่องทางที่แสดงราคา"][role="combobox"]').trigger('keydown',{key:'Enter'})
+  await w.get('[role="tab"][data-platform-tab="PLAT02"]').trigger('click')
   await flushPromises()
   expect(w.vm.displayPlatformId).toBe(store.platforms[1].id);expect(store.currentPlatformId).toBe(original)
+ }finally{w.unmount()}
+})
+
+it('selects platform badges in the detail sheet and keeps toolbar selection in sync without changing POS',async()=>{
+ const store=createTestStore();store.resetDemoData();const platform=store.currentPlatformId,before=JSON.stringify(store.menus)
+ const w=mount(Menu,{attachTo:document.body})
+ try{
+  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
+  const sheet=()=>document.getElementById('menu-recipe')
+  const badge=sheet().querySelector('button[data-platform-price="PLAT02"]')
+  expect(badge).not.toBeNull();badge.click();await flushPromises()
+  expect(badge.getAttribute('aria-pressed')).toBe('true')
+  expect(sheet().querySelector('[data-platform-price="PLAT01"]').getAttribute('aria-pressed')).toBe('false')
+  expect(w.get('[data-platform-tab="PLAT02"]').attributes('aria-selected')).toBe('true')
+  expect(w.vm.displayPlatformId).toBe('PLAT02')
+  expect(store.currentPlatformId).toBe(platform)
+  expect(JSON.stringify(store.menus)).toBe(before)
+  w.vm.closeBomModal();await flushPromises()
+  expect(w.get('[data-platform-tab="PLAT02"]').attributes('aria-selected')).toBe('true')
+  expect(w.get('.menu-row-price').text()).toContain('GrabFood')
+ }finally{w.unmount()}
+})
+
+it('supports keyboard platform tabs',async()=>{
+ const store=createTestStore();store.resetDemoData();const w=mount(Menu,{attachTo:document.body})
+ try{
+  await w.get('[data-platform-tab="PLAT01"]').trigger('keydown',{key:'ArrowRight'});await flushPromises()
+  expect(w.vm.displayPlatformId).toBe('PLAT02')
+  expect(document.activeElement.getAttribute('data-platform-tab')).toBe('PLAT02')
+  await w.get('[data-platform-tab="PLAT02"]').trigger('keydown',{key:'End'});await flushPromises()
+  expect(w.vm.displayPlatformId).toBe('PLAT04')
  }finally{w.unmount()}
 })
 
