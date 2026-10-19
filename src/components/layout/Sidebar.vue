@@ -13,7 +13,7 @@
       <button
         v-for="item in navItems"
         :key="item.id"
-        :aria-label="item.label + (item.badge ? ' ' + item.badge : '')" :title="item.label"
+        :aria-label="item.label + (item.alert ? ' มีวัตถุดิบใกล้หมด' : item.badge ? ' ' + item.badge : '')" :title="item.label"
         @click="navigate(item.id)"
         :aria-current="store.currentTab === item.id ? 'page' : undefined"
         :class="[
@@ -28,7 +28,13 @@
           <span class="whitespace-nowrap">{{ item.label }}</span>
         </div>
         <span
-          v-if="item.badge" class="hidden md:inline"
+          v-if="item.alert"
+          aria-hidden="true"
+          class="w-2 h-2 shrink-0 rounded-full"
+          :class="store.currentTab === item.id ? 'bg-white' : 'bg-rose-600'"
+        ></span>
+        <span
+          v-else-if="item.badge" class="hidden md:inline"
           :class="[
             'text-[10px] px-2 py-0.5 rounded-full font-number',
             store.currentTab === item.id ? 'bg-white/20 text-white' : item.badgeColor
@@ -118,7 +124,7 @@ const navItems = computed(() => [
   { id: 'pos', label: 'แคชเชียร์ (POS)', icon: ShoppingBag, badge: store.cart.length > 0 ? store.cart.reduce((s, i) => s + i.qty, 0) : null, badgeColor: 'bg-amber-600 text-white' },
   { id: 'menu', label: 'จัดการเมนู', icon: UtensilsCrossed, badge: `${store.menus.length} รายการ`, badgeColor: 'bg-stone-100 text-stone-600' },
   { id: 'addon', label: 'จัดการ Add-on', icon: Sparkles, badge: `${store.addons.length} รายการ`, badgeColor: 'bg-stone-100 text-stone-600' },
-  { id: 'stock', label: 'คลังวัตถุดิบ & Package', icon: Package, badge: store.lowStockMaterials.length > 0 ? `เตือน ${store.lowStockMaterials.length}` : null, badgeColor: 'bg-rose-100 text-rose-700' },
+  { id: 'stock', label: 'คลังวัตถุดิบ & Package', icon: Package, alert: store.lowStockMaterials.length > 0 },
   { id: 'settings', label: 'ตั้งค่า & ระบบ API', icon: Settings }
 ])
 </script>
