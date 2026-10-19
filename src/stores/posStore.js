@@ -35,6 +35,7 @@ import {
 } from 'pinia'
 import { MATERIAL_KIND_OPTIONS, getMaterialKind, getMaterialKindLabel, buildMaterialUsage } from '@/domain/materialClassification'
 import { validateLotDates } from '@/domain/lotDates'
+import { isValidGp } from '@/domain/pricing'
 import {
   DEFAULT_MATERIALS,
   DEFAULT_MENUS,
@@ -1730,6 +1731,20 @@ const posDefinition = {
     // ========================================================
     // MENU CRUD & MANAGEMENT
     // ========================================================
+    savePlatformGpRates(rates) {
+      if (!rates || typeof rates !== 'object' || Array.isArray(rates) ||
+        Object.entries(rates).some(([id, value]) => !this.platforms.some(p => p.id === id) || !isValidGp(value))) {
+        return { ok: false, message: 'กรอก GP ตั้งแต่ 0 และน้อยกว่า 100 สำหรับช่องทางที่มีอยู่' }
+      }
+      const candidate = this.databaseSnapshot()
+      candidate.platforms = candidate.platforms.map(platform => ({
+        ...platform,
+        gpPercent: Object.hasOwn(rates, platform.id) ? Number(rates[platform.id]) : platform.gpPercent
+      }))
+      const result = this.commitDatabase(candidate, { preserveDraft: true })
+      if (result.ok) this.showToast('บันทึกอัตรา GP แล้ว ราคาเมนูเดิมยังคงเดิม', 'success')
+      return result
+    },
     saveMenu(menuData) {
       if (menuData.id) {
         const idx = this.menus.findIndex(m => m.id === menuData.id)

@@ -96,30 +96,24 @@
         </div>
         <div>
           <h3 class="text-sm font-bold text-stone-900">ช่องทางขายและค่าธรรมเนียม</h3>
-          <p class="text-xs text-stone-400">อัตรา GP ที่ใช้คำนวณกำไรในแต่ละบิล</p>
+          <p class="text-xs text-stone-400">กำหนด GP แยกตามช่องทาง เพื่อคำนวณยอดหลังหัก GP และราคาแนะนำของเมนู</p>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div
-          v-for="plat in store.platforms"
-          :key="plat.id"
-          class="p-3.5 rounded-xl border border-stone-100 bg-[#FBF5EA] flex items-center justify-between"
-        >
-          <div class="flex items-center gap-2.5">
-            <span class="text-2xl">{{ plat.icon }}</span>
-            <div>
-              <div class="font-bold text-stone-900 text-xs">{{ plat.name }}</div>
-              <div class="text-[11px] text-stone-400">ค่าธรรมเนียมช่องทาง</div>
-            </div>
-          </div>
-          <div class="text-right">
-            <span class="text-xs font-bold font-number text-amber-900 bg-amber-100/60 px-2 py-0.5 rounded-md">
-              GP {{ plat.gpPercent }}%
-            </span>
-          </div>
+      <form data-gp-settings novalidate @submit.prevent="saveGpRates" class="settings-gp-form">
+        <div class="settings-gp-fields">
+          <FormField v-for="plat in store.platforms" :key="plat.id" :id="`gp-${plat.id}`"
+            :label="plat.name" :error="gpErrors[plat.id]" v-slot="{controlId,describedBy,invalid}">
+            <AppInput :id="controlId" v-model="gpDraft[plat.id]" type="number" min="0" max="100" step="any"
+              :aria-label="`GP ${plat.name}`" :aria-describedby="describedBy" :aria-invalid="invalid">
+              <template #suffix>%</template>
+            </AppInput>
+          </FormField>
         </div>
-      </div>
+        <p class="settings-gp-help">กรอกตั้งแต่ 0 และน้อยกว่า 100% · ใช้กับบิลใหม่และราคาแนะนำ ไม่เปลี่ยนราคาขายเมนูหรือบิลที่บันทึกแล้ว</p>
+        <p v-if="gpSaveError" data-gp-save-error role="alert" class="settings-gp-error">{{ gpSaveError }}</p>
+        <div class="settings-gp-actions"><Button type="submit" :disabled="!gpDirty || Object.keys(gpErrors).length > 0">บันทึก GP</Button></div>
+      </form>
     </div>
 
     <!-- Section 3: Category Management (จัดการหมวดหมู่ระบบ) -->
@@ -244,7 +238,11 @@
 <script setup>
 import '@/assets/settings.css'
 import { businessDateKey } from '@/domain/businessDate'
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
+import FormField from '@/components/ui/FormField.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import Button from '@/components/ui/Button.vue'
+import { isValidGp } from '@/domain/pricing'
 import { usePosStore } from '@/stores/posStore'
 import {
   Cloud,
@@ -266,11 +264,27 @@ const store = usePosStore()
 const activeSettingsSection = ref('backup')
 const settingsSections = [
   { id: 'backup', label: 'สำรองและกู้คืน', description: 'เก็บข้อมูลร้านให้อุ่นใจ', icon: Database },
-  { id: 'platforms', label: 'ช่องทางขาย', description: 'ดูอัตราค่าธรรมเนียม GP', icon: Store },
+  { id: 'platforms', label: 'ช่องทางขาย', description: 'ตั้งค่า GP แต่ละช่องทาง', icon: Store },
   { id: 'sheets', label: 'Google Sheets', description: 'เชื่อมต่อและสำรองออนไลน์', icon: Cloud }
 ]
 const gasUrlInput = ref(store.gasApiUrl)
 const fileInput = ref(null)
+const gpDraft = ref({})
+const gpSaveError = ref('')
+watch(() => JSON.stringify(store.platforms.map(p => [p.id, p.gpPercent])), () => {
+  gpDraft.value = Object.fromEntries(store.platforms.map(p => [p.id, p.gpPercent]))
+  gpSaveError.value = ''
+}, { immediate: true })
+const gpErrors = computed(() => Object.fromEntries(store.platforms
+  .filter(p => !isValidGp(gpDraft.value[p.id]))
+  .map(p => [p.id, 'กรอก GP ตั้งแต่ 0 และน้อยกว่า 100%'])))
+const gpDirty = computed(() => store.platforms.some(p => Number(gpDraft.value[p.id]) !== p.gpPercent || !isValidGp(gpDraft.value[p.id])))
+function saveGpRates() {
+  gpSaveError.value = ''
+  if (Object.keys(gpErrors.value).length || !gpDirty.value) return
+  const result = store.savePlatformGpRates(gpDraft.value)
+  if (!result.ok) gpSaveError.value = result.message
+}
 
 // ==========================================
 // CATEGORY MANAGEMENT LOGIC

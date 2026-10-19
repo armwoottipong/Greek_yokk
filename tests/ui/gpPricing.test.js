@@ -1,0 +1,125 @@
+import { afterEach, expect, it, vi } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import { createTestStore } from '../helpers/createStore'
+import { DATABASE_KEY } from '../../src/services/localDatabase'
+import Settings from '../../src/views/SettingsView.vue'
+import MenuEdit from '../../src/components/modals/MenuEditModal.vue'
+
+let wrapper
+afterEach(() => wrapper?.unmount())
+
+it('saves independent GP rates only on explicit save and preserves prices and past orders', async () => {
+  const store = createTestStore(); store.resetDemoData()
+  const menus = JSON.stringify(store.menus), orders = JSON.stringify(store.orders)
+  wrapper = mount(Settings)
+  await wrapper.get('[aria-controls="settings-platforms"]').trigger('click')
+  await wrapper.get('[aria-label="GP GrabFood"]').setValue('25.5')
+  expect(store.platforms.find(p => p.id === 'PLAT02').gpPercent).toBe(30)
+  await wrapper.get('[data-gp-settings]').trigger('submit')
+  expect(store.platforms.find(p => p.id === 'PLAT02').gpPercent).toBe(25.5)
+  expect(store.platforms.find(p => p.id === 'PLAT03').gpPercent).toBe(30)
+  expect(JSON.parse(localStorage.getItem(DATABASE_KEY)).platforms.find(p => p.id === 'PLAT02').gpPercent).toBe(25.5)
+  expect(JSON.stringify(store.menus)).toBe(menus)
+  expect(JSON.stringify(store.orders)).toBe(orders)
+})
+
+it.each(['', '-1', '100'])('rejects invalid GP %s without changing saved data', async value => {
+  const store = createTestStore(); store.resetDemoData()
+  const before = localStorage.getItem(DATABASE_KEY)
+  wrapper = mount(Settings)
+  await wrapper.get('[aria-label="GP GrabFood"]').setValue(value)
+  await wrapper.get('[data-gp-settings]').trigger('submit')
+  expect(wrapper.get('[data-gp-settings] [role="alert"]').text()).toContain('น้อยกว่า 100')
+  expect(localStorage.getItem(DATABASE_KEY)).toBe(before)
+})
+
+it('keeps a GP draft and reports failure if another window has saved', async () => {
+  const store = createTestStore(); store.resetDemoData()
+  wrapper = mount(Settings)
+  await wrapper.get('[aria-label="GP GrabFood"]').setValue('20')
+  const saved = JSON.parse(localStorage.getItem(DATABASE_KEY)); saved.revision += 1
+  localStorage.setItem(DATABASE_KEY, JSON.stringify(saved))
+  await wrapper.get('[data-gp-settings]').trigger('submit')
+  expect(store.platforms.find(p => p.id === 'PLAT02').gpPercent).toBe(30)
+  expect(wrapper.get('[aria-label="GP GrabFood"]').element.value).toBe('20')
+  expect(wrapper.get('[data-gp-save-error]').text()).toContain('หน้าต่างอื่น')
+})
+
+it('preserves unsaved GP edits when an unrelated setting is saved', async () => {
+  const store = createTestStore(); store.resetDemoData()
+  wrapper = mount(Settings)
+  await wrapper.get('[aria-controls="settings-platforms"]').trigger('click')
+  await wrapper.get('[aria-label="GP GrabFood"]').setValue('20')
+  await wrapper.get('[aria-controls="settings-sheets"]').trigger('click')
+  await wrapper.get('#gas-url').setValue('https://script.google.com/macros/s/test/exec')
+  await wrapper.findAll('button').find(button => button.text() === 'บันทึก URL').trigger('click')
+  await wrapper.get('[aria-controls="settings-platforms"]').trigger('click')
+  expect(wrapper.get('[aria-label="GP GrabFood"]').element.value).toBe('20')
+  expect(store.platforms.find(p => p.id === 'PLAT02').gpPercent).toBe(30)
+})
+
+it('recommends grossed-up prices and applies them to the draft only when requested', async () => {
+  const store = createTestStore(); store.resetDemoData()
+  vi.spyOn(store, 'confirmDialog').mockResolvedValue(true)
+  const menu = store.menus[0], original = menu.prices.PLAT02
+  wrapper = mount(MenuEdit)
+  store.modals.menuEdit = { isOpen: true, menuId: menu.id }; await flushPromises()
+  await wrapper.get('[aria-label="ราคา หน้าร้าน (Storefront)"]').setValue('100')
+  await wrapper.get('[aria-label="รายละเอียดราคา GrabFood"]').trigger('click')
+  const recommendation = () => wrapper.get('[data-price-recommendation="PLAT02"]')
+  expect(recommendation().text()).toContain('142.86')
+  expect(wrapper.get('[aria-label="ราคา GrabFood"]').element.value).toBe(String(original))
+  await recommendation().get('button').trigger('click')
+  expect(wrapper.get('[aria-label="ราคา GrabFood"]').element.value).toBe('142.86')
+  expect(wrapper.get('[data-net-revenue="PLAT02"]').text()).toContain('100.00')
+  expect(store.menus[0].prices.PLAT02).toBe(original)
+  await wrapper.get('[aria-label="ราคา GrabFood"]').setValue('150')
+  expect(wrapper.get('[data-net-revenue="PLAT02"]').text()).toContain('105.00')
+  await wrapper.vm.submit(); await flushPromises()
+  expect(store.menus[0].prices.PLAT02).toBe(150)
+  expect(store.modals.menuEdit.isOpen).toBe(false)
+})
+
+it('updates suggestions after GP changes without replacing the entered selling price', async () => {
+  const store = createTestStore(); store.resetDemoData()
+  wrapper = mount(MenuEdit)
+  store.modals.menuEdit = { isOpen: true, menuId: null }; await flushPromises()
+  await wrapper.get('[aria-label="ราคา หน้าร้าน (Storefront)"]').setValue('100')
+  await wrapper.get('[aria-label="ราคา GrabFood"]').setValue('160')
+  await wrapper.get('[aria-label="รายละเอียดราคา GrabFood"]').trigger('click')
+  store.savePlatformGpRates({ PLAT02: 20 }); await flushPromises()
+  expect(wrapper.get('[data-price-recommendation="PLAT02"]').text()).toContain('125.00')
+  expect(wrapper.get('[aria-label="ราคา GrabFood"]').element.value).toBe('160')
+  await wrapper.get('[aria-label="ราคา หน้าร้าน (Storefront)"]').setValue('')
+  expect(wrapper.get('[data-price-recommendation="PLAT02"] button').attributes('disabled')).toBeDefined()
+  expect(wrapper.get('[data-price-recommendation="PLAT02"]').text()).not.toContain('0.00')
+  await wrapper.get('[aria-label="ราคา หน้าร้าน (Storefront)"]').setValue('0')
+  expect(wrapper.get('[data-price-recommendation="PLAT02"] button').attributes('disabled')).toBeUndefined()
+  expect(wrapper.get('[data-price-recommendation="PLAT02"]').text()).toContain('0.00')
+})
+
+it('keeps pricing details behind a toggle and closes them with Escape or an outside click', async () => {
+  const store = createTestStore(); store.resetDemoData()
+  wrapper = mount(MenuEdit, { attachTo: document.body })
+  store.modals.menuEdit = { isOpen: true, menuId: store.menus[0].id }; await flushPromises()
+  expect(wrapper.text()).not.toContain('ราคาแนะนำ =')
+  expect(wrapper.text()).not.toContain('หลังหัก GP ได้รับ')
+  const trigger = wrapper.get('[aria-label="รายละเอียดราคา GrabFood"]')
+  expect(trigger.attributes('aria-expanded')).toBe('false')
+  await trigger.trigger('click'); await flushPromises()
+  expect(trigger.attributes('aria-expanded')).toBe('true')
+  expect(wrapper.text()).toContain('ราคาแนะนำ =')
+  await trigger.trigger('click')
+  expect(wrapper.find('[data-price-recommendation="PLAT02"]').exists()).toBe(false)
+  await trigger.trigger('click'); await flushPromises()
+  await wrapper.get('[data-price-recommendation="PLAT02"] button').trigger('keydown', { key: 'Escape' })
+  expect(trigger.attributes('aria-expanded')).toBe('false')
+  expect(store.modals.menuEdit.isOpen).toBe(true)
+  expect(document.activeElement).toBe(trigger.element)
+  await trigger.trigger('click'); await flushPromises()
+  await wrapper.get('[aria-label="รายละเอียดราคา LINE MAN"]').trigger('click'); await flushPromises()
+  expect(trigger.attributes('aria-expanded')).toBe('false')
+  expect(wrapper.get('[aria-label="รายละเอียดราคา LINE MAN"]').attributes('aria-expanded')).toBe('true')
+  await wrapper.get('#menu-name').trigger('pointerdown')
+  expect(wrapper.find('[data-price-recommendation="PLAT03"]').exists()).toBe(false)
+})

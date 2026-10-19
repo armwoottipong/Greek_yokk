@@ -6,7 +6,16 @@
     <FormField id="menu-description" label="คำอธิบายสั้น" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.description" aria-label="คำอธิบายเมนู" placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด"/></FormField>
    </section>
    <details v-smooth-disclosure class="menu-editor-section" data-menu-prices open><summary><span>ราคาขายแต่ละช่องทาง</span><small>{{ store.platforms.length }} ช่องทาง</small></summary><div class="menu-editor-section-body">
-    <div class="menu-editor-prices"><FormField v-for="p in store.platforms" :key="p.id" :label="p.name" :hint="p.gpPercent>0?'ค่าธรรมเนียมช่องทาง '+p.gpPercent+'%':undefined" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.prices[p.id]" type="number" min="0" step="any" :aria-label="`ราคา ${p.name}`" placeholder="0"><template #prefix>฿</template></AppInput></FormField></div>
+    <div class="menu-editor-prices">
+     <div v-for="p in store.platforms" :key="p.id" class="menu-editor-price">
+      <FormField :id="`menu-price-${p.id}`" :label="p.name" v-slot="{controlId}">
+       <AppInput :id="controlId" v-model="form.prices[p.id]" type="number" min="0" step="any" :aria-label="`ราคา ${p.name}`" placeholder="0">
+        <template #prefix>฿</template>
+        <template #suffix><MenuPriceInfo :platform="p" :open="openPriceInfo === p.id" :selling-price="form.prices[p.id]" :storefront-price="storefront ? form.prices[storefront.id] : ''" :has-storefront="!!storefront" @toggle="openPriceInfo = openPriceInfo === p.id ? null : p.id" @close="openPriceInfo = null" @apply="form.prices[p.id] = $event" /></template>
+       </AppInput>
+      </FormField>
+     </div>
+    </div>
    </div></details>
    <details v-smooth-disclosure class="menu-editor-section" data-menu-permissions><summary><span>ตัวเลือกการขาย</span><small>ท็อปปิ้งและบรรจุภัณฑ์</small></summary><div class="menu-editor-section-body menu-editor-options">
     <AppCheckbox v-model="form.hasAddons" variant="switch" label="อนุญาตให้เลือก Add-on"><strong>อนุญาตให้เลือก Add-on</strong><small>ลูกค้าสั่งท็อปปิ้งเพิ่มเติมได้</small></AppCheckbox>
@@ -34,6 +43,7 @@
 <script setup>
 import {vSmoothDisclosure} from '@/directives/smoothDisclosure'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
+import MenuPriceInfo from '@/components/catalog/MenuPriceInfo.vue'
 import FormField from '@/components/ui/FormField.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import RecipeEditorRow from '@/components/ui/RecipeEditorRow.vue'
@@ -48,6 +58,8 @@ import { Plus, Check } from 'lucide-vue-next'
 
 const store = usePosStore()
 const nameError=ref('')
+const openPriceInfo=ref(null)
+watch(() => store.modals.menuEdit.isOpen, () => { openPriceInfo.value = null })
 
 const form = ref({
   id: '',
@@ -70,6 +82,7 @@ const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => ({
 }))
 
 const isEditing = computed(() => Boolean(store.modals.menuEdit.menuId))
+const storefront = computed(() => store.platforms.find(p => p.id === 'PLAT01'))
 
 const recipeMaterialsByCategory = computed(() => {
   const nonPkgs = store.activeMaterials.filter(m => m.inventoryType === 'ingredient')
