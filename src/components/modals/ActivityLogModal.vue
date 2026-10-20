@@ -36,7 +36,7 @@
         </div>
         <section v-for="group in groupedLogs" :key="group.dateKey" :aria-label="group.dateLabel">
           <h4 class="sticky top-0 z-10 flex items-center justify-between bg-stone-50 px-4 py-2 sm:px-5 text-xs font-medium text-stone-600 border-y border-stone-100"><span>{{ group.dateLabel }}</span><span class="text-stone-400">{{ group.items.length }} รายการ</span></h4>
-          <HistoryLogEntry v-for="log in group.items" :key="log.id" :log="log" :item-mode="isItemMode" />
+          <HistoryLogEntry v-for="log in group.items" :key="log.id" :log="log" :item-mode="isItemMode" :order="ordersById.get(log.targetId)" @undo="confirmUndoOrder" />
         </section>
       </div>
 
@@ -73,6 +73,17 @@ import {
 } from 'lucide-vue-next'
 
 const store = usePosStore()
+const ordersById = computed(() => new Map((store.orders || []).map(order => [order.orderId, order])))
+async function confirmUndoOrder(orderId) {
+  const confirmed = await store.confirmDialog({
+    title: 'ย้อนกลับออเดอร์นี้?',
+    message: `ออเดอร์ ${orderId}\nระบบจะยกเลิกยอดขายและคืนวัตถุดิบกับบรรจุภัณฑ์ที่ตัดไปเข้าล็อตเดิม โดยเก็บประวัติการย้อนกลับไว้`,
+    confirmText: 'ย้อนกลับออเดอร์',
+    cancelText: 'เก็บออเดอร์ไว้',
+    type: 'danger'
+  })
+  if (confirmed) store.undoOrder(orderId)
+}
 
 // Popover state
 const showFilterPopover = ref(false)
@@ -153,6 +164,7 @@ const availableActionOptions = computed(() => {
     { id: 'produce', label: 'ผลิตตามสูตร', icon: '🥣' },
     { id: 'sale_deduct', label: 'ตัดขาย', icon: '🛍️' },
     { id: 'order_complete', label: 'ขายหน้าร้าน', icon: '🧾' },
+    { id: 'order_cancel', label: 'ย้อนกลับออเดอร์', icon: '🧾' },
     { id: 'waste', label: 'ของเสีย', icon: '🗑️' },
     { id: 'switch_lot', label: 'สลับล็อต', icon: '⚡' }
   ]

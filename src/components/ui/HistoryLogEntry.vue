@@ -24,6 +24,16 @@
         <template v-if="log.cost != null"><dt class="text-stone-400">ต้นทุนที่บันทึก</dt><dd>฿{{ number(log.cost) }}</dd></template>
         <template v-if="log.user"><dt class="text-stone-400">ผู้บันทึก</dt><dd>{{ log.user }}</dd></template>
       </dl>
+      <div v-if="log.action === 'order_complete'" class="pt-2 space-y-2">
+        <template v-if="order">
+          <p v-for="(item, index) in order.items" :key="index">{{ item.qty }} × {{ item.menuName }}</p>
+          <p class="font-semibold tabular-nums text-stone-900">ยอดขาย ฿{{ number(order.subtotal) }}</p>
+          <p v-if="order.status === 'cancelled'" role="status" class="font-medium text-stone-700">ย้อนกลับแล้ว · ยกเลิกยอดขายและคืนสต็อกแล้ว</p>
+          <button v-else-if="Array.isArray(order.inventoryAllocations)" type="button" class="history-undo" @click="$emit('undo', order.orderId)">ย้อนกลับออเดอร์</button>
+          <p v-else class="text-stone-500">ออเดอร์เก่านี้ไม่มีข้อมูลการตัดล็อต จึงย้อนกลับอัตโนมัติไม่ได้</p>
+        </template>
+        <p v-else class="text-stone-500">ไม่พบข้อมูลออเดอร์สำหรับย้อนกลับ</p>
+      </div>
     </div>
   </details>
 </template>
@@ -31,7 +41,8 @@
 import {computed} from 'vue'
 import {ChevronDown} from 'lucide-vue-next'
 import {formatThaiDate} from '@/stores/posStore'
-const props=defineProps({log:{type:Object,required:true},itemMode:Boolean})
+const props=defineProps({log:{type:Object,required:true},itemMode:Boolean,order:{type:Object,default:null}})
+defineEmits(['undo'])
 const labels={stock_in:'รับเข้า',adjust:'ตรวจนับ',stock_adjust_add:'ปรับเพิ่ม',stock_adjust_reduce:'ปรับลด',produce:'ผลิต',produce_batch:'ผลิต',produce_deduct:'ตัดวัตถุดิบผลิต',sale_deduct:'ตัดขาย',order_complete:'ขาย',waste:'ของเสีย',switch_lot:'สลับล็อต',create:'เพิ่มรายการ',edit:'แก้ไข',delete:'ลบรายการ',sync:'ซิงค์ข้อมูล'}
 const shortTitle=computed(()=>labels[props.log.action] || props.log.title || 'กิจกรรม')
 const number=value=>Number(value).toLocaleString('th-TH',{maximumFractionDigits:4})
@@ -46,4 +57,7 @@ const time=computed(()=>{
 <style scoped>
 .history-summary { list-style: none; }
 .history-summary::-webkit-details-marker { display: none; }
+.history-undo { min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:8px; color:var(--text-main); background:var(--bg-card); font-weight:500; }
+.history-undo:hover { background:var(--bg-soft); }
+.history-undo:focus-visible { outline:2px solid var(--accent-brand); outline-offset:2px; }
 </style>

@@ -894,7 +894,7 @@ const posDefinition = {
       const now = new Date()
       const todayStr = businessDateKey(now)
       return state.orders.filter(ord => {
-        if (!ord.createdAt) return false
+        if (!ord.createdAt || ord.status === 'cancelled') return false
         const ordDateStr = businessDateKey(ord.createdAt)
         if (state.dashboardPeriod === 'today') return ordDateStr === todayStr
         if (state.dashboardPeriod === 'week') {
@@ -2947,6 +2947,62 @@ const posDefinition = {
       this.cart = []
       this.packageAdjustments = []
       this.orderNote = ''
+    },
+
+    // Return actual allocations instead of recalculating recipes that may have changed.
+    undoOrder(orderId) {
+      const fail = message => {
+        this.showToast(message, 'error')
+        return {ok: false, message}
+      }
+      const candidate = this.databaseSnapshot()
+      const order = candidate.orders.find(row => row.orderId === orderId)
+      if (!order) return fail('ไม่พบออเดอร์นี้')
+      if (order.status === 'cancelled') return fail('ออเดอร์นี้ย้อนกลับแล้ว')
+      if (!Array.isArray(order.inventoryAllocations)) return fail('ออเดอร์เก่านี้ไม่มีข้อมูลการตัดล็อต จึงย้อนกลับอัตโนมัติไม่ได้')
+      const returnedMaterials = new Set()
+      for (const allocation of order.inventoryAllocations) {
+        const material = candidate.materials.find(row => row.id === allocation?.materialId)
+        const lot = material?.lots?.find(row => row.id === allocation.lotId)
+        if (!lot || !Number.isFinite(allocation.qty) || allocation.qty <= 0) {
+          return fail('คืนสต็อกไม่ได้: ข้อมูลล็อตเดิมไม่ครบ กรุณาตรวจสอบสต็อก')
+        }
+        lot.qty = Math.round((lot.qty + allocation.qty) * 100) / 100
+        returnedMaterials.add(material.id)
+      }
+      for (const material of candidate.materials.filter(row => returnedMaterials.has(row.id))) {
+        material.stock = Math.round(material.lots.reduce((sum, lot) => sum + lot.qty, 0) * 100) / 100
+        if (!material.lots.some(lot => lot.isInUse && lot.qty > 0)) {
+          for (const lot of material.lots) lot.isInUse = false
+          const active = material.lots.find(lot => lot.qty > 0)
+          if (active) {
+            active.isInUse = true
+            material.lastStockInDate = active.receiveDate || null
+            material.expiryDate = active.expiryDate || null
+          }
+        }
+      }
+      order.status = 'cancelled'
+      order.cancelledAt = new Date().toISOString()
+      candidate.stockShortages = candidate.stockShortages.filter(row => row.orderId !== orderId)
+      candidate.activityLogs.unshift(this.makeActivityLog({
+        module: 'pos', action: 'order_cancel', title: 'ย้อนกลับออเดอร์',
+        targetId: orderId, description: `ยกเลิกยอดขายและคืนสต็อกออเดอร์ ${orderId}`
+      }))
+      candidate.activityLogs = candidate.activityLogs.slice(0, 500)
+      const rebased = this.stockDraftSnapshot
+        ? rebaseInventoryDraft(this.stockDraftSnapshot, this.materials, candidate.materials) : null
+      if (rebased && !rebased.ok) return fail('แบบร่างสต็อกขัดแย้ง กรุณาบันทึกหรือยกเลิกแบบร่างก่อนย้อนกลับออเดอร์')
+      const result = this.commitDatabase(candidate)
+      if (!result.ok) return result
+      if (rebased) {
+        this.stockDraftSnapshot = clone(this.materials)
+        this.materials = rebased.materials
+      }
+      if (this.modals.receipt.order?.orderId === orderId) this.modals.receipt.order = clone(order)
+      this.showToast('ย้อนกลับออเดอร์และคืนสต็อกแล้ว', 'success')
+      if (this.gasApiUrl) this.syncWithGas()
+      return {ok: true}
     },
 
     // Complete Checkout

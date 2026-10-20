@@ -34,7 +34,7 @@ function metricsFor(orders){
 export function buildDashboard(source,range){
  let start=range.start,end=range.end || range.start
  if(start && end && start>end) [start,end]=[end,start]
- const orders=source.filter(o=>{const day=o.createdAt ? businessDateKey(o.createdAt) : '';return day && (!start || day>=start) && (!end || day<=end)}).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
+ const orders=source.filter(o=>{const day=o.createdAt ? businessDateKey(o.createdAt) : '';return o.status !== 'cancelled' && day && (!start || day>=start) && (!end || day<=end)}).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
  const first=start || (orders.length?businessDateKey(orders.at(-1).createdAt):null),last=end || (orders.length?businessDateKey(orders[0].createdAt):null)
  const span=first && last ? (dayTime(last)-dayTime(first))/dayMs+1 : 0
  const bucket=span>180?'month':span>60?'week':'day'
