@@ -205,3 +205,5 @@ Task1–5 แก้ข้อบกพร่องที่มีหลักฐ�
 - Task 8 source checks: 96 files / 601 tests PASS; lint PASS; production build PASS; diff whitespace check PASS. Fresh source review produced one Important finding, fixed with RED→GREEN coverage. No source minors deferred.
 - Browser remains unavailable to tools despite the user reporting it enabled, fresh CUA kernel reset and create-tab attempt. Exact error: Local browser use is disabled in Work settings. No screenshot or computed-value approval is claimed.
 - Candidate branch: codex/menu-interface-layout in the attached managed worktree. Kept for continuation; not merged, pushed or deployed. Demo-only preview: http://192.168.1.107:5186/Greek_yokk/menu-interface-preview.html.
+
+Release steering: on 20 October 2026 the user explicitly requested production deployment of all completed code plus clean Git. Earlier no-deploy/retained-preview statements describe preceding snapshots; visual acceptance remains unverified, while merge/deploy/cleanup are now authorized.

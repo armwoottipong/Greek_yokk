@@ -1,6 +1,6 @@
 # Menu interface remediation — implementation candidate
 
-20 October 2026. Source candidate in the isolated menu-interface-layout worktree, compared with baseline a5e1c83. This candidate supersedes the historical layout dimensions below; it is not merged, pushed or deployed. Approved plan: ../../docs/superpowers/plans/2026-10-20-menu-interface-layout.md. Source/DOM audit: ../../docs/ui-audit/2026-10-20-menu-interface-review.md.
+20 October 2026. Release source from the isolated menu-interface-layout worktree, compared with baseline a5e1c83. The user explicitly authorized production deployment and Git cleanup after the preview/header iteration. The implementation supersedes the historical dimensions below; rendered/device acceptance remains unverified. Earlier no-deploy notes below describe prior snapshots. Approved plan: ../../docs/superpowers/plans/2026-10-20-menu-interface-layout.md. Source/DOM audit: ../../docs/ui-audit/2026-10-20-menu-interface-review.md.
 
 THESIS: Keep financial meaning dependable and selection/editing continuous, then size the existing reading workspace by available content width.
 OWN-WORLD: Preserve cream/burgundy, Prompt and the ภาพรวมร้าน reference. PRODUCT.md, DESIGN.md and .impeccable/design.json remain global authorities; no global token migration.
