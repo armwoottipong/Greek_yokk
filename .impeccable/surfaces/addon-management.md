@@ -1,3 +1,35 @@
+# Add-on management — selected-item analytics workspace
+
+Current superseding surface brief, 20 October 2026. This worktree implementation extends the approved menu workspace pattern within the established cream/burgundy/Prompt shop. The previous directory/detail-sheet composition is preserved as history below. PRODUCT.md, DESIGN.md and .impeccable/design.json retain global authority; no new visual world or global token migration.
+
+THESIS: Select one Add-on and read its standard per-channel surcharge, incremental costs/profit and recipe together.
+OWN-WORLD: Inherit the calm shop workspace, menu-like header/list/analysis/recipe composition, semantic chart colors and existing native/shared controls.
+STORY: Search the left list, select an Add-on, compare bar/circle/line analysis, inspect its recipe and open the original editor popup. Open option groups through a separate section switch.
+FIRST VIEWPORT: The active Add-on identity, sale status, configured-channel/recipe counts and add/edit actions lead the workspace. A More disclosure contains confirmed delete; the selected list, analysis and recipe follow.
+FORM: AddonView composes new AddonRecipeDetails with shared MenuPlatformOverview/finance charts. AddonEditModal remains the original DialogFrame popup; no inline editor or replacement details popup is introduced.
+
+## Current implementation
+
+The list searches name/description and exposes selected state. Desktop retains list at left, financial analysis centrally and a 288px recipe rail when menu-content is at least 840px. List width is 208px by default, 192px through viewport 1199px and 224px from 1800px. Reports become two columns only when their analysis container reaches 728px. Below 768px the page switches between list and selected detail, with a named back action. Section switches use named aria-pressed buttons, not an ARIA tab widget; the existing group manager remains separate and mounted.
+
+Header add/edit retain the established popup. More uses native details, closes on Escape/outside/focus departure and keeps delete behind the existing destructive confirmation. Recipe edit enters the recipe section of the same editor. Successful creation selects savedAddonId, clears search if it would hide the saved Add-on, and waits for overlay release before requesting heading focus. Cancel/failure do not select an unrelated added record. The corrected phone back action restores the selected Add-on list button through its Add-on data selector.
+
+All-channel analysis has bar, circle and line modes with textual surcharge, cost, GP, profit/loss, net and margin. An explicit numeric zero Add-on surcharge is configured and remains visible; absent/null/blank or invalid prices are hidden. This Add-on opt-in does not change menus' positive-price-only default. Zero-denominator shares/margins remain unavailable; losses are named. The UI explicitly limits analysis to standard Add-on channel prices: it excludes the main menu price, group-specific custom prices and choices included free in menus. It is incremental Add-on analysis, not total order profitability.
+
+Unknown material costs/missing materials/indeterminate quantities propagate null through row, group and total costs; analysis cannot invent profit from an unknown total. Genuine zero cost and a recipe with no stock deductions retain zero. Recipe sections name ingredient/packaging quantities, stock availability, missing/archived materials and groups using the Add-on.
+
+Local no-outline/no-ring styling retains non-outline fill/underline/label/search-icon feedback, with forced-colors rules inherited from the menu pattern. Cream surfaces, burgundy selection, Prompt and local warm secondary text stay in scope. These are surface arrangements, not new global token rules.
+
+## Current evidence and limits
+
+Five real browser captures were inspected: ../review/addon-workspace-2026-10-20/{desktop,phone-320,editor-320,ipad,wide}.png. They show the 1440px bar/recipe composition, 320px donut detail, original editor at 320px, 768px line comparison with tablet navigation and 1920px two-column reports/recipe rail. The implementer reports actual browser-width checks at 320/768/1440/1920px with no horizontal overflow. This is current rendered evidence, distinct from earlier Add-on screenshots below.
+
+The source reviewer found one phone back-focus data-selector defect; the implementer reports a failing regression followed by the fix and 11 passing focused tests. Fresh final verification reported by the implementer: npm test PASS (98 files / 618 tests), npm run lint PASS, npm run build PASS (1749 modules), git diff --check PASS. The back-focus follow-up addonWorkspace suite passed 11 tests. Physical Safari, physical iPad behavior, 200% zoom and comprehensive assistive-technology/keyboard acceptance remain unverified. No Add-on production deployment is claimed. Current verification: ../../docs/superpowers/verification/2026-10-20-addon-workspace.md.
+
+## Historical directory and editor records
+
+The following brief is preserved for provenance. Its directory channel selector, row layout, details sheet and “current” evidence language belong to the earlier implementation and do not supersede this workspace.
+
 # Add-on management — task-first catalog
 
 Mode: Operate. This is an ordinary extension of the approved menu-management surface and existing cream/burgundy identity. The 14 October 2026 direction established shared menu styling, add/edit popups and responsive layouts. The approved 20 October 2026 direction makes the directory the default and exposes option groups on demand.

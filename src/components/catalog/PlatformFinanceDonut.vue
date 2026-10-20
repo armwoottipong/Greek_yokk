@@ -3,14 +3,14 @@
   <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
    <circle cx="60" cy="60" r="44" fill="none" stroke="var(--bg-soft)" stroke-width="16"/>
    <circle v-for="segment in segments" :key="segment.key" :data-donut-profit="segment.key==='profit'?'':undefined" cx="60" cy="60" r="44" fill="none" :stroke="`var(--chart-${segment.key})`" stroke-width="16" pathLength="100" :stroke-dasharray="`${segment.share} ${100-segment.share}`" :stroke-dashoffset="-segment.offset" transform="rotate(-90 60 60)"/>
-   <text x="60" y="58" text-anchor="middle">{{ loss ? 'ค่าใช้จ่าย' : 'ราคาขาย' }}</text><text x="60" y="76" text-anchor="middle">ต่อ 1 เสิร์ฟ</text>
+   <text x="60" y="58" text-anchor="middle">{{ loss ? 'ค่าใช้จ่าย' : 'ราคาขาย' }}</text><text x="60" y="76" text-anchor="middle">ต่อ 1 {{ unitLabel }}</text>
   </svg>
   <figcaption>{{ total>0 ? loss ? 'สัดส่วนค่าใช้จ่าย: ต้นทุน + GP' : 'สัดส่วนเทียบกับราคาขาย' : 'ไม่มีจำนวนเงินให้แสดงสัดส่วน' }}<small v-if="loss">กำไรติดลบ แสดงยอดขาดทุนแยกด้านล่าง</small></figcaption>
  </figure>
 </template>
 <script setup>
 import {computed} from 'vue'
-const props=defineProps({cost:{type:Number,required:true},row:{type:Object,required:true}})
+const props=defineProps({cost:{type:Number,required:true},row:{type:Object,required:true},unitLabel:{type:String,default:'เสิร์ฟ'}})
 const loss=computed(()=>props.row.profit<0)
 const total=computed(()=>loss.value ? props.cost+props.row.gpAmount : props.row.price)
 const segments=computed(()=>{

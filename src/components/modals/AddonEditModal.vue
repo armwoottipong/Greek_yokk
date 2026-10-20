@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไข Add-on':'เพิ่ม Add-on ใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่" width="720px" :teleport="false" initial-focus="#addon-name" @request-close="requestClose(close)">
+ <DialogFrame :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไข Add-on':'เพิ่ม Add-on ใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่" width="720px" :teleport="false" :initial-focus="store.modals.addonEdit.initialSection==='recipe'?'[data-addon-recipe] button:not(:disabled)':'#addon-name'" @request-close="requestClose(close)">
   <div class="menu-editor">
    <section class="menu-editor-basics" aria-label="ข้อมูล Add-on">
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอน Add-on" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="addon-name" label="ชื่อ Add-on" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น สตรอว์เบอร์รีสด (30g)"/></FormField></div>
@@ -25,6 +25,7 @@
  </DialogFrame>
 </template>
 <script setup>
+import '@/components/catalog/menuFocus.css'
 import {MATERIAL_KIND_OPTIONS, getMaterialKind} from '@/domain/materialClassification'
 import FormField from '@/components/ui/FormField.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -147,6 +148,7 @@ async function submit() {
   const ok = await confirmSave(form.value.name.trim())
   if (!ok) return
 
+  const previousIds=new Set(store.addons.map(addon=>addon.id))
   const result = store.saveAddon({
     id: form.value.id || undefined,
     name: form.value.name.trim(),
@@ -155,7 +157,10 @@ async function submit() {
     recipe: form.value.recipe.map(row => ({ materialId: row.materialId, qty: Number(row.qty) }))
   })
 
-  if (result?.ok || result?.success) close()
+  if (result?.ok || result?.success){
+    store.modals.addonEdit.savedAddonId=form.value.id || store.addons.find(addon=>!previousIds.has(addon.id))?.id || null
+    close()
+  }
 }
 </script>
 

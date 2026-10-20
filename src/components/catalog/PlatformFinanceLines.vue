@@ -1,6 +1,6 @@
 <template>
  <figure ref="host" data-platform-lines class="finance-lines">
-  <figcaption>เปรียบเทียบค่าต่อ 1 เสิร์ฟตามลำดับช่องทาง · เว้นช่องเมื่อยังไม่มีข้อมูล</figcaption>
+  <figcaption>เปรียบเทียบค่าต่อ 1 {{ unitLabel }}ตามลำดับช่องทาง · เว้นช่องเมื่อยังไม่มีข้อมูล</figcaption>
   <svg :viewBox="`0 0 ${width} 250`" aria-hidden="true" focusable="false">
    <text x="4" y="15" class="axis-label">บาท</text>
    <g v-for="tick in scale.ticks" :key="tick"><line x1="50" :x2="width-16" :y1="y(tick)" :y2="y(tick)" class="gridline"/><text x="42" :y="y(tick)+4" text-anchor="end" class="axis-label">{{ tick.toLocaleString('th-TH',{maximumFractionDigits:1}) }}</text></g>
@@ -16,7 +16,7 @@
 </template>
 <script setup>
 import {computed,ref,onMounted,onUnmounted} from 'vue'
-const props=defineProps({rows:{type:Array,default:()=>[]}})
+const props=defineProps({rows:{type:Array,default:()=>[]},unitLabel:{type:String,default:'เสิร์ฟ'}})
 const host=ref(null),width=ref(640)
 let observer
 onMounted(()=>{

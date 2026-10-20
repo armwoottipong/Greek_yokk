@@ -10,7 +10,7 @@ import App from '../../src/App.vue'
 it('distinguishes intentionally unlinked addons from broken references without consumption text',async()=>{
  const store=createTestStore();store.resetDemoData();store.addons[0].recipe=[]
  const w=mount(AddonView,{attachTo:document.body})
- try{w.vm.detailAddonId=store.addons[0].id;await flushPromises();const text=document.getElementById('addon-details').textContent;expect(text).toContain('ไม่ตัดวัตถุดิบ');expect(text).not.toContain('ไม่พบวัตถุดิบ');expect(text).not.toContain('99')}finally{w.unmount()}
+ try{await w.get(`[data-addon-select="${store.addons[0].id}"]`).trigger('click');await flushPromises();const text=document.getElementById('addon-details').textContent;expect(text).toContain('ไม่ตัดวัตถุดิบ');expect(text).not.toContain('ไม่พบวัตถุดิบ');expect(text).not.toContain('99')}finally{w.unmount()}
 })
 for(const [Component,modal,id] of [[MenuEdit,'menuEdit','menu-name'],[AddonEdit,'addonEdit','addon-name']])it(`focuses the missing required field in ${modal}`,async()=>{
  const store=createTestStore();const w=mount(Component,{attachTo:document.body})

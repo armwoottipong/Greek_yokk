@@ -1,21 +1,21 @@
 <template>
  <section class="platform-overview" aria-label="ภาพรวมทุกแพลตฟอร์ม">
-  <header class="overview-heading"><div><h4>ภาพรวมทุกแพลตฟอร์ม</h4><p>รายรับ ต้นทุน และกำไรต่อ 1 เสิร์ฟ</p></div><slot name="controls"/></header>
+  <header class="overview-heading"><div><h4>ภาพรวมทุกแพลตฟอร์ม</h4><p>รายรับ ต้นทุน และกำไรต่อ 1 {{ unitLabel }}</p></div><slot name="controls"/></header>
   <div class="overview-context"><span>{{ estimated ? 'ต้นทุนรวมประมาณการ' : 'ต้นทุนสูตรรวม' }} <strong>{{ money(validCost) }}</strong></span></div>
   <div v-if="rows.length" class="overview-chart-controls"><div class="overview-modes" role="group" aria-label="รูปแบบกราฟ"><button v-for="option in modes" :key="option.value" type="button" :aria-pressed="mode===option.value" @click="mode=option.value">{{ option.label }}</button></div><p class="overview-guide">{{ mode==='bar' ? 'แท่งใช้สเกลบาทเดียวกัน เพื่อเทียบราคาขายและส่วนที่เหลือ' : mode==='donut' ? 'วงกลมแสดงสัดส่วนภายในแต่ละช่องทาง' : 'เส้นเทียบต้นทุน GP และกำไรข้ามช่องทาง' }}</p></div>
   <ul v-if="rows.length" class="overview-legend" aria-label="ส่วนประกอบของราคาขาย"><li><i class="segment-cost" aria-hidden="true"/>ต้นทุน</li><li><i class="segment-gp" aria-hidden="true"/>GP</li><li><i class="segment-profit" aria-hidden="true"/>กำไร</li></ul>
-  <PlatformFinanceLines v-if="mode==='line' && rows.length" :rows="rows"/>
-  <div v-if="!rows.length" class="overview-empty">{{ platforms.length ? 'ยังไม่ได้ตั้งราคาขาย แก้ไขเมนูเพื่อเพิ่มราคาของช่องทางที่ต้องการ' : 'ยังไม่มีช่องทางขาย เพิ่มช่องทางในหน้าตั้งค่าเพื่อเปรียบเทียบราคา' }}</div>
+  <PlatformFinanceLines v-if="mode==='line' && rows.length" :rows="rows" :unit-label="unitLabel"/>
+  <div v-if="!rows.length" class="overview-empty">{{ platforms.length ? `ยังไม่ได้ตั้งราคาขาย แก้ไข${entityLabel}เพื่อเพิ่มราคาของช่องทางที่ต้องการ` : 'ยังไม่มีช่องทางขาย เพิ่มช่องทางในหน้าตั้งค่าเพื่อเปรียบเทียบราคา' }}</div>
   <div class="overview-platforms"><article v-for="row in rows" :key="row.id" :data-menu-platform="row.id" class="platform-report" :aria-labelledby="`${headingId}-${row.id}`">
-   <header class="platform-report-heading"><h5 :id="`${headingId}-${row.id}`">{{ row.name }}</h5><div data-menu-financial="price"><span>ราคาขาย</span><strong>{{ money(row.price) }}</strong></div></header>
+   <header class="platform-report-heading"><h5 :id="`${headingId}-${row.id}`">{{ row.name }}</h5><div data-menu-financial="price"><span>{{ priceLabel }}</span><strong>{{ money(row.price) }}</strong></div></header>
    <div v-if="row.complete && mode==='bar'" data-platform-chart class="platform-chart" aria-hidden="true">
     <span v-if="validCost>0" data-chart-segment class="segment-cost" :style="{width:barWidth(validCost)}"/>
     <span v-if="row.gpAmount>0" data-chart-segment class="segment-gp" :style="{width:barWidth(row.gpAmount)}"/>
     <span v-if="row.profit>0" data-chart-segment data-profit-segment class="segment-profit" :style="{width:barWidth(row.profit)}"/>
     <span v-if="row.profit<0" class="sale-price-marker" :style="{insetInlineStart:barWidth(row.price)}"/>
    </div>
-   <PlatformFinanceDonut v-if="row.complete && mode==='donut'" :cost="validCost" :row="row"/>
-   <p v-if="row.profit<0" class="platform-loss">ขาดทุน {{ money(-row.profit) }} ต่อเสิร์ฟ · ต้นทุนและ GP สูงกว่าราคาขาย</p>
+   <PlatformFinanceDonut v-if="row.complete && mode==='donut'" :cost="validCost" :row="row" :unit-label="unitLabel"/>
+   <p v-if="row.profit<0" class="platform-loss">ขาดทุน {{ money(-row.profit) }} ต่อ{{ unitLabel }} · ต้นทุนและ GP สูงกว่าราคาขาย</p>
    <p v-if="!row.complete" class="platform-unavailable">{{ row.gpPercent===null ? 'ตรวจ GP ในหน้าตั้งค่า ให้เป็นตัวเลขตั้งแต่ 0 ถึง 100%' : 'ตรวจต้นทุนวัตถุดิบ สูตร และตัวเลือกฟรีให้ครบก่อนคำนวณ' }}</p>
    <dl class="platform-metrics">
     <div data-menu-financial="cost"><dt>ต้นทุน</dt><dd>{{ money(validCost) }}</dd><small>{{ share(validCost,row.price) }}</small></div>
@@ -31,7 +31,7 @@
 import {computed,ref,useId} from 'vue'
 import PlatformFinanceDonut from './PlatformFinanceDonut.vue'
 import PlatformFinanceLines from './PlatformFinanceLines.vue'
-const props=defineProps({menu:{type:Object,required:true},platforms:{type:Array,default:()=>[]},cost:{type:Number,default:null},estimated:Boolean,worst:Boolean})
+const props=defineProps({menu:{type:Object,required:true},platforms:{type:Array,default:()=>[]},cost:{type:Number,default:null},estimated:Boolean,worst:Boolean,includeZeroPrices:Boolean,unitLabel:{type:String,default:'เสิร์ฟ'},priceLabel:{type:String,default:'ราคาขาย'},entityLabel:{type:String,default:'เมนู'}})
 const headingId=useId()
 const mode=ref('bar')
 const modes=[{value:'bar',label:'แท่ง'},{value:'donut',label:'วงกลม'},{value:'line',label:'เส้น'}]
@@ -39,7 +39,7 @@ const round=value=>Math.round(value*100)/100
 const validCost=computed(()=>props.cost!==null && Number.isFinite(props.cost) && props.cost>=0 ? round(props.cost) : null)
 const rows=computed(()=>props.platforms.map(platform=>{
  const raw=props.menu.prices?.[platform.id]
- const price=raw!==undefined && raw!==null && raw!=='' && Number.isFinite(Number(raw)) && Number(raw)>0 ? Number(raw) : null
+ const price=raw!==undefined && raw!==null && raw!=='' && Number.isFinite(Number(raw)) && (props.includeZeroPrices?Number(raw)>=0:Number(raw)>0) ? Number(raw) : null
  const rate=Number(platform.gpPercent ?? 0)
  const gpPercent=Number.isFinite(rate) && rate>=0 && rate<=100 ? rate : null
  const gpAmount=price!==null && gpPercent!==null ? round(price*gpPercent/100) : null
