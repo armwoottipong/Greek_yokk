@@ -1,3 +1,4 @@
+:is(.menu-workbench,#MenuEditModal){--menu-muted:#705C50;--text-muted:var(--menu-muted)}
 /* Menu keyboard feedback deliberately uses no outlines, rings or focus shadows. */
 :is(.menu-workbench,#MenuEditModal) :is(button,input,summary):focus-visible {
  outline:none!important;

@@ -23,8 +23,8 @@ const controlAttrs=()=>Object.fromEntries(Object.entries(attrs).filter(([key])=>
 .app-checkbox-control{display:inline-flex;position:relative;align-items:center;justify-content:center;flex-shrink:0}
 .app-checkbox-input{appearance:none;display:block;margin:0;width:18px;height:18px;border:1.5px solid var(--control-border);border-radius:6px;background:var(--bg-card);cursor:inherit;transition:background-color .15s,border-color .15s,box-shadow .15s}
 .app-checkbox-input:checked{background:var(--accent-brand);border-color:var(--accent-brand)}
-.app-checkbox:not(.app-checkbox--disabled):hover .app-checkbox-input{border-color:var(--accent-brand)}
-.app-checkbox:not(.app-checkbox--disabled):hover .app-checkbox-input:checked{background:var(--accent-hover);border-color:var(--accent-hover)}
+@media(hover:hover){.app-checkbox:not(.app-checkbox--disabled):hover .app-checkbox-input{border-color:var(--accent-brand)}}
+@media(hover:hover){.app-checkbox:not(.app-checkbox--disabled):hover .app-checkbox-input:checked{background:var(--accent-hover);border-color:var(--accent-hover)}}
 .app-checkbox-input:focus-visible{outline:2px solid var(--accent-brand);outline-offset:3px;box-shadow:0 0 0 3px var(--focus-ring)}
 .app-checkbox-mark{position:absolute;pointer-events:none;color:var(--bg-card);opacity:0;transform:scale(.7);transition:opacity .12s,transform .12s}
 .app-checkbox-input:checked+.app-checkbox-mark{opacity:1;transform:scale(1)}

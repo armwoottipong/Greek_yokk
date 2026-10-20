@@ -75,7 +75,8 @@ onUnmounted(detach)
 <style scoped>
 .menu-price-info{display:inline-flex;flex-shrink:0;color:var(--text-muted)}
 .menu-price-info-trigger{display:grid;place-items:center;width:44px;height:44px;margin-inline-end:-10px;border-radius:10px;color:var(--text-muted);cursor:pointer}
-.menu-price-info-trigger:hover,.menu-price-info-trigger[aria-expanded=true]{background:var(--accent-soft);color:var(--accent-brand)}
+.menu-price-info-trigger[aria-expanded=true]{background:var(--accent-soft);color:var(--accent-brand)}
+@media(hover:hover){.menu-price-info-trigger:hover{background:var(--accent-soft);color:var(--accent-brand)}}
 .menu-price-info-trigger:focus-visible{outline:2px solid var(--accent-brand);outline-offset:1px}
 .menu-price-info-panel{position:fixed;display:grid;gap:10px;width:min(300px,calc(100vw - 24px));max-height:calc(100vh - 24px);padding:16px;background:var(--bg-card);color:var(--text-muted);box-shadow:var(--shadow-popup);border-radius:14px;font-size:.8125rem;line-height:1.7;text-align:left;overflow:auto;overscroll-behavior:contain;overflow-wrap:anywhere}
 .menu-price-info-panel strong{font-weight:500;color:var(--text-main);font-variant-numeric:tabular-nums}
