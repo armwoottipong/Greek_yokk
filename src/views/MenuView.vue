@@ -17,6 +17,7 @@
  </div>
 </template>
 <script setup>
+import '@/components/catalog/menuFocus.css'
 import {computed,ref,watch,nextTick} from 'vue'
 import {Plus,ChevronRight,ArrowLeft,Pencil,Trash2,BookOpen} from 'lucide-vue-next'
 import {estimateMenuCosts} from '@/domain/menuCosts'
@@ -54,13 +55,19 @@ const selectedMenu=computed(()=>store.menus.find(m=>m.id===selectedId.value)||nu
 watch(()=>store.menus.map(m=>m.id),ids=>{if(!ids.includes(selectedId.value))selectedId.value=ids[0]||null})
 const filteredMenus=computed(()=>store.menus.filter(m=>`${m.name} ${m.description||''}`.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
 const selectedGroups=computed(()=>selectedMenu.value?menuGroups(selectedMenu.value,store.addonGroups):[])
-const selectedMenuCostEstimate=computed(()=>selectedMenu.value?estimateMenuCosts(selectedMenu.value,store.addonGroups,store.addons,store.materials):null)
 const detailedRecipeItems=computed(()=>(selectedMenu.value?.recipe||[]).map(r=>{
  const mat=store.matMap[r.materialId],qty=Number(r.qty)||0,rawCost=mat?.unitCost,unitCost=Number(rawCost)
  const knownCost=rawCost!==null && rawCost!==undefined && rawCost!=='' && Number.isFinite(unitCost) && unitCost>=0 && Number.isFinite(qty) && qty>0
  const calculated=knownCost?qty*unitCost:null,cost=calculated!==null && Number.isFinite(calculated)?calculated:null
  return {...r,mat,qty,cost,servingsAvailable:qty>0?Math.floor((Number(mat?.stock)||0)/qty):null}
 }))
+const selectedMenuCostEstimate=computed(()=>{
+ const menu=selectedMenu.value
+ if(!menu)return null
+ const estimate=estimateMenuCosts(menu,store.addonGroups,store.addons,store.materials)
+ const unknownIncludedRow=detailedRecipeItems.value.some(item=>item.cost===null && (menu.hasPackage!==false || item.mat?.inventoryType!=='packaging'))
+ return unknownIncludedRow?{...estimate,baseCost:null,averageCost:null,worstCost:null}:estimate
+})
 const selectedMenuFoodCost=computed(()=>selectedMenuCostEstimate.value?.baseCost ?? 0)
 function requestAction(action){
  if(action.type==='select'){selectedId.value=action.id;mobileDetail.value=true;if(window.innerWidth<768)nextTick(()=>document.querySelector('[data-selected-menu-name]')?.focus())}
@@ -80,4 +87,3 @@ async function deleteMenu(menu){if(await store.confirmDialog({title:'ลบเ�
 @media(max-width:767px){.workbench-columns{grid-template-columns:minmax(0,1fr)}.menu-workbench{gap:20px}.workbench-heading{align-items:flex-start}.workbench-heading h2{font-size:1.125rem}.workbench-heading p{font-size:.75rem}.menu-browser{position:static}.menu-browser-list{max-height:none}.menu-content{display:none}.is-mobile-detail .menu-browser{display:none}.is-mobile-detail .menu-content{display:grid}.is-mobile-detail .menu-back{display:inline-flex;justify-self:start}.selected-menu-heading{gap:12px}.selected-menu-identity>span{font-size:28px}.menu-workbench :deep(.app-input input){font-size:1rem}}
 </style>
 
-<style src="@/components/catalog/menuFocus.css"></style>

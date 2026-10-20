@@ -94,3 +94,20 @@ it('keeps identity entry and name validation in the original popup',async()=>{
   expect(description.attributes('aria-label')).toBeUndefined()
  }finally{w.unmount();e.unmount()}
 })
+
+it.each([['',10],[1,0]])('does not publish profit when a recipe row is indeterminate (%s, %s)',(unitCost,qty)=>{
+ const s=createTestStore();s.resetDemoData();s.materials.push(material('AUDIT',100,{unitCost}));s.menus[0].recipe=[{materialId:'AUDIT',qty}]
+ const w=mount(Menu)
+ try{
+  expect(w.get('[data-menu-recipe-panel] .recipe-item b').text()).toContain('ยังไม่ทราบต้นทุน')
+  expect(w.get('[data-menu-financial=cost]').text()).toContain('ยังคำนวณไม่ได้')
+  expect(w.get('[data-menu-financial=profit]').text()).toContain('ยังคำนวณไม่ได้')
+  expect(w.find('[data-platform-chart]').exists()).toBe(false)
+ }finally{w.unmount()}
+})
+it('keeps financial analysis available when only excluded packaging has an unknown cost',()=>{
+ const s=createTestStore();s.resetDemoData();s.materials.push(material('BAD-PACK',100,{inventoryType:'packaging',unitCost:null}))
+ s.menus[0].hasPackage=false;s.menus[0].recipe.push({materialId:'BAD-PACK',qty:1})
+ const w=mount(Menu)
+ try{expect(w.get('[data-menu-financial=profit]').text()).toContain('฿');expect(w.find('[data-platform-chart]').exists()).toBe(true)}finally{w.unmount()}
+})

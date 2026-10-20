@@ -50,6 +50,7 @@
  </DialogFrame>
 </template>
 <script setup>
+import '@/components/catalog/menuFocus.css'
 import {vSmoothDisclosure} from '@/directives/smoothDisclosure'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
 import MenuPriceInfo from '@/components/catalog/MenuPriceInfo.vue'
@@ -302,7 +303,6 @@ async function submit() {
 #MenuEditModal:focus,#MenuEditModal :focus,#MenuEditModal :focus-visible{outline:none!important;box-shadow:none!important}
 </style>
 
-<style src="@/components/catalog/menuFocus.css"></style>
 
 <style scoped>
 .menu-editor{container:menu-editor / inline-size}
