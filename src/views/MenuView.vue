@@ -6,10 +6,11 @@
    <div class="menu-directory-list"><MenuCard v-for="menu in filteredMenus" :key="menu.id" :menu="menu" :platforms="store.platforms" :selected-id="displayPlatformId" :ingredient-count="(menu.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType!=='packaging').length" :package-count="(menu.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType==='packaging').length" @details="openBomModal" @edit="editMenu" @delete="deleteMenu"/></div>
    <div v-if="!filteredMenus.length" class="menu-directory-empty"><strong>{{ searchQuery?'ไม่พบเมนูที่ค้นหา':'ยังไม่มีเมนู' }}</strong><p>{{ searchQuery?'ลองค้นหาด้วยชื่อหรือคำอธิบายอื่น':'เพิ่มเมนูแรก พร้อมกำหนดราคาและสูตรที่ใช้' }}</p><Button v-if="searchQuery" variant="secondary" @click="searchQuery=''">แสดงเมนูทั้งหมด</Button></div>
   </section>
-  <MenuRecipeDetails :open="isBomModalOpen" :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :pricing="selectedMenuPricing" :platforms="store.platforms" :selected-id="displayPlatformId" @platform="displayPlatformId=$event" @close="closeBomModal" @edit="editFromBom"/>
+  <MenuRecipeDetails :open="isBomModalOpen" :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :pricing="selectedMenuPricing" :cost-estimate="selectedMenuCostEstimate" :platforms="store.platforms" :selected-id="displayPlatformId" @platform="displayPlatformId=$event" @close="closeBomModal" @edit="editFromBom"/>
  </div>
 </template>
 <script setup>
+import { estimateMenuCosts } from '@/domain/menuCosts'
 import MenuCard from '@/components/catalog/MenuCard.vue'
 import MenuRecipeDetails from '@/components/catalog/MenuRecipeDetails.vue'
 import Button from '@/components/ui/Button.vue'
@@ -78,6 +79,8 @@ const detailedRecipeItems = computed(() => {
     }
   })
 })
+
+const selectedMenuCostEstimate = computed(() => selectedMenu.value ? estimateMenuCosts(selectedMenu.value, store.addonGroups, store.addons, store.materials) : null)
 
 const selectedMenuFoodCost = computed(() => {
   return detailedRecipeItems.value.reduce((sum, item) => sum + item.cost, 0)

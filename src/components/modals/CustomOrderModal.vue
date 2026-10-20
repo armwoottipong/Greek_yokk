@@ -29,6 +29,7 @@
     </button>
    </div>
   </section>
+  <details class="selection-financial"><summary>ต้นทุนและกำไรจากตัวเลือกจริง · {{ qty }} ชาม</summary><p>ใช้สูตรที่เลือกและต้นทุนวัตถุดิบปัจจุบัน รวมบรรจุภัณฑ์ตามสูตร ยอดในตะกร้าอาจเปลี่ยนเมื่อปรับ Package</p><dl><div><dt>รายรับหลังหัก GP</dt><dd>{{ financialMoney(selectionFinancial.netRevenue) }}</dd></div><div data-pos-selection-cost><dt>ต้นทุนตามรายการที่เลือก</dt><dd>{{ financialMoney(selectionFinancial.cost) }}</dd></div><div data-pos-selection-profit><dt>กำไรขั้นต้นหลังหัก GP</dt><dd>{{ financialMoney(selectionFinancial.profit) }}</dd></div></dl><p v-if="!selectionCheck.ok">เลือกตัวเลือกให้ครบก่อน ยอดนี้ยังไม่ใช่รายการที่พร้อมขาย</p></details>
   <FormField id="product-item-note" label="หมายเหตุรายการนี้" hint="หมายเหตุนี้ใช้กับจำนวนที่เลือกในรายการนี้" class="product-note" v-slot="{controlId,describedBy}"><textarea :id="controlId" v-model="itemNote" :aria-describedby="describedBy" aria-label="หมายเหตุรายการนี้" rows="3" placeholder="เช่น ไม่ใส่น้ำผึ้ง แยกท็อปปิ้ง หรือไม่รับช้อน"/></FormField>
   <template #footer><div class="custom-order-footer">
    <div class="bowl-total"><span>ราคารวมต่อชาม</span><strong class="font-number">฿{{ totalBowlPrice }}</strong></div>
@@ -38,6 +39,7 @@
 </template>
 
 <script setup>
+import { selectedItemCosts } from '@/domain/menuCosts'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import Button from '@/components/ui/Button.vue'
 import IconButton from '@/components/ui/IconButton.vue'
@@ -126,6 +128,8 @@ function toggleAddon(addon) {
   }
 }
 
+const financialMoney = value => value === null ? 'ยังคำนวณไม่ได้' : `${value < 0 ? '-' : ''}฿${Math.abs(value).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+const selectionFinancial = computed(() => selectedItemCosts(selectedMenu.value || {}, selectedAddons.value.map(a => ({...a,prices:a.groupId ? store.selectionPrices(a) : a.prices})), qty.value, store.stockDraftSnapshot || store.materials, store.currentPlatform))
 const basePrice = computed(() => Number(selectedMenu.value?.prices?.[store.currentPlatformId] || 0))
 const totalBowlPrice = computed(() => {
   if (!selectedMenu.value) return 0
@@ -161,6 +165,8 @@ function addToCart() {
 }
 </script>
 <style scoped>
+.selection-financial{margin-top:24px;padding:16px;background:var(--bg-soft);border-radius:12px;font-size:.8125rem;line-height:1.7}.selection-financial summary{cursor:pointer;font-weight:500;min-height:44px;display:list-item;align-content:center}.selection-financial p{margin:8px 0;color:var(--text-muted)}.selection-financial dl{display:grid;gap:8px;margin-top:12px}.selection-financial dl>div{display:flex;justify-content:space-between;gap:12px}.selection-financial dd{white-space:nowrap;font-variant-numeric:tabular-nums}
+
 .bowl-groups{display:grid;gap:28px}.bowl-group-option>.bowl-addon{width:100%}.bowl-group-hint{font-size:.8125rem;color:var(--text-muted);line-height:1.7}.bowl-addon:disabled{opacity:.5;cursor:not-allowed}.bowl-option-quantity{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.8125rem}.bowl-option-quantity>span:first-child{flex:1;min-width:0;overflow-wrap:anywhere}
 .product-detail{display:grid;gap:20px;margin-bottom:28px}.product-visual{display:grid;place-items:center;height:160px;background:var(--bg-soft);border-radius:16px;font-size:72px}.product-detail .bowl-heading{display:block}.product-detail .bowl-heading h3{font-size:1.375rem}.product-base-price{display:block;margin-top:12px;font-size:1.375rem;color:var(--accent-brand)}.product-note{margin-top:28px;padding-top:24px;border-top:1px solid var(--border-subtle)}.product-note textarea{width:100%;padding:14px;border:0;border-radius:12px;resize:vertical;line-height:1.7;font-size:.875rem;min-height:96px}.product-note textarea::placeholder{color:var(--text-muted);opacity:1}.product-detail+.product-note{margin-top:0}
 .bowl-heading{display:flex;gap:16px;align-items:center;min-width:0}.bowl-heading>div{min-width:0}.bowl-heading h3{font-size:1.125rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere}.bowl-emoji{display:grid;place-items:center;width:64px;height:64px;flex-shrink:0;border-radius:16px;background:var(--bg-soft);font-size:34px}.bowl-heading p{font-size:.8125rem;color:var(--text-muted);margin-top:6px;line-height:1.7}
