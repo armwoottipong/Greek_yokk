@@ -1,7 +1,6 @@
 <template>
- <component :is="inline ? MenuInlineEditorFrame : DialogFrame" :open="editorOpen" id="MenuEditModal" :title="isEditing?'แก้ไขเมนู':'เพิ่มเมนูใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 เสิร์ฟ" width="720px" :teleport="false" initial-focus="#menu-name" @request-close="cancelEdit">
-  <div class="menu-editor" :class="{'menu-editor--inline':inline}">
-   <section v-if="inline" class="inline-analysis" aria-label="ตัวอย่างการวิเคราะห์แบบร่าง"><MenuPlatformOverview :menu="previewMenu" :platforms="store.platforms" :cost="previewEstimate.averageCost" :estimated="Boolean(previewEstimate.groups.length)"/><p class="menu-editor-help">ตัวอย่างจากแบบร่าง · ใช้ต้นทุนเฉลี่ยของตัวเลือกฟรี ยังไม่เปลี่ยนข้อมูลที่บันทึก</p></section>
+ <DialogFrame :open="store.modals.menuEdit.isOpen" id="MenuEditModal" :title="isEditing?'แก้ไขเมนู':'เพิ่มเมนูใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 เสิร์ฟ" width="720px" :teleport="false" initial-focus="#menu-name" @request-close="requestClose(close)">
+  <div class="menu-editor">
    <section class="menu-editor-basics" aria-label="ข้อมูลเมนู">
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอนเมนู" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="menu-name" label="ชื่อเมนู" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น Greek Yogurt Bowl (M)"/></FormField></div>
     <FormField id="menu-description" label="คำอธิบายสั้น" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.description" aria-label="คำอธิบายเมนู" placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด"/></FormField>
@@ -37,7 +36,7 @@
     <p v-if="!baseRecipeRows.length" class="menu-editor-empty">ยังไม่มีวัตถุดิบ เพิ่มรายการเพื่อกำหนดสูตร</p>
     <Button variant="secondary" size="compact" @click="addBaseRecipeRow"><Plus :size="16" aria-hidden="true"/>เพิ่มวัตถุดิบ</Button>
    </div></details>
-   <details v-smooth-disclosure class="menu-editor-section" data-menu-packaging :open="inline || undefined"><summary><span>บรรจุภัณฑ์</span><small>{{ form.hasPackage?packageRecipeRows.length+' รายการ':'ไม่ตัดสต็อก' }}</small></summary><div class="menu-editor-section-body">
+   <details v-smooth-disclosure class="menu-editor-section" data-menu-packaging><summary><span>บรรจุภัณฑ์</span><small>{{ form.hasPackage?packageRecipeRows.length+' รายการ':'ไม่ตัดสต็อก' }}</small></summary><div class="menu-editor-section-body">
     <p v-if="!form.hasPackage" class="menu-editor-help">เมนูนี้ไม่หักสต็อกบรรจุภัณฑ์ เปิดได้ในตัวเลือกการขาย</p>
     <template v-else>
      <p class="menu-editor-help">จำนวนที่ใช้ต่อ 1 เสิร์ฟ</p>
@@ -47,13 +46,10 @@
     </template>
    </div></details>
   </div>
-  <template #footer><div class="menu-editor-footer"><Button variant="quiet" data-inline-menu-cancel @click="cancelEdit">ยกเลิก</Button><Button data-inline-menu-save @click="submit"><Check :size="18" aria-hidden="true"/>บันทึกข้อมูลเมนู</Button></div></template>
- </component>
+  <template #footer><div class="menu-editor-footer"><Button variant="quiet" @click="requestClose(close)">ยกเลิก</Button><Button @click="submit"><Check :size="18" aria-hidden="true"/>บันทึกข้อมูลเมนู</Button></div></template>
+ </DialogFrame>
 </template>
 <script setup>
-import MenuInlineEditorFrame from '@/components/catalog/MenuInlineEditorFrame.vue'
-import MenuPlatformOverview from '@/components/catalog/MenuPlatformOverview.vue'
-import {estimateMenuCosts} from '@/domain/menuCosts'
 import {vSmoothDisclosure} from '@/directives/smoothDisclosure'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
 import MenuPriceInfo from '@/components/catalog/MenuPriceInfo.vue'
@@ -70,10 +66,7 @@ import { useModalForm } from '@/composables/useModalForm'
 
 import { Plus, Check } from 'lucide-vue-next'
 
-const props=defineProps({inline:Boolean,menuId:{type:String,default:null}})
-const emit=defineEmits(['close','saved','cancel'])
 const store = usePosStore()
-const editorOpen=computed(()=>props.inline || store.modals.menuEdit.isOpen)
 const nameError=ref('')
 const openPriceInfo=ref(null)
 watch(() => store.modals.menuEdit.isOpen, () => { openPriceInfo.value = null })
@@ -92,13 +85,13 @@ const form = ref({
 const baseRecipeRows = ref([])
 const packageRecipeRows = ref([])
 
-const { saveSnapshot, requestClose, confirmSave, isDirty } = useModalForm(() => ({
+const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => ({
   form: form.value,
   baseRecipeRows: baseRecipeRows.value,
   packageRecipeRows: packageRecipeRows.value
 }))
 
-const isEditing = computed(() => Boolean(props.inline ? props.menuId : store.modals.menuEdit.menuId))
+const isEditing = computed(() => Boolean(store.modals.menuEdit.menuId))
 const storefront = computed(() => store.platforms.find(p => p.id === 'PLAT01'))
 
 const recipeMaterialsByCategory = computed(() => {
@@ -126,10 +119,10 @@ function getUnit(matId) {
 }
 
 // Watch modal open and populate
-watch(() => [editorOpen.value, props.inline ? props.menuId : store.modals.menuEdit.menuId], ([open]) => {
+watch(() => store.modals.menuEdit.isOpen, (open) => {
   if (open) {
     nameError.value=''
-    const menuId = props.inline ? props.menuId : store.modals.menuEdit.menuId
+    const menuId = store.modals.menuEdit.menuId
     const menu = menuId ? store.menus.find(m => m.id === menuId) : null
 
     form.value = {
@@ -178,13 +171,9 @@ watch(() => [editorOpen.value, props.inline ? props.menuId : store.modals.menuEd
 
     nextTick(() => {
       saveSnapshot()
-      if(props.inline)document.getElementById('menu-name')?.focus()
     })
   }
-}, {immediate:true})
-
-const previewMenu=computed(()=>({...form.value,recipe:[...baseRecipeRows.value,...(form.value.hasPackage ? packageRecipeRows.value : [])]}))
-const previewEstimate=computed(()=>estimateMenuCosts(previewMenu.value,store.addonGroups,store.addons,store.materials))
+})
 
 function addBaseRecipeRow() {
   const defaultMat = store.activeMaterials.find(m => m.inventoryType === 'ingredient')
@@ -245,12 +234,7 @@ function openEmojiPicker() {
   }
 }
 
-function cancelEdit(){
-  if(props.inline) emit('cancel')
-  else requestClose(close)
-}
 function close() {
-  if(props.inline){emit('close');return}
   store.modals.menuEdit.isOpen = false
   store.modals.menuEdit.menuId = null
 }
@@ -264,7 +248,7 @@ async function submit() {
     return
   }
 
-  const ok = props.inline || await confirmSave(form.value.name.trim())
+  const ok = await confirmSave(form.value.name.trim())
   if (!ok) return
 
   // Combine recipes
@@ -295,15 +279,8 @@ async function submit() {
     hasPackage: form.value.hasPackage
   })
 
-  if (result?.ok || result?.success) {
-    saveSnapshot()
-    emit('saved',result.id || form.value.id || store.menus.at(-1)?.id)
-    close()
-    return true
-  }
-  return false
+  if (result?.ok || result?.success) close()
 }
-defineExpose({isDirty,submit})
 </script>
 
 
@@ -312,8 +289,6 @@ defineExpose({isDirty,submit})
 
 <style scoped src="@/components/ui/catalogEditor.css"></style>
 
-<style scoped>
-.menu-editor--inline{container-type:inline-size;--text-muted:#705C50}.menu-editor--inline .inline-analysis{min-width:0}.menu-editor--inline :deep(input),.menu-editor--inline :deep(.app-select-trigger){background:var(--bg-soft)!important;border-color:transparent!important}.menu-editor--inline :deep(:focus),.menu-editor--inline :deep(:focus-visible){outline:none!important;box-shadow:none!important}.menu-editor--inline .menu-editor-basics{padding-top:8px}.menu-editor--inline .menu-editor-section{min-width:0}
-@container menu-content (min-width:800px){.menu-editor--inline{grid-template-columns:minmax(0,1fr) 290px;align-items:start}.menu-editor--inline>.inline-analysis{grid-column:1;grid-row:1/5}.menu-editor--inline>.menu-editor-basics{grid-column:1}.menu-editor--inline>[data-menu-prices],.menu-editor--inline>[data-menu-groups],.menu-editor--inline>[data-menu-permissions]{grid-column:1}.menu-editor--inline>[data-menu-recipe]{grid-column:2;grid-row:1/4}.menu-editor--inline>[data-menu-packaging]{grid-column:2;grid-row:4/8}.menu-editor--inline>[data-menu-recipe] :deep(.recipe-editor-row),.menu-editor--inline>[data-menu-packaging] :deep(.recipe-editor-row){grid-template-columns:minmax(0,1fr) 44px}.menu-editor--inline :deep(.recipe-editor-row>.form-field:first-child){grid-column:1/-1}}
-@media(max-width:767px){.menu-editor--inline :deep(.app-input input){font-size:1rem}}
+<style>
+#MenuEditModal:focus,#MenuEditModal :focus,#MenuEditModal :focus-visible{outline:none!important;box-shadow:none!important}
 </style>

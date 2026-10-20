@@ -42,19 +42,23 @@ it('updates each platform reactively and labels loss without drawing negative ba
  }finally{w.unmount()}
 })
 
-it('distinguishes unset and zero prices and never invents a margin or share at zero price',async()=>{
- const store=createTestStore();store.resetDemoData();delete store.menus[0].prices.PLAT02
+it.each([undefined,null,'',0,'0'])('shows a static unset-price skeleton for %s in all graph modes',async price=>{
+ const store=createTestStore();store.resetDemoData();store.menus[0].prices.PLAT02=price
  const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
-  expect(value('PLAT02','price')).toContain('ยังไม่กำหนดราคา')
-  expect(row('PLAT02').querySelector('[data-platform-chart]')).toBeNull()
-  store.menus[0].prices.PLAT02=0;await flushPromises()
-  expect(value('PLAT02','price')).toContain('฿0.00')
-  expect(value('PLAT02','net')).toContain('฿0.00')
-  expect(value('PLAT02','margin')).toContain('ยังคำนวณไม่ได้')
-  expect(value('PLAT02','profit')).toContain('-฿25.40')
-  expect(row('PLAT02').textContent).not.toMatch(/NaN|Infinity/)
+  for(const label of ['แท่ง','วงกลม','เส้น']){
+   const button=w.findAll('button').find(b=>b.text()===label)
+   await button.trigger('click');await flushPromises()
+   expect(value('PLAT02','price')).toContain('ยังไม่ได้ตั้งราคา')
+   expect(row('PLAT02').querySelector('[data-platform-unpriced]')).not.toBeNull()
+   expect(row('PLAT02').querySelector('[data-platform-chart], [data-platform-donut], .platform-metrics, .platform-net')).toBeNull()
+   expect(w.find('[data-line-platform="PLAT02"]').exists()).toBe(false)
+   expect(value('PLAT01','profit')).toContain('฿43.60')
+   expect(row('PLAT02').textContent).not.toMatch(/ขาดทุน|NaN|Infinity/)
+  }
+  store.menus[0].prices.PLAT02=95;await flushPromises()
+  expect(row('PLAT02').querySelector('[data-platform-unpriced]')).toBeNull()
+  expect(value('PLAT02','profit')).toContain('฿41.10')
  }finally{w.unmount()}
 })
 

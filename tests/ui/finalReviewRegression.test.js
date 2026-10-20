@@ -29,13 +29,18 @@ it('offers edit and permanent-delete routes for archived materials without resto
   expect(document.querySelector('[data-detail-edit]')).not.toBeNull()
  }finally{w.unmount()}
 })
-it('distinguishes absent store price and an explicitly zero price in recipe summaries',async()=>{
+it('keeps every platform visible as an unset-price skeleton when all prices are missing or zero',async()=>{
  const store=createTestStore();store.resetDemoData();store.menus[0].prices={}
  const w=mount(Menu,{attachTo:document.body})
- try{await w.get('[data-menu-select]').trigger('click');await flushPromises()
-  expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=price]').textContent).toContain('ยังไม่กำหนดราคา');expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=margin]').textContent).toContain('ยังคำนวณไม่ได้')
-  expect(document.getElementById('menu-recipe').textContent).toContain('ยังคำนวณไม่ได้')
-  store.menus[0].prices.PLAT01=0;await flushPromises();expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=price]').textContent).toContain('฿0.00');expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=margin]').textContent).toContain('ยังคำนวณไม่ได้')
+ try{
+  await flushPromises()
+  expect(w.findAll('[data-platform-unpriced]')).toHaveLength(store.platforms.length)
+  expect(w.findAll('.platform-metrics')).toHaveLength(0)
+  store.menus[0].prices.PLAT01=0;await flushPromises()
+  expect(w.get('[data-menu-platform=PLAT01]').text()).toContain('ยังไม่ได้ตั้งราคา')
+  await w.findAll('button').find(button=>button.text()==='เส้น').trigger('click')
+  expect(w.findAll('[data-line-platform]')).toHaveLength(0)
+  expect(w.text()).not.toMatch(/NaN|Infinity/)
  }finally{w.unmount()}
 })
 it('uses a constrained confirmation frame for long messages with cancel-first focus',async()=>{

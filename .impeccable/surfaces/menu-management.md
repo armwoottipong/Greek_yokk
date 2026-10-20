@@ -1,3 +1,27 @@
+# Menu and recipes — reading workspace with original edit popup
+
+Current superseding brief, 20 October 2026 (popup/unpriced correction). The user explicitly restored the original add/edit MenuEditModal popup. The reading workspace remains the left menu list, all-platform analysis at center/top and recipe/materials right rail where space permits. This brief supersedes the inline-edit proposal and its validation claims preserved below.
+
+THESIS: Read one menu's platform analysis and recipe in context; add or edit through the established popup.
+OWN-WORLD: Inherit the cream/burgundy shop, Prompt, existing numeric hierarchy and ภาพรวมร้าน dashboard reference. No new visual world or global tokens.
+STORY: Search/select a menu, compare configured platforms, inspect its recipe, then open the original popup to add or edit. Modal save/close confirmation uses the existing form flow.
+FIRST VIEWPORT: Searchable left menu list with selected state and open/closed-sale labels; selected-menu identity/actions, analysis and recipe. The list is not active-only.
+FORM: MenuView opens store.modals.menuEdit for add/edit. MenuEditModal renders DialogFrame with its established shared fields and footer. The inline editor, draft graph preview and workbench save/discard/stay notice were removed by this correction.
+
+## Current behavior from source
+
+- Reading layout retains the 220px left list (200px at viewport widths of 1199px and below). Recipe rail is 290px and appears at a menu-content container width of at least 800px; this is not a viewport breakpoint. Tablet normally shows list beside analysis with recipe below. Below 768px viewport width, list/detail switch with a back action.
+- A platform whose price is unset or zero displays “ยังไม่ได้ตั้งราคา”, a static mode-shaped skeleton and a prompt to edit the menu. The analysis treats only finite prices greater than zero as configured. This is a presentation rule; it does not migrate stored prices.
+- Unpriced platforms show no platform financial metrics, GP/profit/loss/net/margin figures, bar segments or donut. Their line-series cost, GP and profit are null, so there are no data points or connecting segments for those positions. Platform names/order can remain in the line key; the overview's shared recipe-cost context remains.
+- Positive-price platforms retain the existing bar/circle/line analysis, textual figures, estimate switch and explicit loss/unavailable-data handling. The unpriced skeleton is a static placeholder, not a loading animation.
+- The user's no-outline preference remains scoped to the reading workbench and menu-edit popup. Existing shared native inputs, labels and form logic remain. DESIGN.md and .impeccable/design.json are unchanged; local focus suppression, skeleton geometry and layout are not canonized as global design rules.
+
+Current source-only correction record: ../review/menu-workspace-2026-10-20/popup-unpriced-correction.md. Visual, responsive and rendered keyboard QA: NOT VERIFIED, because browser use is disabled by Work settings. Correction verification: 95 test files / 581 tests passed; 26 focused tests passed after the final CSS adjustment, lint and production build passed. Deployment is verified separately at release. Previous screenshots and test totals below belong to earlier implementations and do not verify this correction.
+
+## Historical records — superseded inline editing and earlier popup/graph versions
+
+The following records are preserved for provenance. Their “current”, “final”, inline-edit, draft-preview and prior test claims apply only to those earlier snapshots and do not override the restored popup/unpriced behavior above.
+
 # Menu and recipes — inline management workspace
 
 Current surface brief, 20 October 2026. Mode: Operate. This source-grounded extension supersedes the popup presentation described in the historical records below. PRODUCT.md, DESIGN.md and .impeccable/design.json retain global authority; this change adds a local workspace composition.
