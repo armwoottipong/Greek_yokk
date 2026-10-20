@@ -267,6 +267,7 @@ async function submit() {
     })
   }
 
+  const previousIds=new Set(store.menus.map(menu=>menu.id))
   const result = store.saveMenu({
     id: form.value.id || undefined,
     name: form.value.name.trim(),
@@ -279,7 +280,10 @@ async function submit() {
     hasPackage: form.value.hasPackage
   })
 
-  if (result?.ok || result?.success) close()
+  if (result?.ok || result?.success) {
+    store.modals.menuEdit.savedMenuId=form.value.id || store.menus.find(menu=>!previousIds.has(menu.id))?.id || null
+    close()
+  }
 }
 </script>
 

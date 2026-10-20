@@ -1,5 +1,5 @@
 <template>
- <div class="menu-workbench" :class="{'is-mobile-detail':mobileDetail}" >
+ <div ref="workbench" class="menu-workbench" :class="{'is-mobile-detail':mobileDetail}" >
   <header class="workbench-heading"><div><h2>เมนูและสูตร</h2><p>เลือกเมนูเพื่อดูต้นทุน กำไร และสูตรที่ใช้ในทุกช่องทาง</p></div><Button data-catalog-add @click="requestAction({type:'new'})"><Plus :size="16" aria-hidden="true"/>เพิ่มเมนู</Button></header>
   <div class="workbench-columns">
    <aside class="menu-browser" aria-label="รายการเมนู"><div class="menu-browser-tools"><AppSearch v-model="searchQuery" label="ค้นหาเมนู" placeholder="ค้นหาชื่อเมนู"/><p>{{ filteredMenus.length }} เมนู</p></div>
@@ -20,6 +20,7 @@
 import {computed,ref,watch,nextTick} from 'vue'
 import {Plus,ChevronRight,ArrowLeft,Pencil,Trash2,BookOpen} from 'lucide-vue-next'
 import {estimateMenuCosts} from '@/domain/menuCosts'
+import {overlayStack} from '@/composables/overlayState'
 import {menuGroups} from '@/domain/addonGroups'
 import {usePosStore} from '@/stores/posStore'
 import MenuRecipeDetails from '@/components/catalog/MenuRecipeDetails.vue'
@@ -29,6 +30,26 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import AppSearch from '@/components/ui/AppSearch.vue'
 const store=usePosStore()
 const searchQuery=ref(''),selectedId=ref(store.menus[0]?.id||null),mobileDetail=ref(false)
+const workbench=ref(null),pendingHeadingFocus=ref(false)
+let pendingNewMenuIds=null
+watch(()=>store.modals.menuEdit.isOpen,open=>{
+ if(open || !pendingNewMenuIds)return
+ const savedId=store.modals.menuEdit.savedMenuId
+ if(savedId && !pendingNewMenuIds.has(savedId) && store.menus.some(menu=>menu.id===savedId)){
+  selectedId.value=savedId
+  if(!filteredMenus.value.some(menu=>menu.id===savedId))searchQuery.value=''
+  mobileDetail.value=true
+  pendingHeadingFocus.value=true
+ }
+ pendingNewMenuIds=null
+},{flush:'post'})
+watch(()=>[pendingHeadingFocus.value,overlayStack.length],async()=>{
+ if(!pendingHeadingFocus.value || overlayStack.length)return
+ await nextTick()
+ if(overlayStack.length)return
+ workbench.value?.querySelector('[data-selected-menu-name]')?.focus()
+ pendingHeadingFocus.value=false
+},{flush:'post'})
 const selectedMenu=computed(()=>store.menus.find(m=>m.id===selectedId.value)||null)
 watch(()=>store.menus.map(m=>m.id),ids=>{if(!ids.includes(selectedId.value))selectedId.value=ids[0]||null})
 const filteredMenus=computed(()=>store.menus.filter(m=>`${m.name} ${m.description||''}`.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
@@ -43,7 +64,7 @@ const detailedRecipeItems=computed(()=>(selectedMenu.value?.recipe||[]).map(r=>{
 const selectedMenuFoodCost=computed(()=>selectedMenuCostEstimate.value?.baseCost ?? 0)
 function requestAction(action){
  if(action.type==='select'){selectedId.value=action.id;mobileDetail.value=true;if(window.innerWidth<768)nextTick(()=>document.querySelector('[data-selected-menu-name]')?.focus())}
- if(action.type==='edit'||action.type==='new')store.modals.menuEdit={isOpen:true,menuId:action.type==='new'?null:action.id}
+ if(action.type==='edit'||action.type==='new'){pendingNewMenuIds=action.type==='new'?new Set(store.menus.map(menu=>menu.id)):null;store.modals.menuEdit={isOpen:true,menuId:action.type==='new'?null:action.id,savedMenuId:null}}
  if(action.type==='back'){mobileDetail.value=false;nextTick(()=>[...document.querySelectorAll('[data-menu-select]')].find(element=>element.dataset.menuSelect===selectedId.value)?.focus())}
 }
 async function deleteMenu(menu){if(await store.confirmDialog({title:'ลบเมนู?',message:menu.name+' · การลบนี้ไม่สามารถย้อนกลับได้',confirmText:'ลบเมนู',cancelText:'ยกเลิก',type:'danger'}))store.deleteMenu(menu.id)}
