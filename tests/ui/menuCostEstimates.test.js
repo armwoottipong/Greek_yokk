@@ -18,7 +18,17 @@ it('shows average and worst-case profit after GP in menu details',async()=>{
  try {
   await w.get('[data-catalog-details]').trigger('click');await flushPromises()
   expect(document.querySelector('[data-menu-average-profit]').textContent).toContain('฿23.00')
+  expect(document.querySelector('[data-menu-financial="cost"]').textContent).toContain('฿47.00')
+  expect(document.querySelector('[data-menu-financial="margin"]').textContent).toContain('32.9%')
+  expect(document.querySelector('[data-menu-worst-profit]')).toBe(null)
+  const toggle=document.querySelector('[aria-label="สลับเป็นชุดแพงสุด"]')
+  expect(toggle).not.toBe(null)
+  toggle.click();await flushPromises()
   expect(document.querySelector('[data-menu-worst-profit]').textContent).toContain('฿18.00')
+  expect(document.querySelector('[data-menu-financial="cost"]').textContent).toContain('฿52.00')
+  expect(document.querySelector('[data-menu-financial="margin"]').textContent).toContain('25.7%')
+  document.querySelector('[aria-label="สลับเป็นค่าเฉลี่ย"]').click();await flushPromises()
+  expect(document.querySelector('[data-menu-average-profit]').textContent).toContain('฿23.00')
  } finally {w.unmount()}
 })
 it('updates POS actual selection cost and profit with fruit and bowl quantities',async()=>{

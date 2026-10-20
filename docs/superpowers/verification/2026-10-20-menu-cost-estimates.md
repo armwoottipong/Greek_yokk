@@ -9,3 +9,6 @@ Menu details show average total cost/profit and highest possible total cost/prof
 Validation: full suite passed 565 tests in 94 files; lint/build passed. New domain tests cover mean, highest distinct/repeated costs, inactive choices, missing references, packaging and actual selection quantities. Interaction tests cover menu profit and reactive POS cost/profit when bowl quantities change. Mechanical detector returned only inherited advisory typography findings. Final label adjustment distinguishes base recipe cost from total cost with free selections; targeted verification rerun afterward.
 
 Browser visual verification was unavailable: browser policy rejected access to the existing local tab. No alternative browser control was used to bypass the block. Changes remain in the working tree; no production deployment is claimed.
+
+## Compact layout follow-up
+User confirmed retaining the original six-metric menu layout. Included groups now default to average cost/profit/margin in that grid; a small ArrowLeftRight icon with a named 44px target switches all three metrics to the most expensive allowed selection and back. The current mode is labeled; absent groups retain original financials without a toggle. Reopening the sheet or changing menus resets to average. Interaction coverage verifies both directions, costs, profit and margins. POS calculations are unchanged.
