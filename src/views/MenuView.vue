@@ -9,7 +9,7 @@
    <section class="menu-content" aria-label="พื้นที่ทำงานเมนู">
     <Button class="menu-back" variant="quiet" @click="requestAction({type:'back'})"><ArrowLeft :size="16" aria-hidden="true"/>กลับรายการเมนู</Button>
     <template v-if="selectedMenu"><header class="selected-menu-heading"><div class="selected-menu-identity"><span aria-hidden="true">{{ selectedMenu.emoji }}</span><div><h3 data-selected-menu-name tabindex="-1">{{ selectedMenu.name }}</h3><p>{{ selectedMenu.description || 'ภาพรวมราคา ต้นทุน และกำไรต่อ 1 เสิร์ฟ' }}</p><StatusBadge :label="selectedMenu.isActive===false?'ปิดขาย':'เปิดขาย'" :tone="selectedMenu.isActive===false?'warning':'neutral'"/></div></div><div class="selected-menu-actions"><Button data-menu-edit variant="secondary" @click="requestAction({type:'edit',id:selectedMenu.id})"><Pencil :size="15" aria-hidden="true"/>แก้ไขเมนู</Button><IconButton :label="`ลบ ${selectedMenu.name}`" @click="deleteMenu(selectedMenu)"><Trash2 :size="17" aria-hidden="true"/></IconButton></div></header>
-     <MenuRecipeDetails :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :cost-estimate="selectedMenuCostEstimate" :platforms="store.platforms" :addon-groups="selectedGroups" @edit="requestAction({type:'edit',id:selectedMenu.id})"/>
+     <MenuRecipeDetails :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :cost-estimate="selectedMenuCostEstimate" :platforms="store.platforms" :addon-groups="selectedGroups" @edit="requestAction({type:'edit',id:selectedMenu.id,section:$event?.section})"/>
     </template>
     <div v-else class="menu-content-empty"><BookOpen :size="32" aria-hidden="true"/><h3>เริ่มต้นด้วยเมนูแรก</h3><p>ข้อมูลวิเคราะห์ทุกช่องทางและสูตรจะแสดงตรงนี้</p><Button @click="requestAction({type:'new'})">เพิ่มเมนู</Button></div>
    </section>
@@ -64,7 +64,7 @@ const detailedRecipeItems=computed(()=>(selectedMenu.value?.recipe||[]).map(r=>{
 const selectedMenuFoodCost=computed(()=>selectedMenuCostEstimate.value?.baseCost ?? 0)
 function requestAction(action){
  if(action.type==='select'){selectedId.value=action.id;mobileDetail.value=true;if(window.innerWidth<768)nextTick(()=>document.querySelector('[data-selected-menu-name]')?.focus())}
- if(action.type==='edit'||action.type==='new'){pendingNewMenuIds=action.type==='new'?new Set(store.menus.map(menu=>menu.id)):null;store.modals.menuEdit={isOpen:true,menuId:action.type==='new'?null:action.id,savedMenuId:null}}
+ if(action.type==='edit'||action.type==='new'){pendingNewMenuIds=action.type==='new'?new Set(store.menus.map(menu=>menu.id)):null;store.modals.menuEdit={isOpen:true,menuId:action.type==='new'?null:action.id,savedMenuId:null,initialSection:action.section==='recipe'?'recipe':'identity'}}
  if(action.type==='back'){mobileDetail.value=false;nextTick(()=>[...document.querySelectorAll('[data-menu-select]')].find(element=>element.dataset.menuSelect===selectedId.value)?.focus())}
 }
 async function deleteMenu(menu){if(await store.confirmDialog({title:'ลบเมนู?',message:menu.name+' · การลบนี้ไม่สามารถย้อนกลับได้',confirmText:'ลบเมนู',cancelText:'ยกเลิก',type:'danger'}))store.deleteMenu(menu.id)}

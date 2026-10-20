@@ -1,9 +1,9 @@
 <template>
- <DialogFrame :open="store.modals.menuEdit.isOpen" id="MenuEditModal" :title="isEditing?'แก้ไขเมนู':'เพิ่มเมนูใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 เสิร์ฟ" width="720px" :teleport="false" initial-focus="#menu-name" @request-close="requestClose(close)">
+ <DialogFrame :open="store.modals.menuEdit.isOpen" id="MenuEditModal" :title="isEditing?'แก้ไขเมนู':'เพิ่มเมนูใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 เสิร์ฟ" width="720px" :teleport="false" :initial-focus="initialFocus" @request-close="requestClose(close)">
   <div class="menu-editor">
    <section class="menu-editor-basics" aria-label="ข้อมูลเมนู">
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอนเมนู" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="menu-name" label="ชื่อเมนู" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น Greek Yogurt Bowl (M)"/></FormField></div>
-    <FormField id="menu-description" label="คำอธิบายสั้น" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.description" aria-label="คำอธิบายเมนู" placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด"/></FormField>
+    <FormField id="menu-description" label="คำอธิบายสั้น" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.description" placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด"/></FormField>
    </section>
    <details v-smooth-disclosure class="menu-editor-section" data-menu-prices open><summary><span>ราคาขายแต่ละช่องทาง</span><small>{{ store.platforms.length }} ช่องทาง</small></summary><div class="menu-editor-section-body">
     <div class="menu-editor-prices">
@@ -91,6 +91,7 @@ const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => ({
   packageRecipeRows: packageRecipeRows.value
 }))
 
+const initialFocus=computed(()=>store.modals.menuEdit.initialSection==='recipe'?'[data-menu-recipe] button:not(:disabled)':'#menu-name')
 const isEditing = computed(() => Boolean(store.modals.menuEdit.menuId))
 const storefront = computed(() => store.platforms.find(p => p.id === 'PLAT01'))
 
@@ -171,6 +172,10 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
 
     nextTick(() => {
       saveSnapshot()
+      if(store.modals.menuEdit.initialSection==='recipe'){
+        const section=document.getElementById('MenuEditModal')?.querySelector('[data-menu-recipe]')
+        if(section){section.open=true;section.querySelector('button:not(:disabled)')?.scrollIntoView?.({block:'nearest'})}
+      }
     })
   }
 })

@@ -69,3 +69,28 @@ it('keeps the current search and selection after editing an existing menu',async
   expect(w.get('[aria-label="ค้นหาเมนู"]').element.value).toBe(original)
  }finally{w.unmount();e.unmount()}
 })
+
+it.each([false,true])('opens recipe editing at its first usable control (empty=%s)',async empty=>{
+ const s=createTestStore();s.resetDemoData();if(empty)s.menus[0].recipe=[]
+ const w=mount(Menu,{attachTo:document.body}),e=mount(Editor,{attachTo:document.body})
+ try{
+  await w.get('[data-menu-recipe-panel] button').trigger('click');await flushPromises()
+  expect(s.modals.menuEdit).toMatchObject({isOpen:true,menuId:s.menus[0].id,initialSection:'recipe'})
+  expect(e.get('[data-menu-recipe]').attributes('open')).toBeDefined()
+  expect(document.activeElement).toBe(e.get('[data-menu-recipe] button').element)
+  expect(e.get('#menu-name').element.value).toBe(s.menus[0].name)
+ }finally{w.unmount();e.unmount()}
+})
+it('keeps identity entry and name validation in the original popup',async()=>{
+ const s=createTestStore();s.resetDemoData();const w=mount(Menu,{attachTo:document.body}),e=mount(Editor,{attachTo:document.body})
+ try{
+  await w.get('[data-menu-edit]').trigger('click');await flushPromises()
+  expect(document.activeElement).toBe(e.get('#menu-name').element)
+  await e.get('#menu-name').setValue('');await e.vm.submit();await flushPromises()
+  expect(document.activeElement).toBe(e.get('#menu-name').element)
+  expect(e.get('#menu-name').attributes('aria-invalid')).toBe('true')
+  const description=e.get('#menu-description')
+  expect(e.get('label[for="menu-description"]').text()).toBe('คำอธิบายสั้น')
+  expect(description.attributes('aria-label')).toBeUndefined()
+ }finally{w.unmount();e.unmount()}
+})

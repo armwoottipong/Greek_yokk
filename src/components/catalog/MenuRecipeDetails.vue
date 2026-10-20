@@ -14,7 +14,7 @@
    </section>
 
   </section>
-  <MenuRecipePanel :menu="menu" :items="items" :addon-groups="addonGroups" @edit="$emit('edit')"/>
+  <MenuRecipePanel :menu="menu" :items="items" :addon-groups="addonGroups" @edit="$emit('edit',{section:'recipe'})"/>
  </div>
 </template>
 <script setup>
