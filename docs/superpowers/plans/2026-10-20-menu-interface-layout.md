@@ -197,3 +197,11 @@ Task1–5 แก้ข้อบกพร่องที่มีหลักฐ�
 3. **รอบC — ตรวจและส่งมอบ:** Task8. ไม่มีimplementationหรือdeployในรอบเขียนแผนนี้
 
 การเปลี่ยนของแต่ละTaskย้อนด้วยcommitของตัวเองได้; ไม่มีmigrationหรือการล้างstorage. ถ้ามีข้อจำกัดที่บังคับให้เปลี่ยนsharedglobalrule ให้หยุดขยายscopeและแสดงผลกระทบให้ผู้ใช้ตัดสินก่อน
+
+## Execution status — 20 October 2026
+
+- Tasks 1–3 implemented and verified by behavior tests; the review found an overview/rail inconsistency for empty unit cost/zero quantity, then two regressions were observed failing and fixed without changing the domain estimator.
+- Tasks 4–7 source candidates implemented, including non-outline keyboard feedback, local contrast, pointer guards, container layout and typography. Rendered baseline/viewport/keyboard/forced-colors/touch acceptance is still PENDING.
+- Task 8 source checks: 96 files / 601 tests PASS; lint PASS; production build PASS; diff whitespace check PASS. Fresh source review produced one Important finding, fixed with RED→GREEN coverage. No source minors deferred.
+- Browser remains unavailable to tools despite the user reporting it enabled, fresh CUA kernel reset and create-tab attempt. Exact error: Local browser use is disabled in Work settings. No screenshot or computed-value approval is claimed.
+- Candidate branch: codex/menu-interface-layout in the attached managed worktree. Kept for continuation; not merged, pushed or deployed. Demo-only preview: http://192.168.1.107:5186/Greek_yokk/menu-interface-preview.html.

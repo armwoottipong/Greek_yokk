@@ -1,3 +1,36 @@
+# Menu interface remediation — implementation candidate
+
+20 October 2026. Source candidate in the isolated menu-interface-layout worktree, compared with baseline a5e1c83. This candidate supersedes the historical layout dimensions below; it is not merged, pushed or deployed. Approved plan: ../../docs/superpowers/plans/2026-10-20-menu-interface-layout.md. Source/DOM audit: ../../docs/ui-audit/2026-10-20-menu-interface-review.md.
+
+THESIS: Keep financial meaning dependable and selection/editing continuous, then size the existing reading workspace by available content width.
+OWN-WORLD: Preserve cream/burgundy, Prompt and the ภาพรวมร้าน reference. PRODUCT.md, DESIGN.md and .impeccable/design.json remain global authorities; no global token migration.
+STORY: Search/select a menu, read configured-platform financials and recipe, then add/edit in the original popup. Successful creation selects the actual saved menu and clears a search only when it would hide that menu. Recipe edit enters the recipe section of the same popup.
+FORM: Left list, analysis at center/top and recipe rail when space permits; original MenuEditModal/DialogFrame and native/shared form controls. Missing/zero-priced platforms remain absent from reports and all three charts/line keys. No priced platforms shows the edit-menu next step, with chart controls/legend/guidance omitted.
+
+## Candidate behavior grounded in source
+
+- Unknown material costs, missing materials and indeterminate recipe quantities produce null row costs and “ยังไม่ทราบต้นทุน”; genuine known zero remains ฿0.00. The display estimate gates base/average/worst costs to null if an included recipe row is unknown, preventing a contradictory profit/chart. Packaging explicitly excluded from analysis does not block financials. Domain estimator, schema and transactions remain unchanged.
+- The original popup records savedMenuId after successful save. The workbench consumes the matching new ID, selects it, reveals it through search and requests heading focus after the overlay stack is released. Cancel, failed save and unrelated added IDs do not select a new menu. Existing-menu edits preserve selection/search.
+- “แก้ไขสูตร” opens the same menu popup with recipe entry, expands that disclosure and targets a usable button, including the add-material control for an empty recipe. Ordinary edit and invalid-name handling still target the name field. “คำอธิบายสั้น” now supplies the description field's accessible name without a conflicting aria-label.
+- Surface-scoped keyboard feedback candidates use burgundy fill, cream text, underline, focused field/checkbox labels and the search icon; the selected chart mode keeps an internal marker. No outline, ring or halo is introduced. Forced-colors CSS uses Highlight/HighlightText. These source rules are not rendered keyboard acceptance.
+- Local muted #705C50 on declared soft fill #F4EBDD computes to 5.3285:1; this is declared-color evidence, not sampled/computed-browser evidence. Shared Button/AppSelect/AppCheckbox/MenuPriceInfo hover rules now require (hover:hover); selected/checked/expanded/focus behavior stays outside that guard. Shared caller visual/touch checks remain pending.
+
+## Candidate proportions — awaiting rendered validation
+
+List width is 208px by default, 192px through viewport 1199px, and 224px from 1800px; gutters are 24px/default and 16px/narrow. The recipe rail is 288px and appears only when menu-content reaches 840px. Platform reports become two columns only when their actual menu-analysis container reaches 728px, replacing the viewport-triggered override. Phones retain list/detail switching below 768px.
+
+Price emphasis is 18px, supporting amounts 16px and profit/loss 20px (18px on phones); supporting financial text rises to 12px, with tabular amounts. Recipe amounts use Thai grouping/decimals. Editor price fields become one column when the editor's inner container is at most 399px. These are implementation candidates, not measured reflow, zoom or device results.
+
+## Candidate verification boundary
+
+Code Tasks 1–3 are complete. Tasks 4–7 are source candidates with visual checks pending. A source reviewer found one Important unknown-cost/estimate mismatch; targeted regressions reproduced it RED and passed GREEN after the display gate fix, as reported by the implementer. Implementer-reported final source checks at code commit 9ba1874: 96 files / 601 tests PASS; lint PASS; production build PASS; diff-check PASS. The Important mismatch was fixed with two RED-to-GREEN regressions plus an excluded-packaging control; no other source findings, deferred minors or declined behaviors were reported. A shared CSS import build issue was resolved with a normal JavaScript import rather than Vue style-src.
+
+Browser tools still report disabled access despite the user enabling it, a fresh session reset and an attempted createTab. No screenshots, rendered viewport measurements or keyboard/forced-colors acceptance exist for this candidate. The local demo preview is on port 5186; HTML/modules returned HTTP 200, which is not rendered verification or deployment. Source-only record: ../../docs/superpowers/verification/2026-10-20-menu-interface-remediation.md. Physical device, zoom, soft keyboard and assistive-technology checks remain unverified.
+
+## Historical surface records — not candidate verification
+
+Preserved below for provenance. Earlier “current”, “final”, pass-count, screenshot and deployment language applies to those preceding snapshots, not this worktree candidate. Local geometry, compact type and focus rules are not canonized into the global design system.
+
 # Menu and recipes — reading workspace with original edit popup
 
 Current superseding brief, 20 October 2026 (hide unpriced platforms). The user now requests platforms with missing or zero prices hidden entirely, superseding the static skeleton iteration. The original add/edit MenuEditModal popup remains restored. Reading retains the left menu list, center/top analysis and responsive recipe/materials rail.
