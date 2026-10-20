@@ -9,7 +9,7 @@ function setup() {
  s.materials=[material('BASE',1000,{unitCost:10}),...[4,7,10,15].map((unitCost,i)=>material(`F${i}`,1000,{unitCost}))]
  s.addons=[0,1,2,3].map(i=>({id:`A${i}`,name:`ผลไม้ ${i}`,recipe:[{materialId:`F${i}`,qty:1}],prices:{PLAT01:20}}))
  s.addonGroups=[{id:'G',name:'ฟรี 3 ชนิด',pricingMode:'included',minSelections:3,maxSelections:3,allowRepeat:false,options:s.addons.map(a=>({addonId:a.id}))}]
- s.menus=[{id:'M',name:'Trio',prices:{PLAT01:100},recipe:[{materialId:'BASE',qty:2}],hasAddons:true,addonGroupIds:['G']}]
+ s.menus=[{id:'M',name:'Trio',prices:{PLAT01:100,PLAT02:120},recipe:[{materialId:'BASE',qty:2}],hasAddons:true,addonGroupIds:['G']}]
  s.platforms[0].gpPercent=30
  return s
 }
@@ -18,6 +18,7 @@ it('shows average and worst-case profit after GP in menu details',async()=>{
  try {
   await w.get('[data-catalog-details]').trigger('click');await flushPromises()
   expect(document.querySelector('[data-menu-average-profit]').textContent).toContain('฿23.00')
+  expect(document.querySelector('[data-menu-platform=PLAT02] [data-menu-financial=profit]').textContent).toContain('฿37.00')
   expect(document.querySelector('[data-menu-financial="cost"]').textContent).toContain('฿47.00')
   expect(document.querySelector('[data-menu-financial="margin"]').textContent).toContain('32.9%')
   expect(document.querySelector('[data-menu-worst-profit]')).toBe(null)
@@ -25,6 +26,7 @@ it('shows average and worst-case profit after GP in menu details',async()=>{
   expect(toggle).not.toBe(null)
   toggle.click();await flushPromises()
   expect(document.querySelector('[data-menu-worst-profit]').textContent).toContain('฿18.00')
+  expect(document.querySelector('[data-menu-platform=PLAT02] [data-menu-financial=profit]').textContent).toContain('฿32.00')
   expect(document.querySelector('[data-menu-financial="cost"]').textContent).toContain('฿52.00')
   expect(document.querySelector('[data-menu-financial="margin"]').textContent).toContain('25.7%')
   document.querySelector('[aria-label="สลับเป็นค่าเฉลี่ย"]').click();await flushPromises()

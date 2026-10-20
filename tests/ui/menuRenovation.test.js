@@ -26,17 +26,13 @@ it('changes the displayed channel inline without changing checkout pricing',asyn
  }finally{w.unmount()}
 })
 
-it('selects platform badges in the detail sheet and keeps toolbar selection in sync without changing POS',async()=>{
+it('opens a platform overview without changing the catalog channel or POS',async()=>{
  const store=createTestStore();store.resetDemoData();const platform=store.currentPlatformId,before=JSON.stringify(store.menus)
  const w=mount(Menu,{attachTo:document.body})
  try{
+  await w.get('[data-platform-tab="PLAT02"]').trigger('click')
   await w.get('[data-catalog-details]').trigger('click');await flushPromises()
-  const sheet=()=>document.getElementById('menu-recipe')
-  const badge=sheet().querySelector('button[data-platform-price="PLAT02"]')
-  expect(badge).not.toBeNull();badge.click();await flushPromises()
-  expect(badge.getAttribute('aria-pressed')).toBe('true')
-  expect(sheet().querySelector('[data-platform-price="PLAT01"]').getAttribute('aria-pressed')).toBe('false')
-  expect(w.get('[data-platform-tab="PLAT02"]').attributes('aria-selected')).toBe('true')
+  expect(document.querySelectorAll('#menu-recipe [data-menu-platform]')).toHaveLength(store.platforms.length)
   expect(w.vm.displayPlatformId).toBe('PLAT02')
   expect(store.currentPlatformId).toBe(platform)
   expect(JSON.stringify(store.menus)).toBe(before)

@@ -31,9 +31,9 @@ it('distinguishes absent store price and an explicitly zero price in recipe summ
  const store=createTestStore();store.resetDemoData();store.menus[0].prices={}
  const w=mount(Menu,{attachTo:document.body})
  try{w.vm.openBomModal(store.menus[0]);await flushPromises()
-  expect(w.vm.selectedMenuStorePrice).toBeNull();expect(w.vm.selectedMenuGpPercent).toBeNull()
+  expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=price]').textContent).toContain('ยังไม่กำหนดราคา');expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=margin]').textContent).toContain('ยังคำนวณไม่ได้')
   expect(document.getElementById('menu-recipe').textContent).toContain('ยังคำนวณไม่ได้')
-  store.menus[0].prices.PLAT01=0;await flushPromises();expect(w.vm.selectedMenuStorePrice).toBe(0);expect(w.vm.selectedMenuGpPercent).toBeNull()
+  store.menus[0].prices.PLAT01=0;await flushPromises();expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=price]').textContent).toContain('฿0.00');expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=margin]').textContent).toContain('ยังคำนวณไม่ได้')
  }finally{w.unmount()}
 })
 it('uses a constrained confirmation frame for long messages with cancel-first focus',async()=>{

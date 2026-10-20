@@ -6,7 +6,7 @@
    <div class="menu-directory-list"><MenuCard v-for="menu in filteredMenus" :key="menu.id" :menu="menu" :platforms="store.platforms" :selected-id="displayPlatformId" :ingredient-count="(menu.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType!=='packaging').length" :package-count="(menu.recipe||[]).filter(r=>store.matMap[r.materialId]?.inventoryType==='packaging').length" @details="openBomModal" @edit="editMenu" @delete="deleteMenu"/></div>
    <div v-if="!filteredMenus.length" class="menu-directory-empty"><strong>{{ searchQuery?'ไม่พบเมนูที่ค้นหา':'ยังไม่มีเมนู' }}</strong><p>{{ searchQuery?'ลองค้นหาด้วยชื่อหรือคำอธิบายอื่น':'เพิ่มเมนูแรก พร้อมกำหนดราคาและสูตรที่ใช้' }}</p><Button v-if="searchQuery" variant="secondary" @click="searchQuery=''">แสดงเมนูทั้งหมด</Button></div>
   </section>
-  <MenuRecipeDetails :open="isBomModalOpen" :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :pricing="selectedMenuPricing" :cost-estimate="selectedMenuCostEstimate" :platforms="store.platforms" :selected-id="displayPlatformId" @platform="displayPlatformId=$event" @close="closeBomModal" @edit="editFromBom"/>
+  <MenuRecipeDetails :open="isBomModalOpen" :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :cost-estimate="selectedMenuCostEstimate" :platforms="store.platforms" @close="closeBomModal" @edit="editFromBom"/>
  </div>
 </template>
 <script setup>
@@ -85,25 +85,6 @@ const selectedMenuCostEstimate = computed(() => selectedMenu.value ? estimateMen
 const selectedMenuFoodCost = computed(() => {
   return detailedRecipeItems.value.reduce((sum, item) => sum + item.cost, 0)
 })
-
-const selectedMenuStorePrice = computed(() => {
-  const value=selectedMenu.value?.prices?.[displayPlatformId.value]
-  if(value===undefined||value===null||value==='')return null
-  return Number.isFinite(Number(value))?Number(value):null
-})
-
-const selectedMenuPricing = computed(() => {
-  const platform = store.platforms.find(p => p.id === displayPlatformId.value)
-  const price = selectedMenuStorePrice.value
-  const rate = platform ? Number(platform.gpPercent ?? 0) : NaN
-  const gpPercent = Number.isFinite(rate) && rate >= 0 && rate <= 100 ? rate : null
-  const gpAmount = price !== null && gpPercent !== null ? Math.round(price * (gpPercent / 100) * 100) / 100 : null
-  const netRevenue = gpAmount === null ? null : Math.round((price - gpAmount) * 100) / 100
-  const profit = netRevenue === null ? null : Math.round((netRevenue - selectedMenuFoodCost.value) * 100) / 100
-  const margin = netRevenue > 0 ? profit / netRevenue * 100 : null
-  return { platformName: platform?.name || 'ไม่พบช่องทางขาย', price, gpPercent, gpAmount, netRevenue, profit, margin }
-})
-const selectedMenuGpPercent = computed(() => selectedMenuPricing.value.margin)
 
 function openAddMenu() {
   store.modals.menuEdit = { isOpen: true, menuId: null }
