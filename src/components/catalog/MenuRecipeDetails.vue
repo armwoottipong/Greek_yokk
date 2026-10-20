@@ -32,7 +32,7 @@ defineEmits(['edit'])
 </script>
 <style scoped src="./catalogRecipe.css"></style>
 <style scoped>
-.menu-detail-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start;min-width:0}.menu-analysis-panel{background:var(--bg-card);padding:24px;border-radius:16px;min-width:0}.recipe-view-toggle{display:flex;align-items:center;gap:4px;font-size:.75rem;color:#705C50;flex-shrink:0}.menu-analysis-panel .recipe-help{margin-top:16px;margin-bottom:0;color:#705C50}.menu-detail-workspace :deep(:focus-visible){outline:none!important;box-shadow:none!important}
-@container menu-content (min-width:800px){.menu-detail-workspace{grid-template-columns:minmax(0,1fr) 290px}.menu-detail-workspace :deep(.overview-platforms){grid-template-columns:minmax(0,1fr)}}
-@container menu-content (max-width:560px){.menu-analysis-panel{padding:16px}.menu-analysis-panel :deep(.overview-platforms){grid-template-columns:minmax(0,1fr)}}
+.menu-detail-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start;min-width:0}.menu-analysis-panel{background:var(--bg-card);padding:24px;border-radius:16px;min-width:0}.recipe-view-toggle{display:flex;align-items:center;gap:4px;font-size:.75rem;color:#705C50;flex-shrink:0}.menu-analysis-panel .recipe-help{margin-top:16px;margin-bottom:0;color:#705C50}.menu-detail-workspace :deep(:focus-visible){outline:none!important;box-shadow:none!important}
+@container menu-content (min-width:840px){.menu-detail-workspace{grid-template-columns:minmax(0,1fr) 288px}}
+@container menu-content (max-width:560px){.menu-analysis-panel{padding:16px}}
 </style>
