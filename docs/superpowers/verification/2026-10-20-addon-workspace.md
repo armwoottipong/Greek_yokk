@@ -56,3 +56,9 @@ The documenter did not independently rerun tests or browser measurements. Final 
 Main through eb4a478 is merged into codex/addon-dashboard-workspace. Shared-chart conflicts preserve includeZeroPrices and unit/price/entity labels alongside Dashboard styling and interactions. Add-on uses a direct confirmed trash action and the shared AnalysisInfo component for both accounting definitions and standard-price exclusions. AddonEditModal receives the same focused-label background correction as MenuEditModal. Existing addon-workspace-preview.html is unrelated untracked work and is preserved. The prior screenshots do not represent this follow-up; browser rendering has not been reverified.
 
 Follow-up source verification: 100 test files / 623 tests PASS; npm run lint PASS; npm run build PASS; git diff --check PASS. New regressions cover direct trash confirmation, shared Add-on accounting tooltip and existing zero-price behavior across all graph modes.
+
+## Shared component refactor
+
+Menu and Add-on now compose CatalogWorkspace, CatalogHeader, CatalogBrowser and CatalogEmptyState. Views retain store/domain/modal state and saved-ID focus coordination; the shell exposes its DOM element for caller-owned focus restoration. Dashboard, Menu and Add-on use SegmentedControl, ChartMark, DonutSlice and ChartLine with a common palette and chart-only stylesheet. Catalog no longer imports the Dashboard page stylesheet. Component responsibilities and extension boundaries are documented in src/components/catalog/README.md and src/components/charts/README.md.
+
+Verification: 101 test files / 626 tests PASS; lint/build/diff check PASS. A read-only review found no actionable regressions. Existing preview/screenshot acceptance does not cover this structural refactor; no production deployment is recorded.

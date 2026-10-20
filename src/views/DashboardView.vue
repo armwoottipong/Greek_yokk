@@ -2,7 +2,7 @@
  <div class="dashboard">
   <header class="dashboard-toolbar">
    <p class="dashboard-workspace-caption">ยอดขาย ต้นทุน และสิ่งที่ควรดูแลวันนี้</p>
-   <div class="dashboard-date-controls"><div class="dashboard-segments" aria-label="ช่วงเวลารายงาน"><button v-for="p in periods" :key="p.id" type="button" :data-period="p.id" :aria-pressed="period===p.id" @click="selectPeriod(p.id)">{{ p.label }}</button></div><button ref="dateAnchor" type="button" data-dashboard-dates class="dashboard-date-button" aria-haspopup="dialog" :aria-expanded="datesOpen" @click="datesOpen=true"><CalendarDays :size="16" aria-hidden="true" />{{ rangeLabel }}<ChevronDown :size="14" aria-hidden="true" /></button></div>
+   <div class="dashboard-date-controls"><SegmentedControl v-model="period" label="ช่วงเวลารายงาน" :options="periods" :button-attrs="option=>({'data-period':option.value})" @update:model-value="selectPeriod"/><button ref="dateAnchor" type="button" data-dashboard-dates class="dashboard-date-button" aria-haspopup="dialog" :aria-expanded="datesOpen" @click="datesOpen=true"><CalendarDays :size="16" aria-hidden="true" />{{ rangeLabel }}<ChevronDown :size="14" aria-hidden="true" /></button></div>
   </header>
   <Teleport to="body"><FilterDropdown id="dashboard-date-filter" title="ช่วงเวลารายงาน" :open="datesOpen" :anchor="dateAnchor" :values="range" @close="datesOpen=false" @apply="applyRange" /></Teleport>
   <div class="dashboard-summary" aria-label="สรุปยอดขายในช่วงวันที่เลือก">
@@ -41,6 +41,7 @@ import {buildDashboard,dashboardRange,money,dateLabel} from '@/domain/dashboard'
 import {businessDateKey} from '@/domain/businessDate'
 import FilterDropdown from '@/components/ui/FilterDropdown.vue'
 import AppChoiceGroup from '@/components/ui/AppChoiceGroup.vue'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import DashboardTrend from '@/components/dashboard/DashboardTrend.vue'
 import DashboardBreakdown from '@/components/dashboard/DashboardBreakdown.vue'
 import '@/assets/dashboard.css'
@@ -58,7 +59,7 @@ function refreshDay(){
 onMounted(()=>{dayTimer=setInterval(refreshDay,30000)})
 onActivated(refreshDay)
 onUnmounted(()=>clearInterval(dayTimer))
-const periods=[{id:'today',label:'วันนี้'},{id:'week',label:'7 วัน'},{id:'month',label:'30 วัน'},{id:'all',label:'ทั้งหมด'}]
+const periods=[{value:'today',label:'วันนี้'},{value:'week',label:'7 วัน'},{value:'month',label:'30 วัน'},{value:'all',label:'ทั้งหมด'}]
 const views=[{id:'overview',label:'ภาพรวม',icon:ChartNoAxesCombined},{id:'channels',label:'ช่องทางขาย',icon:Store},{id:'menus',label:'เมนูขายดี',icon:Utensils},{id:'inventory',label:'คลังวัตถุดิบ',icon:Package}]
 const report=computed(()=>buildDashboard(store.orders,range.value)),metrics=computed(()=>report.value.metrics)
 const rangeLabel=computed(()=>!range.value.start?'ทุกช่วงเวลา':range.value.start===range.value.end?dateLabel(range.value.start):`${dateLabel(range.value.start)} – ${dateLabel(range.value.end)}`)

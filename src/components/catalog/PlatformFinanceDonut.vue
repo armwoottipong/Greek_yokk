@@ -2,7 +2,7 @@
  <figure data-platform-donut class="finance-donut dashboard-donut dashboard-breakdown" :class="{'has-single-selection':!!tooltip}" @keydown.esc.stop="clearSelection">
   <svg viewBox="0 0 120 120" role="group" :aria-label="`สัดส่วนราคาขาย ${row.name}`">
    <circle cx="60" cy="60" r="44" fill="none" stroke="var(--bg-soft)" stroke-width="16"/>
-   <circle v-for="segment in segments" :key="segment.key" class="dashboard-donut-slice" :class="{'is-active':active===segment.key}" tabindex="0" role="button" :aria-label="`${segment.label} ${money(segment.value)} ${segment.share.toFixed(1)}%`" :aria-describedby="active===segment.key?tooltipId:undefined" @mouseenter="highlight(segment.key)" @mouseleave="clearHover" @focus="highlight(segment.key)" @blur="clearHover" @click="selectSegment($event,segment)" @keydown.enter="selectSegment($event,segment)" @keydown.space.prevent="selectSegment($event,segment)" :data-donut-profit="segment.key==='profit'?'':undefined" cx="60" cy="60" r="44" fill="none" :stroke="`var(--chart-${segment.key})`" stroke-width="16" pathLength="100" :stroke-dasharray="`${segment.share} ${100-segment.share}`" :stroke-dashoffset="-segment.offset" transform="rotate(-90 60 60)"/>
+   <DonutSlice v-for="segment in segments" :key="segment.key" :class="{'is-active':active===segment.key}" :aria-label="`${segment.label} ${money(segment.value)} ${segment.share.toFixed(1)}%`" :aria-describedby="active===segment.key?tooltipId:undefined" @highlight="highlight(segment.key)" @clear="clearHover" @activate="selectSegment($event,segment)" :data-donut-profit="segment.key==='profit'?'':undefined" :cx="60" :cy="60" :radius="44" :color="`var(--chart-${segment.key})`" :stroke-width="16" :share="segment.share" :offset="segment.offset"/>
    <text x="60" y="58" text-anchor="middle">{{ loss ? 'ค่าใช้จ่าย' : 'ราคาขาย' }}</text><text x="60" y="76" text-anchor="middle">ต่อ 1 {{ unitLabel }}</text>
   </svg>
   <ChartTooltip :id="tooltipId" :value="tooltip"/>
@@ -10,6 +10,8 @@
  </figure>
 </template>
 <script setup>
+import {financeColors} from '@/components/charts/chartPalette'
+import DonutSlice from '@/components/charts/DonutSlice.vue'
 import {computed} from 'vue'
 import ChartTooltip from '@/components/ui/ChartTooltip.vue'
 import {useChartMarks} from '@/composables/useChartMarks'
@@ -26,7 +28,7 @@ const {tooltipId,tooltip,active,highlight,clearHover,clearSelection,selectMark}=
 const money=value=>`฿${value.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`
 function selectSegment(event,segment){
  const svg=event.currentTarget.ownerSVGElement,rect=svg.getBoundingClientRect(),angle=(segment.offset+segment.share/2)*Math.PI/50,scale=Math.min(rect.width,rect.height)/120
- selectMark(event,segment.key,{heading:props.row.name,label:segment.label,value:money(segment.value),color:{cost:'#780608',gp:'#B68B55',profit:'#497464'}[segment.key],note:`${segment.share.toFixed(1)}% ${loss.value?'ของค่าใช้จ่าย':'ของราคาขาย'}`},{x:rect.left+rect.width/2+44*scale*Math.sin(angle),y:rect.top+rect.height/2-44*scale*Math.cos(angle)})
+ selectMark(event,segment.key,{heading:props.row.name,label:segment.label,value:money(segment.value),color:financeColors[segment.key],note:`${segment.share.toFixed(1)}% ${loss.value?'ของค่าใช้จ่าย':'ของราคาขาย'}`},{x:rect.left+rect.width/2+44*scale*Math.sin(angle),y:rect.top+rect.height/2-44*scale*Math.cos(angle)})
 }
 </script>
 <style scoped>
