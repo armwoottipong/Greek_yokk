@@ -6,16 +6,18 @@ import Menu from '../../src/views/MenuView.vue'
 import Stock from '../../src/views/StockView.vue'
 import Confirm from '../../src/components/modals/ConfirmModal.vue'
 import Frame from '../../src/components/ui/DialogFrame.vue'
-it('closes cached page overlays and releases inert/scroll leases on navigation',async()=>{
+it('keeps inline menu selection across cached routes without inert or scroll leases',async()=>{
  const store=createTestStore();store.resetDemoData()
  const Host=defineComponent({components:{MenuPage:Menu,Stock},setup(){return {page:ref('MenuPage')}},template:'<div id="app"><KeepAlive><component :is="page" /></KeepAlive></div>'})
  const w=mount(Host,{attachTo:document.body})
  try{
-  const page=w.getComponent(Menu);page.vm.openBomModal(store.menus[0]);await flushPromises()
-  expect(document.getElementById('app').hasAttribute('inert')).toBe(true)
+  await w.getComponent(Menu).findAll('[data-menu-select]')[1].trigger('click');await flushPromises()
+  expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
   w.vm.page='Stock';await flushPromises()
-  expect(document.querySelector('[role="dialog"]')).toBeNull();expect(document.getElementById('app').hasAttribute('inert')).toBe(false);expect(document.body.style.overflow).not.toBe('hidden')
-  w.vm.page='MenuPage';await flushPromises();expect(w.getComponent(Menu).vm.isBomModalOpen).toBe(false)
+  expect(document.getElementById('app').hasAttribute('inert')).toBe(false);expect(document.body.style.overflow).not.toBe('hidden')
+  w.vm.page='MenuPage';await flushPromises()
+  expect(w.getComponent(Menu).get('[data-selected-menu-name]').text()).toContain(store.menus[1].name)
  }finally{w.unmount()}
 })
 it('offers edit and permanent-delete routes for archived materials without restoring',async()=>{
@@ -30,7 +32,7 @@ it('offers edit and permanent-delete routes for archived materials without resto
 it('distinguishes absent store price and an explicitly zero price in recipe summaries',async()=>{
  const store=createTestStore();store.resetDemoData();store.menus[0].prices={}
  const w=mount(Menu,{attachTo:document.body})
- try{w.vm.openBomModal(store.menus[0]);await flushPromises()
+ try{await w.get('[data-menu-select]').trigger('click');await flushPromises()
   expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=price]').textContent).toContain('ยังไม่กำหนดราคา');expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=margin]').textContent).toContain('ยังคำนวณไม่ได้')
   expect(document.getElementById('menu-recipe').textContent).toContain('ยังคำนวณไม่ได้')
   store.menus[0].prices.PLAT01=0;await flushPromises();expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=price]').textContent).toContain('฿0.00');expect(document.querySelector('[data-menu-platform=PLAT01] [data-menu-financial=margin]').textContent).toContain('ยังคำนวณไม่ได้')

@@ -1,3 +1,45 @@
+# Menu and recipes — inline management workspace
+
+Current surface brief, 20 October 2026. Mode: Operate. This source-grounded extension supersedes the popup presentation described in the historical records below. PRODUCT.md, DESIGN.md and .impeccable/design.json retain global authority; this change adds a local workspace composition.
+
+User-approved direction: remove the menu details/add/edit popup from this page. Use the shop overview dashboard (ภาพรวมร้าน) as the primary style reference, with an active menu selection on the left, all-platform analysis at the center/top, and recipe/materials on the right where space permits. Edit in place with a draft graph preview and save/discard/stay handling. The user explicitly requested no focus outline on this surface. Inherit cream, burgundy, Prompt, numeric hierarchy and existing shared controls; no new visual world or global design-system migration.
+
+THESIS: Keep one selected menu, every selling platform's financial figures, and its recipe in the same working context.
+OWN-WORLD: Extend the established calm shop workspace with quiet cream panels, burgundy selection/actions, existing chart semantic colors and source-local warm secondary text.
+STORY: Search the left menu list; select a menu; compare all platforms using bar, circle or line; inspect ingredients/packaging; edit inline while previewing draft financials; save or resolve unsaved changes before moving to another local action.
+FIRST VIEWPORT: Page title/add action and a searchable selectable menu list accompany the selected menu heading, all-platform analysis and recipe panel. The first stored menu is selected initially. The list includes open/closed sale status and recipe count; it is not an active-only filter and no longer carries a display-channel price selector.
+FORM: Source-local dashboard-style composition using MenuView, MenuRecipeDetails, MenuRecipePanel and MenuInlineEditorFrame. MenuEditModal is reused with its inline prop; this branch renders a section instead of DialogFrame and does not open the global menu-edit popup. The existing modal branch remains available for other callers. Shared FormField/AppInput/AppSelect/RecipeEditorRow controls retain native inputs and selects.
+
+## Layout and responsive behavior recorded from source
+
+- At viewport widths of 768px and above, the left list and main content coexist. The list is 220px wide, becoming 200px at 1199px and below; the inter-column gap changes from 24px to 20px. The list has its own bounded vertical scroll on these widths.
+- The main content establishes a named inline-size container. A recipe rail (290px) appears beside analysis only when that content container reaches 800px. This is a container threshold, not an 800px viewport breakpoint. A desktop with narrower available content may still stack the recipe below analysis.
+- Tablet layouts retain the list beside analysis and normally place the recipe below it. At content widths of 560px or less the analysis panel padding reduces from 24px to 16px. Source rules keep platform reports in one column inside the wide analysis-plus-recipe composition.
+- Below 768px viewport width, the page switches between the menu list and selected detail/editor. A named back action returns to the list. Selecting a menu requests focus on its heading; returning requests focus on its list button. These are source behaviors, not rendered keyboard QA results.
+- Inline editing keeps the graph preview before the form in source order. At a content-container width of 800px and above, preview/basic/price/group/sale controls occupy the main column and ingredient/packaging editors occupy the right column. Below that threshold they stack. Save/cancel live in a sticky inline footer.
+
+## Financial and draft behavior
+
+The current overview retains three user-selected representations: แท่ง / วงกลม / เส้น. Every mode includes textual selling price, cost, GP rate/amount, signed profit/loss, net revenue and margin for every platform; selecting a menu requires no platform filter. Bar uses a common baht scale, donut describes per-platform composition, and line compares platforms rather than time. Missing prices, invalid GP, unavailable costs, losses and no-platform states remain named. The existing average/worst free-choice estimate switch applies to every platform in detail view and resets when the selected menu ID changes.
+
+Inline preview derives from the draft prices, recipe, packaging flag and option-group selection through the existing cost estimator. Its label states that it is an unsaved preview and uses the average cost of free choices. It does not update stored menu data merely by rendering. Recipe panels group ingredients and packaging, name missing materials, show per-serving quantities/costs and available servings, explain excluded packaging and list option-group rules.
+
+The workbench checks the editor's dirty snapshot before local menu selection, add, cancel or phone-back actions. Its inline notice offers แก้ไขต่อ, ทิ้งแบบร่าง and บันทึกแล้วไปต่อ; saving continues only when submission succeeds. Dirty drafts also register a browser beforeunload guard. This is not evidence of an application-wide route-change guard. Delete retains the existing destructive confirmation. The optional emoji picker and ancillary shared UI are separate from the removed menu details/edit popup.
+
+## Scoped styling and evidence limits
+
+Panels inherit the existing card fill and rounded surface language. Cost burgundy, profit green and loss red remain semantic chart colors; fee brown (#A07847) and warm secondary text (#705C50) remain local values. Focus outline and box-shadow suppression are scoped to this menu workspace and inline editor per the explicit user direction. Native focusability, labels and pressed states remain in source; visible keyboard focus and accessibility acceptance have not been verified in a rendered session. This is not a global focus-token change.
+
+Current visual, responsive and rendered keyboard QA: NOT VERIFIED. Browser use is disabled by Work settings. No current redesign screenshots or viewport measurements are claimed. Source tests/checks are in progress at this documentation snapshot; no current pass count, completed build, deployment or physical-device result is asserted. Current documentation provenance: ../review/menu-workspace-2026-10-20/documentation.md.
+
+The prior popup screenshots, graph screenshots and test counts below are historical evidence for their earlier implementations. They do not show or verify this inline workspace redesign.
+
+Final source validation for this workspace: 95 files / 579 tests, lint and build passed after the fresh keyed draft-session fix. Source-only reviewer scored the reported discard defect resolved. No current rendered visual QA or deployment is claimed; browser use is disabled in Work settings. See review/menu-workspace-2026-10-20/{documentation.md,source-review.md}.
+
+## Historical records — superseded popup, directory and graph presentations
+
+The following earlier brief is preserved verbatim for provenance. Its claims of a details sheet, selected-channel directory prices and screenshots being current/final apply only to that historical version. They do not override the current inline workspace description above.
+
 # Menu and recipes — immediate platform comparison
 
 Current surface brief, 20 October 2026. Mode: Operate. This extends the established cream/burgundy shop workspace. PRODUCT.md and DESIGN.md remain the global authority; this brief records the menu surface only.

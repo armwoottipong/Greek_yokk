@@ -23,14 +23,15 @@ it('keeps nested dialogs locked and permits only the top scrolling body',async()
   w.vm.a=false;await flushPromises();expect(document.body.style.overflow).toBe(before)
  }finally{w.unmount()}
 })
-it('isolates recipe details as a named dialog and closes with Escape',async()=>{
+it('shows recipe details inline without making the application inert or locking page scroll',async()=>{
  const store=createTestStore();store.resetDemoData()
- const w=mount(MenuView,{attachTo:document.body,global:{stubs:{transition:false}}})
+ const before=document.body.style.overflow
+ const w=mount(MenuView,{attachTo:document.body})
  try{
-  await w.get(`[data-catalog-details="${store.menus[0].id}"]`).trigger('click');await flushPromises()
-  const dialog=document.querySelector('[role="dialog"]')
-  expect(dialog).not.toBeNull();expect(dialog.getAttribute('aria-labelledby')).toBe('menu-recipe-title')
-  dialog.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await flushPromises();await new Promise(resolve=>setTimeout(resolve,100))
+  await w.get(`[data-menu-select="${store.menus[0].id}"]`).trigger('click');await flushPromises()
   expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(w.get('[data-menu-recipe-panel]').text()).toContain('วัตถุดิบ')
+  expect(w.element.closest('[inert]')).toBeNull()
+  expect(document.body.style.overflow).toBe(before)
  }finally{w.unmount()}
 })

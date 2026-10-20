@@ -11,7 +11,7 @@ it('opens menu detail without mutation, handles broken recipe and hands off the 
  expect(document.getElementById('menu-recipe').textContent).toContain('ไม่พบวัตถุดิบ')
  expect(document.getElementById('menu-recipe').textContent).not.toContain('Infinity')
  expect(JSON.stringify(store.menus)).toBe(before)
- w.vm.editFromBom();expect(store.modals.menuEdit.menuId).toBe(menu.id);expect(w.vm.isBomModalOpen).toBe(false);w.unmount()
+ await w.get('[data-menu-edit]').trigger('click');await flushPromises();expect(w.get('#menu-name').element.value).toBe(menu.name);expect(store.modals.menuEdit.isOpen).toBe(false);expect(w.find('[role=dialog]').exists()).toBe(false);w.unmount()
 })
 it('shows addon details for broken material links and confirms exact deletion ID',async()=>{
  const store=createTestStore();store.resetDemoData();const addon=store.addons[0];addon.recipe=[{materialId:'MISSING',qty:1}]

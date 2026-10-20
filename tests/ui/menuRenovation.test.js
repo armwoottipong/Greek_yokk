@@ -16,40 +16,23 @@ it('clears the menu search and restores the full list',async()=>{
  }finally{w.unmount()}
 })
 
-it('changes the displayed channel inline without changing checkout pricing',async()=>{
- const store=createTestStore();store.resetDemoData();const original=store.currentPlatformId,w=mount(Menu)
+it('selects another menu without changing checkout channel or saved menu data',async()=>{
+ const store=createTestStore();store.resetDemoData();const before=JSON.stringify(store.menus),platform=store.currentPlatformId,w=mount(Menu)
  try{
-  await flushPromises()
-  await w.get('[role="tab"][data-platform-tab="PLAT02"]').trigger('click')
-  await flushPromises()
-  expect(w.vm.displayPlatformId).toBe(store.platforms[1].id);expect(store.currentPlatformId).toBe(original)
+  await w.findAll('[data-menu-select]')[1].trigger('click');await flushPromises()
+  expect(w.get('[data-selected-menu-name]').text()).toContain(store.menus[1].name)
+  expect(w.findAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
+  expect(store.currentPlatformId).toBe(platform);expect(JSON.stringify(store.menus)).toBe(before)
  }finally{w.unmount()}
 })
 
-it('opens a platform overview without changing the catalog channel or POS',async()=>{
- const store=createTestStore();store.resetDemoData();const platform=store.currentPlatformId,before=JSON.stringify(store.menus)
- const w=mount(Menu,{attachTo:document.body})
- try{
-  await w.get('[data-platform-tab="PLAT02"]').trigger('click')
-  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
-  expect(document.querySelectorAll('#menu-recipe [data-menu-platform]')).toHaveLength(store.platforms.length)
-  expect(w.vm.displayPlatformId).toBe('PLAT02')
-  expect(store.currentPlatformId).toBe(platform)
-  expect(JSON.stringify(store.menus)).toBe(before)
-  w.vm.closeBomModal();await flushPromises()
-  expect(w.get('[data-platform-tab="PLAT02"]').attributes('aria-selected')).toBe('true')
-  expect(w.get('.menu-row-price').text()).toContain('GrabFood')
- }finally{w.unmount()}
-})
-
-it('supports keyboard platform tabs',async()=>{
+it('allows keyboard selection of a menu using native list buttons',async()=>{
  const store=createTestStore();store.resetDemoData();const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-platform-tab="PLAT01"]').trigger('keydown',{key:'ArrowRight'});await flushPromises()
-  expect(w.vm.displayPlatformId).toBe('PLAT02')
-  expect(document.activeElement.getAttribute('data-platform-tab')).toBe('PLAT02')
-  await w.get('[data-platform-tab="PLAT02"]').trigger('keydown',{key:'End'});await flushPromises()
-  expect(w.vm.displayPlatformId).toBe('PLAT04')
+  const button=w.findAll('[data-menu-select]')[1]
+  button.element.focus();button.element.click();await flushPromises()
+  expect(button.attributes('aria-pressed')).toBe('true')
+  expect(w.get('[data-selected-menu-name]').text()).toContain(store.menus[1].name)
  }finally{w.unmount()}
 })
 

@@ -1,7 +1,6 @@
 <template>
- <DialogFrame id="menu-recipe" :open="open" :title="menu?.name||'รายละเอียดเมนู'" presentation="sheet" width="960px" description="ภาพรวมราคา ต้นทุน และกำไรทุกแพลตฟอร์ม พร้อมสูตรที่ใช้" @request-close="$emit('close')">
-  <template v-if="menu">
-   <p class="recipe-description">{{ menu.description }}</p>
+ <div id="menu-recipe" class="menu-detail-workspace">
+  <section class="menu-analysis-panel" aria-label="ข้อมูลวิเคราะห์เมนู">
    <section aria-label="รายรับ ต้นทุน และกำไร">
     <MenuPlatformOverview :menu="menu" :platforms="platforms" :cost="displayCost" :estimated="hasEstimates" :worst="worstView">
      <template v-if="hasEstimates" #controls><div class="recipe-view-toggle"><span aria-live="polite">{{ worstView ? 'ชุดแพงสุด' : 'ค่าเฉลี่ย' }}</span><IconButton :label="worstView ? 'สลับเป็นค่าเฉลี่ย' : 'สลับเป็นชุดแพงสุด'" :aria-pressed="worstView" @click="worstView = !worstView"><ArrowLeftRight :size="16" aria-hidden="true"/></IconButton></div></template>
@@ -13,26 +12,27 @@
     </template>
     <p v-else class="recipe-help">คำนวณทุกช่องทางจากราคาขาย หัก GP และต้นทุนสูตรเดียวกัน</p>
    </section>
-   <section v-for="group in groups" :key="group.label" class="recipe-group"><h4>{{ group.label }} <span>ต่อ 1 เสิร์ฟ · {{ group.items.length }} รายการ</span></h4><article v-for="(item,index) in group.items" :key="index" class="recipe-item"><div><strong>{{ item.mat?.name||'ไม่พบวัตถุดิบ' }}</strong><p>{{ item.qty }} {{ item.mat?.unit||'' }}</p><small v-if="!item.mat">รหัส {{ item.materialId }} · แก้ไขสูตรเพื่อเลือกวัตถุดิบใหม่</small><small v-else-if="item.servingsAvailable!==null">สต็อกพอ {{ item.servingsAvailable }} เสิร์ฟ</small><small v-else>ยังไม่ระบุจำนวนที่ใช้</small></div><b>฿{{ item.cost.toFixed(2) }}</b></article></section>
-   <p v-if="!items.length" class="recipe-help mt-3">ยังไม่มีสูตรวัตถุดิบ</p>
-  </template><p v-else>ไม่พบเมนู รายการนี้อาจถูกลบแล้ว</p>
-  <template #footer><Button variant="secondary" @click="$emit('close')">ปิด</Button><Button v-if="menu" @click="$emit('edit')">แก้ไขเมนูและสูตร</Button></template>
- </DialogFrame>
+
+  </section>
+  <MenuRecipePanel :menu="menu" :items="items" :addon-groups="addonGroups" @edit="$emit('edit')"/>
+ </div>
 </template>
 <script setup>
-import DialogFrame from '../ui/DialogFrame.vue'
-import Button from '../ui/Button.vue'
 import MenuPlatformOverview from './MenuPlatformOverview.vue'
+import MenuRecipePanel from './MenuRecipePanel.vue'
 import {computed,ref,watch} from 'vue'
 import IconButton from '../ui/IconButton.vue'
 import {ArrowLeftRight} from 'lucide-vue-next'
-const props=defineProps({open:Boolean,menu:Object,items:Array,foodCost:Number,costEstimate:Object,platforms:Array})
-const worstView = ref(false)
-watch(() => [props.open, props.menu?.id], () => { worstView.value = false })
-const hasEstimates = computed(() => Boolean(props.costEstimate?.groups.length))
-const displayCost = computed(() => hasEstimates.value ? (worstView.value ? props.costEstimate.worstCost : props.costEstimate.averageCost) : props.costEstimate ? props.costEstimate.baseCost : props.foodCost)
-defineEmits(['close','edit'])
-const groups=computed(()=>[{label:'วัตถุดิบ',items:(props.items||[]).filter(i=>i.mat?.inventoryType!=='packaging')},{label:'บรรจุภัณฑ์',items:(props.items||[]).filter(i=>i.mat?.inventoryType==='packaging')}].filter(g=>g.items.length))
+const props=defineProps({menu:{type:Object,required:true},items:{type:Array,default:()=>[]},foodCost:Number,costEstimate:Object,platforms:Array,addonGroups:{type:Array,default:()=>[]}})
+const worstView=ref(false)
+watch(()=>props.menu.id,()=>{worstView.value=false})
+const hasEstimates=computed(()=>Boolean(props.costEstimate?.groups.length))
+const displayCost=computed(()=>hasEstimates.value ? (worstView.value?props.costEstimate.worstCost:props.costEstimate.averageCost) : props.costEstimate ? props.costEstimate.baseCost : props.foodCost)
+defineEmits(['edit'])
 </script>
 <style scoped src="./catalogRecipe.css"></style>
-<style scoped>.recipe-view-toggle{display:flex;justify-content:flex-end;flex-shrink:0;align-items:center;gap:4px;font-size:.75rem;color:var(--text-muted)}.recipe-view-toggle :deep(.ui-icon-button){width:44px;min-height:44px}</style>
+<style scoped>
+.menu-detail-workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start;min-width:0}.menu-analysis-panel{background:var(--bg-card);padding:24px;border-radius:16px;min-width:0}.recipe-view-toggle{display:flex;align-items:center;gap:4px;font-size:.75rem;color:#705C50;flex-shrink:0}.menu-analysis-panel .recipe-help{margin-top:16px;margin-bottom:0;color:#705C50}.menu-detail-workspace :deep(:focus-visible){outline:none!important;box-shadow:none!important}
+@container menu-content (min-width:800px){.menu-detail-workspace{grid-template-columns:minmax(0,1fr) 290px}.menu-detail-workspace :deep(.overview-platforms){grid-template-columns:minmax(0,1fr)}}
+@container menu-content (max-width:560px){.menu-analysis-panel{padding:16px}.menu-analysis-panel :deep(.overview-platforms){grid-template-columns:minmax(0,1fr)}}
+</style>
