@@ -1,14 +1,15 @@
 <template>
-  <details data-history-entry class="group border-b border-stone-100 last:border-0">
+  <details data-history-entry class="group border-b border-stone-100 last:border-0" :class="{'history-entry--reversed': isReversed}">
     <summary tabindex="0" class="history-summary flex cursor-pointer items-start gap-3 px-4 py-3 sm:px-5 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-brand-600 focus-visible:outline-offset-[-2px]">
-      <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-base" aria-hidden="true">{{ log.targetEmoji || '•' }}</span>
+      <span class="history-entry-icon mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-base" aria-hidden="true"><Undo2 v-if="isReversed" data-undo-icon :size="18" aria-hidden="true" /><template v-else>{{ log.targetEmoji || '•' }}</template></span>
       <div class="min-w-0 flex-1">
         <p class="text-sm font-semibold text-stone-900 leading-5 break-words">{{ shortTitle }}<span v-if="!itemMode && log.targetName" class="font-normal text-stone-600"> · {{ log.targetName }}</span></p>
+        <span v-if="isReversed" class="history-reversed-status">ย้อนกลับแล้ว</span>
         <p v-if="hasTransition" class="mt-1 text-xs text-stone-500 tabular-nums">{{ number(log.beforeStock) }} → {{ number(log.afterStock) }} {{ log.unit }}</p>
         <p v-else class="mt-1 text-xs text-stone-500 line-clamp-1">{{ log.description || log.note || 'ดูรายละเอียด' }}</p>
       </div>
       <div class="shrink-0 text-right">
-        <p v-if="hasDelta" class="text-sm font-semibold tabular-nums" :class="Number(log.delta) > 0 ? 'text-emerald-700' : 'text-rose-700'">{{ Number(log.delta) > 0 ? '+' : '' }}{{ number(log.delta) }} <span class="text-xs font-normal">{{ log.unit }}</span></p>
+        <p v-if="hasDelta" data-history-delta class="text-sm font-semibold tabular-nums" :class="isReversed ? 'text-stone-500 line-through' : Number(log.delta) > 0 ? 'text-emerald-700' : 'text-rose-700'">{{ Number(log.delta) > 0 ? '+' : '' }}{{ number(log.delta) }} <span class="text-xs font-normal">{{ log.unit }}</span></p>
         <time :datetime="log.timestamp" class="block mt-1 text-xs tabular-nums text-stone-400">{{ time || 'ไม่ระบุเวลา' }}</time>
       </div>
       <ChevronDown class="mt-1 h-4 w-4 shrink-0 text-stone-400 transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
@@ -29,7 +30,7 @@
           <p v-for="(item, index) in order.items" :key="index">{{ item.qty }} × {{ item.menuName }}</p>
           <p class="font-semibold tabular-nums text-stone-900">ยอดขาย ฿{{ number(order.subtotal) }}</p>
           <p v-if="order.status === 'cancelled'" role="status" class="font-medium text-stone-700">ย้อนกลับแล้ว · ยกเลิกยอดขายและคืนสต็อกแล้ว</p>
-          <button v-else-if="Array.isArray(order.inventoryAllocations)" type="button" class="history-undo" @click="$emit('undo', order.orderId)">ย้อนกลับออเดอร์</button>
+          <button v-else-if="Array.isArray(order.inventoryAllocations)" type="button" class="history-undo" @click="$emit('undo', order.orderId)"><Undo2 :size="16" aria-hidden="true" />ย้อนกลับออเดอร์</button>
           <p v-else class="text-stone-500">ออเดอร์เก่านี้ไม่มีข้อมูลการตัดล็อต จึงย้อนกลับอัตโนมัติไม่ได้</p>
         </template>
         <p v-else class="text-stone-500">ไม่พบข้อมูลออเดอร์สำหรับย้อนกลับ</p>
@@ -39,10 +40,11 @@
 </template>
 <script setup>
 import {computed} from 'vue'
-import {ChevronDown} from 'lucide-vue-next'
+import {ChevronDown, Undo2} from 'lucide-vue-next'
 import {formatThaiDate} from '@/stores/posStore'
 const props=defineProps({log:{type:Object,required:true},itemMode:Boolean,order:{type:Object,default:null}})
 defineEmits(['undo'])
+const isReversed=computed(()=>props.log.action === 'order_cancel' || (props.log.action === 'order_complete' && props.order?.status === 'cancelled'))
 const labels={stock_in:'รับเข้า',adjust:'ตรวจนับ',stock_adjust_add:'ปรับเพิ่ม',stock_adjust_reduce:'ปรับลด',produce:'ผลิต',produce_batch:'ผลิต',produce_deduct:'ตัดวัตถุดิบผลิต',sale_deduct:'ตัดขาย',order_complete:'ขาย',waste:'ของเสีย',switch_lot:'สลับล็อต',create:'เพิ่มรายการ',edit:'แก้ไข',delete:'ลบรายการ',sync:'ซิงค์ข้อมูล'}
 const shortTitle=computed(()=>labels[props.log.action] || props.log.title || 'กิจกรรม')
 const number=value=>Number(value).toLocaleString('th-TH',{maximumFractionDigits:4})
@@ -57,7 +59,11 @@ const time=computed(()=>{
 <style scoped>
 .history-summary { list-style: none; }
 .history-summary::-webkit-details-marker { display: none; }
-.history-undo { min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:8px; color:var(--text-main); background:var(--bg-card); font-weight:500; }
+.history-entry--reversed { background:#fffbeb; }
+.history-entry--reversed > .history-summary:hover { background:#fffbeb; }
+.history-entry--reversed .history-entry-icon { background:#fffbeb; color:var(--state-warning); }
+.history-reversed-status { display:inline-block; margin-top:4px; padding:2px 8px; border-radius:8px; background:var(--state-warning); color:#fff; font-size:12px; font-weight:600; line-height:20px; }
+.history-undo { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:8px; color:var(--text-main); background:var(--bg-card); font-weight:500; }
 .history-undo:hover { background:var(--bg-soft); }
 .history-undo:focus-visible { outline:2px solid var(--accent-brand); outline-offset:2px; }
 </style>
