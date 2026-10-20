@@ -79,3 +79,5 @@ async function deleteMenu(menu){if(await store.confirmDialog({title:'ลบเ�
 @media(max-width:1199px){.workbench-columns{grid-template-columns:200px minmax(0,1fr);gap:20px}.selected-menu-heading{flex-wrap:wrap}.selected-menu-actions{margin-inline-start:auto}}
 @media(max-width:767px){.workbench-columns{grid-template-columns:minmax(0,1fr)}.menu-workbench{gap:20px}.workbench-heading{align-items:flex-start}.workbench-heading h2{font-size:1.125rem}.workbench-heading p{font-size:.75rem}.menu-browser{position:static}.menu-browser-list{max-height:none}.menu-content{display:none}.is-mobile-detail .menu-browser{display:none}.is-mobile-detail .menu-content{display:grid}.is-mobile-detail .menu-back{display:inline-flex;justify-self:start}.selected-menu-heading{gap:12px}.selected-menu-identity>span{font-size:28px}.menu-workbench :deep(.app-input input){font-size:1rem}}
 </style>
+
+<style src="@/components/catalog/menuFocus.css"></style>

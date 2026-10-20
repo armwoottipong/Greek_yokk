@@ -301,3 +301,5 @@ async function submit() {
 <style>
 #MenuEditModal:focus,#MenuEditModal :focus,#MenuEditModal :focus-visible{outline:none!important;box-shadow:none!important}
 </style>
+
+<style src="@/components/catalog/menuFocus.css"></style>
