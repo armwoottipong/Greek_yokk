@@ -20,16 +20,30 @@ it('uses an active header, selectable list, all-platform analysis and recipe wit
   expect(s.currentPlatformId).toBe(original)
  }finally{w.unmount()}
 })
-it('keeps zero surcharge distinct from missing prices in all three chart modes',async()=>{
- const s=createTestStore();s.resetDemoData();s.addons[0].prices.PLAT01=0;delete s.addons[0].prices.PLAT02
+it.each([undefined,null,'',' ',0,'0',-1,'invalid'])('hides unpriced addon platforms in every chart mode (price=%s)',async price=>{
+ const s=createTestStore();s.resetDemoData();s.addons[0].prices={PLAT01:price,PLAT02:20}
  const w=mount(Addon)
  try{
   for(const label of ['แท่ง','วงกลม','เส้น']){
    await w.findAll('button').find(b=>b.text()===label).trigger('click')
-   expect(w.get('[data-menu-platform=PLAT01] [data-menu-financial=price]').text()).toContain('฿0.00')
-   expect(w.find('[data-menu-platform=PLAT02]').exists()).toBe(false)
+   expect(w.find('[data-menu-platform=PLAT01]').exists()).toBe(false)
+   expect(w.findAll('[data-menu-platform]')).toHaveLength(1)
+   expect(w.get('[data-menu-platform=PLAT02] [data-menu-financial=price]').text()).toContain('฿20.00')
+   expect(w.get('[data-addon-header]').text()).toContain('1 ช่องทางที่ตั้งราคา')
+   if(label==='เส้น')expect(w.get('.line-platform-key').text()).not.toContain(s.platforms.find(p=>p.id==='PLAT01').name)
    expect(w.text()).not.toMatch(/NaN|Infinity/)
   }
+ }finally{w.unmount()}
+})
+it('shows the price-setting empty state when an addon has no positive platform prices',()=>{
+ const s=createTestStore();s.resetDemoData();s.addons[0].prices={PLAT01:0,PLAT02:''}
+ const w=mount(Addon)
+ try{
+  expect(w.findAll('[data-menu-platform]')).toHaveLength(0)
+  expect(w.find('[aria-label="รูปแบบกราฟ"]').exists()).toBe(false)
+  expect(w.find('.overview-legend').exists()).toBe(false)
+  expect(w.get('.overview-empty').text()).toContain('แก้ไขAdd-on')
+  expect(w.get('[data-addon-header]').text()).toContain('0 ช่องทางที่ตั้งราคา')
  }finally{w.unmount()}
 })
 it('does not invent zero material cost in the recipe or analysis',()=>{

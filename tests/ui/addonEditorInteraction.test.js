@@ -125,3 +125,13 @@ it('focuses the name recovery error before saving', async () => {
   expect(wrapper.get('#addon-name').attributes('aria-invalid')).toBe('true')
   expect(document.activeElement.id).toBe('addon-name')
 })
+
+it('omits a blank platform price on save while preserving an explicitly entered zero',async()=>{
+ const store=await openEditor()
+ const [free,unset]=store.platforms
+ wrapper.vm.form.prices={[free.id]:0,[unset.id]:''}
+ const save=vi.spyOn(store,'saveAddon')
+ await button('บันทึก Add-on').trigger('click');await flushPromises()
+ expect(save.mock.calls[0][0].prices).toEqual({[free.id]:0})
+ expect(store.addons[0].prices).not.toHaveProperty(unset.id)
+})

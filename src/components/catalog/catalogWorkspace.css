@@ -115,7 +115,18 @@
   min-height: 120px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 8px 12px;
+  padding: 0;
+}
+
+.menu-browser-list::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .menu-browser-list {
+    scrollbar-width: thin;
+  }
 }
 
 .menu-browser-item {
@@ -126,14 +137,11 @@
   text-align: start;
   width: 100%;
   padding: 12px 8px;
-  border-radius: 12px;
   cursor: pointer;
-  border: 1px solid transparent;
 }
 
 .menu-browser-item[aria-pressed=true] {
   background: var(--accent-soft);
-  border-color: var(--accent-border);
   color: var(--accent-brand);
 }
 

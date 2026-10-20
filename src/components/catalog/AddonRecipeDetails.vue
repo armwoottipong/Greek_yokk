@@ -1,7 +1,7 @@
 <template>
  <div id="addon-details" class="addon-detail-workspace">
   <section class="addon-analysis" aria-label="ข้อมูลวิเคราะห์ Add-on">
-   <MenuPlatformOverview :menu="addon" :platforms="platforms" :cost="cost" include-zero-prices unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="Add-on">
+   <MenuPlatformOverview :menu="addon" :platforms="platforms" :cost="cost" unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="Add-on">
     <template #controls><AnalysisInfo entity="addon" :reset-key="addon.id">
      <span>เปรียบเทียบเมื่อคิดราคามาตรฐาน Add-on แยกตามช่องทาง · ไม่รวมราคาเมนูหลัก ราคาเฉพาะกลุ่ม หรือรายการที่รวมฟรีในเมนู</span>
      <span>สัดส่วนใต้ตัวเลขเทียบกับราคาขาย ส่วนอัตรากำไรเทียบกับรายรับหลัง GP</span>

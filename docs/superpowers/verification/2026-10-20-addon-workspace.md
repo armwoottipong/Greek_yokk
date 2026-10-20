@@ -62,3 +62,9 @@ Follow-up source verification: 100 test files / 623 tests PASS; npm run lint PAS
 Menu and Add-on now compose CatalogWorkspace, CatalogHeader, CatalogBrowser and CatalogEmptyState. Views retain store/domain/modal state and saved-ID focus coordination; the shell exposes its DOM element for caller-owned focus restoration. Dashboard, Menu and Add-on use SegmentedControl, ChartMark, DonutSlice and ChartLine with a common palette and chart-only stylesheet. Catalog no longer imports the Dashboard page stylesheet. Component responsibilities and extension boundaries are documented in src/components/catalog/README.md and src/components/charts/README.md.
 
 Verification: 101 test files / 626 tests PASS; lint/build/diff check PASS. A read-only review found no actionable regressions. Existing preview/screenshot acceptance does not cover this structural refactor; no production deployment is recorded.
+
+## Follow-up: unpriced Add-on channels and sidebar list
+
+The user requested unpriced Add-on platforms hidden, superseding the earlier explicit-zero display rule. Analysis and header counts now share parsePlatformPrice and show only positive configured prices across bar/donut/line modes. The editor omits blank, whitespace and unset prices instead of manufacturing zero entries; deliberately entered zero remains valid stored data. All-unpriced Add-ons show the existing price-setting next step. POS and group-option price behavior is unchanged. Regression tests cover unset/blank/whitespace/zero/negative/invalid values, all chart modes, counts and editor blank persistence.
+
+Shared catalog list padding is zero, item corner/border declarations are removed, and its scrollbar is 3px where WebKit scrollbar styling is supported, with a thin native fallback elsewhere.

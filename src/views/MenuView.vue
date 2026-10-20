@@ -15,6 +15,7 @@ import {computed,ref,watch,nextTick} from 'vue'
 import {estimateMenuCosts} from '@/domain/menuCosts'
 import {overlayStack} from '@/composables/overlayState'
 import {menuGroups} from '@/domain/addonGroups'
+import {parsePlatformPrice} from '@/domain/pricing'
 import {usePosStore} from '@/stores/posStore'
 import MenuRecipeDetails from '@/components/catalog/MenuRecipeDetails.vue'
 const store=usePosStore()
@@ -40,7 +41,7 @@ watch(()=>[pendingHeadingFocus.value,overlayStack.length],async()=>{
  pendingHeadingFocus.value=false
 },{flush:'post'})
 const selectedMenu=computed(()=>store.menus.find(m=>m.id===selectedId.value)||null)
-const pricedPlatformCount=computed(()=>store.platforms.filter(platform=>Number.isFinite(Number(selectedMenu.value?.prices?.[platform.id])) && Number(selectedMenu.value?.prices?.[platform.id])>0).length)
+const pricedPlatformCount=computed(()=>store.platforms.filter(platform=>parsePlatformPrice(selectedMenu.value?.prices?.[platform.id])>0).length)
 watch(()=>store.menus.map(m=>m.id),ids=>{if(!ids.includes(selectedId.value))selectedId.value=ids[0]||null})
 const filteredMenus=computed(()=>store.menus.filter(m=>`${m.name} ${m.description||''}`.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
 const selectedGroups=computed(()=>selectedMenu.value?menuGroups(selectedMenu.value,store.addonGroups):[])

@@ -12,6 +12,10 @@ FORM: AddonView composes new AddonRecipeDetails with shared MenuPlatformOverview
 
 Merged main through eb4a478. The Add-on header now uses the same direct trash action as MenuView, retaining exact-item confirmation. Menu and Add-on share AnalysisInfo: calculation definitions and the Add-on standard-price exclusions are behind the upper-right info tooltip, with hover, touch, keyboard, Escape and outside dismissal. Focused form labels retain text/underline feedback without the burgundy background, including AddonEditModal. The shared finance charts retain explicit-zero Add-on prices and unit labels while adopting Dashboard segments, colors, hover/selection, tooltip and motion styles. Earlier captures below predate this follow-up; no new rendered acceptance is claimed.
 
+## Latest requested pricing visibility
+
+Supersedes the earlier zero-surcharge display rule: Menu and Add-on analysis now show only configured prices greater than zero. Header channel counts follow the same rule; blank/unset prices are omitted when saving Add-on drafts instead of becoming zero. Explicit zero remains stored for existing sale/group behavior but is hidden in analysis. The shared sidebar list now has zero padding and square, borderless items with a 3px WebKit scrollbar and thin native fallback.
+
 ## Current implementation
 
 The list searches name/description and exposes selected state. Desktop retains list at left, financial analysis centrally and a 288px recipe rail when menu-content is at least 840px. List width is 208px by default, 192px through viewport 1199px and 224px from 1800px. Reports become two columns only when their analysis container reaches 728px. Below 768px the page switches between list and selected detail, with a named back action. Section switches use named aria-pressed buttons, not an ARIA tab widget; the existing group manager remains separate and mounted.

@@ -11,4 +11,4 @@ MenuView and AddonView compose the same presentation components:
 
 `catalogLabels.js` owns the existing Thai copy and entity-specific test hooks remain stable. Styles for the workspace are confined to its catalog class names in `catalogWorkspace.css`.
 
-Views own store access, modal lifecycle, saved-ID selection, deletion confirmation, price eligibility and cost calculations. Menu excludes missing/zero prices; Add-on retains explicit zero surcharge prices. Neither the layout nor the chart primitives interpret those business rules.
+Views own store access, modal lifecycle, saved-ID selection, deletion confirmation, price eligibility and cost calculations. Menu and Add-on analysis display only configured prices greater than zero. The Add-on editor omits blank/unset prices while preserving explicitly entered zero prices in stored data; analysis still hides those zero-price platforms. Neither the layout nor the chart primitives interpret those business rules.

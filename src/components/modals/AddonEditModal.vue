@@ -5,7 +5,7 @@
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอน Add-on" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="addon-name" label="ชื่อ Add-on" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น สตรอว์เบอร์รีสด (30g)"/></FormField></div>
    </section>
    <details v-smooth-disclosure class="menu-editor-section" data-addon-prices open><summary><span>ราคาบวกเพิ่มแต่ละช่องทาง</span><small>{{ store.platforms.length }} ช่องทาง</small></summary><div class="menu-editor-section-body">
-    <div class="menu-editor-prices"><FormField v-for="p in store.platforms" :key="p.id" :label="p.name" :hint="p.gpPercent>0?'ค่าธรรมเนียมช่องทาง '+p.gpPercent+'%':undefined" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.prices[p.id]" type="number" min="0" step="any" :aria-label="`ราคา ${p.name}`" placeholder="0"><template #prefix>฿</template></AppInput></FormField></div>
+    <div class="menu-editor-prices"><FormField v-for="p in store.platforms" :key="p.id" :label="p.name" :hint="p.gpPercent>0?'ค่าธรรมเนียมช่องทาง '+p.gpPercent+'%':undefined" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.prices[p.id]" type="number" min="0" step="any" :aria-label="`ราคา ${p.name}`" placeholder="ยังไม่ตั้งราคา"><template #prefix>฿</template></AppInput></FormField></div>
    </div></details>
    <details v-smooth-disclosure class="menu-editor-section" data-addon-recipe open><summary><span>สูตรวัตถุดิบและบรรจุภัณฑ์</span><small>{{ form.recipe.length }} รายการ</small></summary><div class="menu-editor-section-body">
     <p class="menu-editor-help">ปริมาณที่ตัดต่อ Add-on 1 ที่ เลือกวัตถุดิบหรือบรรจุภัณฑ์ได้ในช่องเดียวกัน</p>
@@ -25,6 +25,7 @@
  </DialogFrame>
 </template>
 <script setup>
+import {parsePlatformPrice} from '@/domain/pricing'
 import '@/components/catalog/menuFocus.css'
 import {MATERIAL_KIND_OPTIONS, getMaterialKind} from '@/domain/materialClassification'
 import FormField from '@/components/ui/FormField.vue'
@@ -153,7 +154,7 @@ async function submit() {
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     emoji: form.value.emoji || '🍓',
-    prices: Object.fromEntries(Object.entries(form.value.prices).map(([id, value]) => [id, value === '' ? 0 : Number(value)])),
+    prices: Object.fromEntries(Object.entries(form.value.prices).map(([id, value]) => [id, parsePlatformPrice(value)]).filter(([, value]) => value !== null)),
     recipe: form.value.recipe.map(row => ({ materialId: row.materialId, qty: Number(row.qty) }))
   })
 

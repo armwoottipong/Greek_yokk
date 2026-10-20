@@ -30,21 +30,22 @@ import ChartMark from '@/components/charts/ChartMark.vue'
 import {financeColors} from '@/components/charts/chartPalette'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import {computed,ref,useId} from 'vue'
+import {parsePlatformPrice} from '@/domain/pricing'
 import {ChartNoAxesColumn,ChartNoAxesCombined,ChartPie} from 'lucide-vue-next'
 import '@/components/charts/charts.css'
 import ChartTooltip from '@/components/ui/ChartTooltip.vue'
 import {useChartMarks} from '@/composables/useChartMarks'
 import PlatformFinanceDonut from './PlatformFinanceDonut.vue'
 import PlatformFinanceLines from './PlatformFinanceLines.vue'
-const props=defineProps({menu:{type:Object,required:true},platforms:{type:Array,default:()=>[]},cost:{type:Number,default:null},estimated:Boolean,worst:Boolean,includeZeroPrices:Boolean,unitLabel:{type:String,default:'เสิร์ฟ'},priceLabel:{type:String,default:'ราคาขาย'},entityLabel:{type:String,default:'เมนู'}})
+const props=defineProps({menu:{type:Object,required:true},platforms:{type:Array,default:()=>[]},cost:{type:Number,default:null},estimated:Boolean,worst:Boolean,unitLabel:{type:String,default:'เสิร์ฟ'},priceLabel:{type:String,default:'ราคาขาย'},entityLabel:{type:String,default:'เมนู'}})
 const headingId=useId()
 const mode=ref('bar')
 const modes=[{value:'bar',label:'แท่ง',icon:ChartNoAxesColumn},{value:'donut',label:'วงกลม',icon:ChartPie},{value:'line',label:'เส้น',icon:ChartNoAxesCombined}]
 const round=value=>Math.round(value*100)/100
 const validCost=computed(()=>props.cost!==null && Number.isFinite(props.cost) && props.cost>=0 ? round(props.cost) : null)
 const rows=computed(()=>props.platforms.map(platform=>{
- const raw=props.menu.prices?.[platform.id]
- const price=raw!==undefined && raw!==null && raw!=='' && Number.isFinite(Number(raw)) && (props.includeZeroPrices?Number(raw)>=0:Number(raw)>0) ? Number(raw) : null
+ const parsedPrice=parsePlatformPrice(props.menu.prices?.[platform.id])
+ const price=parsedPrice>0 ? parsedPrice : null
  const rate=Number(platform.gpPercent ?? 0)
  const gpPercent=Number.isFinite(rate) && rate>=0 && rate<=100 ? rate : null
  const gpAmount=price!==null && gpPercent!==null ? round(price*gpPercent/100) : null

@@ -15,6 +15,7 @@ import CatalogBrowser from '@/components/catalog/CatalogBrowser.vue'
 import CatalogEmptyState from '@/components/catalog/CatalogEmptyState.vue'
 import {computed,ref,watch,nextTick} from 'vue'
 import {overlayStack} from '@/composables/overlayState'
+import {parsePlatformPrice} from '@/domain/pricing'
 import {usePosStore} from '@/stores/posStore'
 import AddonRecipeDetails from '@/components/catalog/AddonRecipeDetails.vue'
 import AddonGroupManager from '@/components/catalog/AddonGroupManager.vue'
@@ -41,7 +42,7 @@ watch(()=>[pendingHeadingFocus.value,overlayStack.length],async()=>{
  pendingHeadingFocus.value=false
 },{flush:'post'})
 const selectedAddon=computed(()=>store.addons.find(m=>m.id===selectedId.value)||null)
-const configuredPlatformCount=computed(()=>store.platforms.filter(platform=>Number.isFinite(Number(selectedAddon.value?.prices?.[platform.id])) && selectedAddon.value?.prices?.[platform.id]!=='' && selectedAddon.value?.prices?.[platform.id]!==null && selectedAddon.value?.prices?.[platform.id]!==undefined && Number(selectedAddon.value?.prices?.[platform.id])>=0).length)
+const configuredPlatformCount=computed(()=>store.platforms.filter(platform=>parsePlatformPrice(selectedAddon.value?.prices?.[platform.id])>0).length)
 watch(()=>store.addons.map(m=>m.id),ids=>{if(!ids.includes(selectedId.value))selectedId.value=ids[0]||null})
 const filteredAddons=computed(()=>store.addons.filter(m=>`${m.name} ${m.description||''}`.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
 const selectedGroups=computed(()=>store.addonGroups.filter(group=>group.options?.some(option=>option.addonId===selectedId.value)))

@@ -3,6 +3,11 @@ function isNonNegativeNumber(value) {
     Number.isFinite(Number(value)) && Number(value) >= 0
 }
 
+// Blank/unset stays distinct from an explicitly stored free price.
+export function parsePlatformPrice(value) {
+  return isNonNegativeNumber(value) ? Number(value) : null
+}
+
 export function isValidGp(value) {
   return isNonNegativeNumber(value) && Number(value) < 100
 }
