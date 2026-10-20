@@ -16,7 +16,11 @@
 :is(.menu-workbench,#MenuEditModal,#AddonEditModal) button:focus-visible small,
 :is(.menu-workbench,#MenuEditModal,#AddonEditModal) summary:focus-visible small {color:inherit!important}
 :is(.menu-workbench,#MenuEditModal,#AddonEditModal) summary:focus-visible>span::before {border-color:currentColor}
-:is(.menu-workbench,#MenuEditModal,#AddonEditModal) .form-field:has(:focus-visible)>label,
+:is(.menu-workbench,#MenuEditModal,#AddonEditModal) .form-field:has(:focus-visible)>label {
+ color:var(--accent-brand);
+ text-decoration:underline;
+ text-underline-offset:3px;
+}
 :is(.menu-workbench,#MenuEditModal,#AddonEditModal) .app-checkbox:has(input:focus-visible) .app-checkbox-content {
  background:var(--accent-brand);
  color:var(--bg-card);
@@ -27,11 +31,9 @@
 :is(.menu-workbench,#MenuEditModal,#AddonEditModal) .app-checkbox:has(input:focus-visible) .app-checkbox-content small {color:inherit}
 .menu-workbench .app-search>.app-input-affix:first-child {width:28px;height:28px;justify-content:center;border-radius:6px}
 .menu-workbench .app-search:has(input:focus-visible)>.app-input-affix:first-child {background:var(--accent-brand);color:var(--bg-card)}
-.menu-workbench .overview-modes button[aria-pressed=true]::before {content:'';display:inline-block;width:4px;height:4px;border-radius:50%;background:currentColor;margin-inline-end:6px;vertical-align:middle}
 @media(forced-colors:active){
  :is(.menu-workbench,#MenuEditModal,#AddonEditModal) button:focus-visible:not(:disabled),
  :is(.menu-workbench,#MenuEditModal,#AddonEditModal) summary:focus-visible,
- :is(.menu-workbench,#MenuEditModal,#AddonEditModal) .form-field:has(:focus-visible)>label,
  :is(.menu-workbench,#MenuEditModal,#AddonEditModal) .app-checkbox:has(input:focus-visible) .app-checkbox-content,
  .menu-workbench .app-search:has(input:focus-visible)>.app-input-affix:first-child {
   forced-color-adjust:none;background:Highlight!important;color:HighlightText!important;

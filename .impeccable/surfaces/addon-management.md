@@ -5,8 +5,12 @@ Current superseding surface brief, 20 October 2026. This worktree implementation
 THESIS: Select one Add-on and read its standard per-channel surcharge, incremental costs/profit and recipe together.
 OWN-WORLD: Inherit the calm shop workspace, menu-like header/list/analysis/recipe composition, semantic chart colors and existing native/shared controls.
 STORY: Search the left list, select an Add-on, compare bar/circle/line analysis, inspect its recipe and open the original editor popup. Open option groups through a separate section switch.
-FIRST VIEWPORT: The active Add-on identity, sale status, configured-channel/recipe counts and add/edit actions lead the workspace. A More disclosure contains confirmed delete; the selected list, analysis and recipe follow.
+FIRST VIEWPORT: The active Add-on identity, sale status, configured-channel/recipe counts and add/edit actions lead the workspace. A direct trash button opens confirmed delete; the selected list, analysis and recipe follow.
 FORM: AddonView composes new AddonRecipeDetails with shared MenuPlatformOverview/finance charts. AddonEditModal remains the original DialogFrame popup; no inline editor or replacement details popup is introduced.
+
+## Follow-up alignment with main
+
+Merged main through eb4a478. The Add-on header now uses the same direct trash action as MenuView, retaining exact-item confirmation. Menu and Add-on share AnalysisInfo: calculation definitions and the Add-on standard-price exclusions are behind the upper-right info tooltip, with hover, touch, keyboard, Escape and outside dismissal. Focused form labels retain text/underline feedback without the burgundy background, including AddonEditModal. The shared finance charts retain explicit-zero Add-on prices and unit labels while adopting Dashboard segments, colors, hover/selection, tooltip and motion styles. Earlier captures below predate this follow-up; no new rendered acceptance is claimed.
 
 ## Current implementation
 

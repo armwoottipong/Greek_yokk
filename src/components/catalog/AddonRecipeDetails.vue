@@ -1,8 +1,13 @@
 <template>
  <div id="addon-details" class="addon-detail-workspace">
   <section class="addon-analysis" aria-label="ข้อมูลวิเคราะห์ Add-on">
-   <MenuPlatformOverview :menu="addon" :platforms="platforms" :cost="cost" include-zero-prices unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="Add-on"/>
-   <p class="recipe-help addon-analysis-note">เปรียบเทียบเมื่อคิดราคามาตรฐาน Add-on แยกตามช่องทาง · ไม่รวมราคาเมนูหลัก ราคาเฉพาะกลุ่ม หรือรายการที่รวมฟรีในเมนู</p>
+   <MenuPlatformOverview :menu="addon" :platforms="platforms" :cost="cost" include-zero-prices unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="Add-on">
+    <template #controls><AnalysisInfo entity="addon" :reset-key="addon.id">
+     <span>เปรียบเทียบเมื่อคิดราคามาตรฐาน Add-on แยกตามช่องทาง · ไม่รวมราคาเมนูหลัก ราคาเฉพาะกลุ่ม หรือรายการที่รวมฟรีในเมนู</span>
+     <span>สัดส่วนใต้ตัวเลขเทียบกับราคาขาย ส่วนอัตรากำไรเทียบกับรายรับหลัง GP</span>
+     <span>ยังไม่หักค่าเช่า ค่าแรง และค่าใช้จ่ายอื่น</span>
+    </AnalysisInfo></template>
+   </MenuPlatformOverview>
   </section>
   <aside data-addon-recipe-panel class="addon-recipe-panel" aria-label="สูตรและวัตถุดิบ Add-on">
    <header><div><h3>สูตรและวัตถุดิบ</h3><p>ปริมาณที่ใช้ต่อ 1 ที่</p></div><Button variant="quiet" size="compact" @click="$emit('edit',{section:'recipe'})">แก้ไขสูตร</Button></header>
@@ -19,6 +24,7 @@
 <script setup>
 import {computed} from 'vue'
 import MenuPlatformOverview from './MenuPlatformOverview.vue'
+import AnalysisInfo from './AnalysisInfo.vue'
 import Button from '../ui/Button.vue'
 const props=defineProps({addon:{type:Object,required:true},items:{type:Array,default:()=>[]},cost:{type:Number,default:null},platforms:{type:Array,default:()=>[]},usedGroups:{type:Array,default:()=>[]}})
 defineEmits(['edit'])
@@ -30,7 +36,7 @@ const money=value=>`฿${value.toLocaleString('th-TH',{minimumFractionDigits:2,m
 </script>
 <style scoped src="./catalogRecipe.css"></style>
 <style scoped>
-.addon-detail-workspace{display:grid;gap:24px;align-items:start;min-width:0}.addon-analysis{padding:24px;background:var(--bg-card);border-radius:16px;min-width:0}.addon-analysis-note{margin:16px 0 0;color:var(--text-muted)}.addon-recipe-panel{padding:20px;background:var(--bg-card);border-radius:16px;min-width:0}.addon-recipe-panel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:16px}.addon-recipe-panel h3{font-size:1rem;font-weight:600;line-height:1.6}.addon-recipe-panel>header p{font-size:.75rem;line-height:1.7;color:var(--text-muted);margin-top:4px}.addon-recipe-panel .recipe-group h4{flex-wrap:wrap}.addon-recipe-panel .recipe-item small{display:block;font-size:.75rem;line-height:1.7}.addon-recipe-panel .recipe-item b{max-width:50%;white-space:normal;overflow-wrap:anywhere;text-align:end}.addon-recipe-panel .recipe-group h4>span{font-size:.75rem}
+.addon-detail-workspace{display:grid;gap:24px;align-items:start;min-width:0}.addon-analysis{padding:24px;background:var(--bg-card);border-radius:16px;min-width:0}.addon-recipe-panel{padding:20px;background:var(--bg-card);border-radius:16px;min-width:0}.addon-recipe-panel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:16px}.addon-recipe-panel h3{font-size:1rem;font-weight:600;line-height:1.6}.addon-recipe-panel>header p{font-size:.75rem;line-height:1.7;color:var(--text-muted);margin-top:4px}.addon-recipe-panel .recipe-group h4{flex-wrap:wrap}.addon-recipe-panel .recipe-item small{display:block;font-size:.75rem;line-height:1.7}.addon-recipe-panel .recipe-item b{max-width:50%;white-space:normal;overflow-wrap:anywhere;text-align:end}.addon-recipe-panel .recipe-group h4>span{font-size:.75rem}
 @container menu-content (min-width:840px){.addon-detail-workspace{grid-template-columns:minmax(0,1fr) 288px}}
 @container menu-content (max-width:560px){.addon-analysis{padding:16px}}
 </style>

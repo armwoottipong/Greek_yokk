@@ -48,14 +48,14 @@ it('preserves active selection and search between groups and the directory',asyn
   expect(w.get('[aria-label="ค้นหา Add-on"]').element.value).toBe(s.addons[1].name)
  }finally{w.unmount()}
 })
-it('keeps exact deletion behind More with confirmation',async()=>{
+it('exposes direct trash deletion with exact confirmation',async()=>{
  const s=createTestStore();s.resetDemoData();const confirm=vi.spyOn(s,'confirmDialog').mockResolvedValue(false),w=mount(Addon)
  try{
-  await w.get('[data-addon-more]').trigger('click')
+  expect(w.get('[data-addon-header] button[data-addon-delete]').attributes('aria-label')).toBe('ลบ Add-on')
+  expect(w.find('[data-addon-more]').exists()).toBe(false)
   await w.get('[data-addon-delete]').trigger('click');await flushPromises()
   expect(confirm).toHaveBeenCalledWith(expect.objectContaining({message:expect.stringContaining(s.addons[0].id),type:'danger'}))
   expect(s.addons).toHaveLength(6)
-  expect(w.get('[data-addon-more-actions]').element.open).toBe(false)
  }finally{w.unmount()}
 })
 it('selects the successfully created addon while preserving the original editor',async()=>{
@@ -107,5 +107,19 @@ it('returns keyboard focus to the selected addon when going back to the list',as
   await selected.trigger('click')
   await w.get('.menu-back').trigger('click');await flushPromises()
   expect(document.activeElement).toBe(selected.element)
+ }finally{w.unmount()}
+})
+
+it('uses Dashboard chart controls and places addon calculation notes in the shared info tooltip',async()=>{
+ const s=createTestStore();s.resetDemoData();const w=mount(Addon)
+ try{
+  expect(w.get('.dashboard-segments').findAll('button')).toHaveLength(3)
+  expect(w.text()).not.toContain('ไม่รวมราคาเมนูหลัก')
+  const info=w.get('[data-addon-analysis-info]')
+  await info.trigger('click')
+  expect(w.get('[role="tooltip"]').text()).toContain('ไม่รวมราคาเมนูหลัก ราคาเฉพาะกลุ่ม หรือรายการที่รวมฟรีในเมนู')
+  expect(w.get('[role="tooltip"]').text()).toContain('ยังไม่หักค่าเช่า')
+  await info.trigger('keydown',{key:'Escape'})
+  expect(w.find('[role="tooltip"]').exists()).toBe(false)
  }finally{w.unmount()}
 })
