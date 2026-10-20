@@ -162,3 +162,8 @@ async function submit() {
 
 
 <style scoped src="@/components/ui/catalogEditor.css"></style>
+
+<style scoped>
+.menu-editor{--addon-text-secondary:#705C50}.menu-editor :deep(:focus-visible){outline:none!important;box-shadow:none!important}.menu-editor :deep(.field-hint),.menu-editor :deep(.app-input-affix),.menu-editor-help{color:var(--addon-text-secondary)}
+@media(max-width:767px){.menu-editor :deep(.app-input input){font-size:1rem}}
+</style>
