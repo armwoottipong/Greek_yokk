@@ -72,6 +72,14 @@ const share=(value,price)=>value!==null && price>0 ? `${(value/price*100).toFixe
 .platform-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.platform-metrics dt{font-size:.75rem;color:var(--overview-muted);line-height:1.6}.platform-metrics dd{font-size:1rem;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px;overflow-wrap:anywhere}.platform-metrics small{display:block;font-size:.75rem;color:var(--overview-muted);line-height:1.7;margin-top:4px}.platform-metrics>.has-profit dd{color:var(--chart-profit)}.platform-metrics>.is-loss dd{color:var(--accent-red)}
 .platform-net{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;font-size:.75rem;color:var(--overview-muted);line-height:1.7;margin-top:16px}.platform-net b{font-weight:500;font-variant-numeric:tabular-nums}.platform-loss,.platform-unavailable,.overview-empty{font-size:.8125rem;line-height:1.7;margin-bottom:16px}.platform-loss{color:var(--accent-red)}.platform-unavailable,.overview-empty{color:var(--overview-muted)}
 .platform-metrics>[data-menu-financial=profit]:is(.has-profit,.is-loss) dd{font-size:1.25rem}
+/* Stacked colors meet flush; round only the outside ends of the filled bar. */
+.platform-chart>.finance-bar-segment{border-radius:0}
+.platform-chart>.finance-bar-segment:first-child{border-start-start-radius:8px;border-end-start-radius:8px}
+.platform-chart>.finance-bar-segment:is(:last-child,:has(+ .sale-price-marker)){border-start-end-radius:8px;border-end-end-radius:8px}
+@media(prefers-reduced-motion:no-preference){
+ .platform-chart>.finance-bar-segment{animation:none;transform:none}
+ .platform-chart{transform-origin:left center;animation:dashboard-rank-grow 360ms cubic-bezier(.2,.8,.3,1)}
+}
 @container menu-analysis (min-width:728px){.overview-platforms{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:479px){.platform-report{padding:16px 0}.platform-report-heading{gap:10px}.platform-report-heading h5{font-size:.8125rem;flex:1}.platform-report-heading>div{flex-shrink:1;max-width:48%}.platform-metrics{gap:8px}.platform-metrics dd{font-size:1rem}.platform-metrics>[data-menu-financial=profit]:is(.has-profit,.is-loss) dd{font-size:1.125rem}.platform-metrics small{font-size:.75rem}.platform-net{display:grid;gap:4px}.overview-context{align-items:flex-start}.overview-heading h4{font-size:.9375rem}}
 </style>
