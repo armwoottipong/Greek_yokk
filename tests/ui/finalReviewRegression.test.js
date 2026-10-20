@@ -29,15 +29,16 @@ it('offers edit and permanent-delete routes for archived materials without resto
   expect(document.querySelector('[data-detail-edit]')).not.toBeNull()
  }finally{w.unmount()}
 })
-it('keeps every platform visible as an unset-price skeleton when all prices are missing or zero',async()=>{
+it('shows a clear empty state when every platform price is missing or zero',async()=>{
  const store=createTestStore();store.resetDemoData();store.menus[0].prices={}
  const w=mount(Menu,{attachTo:document.body})
  try{
   await flushPromises()
-  expect(w.findAll('[data-platform-unpriced]')).toHaveLength(store.platforms.length)
+  expect(w.findAll('[data-menu-platform]')).toHaveLength(0)
+  expect(w.get('.overview-empty').text()).toContain('ยังไม่ได้ตั้งราคาขาย')
   expect(w.findAll('.platform-metrics')).toHaveLength(0)
   store.menus[0].prices.PLAT01=0;await flushPromises()
-  expect(w.get('[data-menu-platform=PLAT01]').text()).toContain('ยังไม่ได้ตั้งราคา')
+  expect(w.findAll('[data-menu-platform]')).toHaveLength(0)
   await w.findAll('button').find(button=>button.text()==='เส้น').trigger('click')
   expect(w.findAll('[data-line-platform]')).toHaveLength(0)
   expect(w.text()).not.toMatch(/NaN|Infinity/)

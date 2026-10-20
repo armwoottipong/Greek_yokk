@@ -42,22 +42,20 @@ it('updates each platform reactively and labels loss without drawing negative ba
  }finally{w.unmount()}
 })
 
-it.each([undefined,null,'',0,'0'])('shows a static unset-price skeleton for %s in all graph modes',async price=>{
+it.each([undefined,null,'',0,'0'])('hides unpriced platforms (%s) from reports and all graph modes',async price=>{
  const store=createTestStore();store.resetDemoData();store.menus[0].prices.PLAT02=price
  const w=mount(Menu,{attachTo:document.body})
  try{
   for(const label of ['แท่ง','วงกลม','เส้น']){
    const button=w.findAll('button').find(b=>b.text()===label)
    await button.trigger('click');await flushPromises()
-   expect(value('PLAT02','price')).toContain('ยังไม่ได้ตั้งราคา')
-   expect(row('PLAT02').querySelector('[data-platform-unpriced]')).not.toBeNull()
-   expect(row('PLAT02').querySelector('[data-platform-chart], [data-platform-donut], .platform-metrics, .platform-net')).toBeNull()
+   expect(row('PLAT02')).toBeNull()
    expect(w.find('[data-line-platform="PLAT02"]').exists()).toBe(false)
+   if(label==='เส้น')expect(w.get('.line-platform-key').text()).not.toContain(store.platforms[1].name)
    expect(value('PLAT01','profit')).toContain('฿43.60')
-   expect(row('PLAT02').textContent).not.toMatch(/ขาดทุน|NaN|Infinity/)
   }
   store.menus[0].prices.PLAT02=95;await flushPromises()
-  expect(row('PLAT02').querySelector('[data-platform-unpriced]')).toBeNull()
+  expect(row('PLAT02')).not.toBeNull()
   expect(value('PLAT02','profit')).toContain('฿41.10')
  }finally{w.unmount()}
 })

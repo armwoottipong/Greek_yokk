@@ -31,3 +31,11 @@ This correction changed documentation only in .impeccable/surfaces/menu-manageme
 ## Verification outcome
 
 Full suite: 95 files, 581 tests passed. After the final popup CSS scope adjustment, 26 focused tests passed without the temporary class-forwarding warning. Source reviewer scored the no-outline fix resolved at source scope; no rendered acceptance is implied. Lint and production build passed; production deployment verification is recorded separately after release.
+
+## Superseding correction — hide unpriced platforms
+
+The latest user direction replaces the skeleton treatment above: missing/zero-priced platforms are hidden entirely. Reviewed the current MenuPlatformOverview.vue and menuPlatformFinancials.test.js diff. A single positive-price row filter supplies reports and all three charts, including line names/order; unpriced platforms leave no placeholders or numbered positions. If platforms exist but no prices are configured, the overview explicitly directs the user to edit the menu and set channel prices. The original add/edit popup, reading workspace and scoped no-outline treatment remain; global design files are unchanged.
+
+Parent-reported focused result: 16 tests passed. Full verification for this latest correction is pending; earlier 581-test/build/deployment references above do not certify it. Evidence remains source-only. Visual/responsive/rendered keyboard QA is NOT VERIFIED because browser use is disabled by Work settings. No latest deployment claim is made.
+
+Hidden-platform correction verification: all 95 files / 581 tests passed, lint and production build passed. Narrow source review found no material issue. Browser QA remains NOT VERIFIED; deployment is checked separately.

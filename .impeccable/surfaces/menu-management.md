@@ -1,22 +1,22 @@
 # Menu and recipes — reading workspace with original edit popup
 
-Current superseding brief, 20 October 2026 (popup/unpriced correction). The user explicitly restored the original add/edit MenuEditModal popup. The reading workspace remains the left menu list, all-platform analysis at center/top and recipe/materials right rail where space permits. This brief supersedes the inline-edit proposal and its validation claims preserved below.
+Current superseding brief, 20 October 2026 (hide unpriced platforms). The user now requests platforms with missing or zero prices hidden entirely, superseding the static skeleton iteration. The original add/edit MenuEditModal popup remains restored. Reading retains the left menu list, center/top analysis and responsive recipe/materials rail.
 
-THESIS: Read one menu's platform analysis and recipe in context; add or edit through the established popup.
-OWN-WORLD: Inherit the cream/burgundy shop, Prompt, existing numeric hierarchy and ภาพรวมร้าน dashboard reference. No new visual world or global tokens.
-STORY: Search/select a menu, compare configured platforms, inspect its recipe, then open the original popup to add or edit. Modal save/close confirmation uses the existing form flow.
-FIRST VIEWPORT: Searchable left menu list with selected state and open/closed-sale labels; selected-menu identity/actions, analysis and recipe. The list is not active-only.
-FORM: MenuView opens store.modals.menuEdit for add/edit. MenuEditModal renders DialogFrame with its established shared fields and footer. The inline editor, draft graph preview and workbench save/discard/stay notice were removed by this correction.
+THESIS: Read one menu's configured-platform analysis and recipe in context; add/edit through the established popup.
+OWN-WORLD: Inherit cream/burgundy, Prompt, existing numeric hierarchy and the ภาพรวมร้าน dashboard reference. No new visual world or global tokens.
+STORY: Search/select a menu, compare its configured selling platforms, inspect its recipe and open the original popup to add/edit.
+FIRST VIEWPORT: Searchable left menu list with selected state and open/closed-sale labels; selected-menu identity/actions, configured-platform analysis and recipe. The list is not active-only.
+FORM: MenuView opens store.modals.menuEdit; MenuEditModal renders the established DialogFrame/shared-field/footer flow. Inline editing and draft preview remain removed.
 
 ## Current behavior from source
 
-- Reading layout retains the 220px left list (200px at viewport widths of 1199px and below). Recipe rail is 290px and appears at a menu-content container width of at least 800px; this is not a viewport breakpoint. Tablet normally shows list beside analysis with recipe below. Below 768px viewport width, list/detail switch with a back action.
-- A platform whose price is unset or zero displays “ยังไม่ได้ตั้งราคา”, a static mode-shaped skeleton and a prompt to edit the menu. The analysis treats only finite prices greater than zero as configured. This is a presentation rule; it does not migrate stored prices.
-- Unpriced platforms show no platform financial metrics, GP/profit/loss/net/margin figures, bar segments or donut. Their line-series cost, GP and profit are null, so there are no data points or connecting segments for those positions. Platform names/order can remain in the line key; the overview's shared recipe-cost context remains.
-- Positive-price platforms retain the existing bar/circle/line analysis, textual figures, estimate switch and explicit loss/unavailable-data handling. The unpriced skeleton is a static placeholder, not a loading animation.
-- The user's no-outline preference remains scoped to the reading workbench and menu-edit popup. Existing shared native inputs, labels and form logic remain. DESIGN.md and .impeccable/design.json are unchanged; local focus suppression, skeleton geometry and layout are not canonized as global design rules.
+- Reading layout retains the 220px list (200px at viewport widths of 1199px and below). The 290px recipe rail appears at a menu-content container width of at least 800px. Tablet normally shows list beside analysis with recipe below; phones below 768px switch list/detail with a back action.
+- Only finite prices greater than zero produce platform rows. The same filtered rows feed all three chart modes and the line key: missing/zero-priced platforms have no report, placeholder, financial values, names, numbered positions or plotted points. This display filter does not migrate stored prices.
+- When platforms exist but none have a configured positive price, the empty state says “ยังไม่ได้ตั้งราคาขาย แก้ไขเมนูเพื่อเพิ่มราคาของช่องทางที่ต้องการ”. With no platform configuration, the separate Settings next step remains.
+- Configured-price platforms retain bar/circle/line analysis, textual figures, the estimate switch and explicit loss/unavailable-data handling. The shared recipe-cost context remains.
+- No-outline styling stays scoped to the reading workspace and original menu-edit popup. DESIGN.md and .impeccable/design.json remain unchanged. Local layout/filtering/focus behavior is not canonized into global design tokens.
 
-Current source-only correction record: ../review/menu-workspace-2026-10-20/popup-unpriced-correction.md. Visual, responsive and rendered keyboard QA: NOT VERIFIED, because browser use is disabled by Work settings. Correction verification: 95 test files / 581 tests passed; 26 focused tests passed after the final CSS adjustment, lint and production build passed. Deployment is verified separately at release. Previous screenshots and test totals below belong to earlier implementations and do not verify this correction.
+Source-only record: ../review/menu-workspace-2026-10-20/popup-unpriced-correction.md (latest superseding note). The parent reports 16 focused tests passed for the hide-unpriced correction; full verification is pending. Visual/responsive/rendered keyboard QA: NOT VERIFIED because browser use is disabled by Work settings. No current build or deployment claim is made. Earlier screenshot, suite and deployment references belong to previous snapshots.
 
 ## Historical records — superseded inline editing and earlier popup/graph versions
 

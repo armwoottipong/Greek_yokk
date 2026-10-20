@@ -5,14 +5,9 @@
   <div class="overview-chart-controls"><div class="overview-modes" role="group" aria-label="รูปแบบกราฟ"><button v-for="option in modes" :key="option.value" type="button" :aria-pressed="mode===option.value" @click="mode=option.value">{{ option.label }}</button></div><p class="overview-guide">{{ mode==='bar' ? 'แท่งใช้สเกลบาทเดียวกัน เพื่อเทียบราคาขายและส่วนที่เหลือ' : mode==='donut' ? 'วงกลมแสดงสัดส่วนภายในแต่ละช่องทาง' : 'เส้นเทียบต้นทุน GP และกำไรข้ามช่องทาง' }}</p></div>
   <ul class="overview-legend" aria-label="ส่วนประกอบของราคาขาย"><li><i class="segment-cost" aria-hidden="true"/>ต้นทุน</li><li><i class="segment-gp" aria-hidden="true"/>GP</li><li><i class="segment-profit" aria-hidden="true"/>กำไร</li></ul>
   <PlatformFinanceLines v-if="mode==='line' && rows.length" :rows="rows"/>
-  <div v-if="!rows.length" class="overview-empty">ยังไม่มีช่องทางขาย เพิ่มช่องทางในหน้าตั้งค่าเพื่อเปรียบเทียบราคา</div>
+  <div v-if="!rows.length" class="overview-empty">{{ platforms.length ? 'ยังไม่ได้ตั้งราคาขาย แก้ไขเมนูเพื่อเพิ่มราคาของช่องทางที่ต้องการ' : 'ยังไม่มีช่องทางขาย เพิ่มช่องทางในหน้าตั้งค่าเพื่อเปรียบเทียบราคา' }}</div>
   <div class="overview-platforms"><article v-for="row in rows" :key="row.id" :data-menu-platform="row.id" class="platform-report" :aria-labelledby="`${headingId}-${row.id}`">
-   <header class="platform-report-heading"><h5 :id="`${headingId}-${row.id}`">{{ row.name }}</h5><div data-menu-financial="price"><span>ราคาขาย</span><strong>{{ row.price===null ? 'ยังไม่ได้ตั้งราคา' : money(row.price) }}</strong></div></header>
-   <div v-if="row.price===null" data-platform-unpriced class="platform-unpriced">
-    <div class="unpriced-skeleton" :class="`unpriced-skeleton--${mode}`" aria-hidden="true"><i/><i/><i/></div>
-    <p>แก้ไขเมนูเพื่อตั้งราคาของช่องทางนี้</p>
-   </div>
-   <template v-else>
+   <header class="platform-report-heading"><h5 :id="`${headingId}-${row.id}`">{{ row.name }}</h5><div data-menu-financial="price"><span>ราคาขาย</span><strong>{{ money(row.price) }}</strong></div></header>
    <div v-if="row.complete && mode==='bar'" data-platform-chart class="platform-chart" aria-hidden="true">
     <span v-if="validCost>0" data-chart-segment class="segment-cost" :style="{width:barWidth(validCost)}"/>
     <span v-if="row.gpAmount>0" data-chart-segment class="segment-gp" :style="{width:barWidth(row.gpAmount)}"/>
@@ -21,14 +16,13 @@
    </div>
    <PlatformFinanceDonut v-if="row.complete && mode==='donut'" :cost="validCost" :row="row"/>
    <p v-if="row.profit<0" class="platform-loss">ขาดทุน {{ money(-row.profit) }} ต่อเสิร์ฟ · ต้นทุนและ GP สูงกว่าราคาขาย</p>
-   <p v-if="!row.complete" class="platform-unavailable">{{ row.price===null ? 'แก้ไขเมนูเพื่อกำหนดราคาของช่องทางนี้' : row.gpPercent===null ? 'ตรวจ GP ในหน้าตั้งค่า ให้เป็นตัวเลขตั้งแต่ 0 ถึง 100%' : 'ตรวจต้นทุนวัตถุดิบ สูตร และตัวเลือกฟรีให้ครบก่อนคำนวณ' }}</p>
+   <p v-if="!row.complete" class="platform-unavailable">{{ row.gpPercent===null ? 'ตรวจ GP ในหน้าตั้งค่า ให้เป็นตัวเลขตั้งแต่ 0 ถึง 100%' : 'ตรวจต้นทุนวัตถุดิบ สูตร และตัวเลือกฟรีให้ครบก่อนคำนวณ' }}</p>
    <dl class="platform-metrics">
     <div data-menu-financial="cost"><dt>ต้นทุน</dt><dd>{{ money(validCost) }}</dd><small>{{ share(validCost,row.price) }}</small></div>
     <div data-menu-financial="gp"><dt>หัก GP ({{ row.gpPercent ?? '—' }}%)</dt><dd>{{ money(row.gpAmount) }}</dd><small>{{ share(row.gpAmount,row.price) }}</small></div>
     <div data-menu-financial="profit" :data-menu-average-profit="estimated && !worst ? '' : undefined" :data-menu-worst-profit="estimated && worst ? '' : undefined" :class="{'is-loss':row.profit<0,'has-profit':row.profit!==null && row.profit>=0}"><dt>{{ row.profit<0 ? 'ขาดทุน' : 'กำไรหลัง GP' }}</dt><dd>{{ money(row.profit) }}</dd><small>{{ share(row.profit,row.price) }}</small></div>
    </dl>
    <div class="platform-net"><span data-menu-financial="net">รายรับหลัง GP <b>{{ money(row.netRevenue) }}</b></span><span data-menu-financial="margin">อัตรากำไร / รายรับหลัง GP <b>{{ row.margin===null ? 'ยังคำนวณไม่ได้' : `${row.margin.toFixed(1)}%` }}</b></span></div>
-   </template>
   </article></div>
   <p class="overview-guide">สัดส่วนใต้ตัวเลขเทียบกับราคาขาย ส่วนอัตรากำไรเทียบกับรายรับหลัง GP · ยังไม่หักค่าเช่า ค่าแรง และค่าใช้จ่ายอื่น</p>
  </section>
@@ -53,7 +47,7 @@ const rows=computed(()=>props.platforms.map(platform=>{
  const profit=netRevenue!==null && validCost.value!==null ? round(netRevenue-validCost.value) : null
  const margin=netRevenue>0 && profit!==null ? profit/netRevenue*100 : null
  return {...platform,cost:price!==null?validCost.value:null,price,gpPercent,gpAmount,netRevenue,profit,margin,complete:profit!==null}
-}))
+}).filter(row=>row.price!==null))
 const maximum=computed(()=>Math.max(1,...rows.value.filter(row=>row.complete).map(row=>Math.max(row.price,validCost.value+row.gpAmount))))
 const barWidth=value=>`${Math.max(0,value)/maximum.value*100}%`
 const money=value=>value===null?'ยังคำนวณไม่ได้':`${value<0?'-':''}฿${Math.abs(value).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`
@@ -69,7 +63,6 @@ const share=(value,price)=>value!==null && price>0 ? `${(value/price*100).toFixe
 .platform-chart{position:relative;display:flex;height:16px;border-radius:8px;background:var(--bg-soft);margin:0 0 16px;overflow:hidden}.platform-chart>span:not(.sale-price-marker){display:block;height:100%;flex-shrink:0}.sale-price-marker{position:absolute;height:100%;width:2px;background:var(--bg-card)}
 .platform-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.platform-metrics dt{font-size:.75rem;color:var(--overview-muted);line-height:1.6}.platform-metrics dd{font-size:1rem;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px;overflow-wrap:anywhere}.platform-metrics small{display:block;font-size:.6875rem;color:var(--overview-muted);line-height:1.7;margin-top:4px}.platform-metrics>.has-profit dd{color:var(--chart-profit)}.platform-metrics>.is-loss dd{color:var(--accent-red)}
 .platform-net{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;font-size:.6875rem;color:var(--overview-muted);line-height:1.7;margin-top:16px}.platform-net b{font-weight:500;font-variant-numeric:tabular-nums}.platform-loss,.platform-unavailable,.overview-empty{font-size:.8125rem;line-height:1.7;margin-bottom:16px}.platform-loss{color:var(--accent-red)}.platform-unavailable,.overview-empty{color:var(--overview-muted)}
-.platform-unpriced{display:grid;gap:16px;padding:4px 0}.platform-unpriced p{font-size:.8125rem;line-height:1.7;color:var(--overview-muted)}.unpriced-skeleton{height:100px;display:flex;align-items:flex-end;gap:16px;opacity:.6}.unpriced-skeleton i{display:block;background:var(--border-subtle);border-radius:6px;flex:1;height:60%}.unpriced-skeleton i:nth-child(2){height:90%}.unpriced-skeleton i:nth-child(3){height:45%}.unpriced-skeleton--donut{width:100px;border:16px solid var(--border-subtle);border-radius:50%}.unpriced-skeleton--donut i{display:none}.unpriced-skeleton--line{align-items:center;gap:8px}.unpriced-skeleton--line i{height:3px;transform:rotate(-12deg)}.unpriced-skeleton--line i:nth-child(2){height:3px;transform:rotate(12deg)}.unpriced-skeleton--line i:nth-child(3){height:3px}
 @media(max-width:767px){.overview-platforms{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:479px){.platform-report{padding:16px 0}.platform-report-heading{gap:10px}.platform-report-heading h5{font-size:.8125rem;flex:1}.platform-report-heading>div{flex-shrink:1;max-width:48%}.platform-metrics{gap:8px}.platform-metrics dd{font-size:.875rem}.platform-metrics small{font-size:.6875rem}.platform-net{display:grid;gap:4px}.overview-context{align-items:flex-start}.overview-heading h4{font-size:.9375rem}}
 </style>
