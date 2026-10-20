@@ -35,7 +35,9 @@ const filteredMenus=computed(()=>store.menus.filter(m=>`${m.name} ${m.descriptio
 const selectedGroups=computed(()=>selectedMenu.value?menuGroups(selectedMenu.value,store.addonGroups):[])
 const selectedMenuCostEstimate=computed(()=>selectedMenu.value?estimateMenuCosts(selectedMenu.value,store.addonGroups,store.addons,store.materials):null)
 const detailedRecipeItems=computed(()=>(selectedMenu.value?.recipe||[]).map(r=>{
- const mat=store.matMap[r.materialId],qty=Number(r.qty)||0,cost=qty*(Number(mat?.unitCost)||0)
+ const mat=store.matMap[r.materialId],qty=Number(r.qty)||0,rawCost=mat?.unitCost,unitCost=Number(rawCost)
+ const knownCost=rawCost!==null && rawCost!==undefined && rawCost!=='' && Number.isFinite(unitCost) && unitCost>=0 && Number.isFinite(qty) && qty>0
+ const calculated=knownCost?qty*unitCost:null,cost=calculated!==null && Number.isFinite(calculated)?calculated:null
  return {...r,mat,qty,cost,servingsAvailable:qty>0?Math.floor((Number(mat?.stock)||0)/qty):null}
 }))
 const selectedMenuFoodCost=computed(()=>selectedMenuCostEstimate.value?.baseCost ?? 0)
