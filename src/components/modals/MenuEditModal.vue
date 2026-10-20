@@ -303,3 +303,8 @@ async function submit() {
 </style>
 
 <style src="@/components/catalog/menuFocus.css"></style>
+
+<style scoped>
+.menu-editor{container:menu-editor / inline-size}
+@container menu-editor (max-width:399px){.menu-editor-prices{grid-template-columns:minmax(0,1fr)}}
+</style>
