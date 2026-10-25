@@ -1,0 +1,38 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "preparations", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "preparations", "fieldPath": "createdAt", "indexes": [
+      { "order": "ASCENDING", "queryScope": "COLLECTION" },
+      { "order": "DESCENDING", "queryScope": "COLLECTION" }
+    ] },
+    { "collectionGroup": "shops", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "generations", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "materials", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "orders", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "operations", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "preparedSales", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "lineProofs", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "preparedInventory", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "steps", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "proofs", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "preparedPlatforms", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "columnProofs", "fieldPath": "*", "indexes": [] },
+    { "collectionGroup": "orders", "fieldPath": "createdAt", "indexes": [
+      { "order": "ASCENDING", "queryScope": "COLLECTION" },
+      { "order": "DESCENDING", "queryScope": "COLLECTION" }
+    ] },
+    { "collectionGroup": "operations", "fieldPath": "createdAt", "indexes": [
+      { "order": "ASCENDING", "queryScope": "COLLECTION" },
+      { "order": "DESCENDING", "queryScope": "COLLECTION" }
+    ] },
+    { "collectionGroup": "preparedInventory", "fieldPath": "createdAt", "indexes": [
+      { "order": "ASCENDING", "queryScope": "COLLECTION" },
+      { "order": "DESCENDING", "queryScope": "COLLECTION" }
+    ] },
+    { "collectionGroup": "preparedPlatforms", "fieldPath": "createdAt", "indexes": [
+      { "order": "ASCENDING", "queryScope": "COLLECTION" },
+      { "order": "DESCENDING", "queryScope": "COLLECTION" }
+    ] }
+  ]
+}

@@ -1,0 +1,7 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // No client access until the complete security proof and migration are approved.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

@@ -1,0 +1,672 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Candidate for a bounded synthetic security proof only. Never deploy this
+    // file: the production rules file continues to deny every client request.
+    function shopPath(s) { return /databases/$(database)/documents/shops/$(s); }
+    function base(s,g) { return /databases/$(database)/documents/shops/$(s)/generations/$(g); }
+    function shop(s) { return get(shopPath(s)).data; }
+    function signedIn() { return request.auth != null; }
+    function active(s,g) { return signedIn() && shop(s).status == 'active' && shop(s).generation == g; }
+    function writable(s,g) {
+      let meta = getAfter(shopPath(s)).data;
+      return signedIn() && meta.status == 'active' && meta.generation == g;
+    }
+    function orderPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/orders/$(id); }
+    function materialPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/materials/$(id); }
+    function catalog(s,g) { return getAfter(shopPath(s)).data.catalog; }
+    function boundedInt(n, low, high) { return n is int && n >= low && n <= high; }
+    function min(a,b) { return a < b ? a : b; }
+    function roundHundred(n) { return int((n + 50) / 100); }
+    function selectedPrice(l,i) {
+      let choices = l.options;
+      return choices.size() > i ? choices[i].unitPriceCents * choices[i].qty : 0;
+    }
+    function selectedQty(l,i,id) {
+      let choices = l.options;
+      return choices.size() > i ? choices[i].definition.recipe.get(id,0) * choices[i].qty : 0;
+    }
+    function requiredForLine(l,id) {
+      let options = l.options;
+      return (l.catalog.recipe.get(id,0) +
+        (options.size() > 0 ? options[0].definition.recipe.get(id,0) * options[0].qty : 0) +
+        (options.size() > 1 ? options[1].definition.recipe.get(id,0) * options[1].qty : 0)) * l.qty;
+    }
+    function validChoice(m,c,ids,platform) {
+      let group = m.groups[c.groupId];
+      return c.keys().hasOnly(['groupId','addonId','qty','definition','unitPriceCents']) &&
+        boundedInt(c.qty,1,99) && c.groupId in m.groupIds &&
+        (group.repeat || c.qty == 1) &&
+        c.definition == group.options[c.addonId] &&
+        c.unitPriceCents == (group.included ? 0 : c.definition.pricesCents[platform]) &&
+        c.definition.recipe.keys().hasOnly(ids);
+    }
+    function groupCount(l,id) {
+      let choices = l.options;
+      return (choices.size() > 0 && choices[0].groupId == id ? choices[0].qty : 0) +
+        (choices.size() > 1 && choices[1].groupId == id ? choices[1].qty : 0);
+    }
+    function validGroup(m,l,id) {
+      let group = m.groups[id];
+      let count = l.options.size() == 0 ? 0 : groupCount(l,id);
+      return count >= group.min && count <= group.max;
+    }
+    function validAssignedGroup(m,l,i) {
+      return m.groupIds.size() <= i || validGroup(m,l,m.groupIds[i]);
+    }
+    function validLineGroups(l) {
+      let choices = l.options;
+      let a = choices.size() > 0 ? choices[0] : {'groupId':'','qty':0};
+      let b = choices.size() > 1 ? choices[1] : {'groupId':'','qty':0};
+      return l.note is string && l.note.size() <= 1000 &&
+        validGroupSlot(l.catalog,a,b,0) && validGroupSlot(l.catalog,a,b,1) &&
+        validGroupSlot(l.catalog,a,b,2) && validGroupSlot(l.catalog,a,b,3);
+    }
+    function validGroupSlot(m,a,b,i) {
+      return i >= m.groupIds.size() || validGroupPair(m.groups[m.groupIds[i]],m.groupIds[i],a,b);
+    }
+    function validGroupPair(group,id,a,b) {
+      let count = (a.groupId == id ? a.qty : 0) + (b.groupId == id ? b.qty : 0);
+      return count >= group.min && count <= group.max;
+    }
+    function splitGroups(o) { return o.lines.size() > 4 && o.multiIds.size() > 0; }
+    function validGroupsAt(o,i) { return i >= o.lines.size() || validLineGroups(o.lines[i]); }
+    function validLine(m,l,ids,platform,checkGroups) {
+      return l.keys().hasOnly(['menuId','menuRevision','qty','options','totalCents','catalog','note']) &&
+        l.catalog == m && m.active && l.menuRevision == m.revision && boundedInt(l.qty,1,1000000) && m.groupIds.size() <= 4 &&
+        m.recipe.keys().hasOnly(ids) && l.options is list && l.options.size() <= 2 &&
+        (l.options.size() < 1 || validChoice(m,l.options[0],ids,platform)) &&
+        (l.options.size() < 2 || validChoice(m,l.options[1],ids,platform)) &&
+        (l.options.size() < 2 || l.options[0].groupId != l.options[1].groupId || l.options[0].addonId != l.options[1].addonId) &&
+        (!checkGroups || validLineGroups(l)) &&
+        l.totalCents == (m.pricesCents[platform] + selectedPrice(l,0) + selectedPrice(l,1)) * l.qty;
+    }
+    function validLot(before,after,take,inUse) {
+      return after.diff(before).affectedKeys().hasOnly(['qty','isInUse']) && after.qty == before.qty - take &&
+        after.isInUse == inUse && boundedInt(after.qty,0,1000000000);
+    }
+    function available(l,day) { return l.expiryDay >= day ? l.qty : 0; }
+    function firstLot(lots) {
+      let a = lots[0];
+      let b = lots[1];
+      return (a.isInUse != b.isInUse ? a.isInUse :
+        a.expiryDay != b.expiryDay ? a.expiryDay < b.expiryDay : a.receiveDay <= b.receiveDay) ? 0 : 1;
+    }
+    function takeAt(m,need,day,i) {
+      let first = firstLot(m.lots);
+      let remaining = need - min(need,available(m.lots[first],day));
+      return min(available(m.lots[i],day),i == first ? need : remaining);
+    }
+    function complexStock(o) { return o.lines.size() > 4 && o.lineBlockSize == 1; }
+    function validInventory(s,g,o,i,need) {
+      let row = o.inventory[i];
+      let before = resource.data;
+      let after = request.resource.data;
+      let lots = before.lots;
+      let day = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
+      let first = firstLot(lots);
+      let take0 = first == 0 ? min(need,available(lots[0],day)) :
+        min(need-min(need,available(lots[1],day)),available(lots[0],day));
+      let take1 = first == 0 ? min(need-take0,available(lots[1],day)) : min(need,available(lots[1],day));
+      let shortage = need-take0-take1;
+      let activeIndex = available(after.lots[first],day) > 0 ? first : available(after.lots[1-first],day) > 0 ? 1-first : -1;
+      return (complexStock(o) || validStockFacts(o,row,after,i)) && row.needed == need && row.take0 == take0 && row.take1 == take1 &&
+        (shortage == 0 || before.inventoryType == 'packaging' ||
+          (available(lots[0],day) == lots[0].qty && available(lots[1],day) == lots[1].qty)) &&
+        after.diff(before).affectedKeys().hasOnly(['stock','revision','lastOpId','lastOpKind','lastOpIndex','lots','activeLotId']) &&
+        after.revision == before.revision + 1 && after.lastOpId == o.opId &&
+        after.stock == before.stock-take0-take1 && after.lots.size() == 2 &&
+        after.activeLotId == (activeIndex >= 0 ? lots[activeIndex].id : '') &&
+        validLot(lots[0],after.lots[0],take0,activeIndex == 0) && validLot(lots[1],after.lots[1],take1,activeIndex == 1);
+    }
+    function requiredAt(lines,i,id) { return i < lines.size() ? requiredForLine(lines[i],id) : 0; }
+    function packageNeed(o,id) {
+      let lines = o.lines;
+      let baseline = requiredAt(lines,0,id) + requiredAt(lines,1,id) + requiredAt(lines,2,id) +
+        requiredAt(lines,3,id) + requiredAt(lines,4,id) + requiredAt(lines,5,id);
+      let requested = baseline + o.packaging.get(id,{'adjustment':0}).adjustment;
+      return requested > 0 ? requested : 0;
+    }
+    function finalMultiNeed(s,g,o,id) {
+      let line = getAfter(linePath(s,g,o.opId,string(o.lineWitnessCount - 1))).data;
+      let requested = line.multiNeeds[id] + o.packaging.get(id,{'adjustment':0}).adjustment;
+      return requested > 0 ? requested : 0;
+    }
+    function linkedMaterialTwo(s,g,o,i) {
+      let row = o.inventory[i];
+      let after = getAfter(materialPath(s,g,o.materialIds[i])).data;
+      return after.lots.size() == 2 && !('four' in row) && row.materialId == o.materialIds[i] && after.id == row.materialId &&
+        !(row.materialId in o.multiIds) &&
+        after.revision == row.revision + 1 && after.lastOpId == o.opId && after.lastOpKind == 'sale' && !after.deleted && validPackageFor(o,after,row.materialId) &&
+        (!complexStock(o) || validStockFacts(o,row,after,i)) &&
+        row.ingredientCostBaht == (after.inventoryType == 'ingredient' ? (row.needed / 100.0) * after.unitCost : 0) &&
+        row.packagingCostCents == (after.inventoryType == 'packaging' ? int((((row.take0 + row.take1) / 100.0) * after.unitCost) * 100.0 + 0.5) : 0);
+    }
+    function paddedFour(lots) { return lots.size() == 3 ? lots.concat([{'id':'','qty':0,'isInUse':false,'expiryDay':999999,'receiveDay':999999}]) : lots; }
+    function validHistoryWindow(before,after,row) {
+      let offset = row.four.offset;
+      let end = offset + 4;
+      let window = before.lots[offset:end];
+      return boundedInt(offset,0,before.lots.size() - 4) &&
+        before.stock == window[0].qty + window[1].qty + window[2].qty + window[3].qty &&
+        (offset == 0 || before.lots[0:offset] == after.lots[0:offset]) &&
+        (end == before.lots.size() || before.lots[end:before.lots.size()] == after.lots[end:before.lots.size()]);
+    }
+    function fourBefore(lots,a,b) {
+      let x = lots[a];
+      let y = lots[b];
+      return x.isInUse != y.isInUse ? x.isInUse : x.expiryDay != y.expiryDay ? x.expiryDay < y.expiryDay :
+        x.receiveDay != y.receiveDay ? x.receiveDay < y.receiveDay : a < b;
+    }
+    function fourSum(q) { return q[0] + q[1] + q[2] + q[3]; }
+    function linkedMaterialFour(s,g,o,i,kind) { return 'offset' in o.inventory[i].four ? linkedMaterialFourWindow(s,g,o,i,kind) : linkedMaterialFourBase(s,g,o,i,kind); }
+    function linkedMaterialFourBase(s,g,o,i,kind) {
+      let row = o.inventory[i];
+      let f = row.four;
+      let path = materialPath(s,g,o.materialIds[i]);
+      let before = get(path).data;
+      let after = getAfter(path).data;
+      let order = f.order;
+      let oldLots = paddedFour(before.lots);
+      let newLots = after.lots.size() == 3 ? after.lots.concat([oldLots[3]]) : after.lots;
+      let day = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
+      let active = fourActive(newLots,order,day);
+      return after.lots.size() == before.lots.size() && newLots.size() == 4 && row.keys().hasOnly(['materialId','revision','needed','lot0Id','lot1Id','take0','take1','shortage','ingredientCostBaht','packagingCostCents','costRank','four']) &&
+        f.keys().hasOnly(['ids','order','takes']) &&
+        (kind != 'sale' || row.materialId in o.multiIds) &&
+        (o.lines.size() <= 4 || row.needed == finalMultiNeed(s,g,o,row.materialId)) &&
+        f.ids == [oldLots[0].id,oldLots[1].id,oldLots[2].id,oldLots[3].id] &&
+        order.size() == 4 && order.toSet().size() == 4 && order.hasOnly([0,1,2,3]) && f.takes.size() == 4 &&
+        row.materialId == o.materialIds[i] && before.id == row.materialId && !before.deleted &&
+        row.revision == before.revision && after.lastOpId == o.opId && after.lastOpKind == kind &&
+        row.costRank == before.costRank && (i == 0 || o.inventory[i - 1].costRank < row.costRank) &&
+        row.lot0Id == f.ids[0] && row.lot1Id == f.ids[1] && row.take0 == f.takes[0] && row.take1 == f.takes[1] &&
+        boundedInt(row.needed,0,1000000000) && row.shortage == row.needed - fourSum(f.takes) && o.approvedShortages[row.materialId] == row.shortage &&
+        row.ingredientCostBaht == (before.inventoryType == 'ingredient' ? (row.needed / 100.0) * before.unitCost : 0) &&
+        row.packagingCostCents == (before.inventoryType == 'packaging' ? int(((fourSum(f.takes) / 100.0) * before.unitCost) * 100.0 + 0.5) : 0) && validPackageFor(o,before,row.materialId) &&
+        after.activeLotId == (active >= 0 ? oldLots[active].id : '') &&
+        newLots[0].isInUse == (active == 0) && newLots[1].isInUse == (active == 1) &&
+        validLot(oldLots[2],newLots[2],f.takes[2],active == 2) && validLot(oldLots[3],newLots[3],f.takes[3],active == 3);
+    }
+    function linkedMaterialFourWindow(s,g,o,i,kind) {
+      let row = o.inventory[i];
+      let f = row.four;
+      let path = materialPath(s,g,o.materialIds[i]);
+      let before = get(path).data;
+      let after = getAfter(path).data;
+      let order = f.order;
+      let oldLots = before.lots.size() > 4 ? before.lots[f.offset:f.offset + 4] : paddedFour(before.lots);
+      let newLots = after.lots.size() > 4 ? after.lots[f.offset:f.offset + 4] : after.lots.size() == 3 ? after.lots.concat([oldLots[3]]) : after.lots;
+      let day = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
+      let active = fourActive(newLots,order,day);
+      return after.lots.size() == before.lots.size() && newLots.size() == 4 && row.keys().hasOnly(['materialId','revision','needed','lot0Id','lot1Id','take0','take1','shortage','ingredientCostBaht','packagingCostCents','costRank','four']) &&
+        f.keys().hasOnly(['ids','order','takes','offset']) &&
+        (before.lots.size() > 4 ? validHistoryWindow(before,after,row) : !('offset' in f)) &&
+        (kind != 'sale' || row.materialId in o.multiIds) &&
+        (o.lines.size() <= 4 || row.needed == finalMultiNeed(s,g,o,row.materialId)) &&
+        f.ids == [oldLots[0].id,oldLots[1].id,oldLots[2].id,oldLots[3].id] &&
+        order.size() == 4 && order.toSet().size() == 4 && order.hasOnly([0,1,2,3]) && f.takes.size() == 4 &&
+        row.materialId == o.materialIds[i] && !before.deleted &&
+        row.revision == before.revision && after.lastOpId == o.opId && after.lastOpKind == kind &&
+        row.costRank == before.costRank && (i == 0 || o.inventory[i - 1].costRank < row.costRank) &&
+        row.lot0Id == f.ids[0] && row.lot1Id == f.ids[1] && row.take0 == f.takes[0] && row.take1 == f.takes[1] &&
+        boundedInt(row.needed,0,1000000000) && row.shortage == row.needed - fourSum(f.takes) && o.approvedShortages[row.materialId] == row.shortage &&
+        row.ingredientCostBaht == (before.inventoryType == 'ingredient' ? (row.needed / 100.0) * before.unitCost : 0) &&
+        row.packagingCostCents == (before.inventoryType == 'packaging' ? int(((fourSum(f.takes) / 100.0) * before.unitCost) * 100.0 + 0.5) : 0) && validPackageFor(o,before,row.materialId) &&
+        after.activeLotId == (active >= 0 ? oldLots[active].id : '') &&
+        newLots[0].isInUse == (active == 0) && newLots[1].isInUse == (active == 1) &&
+        validLot(oldLots[2],newLots[2],f.takes[2],active == 2) && validLot(oldLots[3],newLots[3],f.takes[3],active == 3);
+    }
+    function linkedMaterial(s,g,o,i) {
+      return 'four' in o.inventory[i] ? linkedMaterialFour(s,g,o,i,'sale') : linkedMaterialTwo(s,g,o,i);
+    }
+    function fourActive(lots,order,day) {
+      return available(lots[order[0]],day) > 0 ? order[0] : available(lots[order[1]],day) > 0 ? order[1] :
+        available(lots[order[2]],day) > 0 ? order[2] : available(lots[order[3]],day) > 0 ? order[3] : -1;
+    }
+    function validFourAllocation(lots,next,order,takes,need,day) {
+      let a = min(need,available(lots[order[0]],day));
+      let b = min(need - a,available(lots[order[1]],day));
+      let c = min(need - a - b,available(lots[order[2]],day));
+      let d = min(need - a - b - c,available(lots[order[3]],day));
+      return takes[order[0]] == a && takes[order[1]] == b && takes[order[2]] == c && takes[order[3]] == d;
+    }
+    // Allocation proves 0 <= take <= the trusted, bounded source quantity.
+    // A deduction cannot exceed that source bound; retain the stored integer type.
+    function validFourLot(before,after,take) { return after.diff(before).affectedKeys().hasOnly(['qty','isInUse']) && after.qty == before.qty - take && after.qty is int && after.qty >= 0; }
+    function validFourStock(s,g,o,i,need) { return 'offset' in o.inventory[i].four ? validFourStockWindow(s,g,o,i,need) : validFourStockBase(s,g,o,i,need); }
+    function validFourStockBase(s,g,o,i,need) {
+      let before = resource.data;
+      let after = request.resource.data;
+      let row = o.inventory[i];
+      let f = row.four;
+      let oldLots = paddedFour(before.lots);
+      let newLots = after.lots.size() == 3 ? after.lots.concat([oldLots[3]]) : after.lots;
+      let day = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
+      // The mandatory Four witness checks exact source/target list lengths.
+      return before.lots.size() >= 3 && before.lots.size() <= 4 && row.needed == need &&
+        (o.lines.size() <= 4 || row.materialId != o.multiIds[0] || validGroupsAt(o,0)) &&
+        fourBefore(oldLots,f.order[0],f.order[1]) && fourBefore(oldLots,f.order[1],f.order[2]) && fourBefore(oldLots,f.order[2],f.order[3]) &&
+        after.diff(before).affectedKeys().hasOnly(['stock','revision','lastOpId','lastOpKind','lastOpIndex','lots','activeLotId']) &&
+        after.revision == before.revision + 1 && after.lastOpId == o.opId && after.stock == before.stock - fourSum(f.takes) &&
+        (row.shortage == 0 || before.inventoryType == 'packaging' ||
+          (available(oldLots[0],day) == oldLots[0].qty && available(oldLots[1],day) == oldLots[1].qty &&
+           available(oldLots[2],day) == oldLots[2].qty && available(oldLots[3],day) == oldLots[3].qty)) &&
+        validFourLot(oldLots[0],newLots[0],f.takes[0]) && validFourLot(oldLots[1],newLots[1],f.takes[1]) &&
+        validFourAllocation(oldLots,newLots,f.order,f.takes,need,day);
+    }
+    function validFourStockWindow(s,g,o,i,need) {
+      let before = resource.data;
+      let after = request.resource.data;
+      let row = o.inventory[i];
+      let f = row.four;
+      let oldLots = before.lots.size() > 4 ? before.lots[f.offset:f.offset + 4] : paddedFour(before.lots);
+      let newLots = after.lots.size() > 4 ? after.lots[f.offset:f.offset + 4] : after.lots.size() == 3 ? after.lots.concat([oldLots[3]]) : after.lots;
+      let day = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
+      return before.lots.size() >= 3 && after.lots.size() == before.lots.size() && row.needed == need &&
+        (o.lines.size() <= 4 || row.materialId != o.multiIds[0] || validGroupsAt(o,0)) &&
+        fourBefore(oldLots,f.order[0],f.order[1]) && fourBefore(oldLots,f.order[1],f.order[2]) && fourBefore(oldLots,f.order[2],f.order[3]) &&
+        after.diff(before).affectedKeys().hasOnly(['stock','revision','lastOpId','lastOpKind','lastOpIndex','lots','activeLotId']) &&
+        after.revision == before.revision + 1 && after.lastOpId == o.opId && after.stock == before.stock - fourSum(f.takes) &&
+        (row.shortage == 0 || before.inventoryType == 'packaging' ||
+          (available(oldLots[0],day) == oldLots[0].qty && available(oldLots[1],day) == oldLots[1].qty &&
+           available(oldLots[2],day) == oldLots[2].qty && available(oldLots[3],day) == oldLots[3].qty)) &&
+        validFourLot(oldLots[0],newLots[0],f.takes[0]) && validFourLot(oldLots[1],newLots[1],f.takes[1]) &&
+        validFourAllocation(oldLots,newLots,f.order,f.takes,need,day);
+    }
+    function validStockFacts(o,row,after,i) {
+      return row.costRank == after.costRank && boundedInt(row.costRank,0,1000000000) &&
+        (i == 0 || o.inventory[i - 1].costRank < row.costRank) && row.keys().hasOnly(['materialId','revision','needed','lot0Id','lot1Id','take0','take1','shortage','ingredientCostBaht','packagingCostCents','costRank']) &&
+        row.lot0Id == after.lots[0].id && row.lot1Id == after.lots[1].id &&
+        boundedInt(row.needed,0,1000000000) && row.shortage == row.needed - row.take0 - row.take1 &&
+        o.approvedShortages[row.materialId] == row.shortage && after.stock == after.lots[0].qty + after.lots[1].qty;
+    }
+    function linePath(s,g,opId,i) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/orders/$(opId)/lineProofs/$(i); }
+    function linkedLine(s,g,o,i) {
+      let lineDoc = getAfter(linePath(s,g,o.opId,string(i))).data;
+      return lineDoc.opId == o.opId && lineDoc.uid == o.uid && lineDoc.index == i;
+    }
+    function validBlockLineAt(data,o,d,i) {
+      let l = d.lines[i];
+      let m = data.menus[l.menuId];
+      return l == o.lines[d.index * o.lineBlockSize + i] && validLine(m,l,o.materialIds,o.platformId,!splitGroups(o));
+    }
+    function validBlockLine(data,o,d,i) { return i >= d.lines.size() || validBlockLineAt(data,o,d,i); }
+    function lineFormula(l) {
+      let choices = l.options;
+      let a = choices.size() > 0 ? choices[0] : {'definition':{'recipe':{}},'qty':0};
+      let b = choices.size() > 1 ? choices[1] : {'definition':{'recipe':{}},'qty':0};
+      return [l.catalog.recipe,a.definition.recipe,a.qty,b.definition.recipe,b.qty,l.qty];
+    }
+    function formulaNeed(f,id) {
+      return (f[0].get(id,0) + f[1].get(id,0) * f[2] + f[3].get(id,0) * f[4]) * f[5];
+    }
+    function validMultiNeedAt(ids,totals,previous,formulas,i) {
+      return i >= ids.size() || totals[ids[i]] == previous.get(ids[i],0) + formulaNeed(formulas[0],ids[i]) +
+        (formulas.size() > 1 ? formulaNeed(formulas[1],ids[i]) : 0);
+    }
+    function validLineNeedsFrom(o,d,previous) {
+      let ids = o.multiIds;
+      let totals = d.multiNeeds;
+      let formulas = d.lines.size() > 1 ? [lineFormula(d.lines[0]),lineFormula(d.lines[1])] : [lineFormula(d.lines[0])];
+      return totals.keys().hasOnly(ids) &&
+        validMultiNeedAt(ids,totals,previous,formulas,0) && validMultiNeedAt(ids,totals,previous,formulas,1) && validMultiNeedAt(ids,totals,previous,formulas,2) &&
+        validMultiNeedAt(ids,totals,previous,formulas,3) && validMultiNeedAt(ids,totals,previous,formulas,4);
+    }
+    function validLineDoc(s,g,opId,index,d) {
+      return d.lines is list && d.lines.size() > 0 && boundedInt(d.index,0,5) &&
+        ((d.index == 0 && validLineDocFrom(s,g,opId,index,d,{'multiNeeds':{}})) ||
+         (d.index > 0 && validLineDocFrom(s,g,opId,index,d,getAfter(linePath(s,g,opId,string(d.index - 1))).data)));
+    }
+    function validLineDocFrom(s,g,opId,index,d,previous) {
+      let order = getAfter(orderPath(s,g,opId)).data;
+      let data = catalog(s,g);
+      let remaining = order.lines.size() - d.index * order.lineBlockSize;
+      return !exists(orderPath(s,g,opId)) &&
+        d.keys().hasOnly(['opId','uid','index','lines','multiNeeds']) &&
+        d.opId == opId && d.uid == order.uid &&
+        index == string(d.index) && remaining > 0 &&
+        d.lines.size() == (remaining > order.lineBlockSize ? order.lineBlockSize : remaining) &&
+        (d.index == 0 || (previous.opId == opId && previous.uid == order.uid && previous.index == d.index - 1)) &&
+        validBlockLine(data,order,d,0) && validBlockLine(data,order,d,1) &&
+        (order.lines.size() <= 4 || order.multiIds.size() == 0 || validLineNeedsFrom(order,d,previous.multiNeeds));
+    }
+    function witnessPath(s,g,opId,i) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/orders/$(opId)/inventoryProofs/$(i); }
+    function rowAmount(o,i,end,field) { return i < end && i < o.inventory.size() ? o.inventory[i][field] : 0; }
+    function foldFour(o,start,end,initial,field) {
+      let rows = o.inventory;
+      let limit = end < rows.size() ? end : rows.size();
+      let a = initial + (start < limit ? rows[start][field] : 0);
+      let b = a + (start + 1 < limit ? rows[start + 1][field] : 0);
+      let c = b + (start + 2 < limit ? rows[start + 2][field] : 0);
+      return c + (start + 3 < limit ? rows[start + 3][field] : 0);
+    }
+    function linkedMaterialIf(s,g,o,i) { return i >= o.inventory.size() || linkedMaterialTwo(s,g,o,i); }
+    function foldBalances(o,start,width,initial) {
+      let end = min(start + width,o.inventory.size());
+      let rows = o.inventory[start:end];
+      let a = [initial.ingredientBalance + rows[0].ingredientCostBaht,initial.packagingBalance + rows[0].packagingCostCents];
+      let b = rows.size() > 1 ? [a[0] + rows[1].ingredientCostBaht,a[1] + rows[1].packagingCostCents] : a;
+      let c = rows.size() > 2 ? [b[0] + rows[2].ingredientCostBaht,b[1] + rows[2].packagingCostCents] : b;
+      return rows.size() > 3 ? [c[0] + rows[3].ingredientCostBaht,c[1] + rows[3].packagingCostCents] : c;
+    }
+    function validWitnessTwo(s,g,opId,index,d) {
+      let o = getAfter(orderPath(s,g,opId)).data;
+      let start = d.index * o.inventoryBlockSize;
+      let previous = d.index == 0 ? {'ingredientBalance':0,'packagingBalance':0} : getAfter(witnessPath(s,g,opId,string(d.index - 1))).data;
+      let balances = foldBalances(o,start,o.inventoryBlockSize,previous);
+      return !exists(orderPath(s,g,opId)) &&
+        d.keys().hasOnly(['opId','uid','index','ingredientBalance','packagingBalance']) &&
+        d.opId == opId && d.uid == o.uid &&
+        boundedInt(d.index,0,11) && index == string(d.index) && start < o.inventory.size() &&
+        d.ingredientBalance == balances[0] &&
+        d.packagingBalance == balances[1] &&
+        linkedMaterialIf(s,g,o,start) && (o.inventoryBlockSize < 2 || linkedMaterialIf(s,g,o,start + 1)) && (o.inventoryBlockSize < 3 || linkedMaterialIf(s,g,o,start + 2)) &&
+        (o.inventoryBlockSize < 4 || linkedMaterialIf(s,g,o,start + 3));
+    }
+    function validWitnessFour(s,g,opId,index,d) {
+      let o = getAfter(orderPath(s,g,opId)).data;
+      let previous = d.index == 0 ? {'ingredientBalance':0,'packagingBalance':0} : getAfter(witnessPath(s,g,opId,string(d.index - 1))).data;
+      let row = o.inventory[d.index];
+      return !exists(orderPath(s,g,opId)) && o.inventoryBlockSize == 1 &&
+        d.keys().hasOnly(['opId','uid','index','ingredientBalance','packagingBalance','four']) && d.four == true &&
+        d.opId == opId && d.uid == o.uid && boundedInt(d.index,0,11) && index == string(d.index) &&
+        d.ingredientBalance == previous.ingredientBalance + row.ingredientCostBaht &&
+        d.packagingBalance == previous.packagingBalance + row.packagingCostCents && linkedMaterialFour(s,g,o,d.index,'sale');
+    }
+    function validWitness(s,g,opId,index,d) {
+      return (d.get('four',false) == true && validWitnessFour(s,g,opId,index,d)) ||
+        (d.get('four',false) == false && validWitnessTwo(s,g,opId,index,d));
+    }
+    function linkedWitness(s,g,o,i) {
+      let w = getAfter(witnessPath(s,g,o.opId,string(i))).data;
+      return w.opId == o.opId && w.uid == o.uid && w.index == i;
+    }
+    function totalCost(s,g,o,field) {
+      let w = getAfter(witnessPath(s,g,o.opId,string(o.witnessCount - 1))).data;
+      return field == 'ingredientBalance' ? int(w.ingredientBalance * 100.0 + 0.5) : w.packagingBalance;
+    }
+    function validPackageFor(o,m,id) {
+      return !(id in o.packaging) || validPackageAdjustment(o.packaging[id],m);
+    }
+    function validPackageAdjustment(a,m) {
+      return m.inventoryType == 'packaging' &&
+        a.keys().hasOnly(['adjustment','reason','note']) && a.keys().size() == 3 &&
+        boundedInt(a.adjustment,-1000000,1000000) &&
+        a.reason in ['separate_bag','customer_declined','combined_packaging','package_unavailable','repacked','other'] &&
+        a.note is string && a.note.size() <= 500 && (a.reason != 'other' || a.note.size() > 0);
+    }
+    function subtotalAt(o,i) { return i < o.lines.size() ? o.lines[i].totalCents : 0; }
+    function validSale(s,g,o,id) {
+      let p = catalog(s,g).platforms[o.platformId];
+      let nextShop = getAfter(shopPath(s)).data;
+      return writable(s,g) &&
+        o.keys().hasOnly(['schemaVersion','opId','uid','kind','status','createdAt','lines','materialIds','inventory','packaging',
+          'platformId','platformRevision','subtotalCents','gpCents','netCents','ingredientCostCents','packagingCostCents','grossProfitCents','approvedShortages','witnessCount','shopRevision','lineWitnessCount','lineBlockSize','inventoryBlockSize','multiIds']) && o.keys().size() == 25 &&
+        o.schemaVersion == 1 && o.opId == id && o.uid == request.auth.uid && o.kind == 'sale' && o.status == 'committed' &&
+        o.createdAt == request.time && o.lines is list && boundedInt(o.lines.size(),1,6) &&
+        o.materialIds is list && boundedInt(o.materialIds.size(),1,12) && o.materialIds.toSet().size() == o.materialIds.size() &&
+        o.inventory is list && o.inventory.size() == o.materialIds.size() &&
+        o.multiIds is list && o.multiIds.size() <= 5 && o.multiIds.toSet().size() == o.multiIds.size() && o.multiIds.hasOnly(o.materialIds) &&
+        o.approvedShortages.keys().hasOnly(o.materialIds) && o.approvedShortages.keys().size() == o.materialIds.size() &&
+        o.packaging is map && o.packaging.keys().hasOnly(o.materialIds) &&
+        boundedInt(o.inventoryBlockSize,1,4) && o.witnessCount == int((o.inventory.size() + o.inventoryBlockSize - 1) / o.inventoryBlockSize) && boundedInt(o.lineBlockSize,1,2) && o.lineWitnessCount == int((o.lines.size() + o.lineBlockSize - 1) / o.lineBlockSize) &&
+        o.materialIds.size() + o.witnessCount + o.lineWitnessCount + 3 + o.multiIds.size() <= 20 &&
+        linkedLine(s,g,o,o.lineWitnessCount - 1) &&
+        p.active && o.platformRevision == p.revision &&
+        o.subtotalCents == subtotalAt(o,0) + subtotalAt(o,1) + subtotalAt(o,2) + subtotalAt(o,3) + subtotalAt(o,4) + subtotalAt(o,5) &&
+        boundedInt(o.subtotalCents,0,1000000000) &&
+        o.gpCents == int((o.subtotalCents * p.gpBasisPoints + 5000) / 10000) && o.netCents == o.subtotalCents-o.gpCents &&
+        linkedWitness(s,g,o,o.witnessCount - 1) &&
+        o.ingredientCostCents == totalCost(s,g,o,'ingredientBalance') && o.packagingCostCents == totalCost(s,g,o,'packagingBalance') &&
+        o.grossProfitCents == o.netCents-o.ingredientCostCents-o.packagingCostCents &&
+        boundedInt(o.shopRevision,1,1000000000) && nextShop.revision == o.shopRevision && nextShop.lastOpId == o.opId && nextShop.lastOpKind == 'sale' &&
+        (!splitGroups(o) || validGroupsAt(o,1));
+    }
+    function stockGuard(s,g,id) {
+      let opId = request.resource.data.lastOpId;
+      let order = getAfter(orderPath(s,g,opId)).data;
+      let ids = order.materialIds;
+      let i = request.resource.data.lastOpIndex;
+      return !exists(orderPath(s,g,opId)) && order.opId == opId &&
+        boundedInt(i,0,11) && i < ids.size() && order.materialIds[i] == id &&
+        ((resource.data.lots.size() == 2 && validInventory(s,g,order,i,packageNeed(order,id))) ||
+        (resource.data.lots.size() >= 3 && validFourStock(s,g,order,i,order.lines.size() > 4 ? order.inventory[i].needed : packageNeed(order,id))));
+    }
+    function shopGuard(s) {
+      let opId = request.resource.data.lastOpId;
+      let g = resource.data.generation;
+      let order = getAfter(orderPath(s,g,opId)).data;
+      return !exists(orderPath(s,g,opId)) && order.uid == request.auth.uid &&
+        order.opId == opId && order.kind == 'sale' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
+        request.resource.data.revision == resource.data.revision + 1 && order.shopRevision == request.resource.data.revision &&
+        (!splitGroups(order) || (validGroupsAt(order,2) && validGroupsAt(order,3) && validGroupsAt(order,4) && validGroupsAt(order,5)));
+    }
+    function cancelPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/cancellations/$(id); }
+    function cancelProofPath(s,g,id,i) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/cancellations/$(id)/proofs/$(i); }
+    function cancelLinked(s,g,c,i) {
+      let p = getAfter(cancelProofPath(s,g,c.opId,string(i))).data;
+      return p.opId == c.opId && p.index == i;
+    }
+    function validCancellation(s,g,id,c) {
+      let root = getAfter(shopPath(s)).data;
+      let old = get(orderPath(s,g,c.orderId)).data;
+      let next = getAfter(orderPath(s,g,c.orderId)).data;
+      return writable(s,g) &&
+        c.keys().hasOnly(['schemaVersion','kind','status','opId','uid','orderId','materialIds','createdAt','shopRevision','witnessCount']) &&
+        c.schemaVersion == 1 && c.kind == 'cancel' && c.status == 'committed' && c.opId == id && c.uid == request.auth.uid && c.createdAt == request.time &&
+        old.kind == 'sale' && old.status == 'committed' && c.materialIds == old.materialIds &&
+        next.status == 'cancelled' && next.cancellationId == id && next.cancelledAt == request.time &&
+        next.diff(old).affectedKeys().hasOnly(['status','cancellationId','cancelledAt']) &&
+        c.witnessCount == int((c.materialIds.size() + 3) / 4) &&
+        cancelLinked(s,g,c,c.witnessCount - 1) && root.lastOpId == id && root.lastOpKind == 'cancel' && root.revision == c.shopRevision;
+    }
+    function returnedMaterial(s,g,c,i) {
+      let m = getAfter(materialPath(s,g,c.materialIds[i])).data;
+      return m.id == c.materialIds[i] && m.lastOpId == c.opId && m.lastOpKind == 'cancel' && m.lastOpIndex == i;
+    }
+    function returnedIf(s,g,c,i) { return i >= c.materialIds.size() || returnedMaterial(s,g,c,i); }
+    function validCancelProof(s,g,id,index,p) {
+      let c = getAfter(cancelPath(s,g,id)).data;
+      let start = p.index * 4;
+      return !exists(cancelPath(s,g,id)) && p.keys().hasOnly(['opId','index']) && p.opId == id &&
+        boundedInt(p.index,0,2) && index == string(p.index) && start < c.materialIds.size() &&
+        (p.index == 0 || cancelLinked(s,g,c,p.index - 1)) &&
+        returnedIf(s,g,c,start) && returnedIf(s,g,c,start + 1) && returnedIf(s,g,c,start + 2) && returnedIf(s,g,c,start + 3);
+    }
+    function returnLot(before,after,take,active) {
+      return after.diff(before).affectedKeys().hasOnly(['qty','isInUse']) &&
+        after.qty == before.qty + take && boundedInt(after.qty,0,1000000000) && after.isInUse == active;
+    }
+    function validReturn(s,g,id) {
+      let before = resource.data;
+      let next = request.resource.data;
+      let c = getAfter(cancelPath(s,g,next.lastOpId)).data;
+      let old = get(orderPath(s,g,c.orderId)).data;
+      let i = next.lastOpIndex;
+      let row = old.inventory[i];
+      let retained = before.lots[0].isInUse && before.lots[0].qty > 0 ? 0 : before.lots[1].isInUse && before.lots[1].qty > 0 ? 1 : -1;
+      let active = retained >= 0 ? retained : next.lots[0].qty > 0 ? 0 : next.lots[1].qty > 0 ? 1 : -1;
+      return !exists(cancelPath(s,g,c.opId)) && boundedInt(i,0,11) && c.materialIds[i] == id && row.materialId == id &&
+        row.lot0Id == before.lots[0].id && row.lot1Id == before.lots[1].id &&
+        next.diff(before).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind','lastOpIndex','stock','lots','activeLotId']) &&
+        next.revision == before.revision + 1 && next.lots.size() == 2 &&
+        next.stock == before.stock + row.take0 + row.take1 && next.activeLotId == (active >= 0 ? before.lots[active].id : '') &&
+        returnLot(before.lots[0],next.lots[0],row.take0,active == 0) && returnLot(before.lots[1],next.lots[1],row.take1,active == 1);
+    }
+    function fourReturnActive(before,after) {
+      let kept = before[0].isInUse && before[0].qty > 0 ? 0 : before[1].isInUse && before[1].qty > 0 ? 1 :
+        before[2].isInUse && before[2].qty > 0 ? 2 : before[3].isInUse && before[3].qty > 0 ? 3 : -1;
+      return kept >= 0 ? kept : after[0].qty > 0 ? 0 : after[1].qty > 0 ? 1 : after[2].qty > 0 ? 2 : after[3].qty > 0 ? 3 : -1;
+    }
+    function allocationCount(row) { return 'four' in row ? (row.four.ids[3] == '' ? 3 : 4) : 2; }
+    function allocationTakes(row) { return 'four' in row ? row.four.takes : [row.take0,row.take1,0,0]; }
+    function prefixFour(lots,n) {
+      let empty = {'id':'','qty':0,'isInUse':false,'expiryDay':999999,'receiveDay':999999};
+      return n == 2 ? lots[0:2].concat([empty,empty]) : n == 3 ? lots[0:3].concat([empty]) : lots[0:4];
+    }
+    function returnedPrefix(before,next,row,n) {
+      let offset = 'four' in row ? row.four.get('offset',0) : 0;
+      let end = offset + n;
+      let a = prefixFour(before.lots[offset:end],n);
+      let b = prefixFour(next.lots[offset:end],n);
+      let takes = allocationTakes(row);
+      let active = before.activeLotId != '' ? -2 : b[0].qty > 0 ? 0 : b[1].qty > 0 ? 1 : b[2].qty > 0 ? 2 : b[3].qty > 0 ? 3 : -1;
+      let ids = 'four' in row ? row.four.ids : [row.lot0Id,row.lot1Id,'',''];
+      return ids == [a[0].id,a[1].id,a[2].id,a[3].id] &&
+        (offset == 0 || next.lots[0:offset] == before.lots[0:offset]) &&
+        (before.lots.size() == end || next.lots[end:before.lots.size()] == before.lots[end:before.lots.size()]) &&
+        ((fourSum(takes) == 0 && next.lots == before.lots && next.activeLotId == before.activeLotId) ||
+         (fourSum(takes) > 0 && next.activeLotId == (active == -2 ? before.activeLotId : a[active].id) &&
+          returnLot(a[0],b[0],takes[0],active == -2 ? a[0].isInUse : active == 0) &&
+          returnLot(a[1],b[1],takes[1],active == -2 ? a[1].isInUse : active == 1) &&
+          returnLot(a[2],b[2],takes[2],active == -2 ? a[2].isInUse : active == 2) &&
+          returnLot(a[3],b[3],takes[3],active == -2 ? a[3].isInUse : active == 3)));
+    }
+    function validReturnFour(s,g,id) {
+      let before = resource.data;
+      let next = request.resource.data;
+      let c = getAfter(cancelPath(s,g,next.lastOpId)).data;
+      let old = get(orderPath(s,g,c.orderId)).data;
+      let i = next.lastOpIndex;
+      let row = old.inventory[i];
+      let n = allocationCount(row);
+      return !exists(cancelPath(s,g,c.opId)) && boundedInt(i,0,11) && c.materialIds[i] == id && row.materialId == id &&
+        before.lots.size() >= n + ('four' in row ? row.four.get('offset',0) : 0) && next.lots.size() == before.lots.size() &&
+        next.diff(before).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind','lastOpIndex','stock','lots','activeLotId']) &&
+        next.revision == before.revision + 1 && next.stock == before.stock + fourSum(allocationTakes(row)) && returnedPrefix(before,next,row,n);
+    }
+    function cancelSaleGuard(s,g,id) {
+      let c = getAfter(cancelPath(s,g,request.resource.data.cancellationId)).data;
+      return !exists(cancelPath(s,g,c.opId)) && c.orderId == id;
+    }
+    function cancelShopGuard(s) {
+      let c = getAfter(cancelPath(s,resource.data.generation,request.resource.data.lastOpId)).data;
+      return !exists(cancelPath(s,resource.data.generation,c.opId)) && c.shopRevision == request.resource.data.revision &&
+        request.resource.data.revision == resource.data.revision + 1 &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']);
+    }
+    function productionPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/productions/$(id); }
+    function linkedInput(s,g,p,i) {
+      let row = p.inputs[i];
+      let after = getAfter(materialPath(s,g,p.materialIds[i])).data;
+      return row.materialId == p.materialIds[i] && after.lastOpId == p.opId && after.lastOpKind == 'produce' &&
+        after.lastOpIndex == i && after.revision == row.revision + 1 &&
+        (!('four' in row) || linkedProductionProof(s,g,p,i));
+    }
+    function productionProofPath(s,g,id,i) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/productions/$(id)/inputProofs/$(i); }
+    function linkedProductionProof(s,g,p,i) {
+      let proof = getAfter(productionProofPath(s,g,p.opId,string(i))).data;
+      return proof.opId == p.opId && proof.index == i;
+    }
+    function productionShim(p,i) {
+      return {'opId':p.opId,'lines':[],'materialIds':p.materialIds,'inventory':p.inputs,'packaging':{},
+        'approvedShortages':{p.materialIds[i]:0}};
+    }
+    function validProductionProof(s,g,id,index,d) {
+      let p = getAfter(productionPath(s,g,id)).data;
+      return !exists(productionPath(s,g,id)) && d.keys().hasOnly(['opId','index']) && d.opId == id &&
+        boundedInt(d.index,0,2) && index == string(d.index) &&
+        linkedMaterialFour(s,g,productionShim(p,d.index),d.index,'produce');
+    }
+    function inputCost(p,i) { return i < p.inputs.size() ? p.inputs[i].ingredientCostBaht : 0; }
+    function validProduction(s,g,id,p) {
+      let root = getAfter(shopPath(s)).data;
+      let output = getAfter(materialPath(s,g,p.outputId)).data;
+      return writable(s,g) &&
+        p.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialIds','inputs','outputId','outputRevision','outputQty','rawCostBaht','shopRevision','note','newLot']) &&
+        p.schemaVersion == 1 && p.kind == 'produce' && p.status == 'committed' && p.opId == id && p.uid == request.auth.uid && p.createdAt == request.time &&
+        p.materialIds is list && boundedInt(p.materialIds.size(),1,3) && p.materialIds.toSet().size() == p.materialIds.size() && !(p.outputId in p.materialIds) &&
+        p.inputs.size() == p.materialIds.size() && boundedInt(p.outputQty,1,1000000000) &&
+        p.note is string && p.note.size() <= 1000 &&
+        p.rawCostBaht == inputCost(p,0) + inputCost(p,1) + inputCost(p,2) &&
+        linkedInput(s,g,p,0) && (p.inputs.size() < 2 || linkedInput(s,g,p,1)) && (p.inputs.size() < 3 || linkedInput(s,g,p,2)) &&
+        output.lastOpId == id && output.lastOpKind == 'produce' && output.revision == p.outputRevision + 1 &&
+        root.lastOpId == id && root.lastOpKind == 'produce' && root.revision == p.shopRevision;
+    }
+    function validProductionInput(s,g,id,p) {
+      let next = request.resource.data;
+      let i = next.lastOpIndex;
+      let row = p.inputs[i];
+      let shim = productionShim(p,i);
+      return boundedInt(i,0,2) && p.materialIds[i] == id && resource.data.inventoryType == 'ingredient' && !resource.data.deleted &&
+        boundedInt(row.needed,1,1000000000) && row.shortage == 0 && row.packagingCostCents == 0 &&
+        row.ingredientCostBaht == (row.needed / 100.0) * resource.data.unitCost &&
+        ((resource.data.lots.size() == 2 && !('four' in row) && validInventory(s,g,shim,i,row.needed)) ||
+         (resource.data.lots.size() >= 3 && 'four' in row && validFourStock(s,g,shim,i,row.needed)));
+    }
+    function validProducedLot(p,before) {
+      let lot = p.newLot;
+      return lot.keys().hasOnly(['id','qty','initialQty','receiveDay','expiryDay','unitCost','isInUse','note','createdAt']) &&
+        lot.id is string && lot.id.size() > 0 && lot.id.size() <= 200 && !(lot.id in before.lotIds) &&
+        lot.qty == p.outputQty && lot.initialQty == p.outputQty &&
+        boundedInt(lot.receiveDay,0,2932896) && boundedInt(lot.expiryDay,lot.receiveDay,2932896) &&
+        lot.unitCost == p.rawCostBaht / (p.outputQty / 100.0) && lot.isInUse == (before.activeLotId == '') &&
+        lot.note == p.note && lot.createdAt is string && lot.createdAt.size() <= 50;
+    }
+    function validProductionOutput(p) {
+      let before = resource.data;
+      let next = request.resource.data;
+      return before.hasSubRecipe && before.inventoryType == 'ingredient' && !before.deleted &&
+        before.revision == p.outputRevision &&
+        next.diff(before).affectedKeys().hasOnly(['stock','unitCost','revision','lastOpId','lastOpKind','lots','lotIds','activeLotId']) &&
+        next.revision == before.revision + 1 && boundedInt(next.stock,0,1000000000) && next.stock == before.stock + p.outputQty &&
+        next.unitCost == ((before.stock / 100.0) * before.unitCost + p.rawCostBaht) / (before.stock / 100.0 + p.outputQty / 100.0) &&
+        next.lots == before.lots.concat([p.newLot]) && next.lotIds == before.lotIds.concat([p.newLot.id]) &&
+        next.activeLotId == (p.newLot.isInUse ? p.newLot.id : before.activeLotId) && validProducedLot(p,before);
+    }
+    function productionStockGuard(s,g,id) {
+      let p = getAfter(productionPath(s,g,request.resource.data.lastOpId)).data;
+      return !exists(productionPath(s,g,p.opId)) &&
+        ((id == p.outputId && validProductionOutput(p)) || (id != p.outputId && validProductionInput(s,g,id,p)));
+    }
+    function productionShopGuard(s) {
+      let p = getAfter(productionPath(s,resource.data.generation,request.resource.data.lastOpId)).data;
+      return !exists(productionPath(s,resource.data.generation,p.opId)) && p.shopRevision == request.resource.data.revision &&
+        request.resource.data.revision == resource.data.revision + 1 &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']);
+    }
+    match /shops/{s} {
+      allow read: if signedIn();
+      allow update: if (request.resource.data.get('lastOpKind','sale') == 'produce' && productionShopGuard(s)) || (request.resource.data.get('lastOpKind','sale') == 'cancel' && cancelShopGuard(s)) || (request.resource.data.get('lastOpKind','sale') == 'sale' && shopGuard(s));
+      match /generations/{g}/orders/{id} {
+        allow read: if active(s,g);
+        allow create: if validSale(s,g,request.resource.data,id);
+        allow update: if cancelSaleGuard(s,g,id);
+        match /lineProofs/{index} {
+          allow read: if active(s,g);
+          allow create: if validLineDoc(s,g,id,index,request.resource.data);
+        }
+        match /inventoryProofs/{index} {
+          allow read: if active(s,g);
+          allow create: if validWitness(s,g,id,index,request.resource.data);
+        }
+      }
+      match /generations/{g}/cancellations/{id} {
+        allow read: if active(s,g);
+        allow create: if validCancellation(s,g,id,request.resource.data);
+        match /proofs/{index} {
+          allow read: if active(s,g);
+          allow create: if validCancelProof(s,g,id,index,request.resource.data);
+        }
+      }
+      match /generations/{g}/productions/{id} {
+        allow read: if active(s,g);
+        allow create: if validProduction(s,g,id,request.resource.data);
+        match /inputProofs/{index} {
+          allow read: if active(s,g);
+          allow create: if validProductionProof(s,g,id,index,request.resource.data);
+        }
+      }
+      match /generations/{g}/materials/{id} {
+        allow read: if active(s,g);
+        allow update: if (request.resource.data.get('lastOpKind','sale') == 'produce' && productionStockGuard(s,g,id)) || (request.resource.data.get('lastOpKind','sale') == 'cancel' && ((resource.data.lots.size() == 2 && validReturn(s,g,id)) || (resource.data.lots.size() >= 3 && validReturnFour(s,g,id)))) || (request.resource.data.get('lastOpKind','sale') == 'sale' && stockGuard(s,g,id));
+      }
+      match /generations/{g}/menus/{id} { allow read: if active(s,g); }
+      match /generations/{g}/platforms/{id} { allow read: if active(s,g); }
+      match /generations/{g}/catalog/{id} { allow read: if active(s,g); }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

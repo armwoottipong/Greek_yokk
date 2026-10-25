@@ -31,3 +31,9 @@ lerna-debug.log*
 
 # Gemini / Agent temporary files
 .gemini/
+
+# Firebase emulators and local migration artifacts
+.firebase/
+*-debug.log
+*-debug.*.log
+firebase-data/

@@ -1,0 +1,166 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Candidate for a bounded synthetic security proof only. Never deploy this
+    // file: the production rules file continues to deny every client request.
+    function shopPath(s) { return /databases/$(database)/documents/shops/$(s); }
+    function base(s,g) { return /databases/$(database)/documents/shops/$(s)/generations/$(g); }
+    function shop(s) { return get(shopPath(s)).data; }
+    function member(s) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/shops/$(s)/members/$(request.auth.uid)).data.active == true &&
+        get(/databases/$(database)/documents/shops/$(s)/members/$(request.auth.uid)).data.role in ['cashier','owner'];
+    }
+    function active(s,g) { return member(s) && shop(s).status == 'active' && shop(s).generation == g; }
+    function orderPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/orders/$(id); }
+    function materialPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/materials/$(id); }
+    function boundedInt(n, low, high) { return n is int && n >= low && n <= high; }
+    function min(a,b) { return a < b ? a : b; }
+    function roundHundred(n) { return int((n + 50) / 100); }
+    function selectedPrice(l,i) {
+      let choices = l.options;
+      return choices.size() > i ? choices[i].unitPriceCents * choices[i].qty : 0;
+    }
+    function selectedQty(l,i,id) {
+      let choices = l.options;
+      return choices.size() > i ? choices[i].definition.recipe.get(id,0) * choices[i].qty : 0;
+    }
+    function requiredForLine(l,id) {
+      return (l.catalog.recipe.get(id,0) + selectedQty(l,0,id) + selectedQty(l,1,id)) * l.qty;
+    }
+    function validChoice(m,c,ids) {
+      return c.keys().hasOnly(['groupId','addonId','qty','definition','unitPriceCents']) && c.keys().size() == 5 &&
+        boundedInt(c.qty,1,99) && c.groupId in m.groups && c.addonId in m.groups[c.groupId].options &&
+        (m.groups[c.groupId].repeat || c.qty == 1) &&
+        c.definition == m.groups[c.groupId].options[c.addonId] &&
+        c.unitPriceCents == (m.groups[c.groupId].included ? 0 : c.definition.priceCents) &&
+        c.definition.recipe.keys().hasOnly(ids);
+    }
+    function groupCount(l,id) {
+      return (l.options.size() > 0 && l.options[0].groupId == id ? l.options[0].qty : 0) +
+        (l.options.size() > 1 && l.options[1].groupId == id ? l.options[1].qty : 0);
+    }
+    function validGroup(m,l,id) {
+      let count = groupCount(l,id);
+      return count >= m.groups[id].min && count <= m.groups[id].max;
+    }
+    function validLine(m,l,ids) {
+      return l.keys().hasOnly(['menuId','menuRevision','qty','options','totalCents','catalog']) && l.keys().size() == 6 &&
+        l.catalog == m && m.active && l.menuRevision == m.revision && boundedInt(l.qty,1,99) &&
+        m.recipe.keys().hasOnly(ids) && l.options is list && l.options.size() <= 2 &&
+        (l.options.size() < 1 || validChoice(m,l.options[0],ids)) &&
+        (l.options.size() < 2 || validChoice(m,l.options[1],ids)) &&
+        (l.options.size() < 2 || l.options[0].groupId != l.options[1].groupId || l.options[0].addonId != l.options[1].addonId) &&
+        validGroup(m,l,'extra') && validGroup(m,l,'included') &&
+        l.totalCents == (m.priceCents + selectedPrice(l,0) + selectedPrice(l,1)) * l.qty;
+    }
+    function validLot(before,after,take) {
+      return after.diff(before).affectedKeys().hasOnly(['qty']) && after.qty == before.qty - take &&
+        boundedInt(after.qty,0,1000000000);
+    }
+    function available(l,day) { return l.expiryDay >= day ? l.qty : 0; }
+    function validInventory(s,g,o,i,need) {
+      let row = o.inventory[i];
+      let before = resource.data;
+      let after = request.resource.data;
+      let day = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
+      let take0 = min(need,available(before.lots[0],day));
+      let take1 = min(need-take0,available(before.lots[1],day));
+      let shortage = need-take0-take1;
+      return row.keys().hasOnly(['materialId','revision','needed','take0','take1','shortage','rawIngredientCost','rawPackagingCost']) && row.keys().size() == 8 &&
+        row.materialId == o.materialIds[i] && !before.deleted && row.revision == before.revision &&
+        boundedInt(need,0,1000000000) && row.needed == need && row.take0 == take0 && row.take1 == take1 &&
+        row.shortage == shortage && o.approvedShortages[row.materialId] == shortage &&
+        row.rawIngredientCost == (before.inventoryType == 'ingredient' ? need * before.unitCostCents : 0) &&
+        row.rawPackagingCost == (before.inventoryType == 'packaging' ? (take0+take1) * before.unitCostCents : 0) &&
+        (shortage == 0 || before.inventoryType == 'packaging' ||
+          (available(before.lots[0],day) == before.lots[0].qty && available(before.lots[1],day) == before.lots[1].qty)) &&
+        before.stock == before.lots[0].qty + before.lots[1].qty &&
+        after.diff(before).affectedKeys().hasOnly(['stock','revision','lastOpId','lots']) &&
+        after.revision == before.revision + 1 && after.lastOpId == o.opId &&
+        after.stock == before.stock-take0-take1 && after.lots.size() == 2 &&
+        validLot(before.lots[0],after.lots[0],take0) && validLot(before.lots[1],after.lots[1],take1);
+    }
+    function packageNeed(o,id) {
+      let baseline = requiredForLine(o.lines[0],id) + requiredForLine(o.lines[1],id);
+      return baseline + (id == o.packaging.materialId ? o.packaging.adjustment : 0);
+    }
+    function linkedMaterial(s,g,o,i) {
+      let row = o.inventory[i];
+      let after = getAfter(materialPath(s,g,o.materialIds[i])).data;
+      return row.materialId == o.materialIds[i] && after.id == row.materialId &&
+        after.revision == row.revision + 1 && after.lastOpId == o.opId;
+    }
+    function totalCost(s,g,o,type) {
+      return roundHundred(o.inventory[0][type] + o.inventory[1][type] + o.inventory[2][type] + o.inventory[3][type]);
+    }
+    function validPackage(s,g,o) {
+      return o.packaging.keys().hasOnly(['materialId','adjustment','reason','note']) && o.packaging.keys().size() == 4 &&
+        o.packaging.materialId in o.materialIds &&
+        getAfter(materialPath(s,g,o.packaging.materialId)).data.inventoryType == 'packaging' &&
+        boundedInt(o.packaging.adjustment,-1000000,1000000) &&
+        o.packaging.reason in ['separate_bag','customer_declined','combined_packaging','package_unavailable','repacked','other'] &&
+        o.packaging.note is string && o.packaging.note.size() <= 500 &&
+        (o.packaging.reason != 'other' || o.packaging.note.size() > 0);
+    }
+    function validSale(s,g,o,id) {
+      let l0 = o.lines[0];
+      let l1 = o.lines[1];
+      let m0 = get(/databases/$(database)/documents/shops/$(s)/generations/$(g)/menus/$(l0.menuId)).data;
+      let m1 = get(/databases/$(database)/documents/shops/$(s)/generations/$(g)/menus/$(l1.menuId)).data;
+      let p = get(/databases/$(database)/documents/shops/$(s)/generations/$(g)/platforms/$(o.platformId)).data;
+      let nextShop = getAfter(shopPath(s)).data;
+      return active(s,g) &&
+        o.keys().hasOnly(['schemaVersion','opId','uid','kind','status','createdAt','lines','materialIds','inventory','packaging',
+          'platformId','platformRevision','subtotalCents','gpCents','netCents','ingredientCostCents','packagingCostCents','grossProfitCents','approvedShortages']) && o.keys().size() == 19 &&
+        o.schemaVersion == 1 && o.opId == id && o.uid == request.auth.uid && o.kind == 'sale' && o.status == 'committed' &&
+        o.createdAt == request.time && o.lines is list && o.lines.size() == 2 &&
+        o.materialIds is list && o.materialIds.size() == 4 && o.materialIds.toSet().size() == 4 &&
+        o.inventory is list && o.inventory.size() == 4 &&
+        o.approvedShortages.keys().hasOnly(o.materialIds) && o.approvedShortages.keys().size() == 4 &&
+        validLine(m0,l0,o.materialIds) && validLine(m1,l1,o.materialIds) && validPackage(s,g,o) &&
+        p.active && o.platformRevision == p.revision &&
+        o.subtotalCents == o.lines[0].totalCents + o.lines[1].totalCents &&
+        boundedInt(o.subtotalCents,0,1000000000) &&
+        o.gpCents == int((o.subtotalCents * p.gpBasisPoints + 5000) / 10000) && o.netCents == o.subtotalCents-o.gpCents &&
+        linkedMaterial(s,g,o,0) && linkedMaterial(s,g,o,1) && linkedMaterial(s,g,o,2) && linkedMaterial(s,g,o,3) &&
+        o.ingredientCostCents == totalCost(s,g,o,'rawIngredientCost') && o.packagingCostCents == totalCost(s,g,o,'rawPackagingCost') &&
+        o.grossProfitCents == o.netCents-o.ingredientCostCents-o.packagingCostCents &&
+        nextShop.diff(shop(s)).affectedKeys().hasOnly(['revision','lastOpId']) &&
+        nextShop.revision == shop(s).revision + 1 && nextShop.lastOpId == o.opId;
+    }
+    function stockGuard(s,g,id) {
+      let opId = request.resource.data.lastOpId;
+      let order = getAfter(orderPath(s,g,opId)).data;
+      let i = order.materialIds[0] == id ? 0 : order.materialIds[1] == id ? 1 : order.materialIds[2] == id ? 2 : 3;
+      return active(s,g) && !exists(orderPath(s,g,opId)) && order.opId == opId &&
+        order.uid == request.auth.uid && order.kind == 'sale' && order.materialIds[i] == id &&
+        validInventory(s,g,order,i,packageNeed(order,id));
+    }
+    function shopGuard(s) {
+      let opId = request.resource.data.lastOpId;
+      let g = resource.data.generation;
+      let order = getAfter(orderPath(s,g,opId)).data;
+      return active(s,g) && !exists(orderPath(s,g,opId)) && order.uid == request.auth.uid &&
+        order.opId == opId && order.kind == 'sale' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId']) &&
+        request.resource.data.revision == resource.data.revision + 1;
+    }
+    match /shops/{s} {
+      allow read: if member(s);
+      allow update: if shopGuard(s);
+      match /members/{uid} { allow read: if request.auth != null && request.auth.uid == uid; }
+      match /generations/{g}/orders/{id} {
+        allow read: if active(s,g);
+        allow create: if validSale(s,g,request.resource.data,id);
+      }
+      match /generations/{g}/materials/{id} {
+        allow read: if active(s,g);
+        allow update: if stockGuard(s,g,id);
+      }
+      match /generations/{g}/menus/{id} { allow read: if active(s,g); }
+      match /generations/{g}/platforms/{id} { allow read: if active(s,g); }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

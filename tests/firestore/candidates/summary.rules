@@ -1,0 +1,1048 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Isolated source-shape experiment. Never deploy or import with this policy.
+    // Trusted import must prove root catalog/reverse-index consistency, bounded
+    // nonnegative quantities, unique costRank and no dangling command links.
+    function rootPath(s) { return /databases/$(database)/documents/shops/$(s); }
+    function orderPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/orders/$(id); }
+    function materialPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/materials/$(id); }
+    function operationPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id); }
+    function referencePath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)/referenceProofs/0; }
+    function shapePath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)/referenceProofs/shape; }
+    function linePath(s,g,id,i) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/orders/$(id)/lineProofs/$(i); }
+    function signedIn() { return request.auth != null; }
+    function integer(n,low,high) { return n is int && n >= low && n <= high; }
+    function rootAfter(s) { return getAfter(rootPath(s)).data; }
+    function active(s,g) { return signedIn() && get(rootPath(s)).data.status == 'active' && get(rootPath(s)).data.generation == g; }
+    function writable(s,g) { let root=rootAfter(s); return signedIn() && root.status == 'active' && root.generation == g; }
+    function actualLineBasic(l) {
+      return l.keys().hasOnly(['menuId','qty','optionIds','optionQuantities','catalog','group','note','totalCents']) &&
+        integer(l.qty,1,1000000) && l.note is string && l.note.size()<=1000 &&
+        l.optionIds is list && l.optionIds.size()<=11 && l.optionIds.toSet().size()==l.optionIds.size();
+    }
+    function validLine(c,m,l,o) {
+      let groupId=m.get('groupId','');
+      return actualLineBasic(l) && (groupId=='' ? l.group=={} && validLegacyLine(c,m,l,o) : validGroupedLine(c,m,c.groups[groupId],l,o));
+    }
+    function validLegacyLine(c,m,l,o) {
+      let ids = l.optionIds.concat(['_','_','_','_','_','_','_','_','_','_','_']);
+      let p = m.priceMode == 'addon' ? c.addonPrices[o.platformId] : m.optionPrices[o.platformId];
+      return l.catalog == m && m.active &&
+        l.optionQuantities.keys().toSet()==l.optionIds.concat(['_']).toSet() && l.optionQuantities._==0 && l.optionQuantities.values().hasOnly([0,1]) && l.optionQuantities.values().removeAll([1]).size()==1 &&
+        l.optionIds.hasOnly(m.optionIds) && l.optionIds.hasOnly(o.addonKeys.values()) && l.optionIds.size() >= m.min && l.optionIds.size() <= m.max &&
+        l.totalCents == (m.pricesCents[o.platformId] + p[ids[0]]+p[ids[1]]+p[ids[2]]+p[ids[3]]+p[ids[4]]+p[ids[5]]+p[ids[6]]+p[ids[7]]+p[ids[8]]+p[ids[9]]+p[ids[10]]) * l.qty;
+    }
+    function groupUnitExtra(p,base,ids) {
+      return p.get(ids[0],base[ids[0]])+p.get(ids[1],base[ids[1]])+p.get(ids[2],base[ids[2]])+p.get(ids[3],base[ids[3]])+
+        p.get(ids[4],base[ids[4]])+p.get(ids[5],base[ids[5]])+p.get(ids[6],base[ids[6]])+p.get(ids[7],base[ids[7]])+
+        p.get(ids[8],base[ids[8]])+p.get(ids[9],base[ids[9]])+p.get(ids[10],base[ids[10]]);
+    }
+    function groupExtra(p,base,ids,q) {
+      let count=ids.size();
+      return (count>0 ? p.get(ids[0],base[ids[0]])*q[ids[0]] : 0)+(count>1 ? p.get(ids[1],base[ids[1]])*q[ids[1]] : 0)+(count>2 ? p.get(ids[2],base[ids[2]])*q[ids[2]] : 0);
+    }
+    function selectionCount(q) {
+      let values=q.values().concat([0,0,0,0]);
+      return values[0]+values[1]+values[2]+values[3];
+    }
+    function validGroupedLine(c,m,g,l,o) {
+      let q=l.optionQuantities;
+      let count=g.allowRepeat ? selectionCount(q) : l.optionIds.size();
+      let extra=g.pricingMode=='included' ? 0 : g.allowRepeat ? groupExtra(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds,q) : groupUnitExtra(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds.concat(['_','_','_','_','_','_','_','_','_','_','_']));
+      return l.catalog==m && l.group==g && m.active && g.active &&
+        l.optionIds.hasOnly(g.optionIds) && (!g.allowRepeat || l.optionIds.size()<=3) &&
+        q.keys().toSet()==l.optionIds.concat(['_']).toSet() && q._==0 && q.values().removeAll([0]).size()==l.optionIds.size() &&
+        q.values().hasOnly(g.allowRepeat ? [0,1,2,3,4,5,6,7,8,9,10,11] : [0,1]) &&
+        l.optionIds.hasOnly(o.addonKeys.values()) && count>=g.min && count<=g.max &&
+        l.totalCents==(m.pricesCents[o.platformId]+extra)*l.qty;
+    }
+    function previousLine(s,g,o,i) {
+      let previous = getAfter(linePath(s,g,o.opId,string(i - 1))).data;
+      return previous.opId == o.opId;
+    }
+    function validLineProof(s,g,id,index,d) {
+      let o = getAfter(orderPath(s,g,id)).data;
+      let catalog = rootAfter(s).catalog;
+      let start = d.index * 2;
+      let first=o.lines[start];
+      let next=start+1;
+      // The mandatory new receipt and root update enforce active generation/auth.
+      // Request-time binding prevents appending witnesses to historical receipts.
+      return signedIn() && o.createdAt==request.time && d.keys().hasOnly(['opId','index']) && d.opId == id &&
+        integer(d.index,0,2) && index == string(d.index) && start < o.lines.size() &&
+        (d.index == 0 || previousLine(s,g,o,d.index)) &&
+        validLine(catalog,catalog.menus[first.menuId],first,o) &&
+        (next >= o.lines.size() || validLine(catalog,catalog.menus[o.lines[next].menuId],o.lines[next],o));
+    }
+    function validLineCache(o) {
+      return o.lineMenuIds is list && o.lineMenuIds.size()==6 && o.lineQtys is list && o.lineQtys.size()==6 &&
+        o.lineOptionQuantities.keys().toSet()==['L0','L1','L2','L3','L4','L5'].toSet();
+    }
+    function operandPair(o,start) {
+      let zero={'menuId':'_','qty':0,'optionQuantities':{'_':0}};
+      let l=o.lines.size()==6 ? o.lines : o.lines.concat([zero,zero,zero,zero,zero]);
+      let next=start+1;
+      let a=l[start];
+      let b=l[next];
+      let ids=o.lineMenuIds;
+      let qty=o.lineQtys;
+      let options=o.lineOptionQuantities;
+      return ids[start]==a.menuId && qty[start]==a.qty && options['L'+string(start)]==a.optionQuantities &&
+        ids[next]==b.menuId && qty[next]==b.qty && options['L'+string(next)]==b.optionQuantities;
+    }
+    function materialNeed(m,o) {
+      let r=m.recipeIndex.addons;
+      let q=o.addonCounts;
+      let choices=o.addonKeys;
+      let menus=m.recipeIndex.menus;
+      let ids=o.lineMenuIds;
+      let qty=o.lineQtys;
+      return menus[ids[0]]*qty[0]+menus[ids[1]]*qty[1]+menus[ids[2]]*qty[2]+menus[ids[3]]*qty[3]+menus[ids[4]]*qty[4]+menus[ids[5]]*qty[5]+
+        r[choices.A0]*q.A0+r[choices.A1]*q.A1+r[choices.A2]*q.A2+r[choices.A3]*q.A3+r[choices.A4]*q.A4+r[choices.A5]*q.A5+
+        r[choices.A6]*q.A6+r[choices.A7]*q.A7+r[choices.A8]*q.A8+r[choices.A9]*q.A9+r[choices.A10]*q.A10;
+    }
+    function counter(o,i,c) {
+      let operand='A'+string(i-4);
+      let key=o.addonKeys[operand];
+      let count=o.addonCounts[operand];
+      let qty=o.lineQtys;
+      let q=o.lineOptionQuantities;
+      return count==q.L0.get(key,0)*qty[0]+q.L1.get(key,0)*qty[1]+q.L2.get(key,0)*qty[2]+
+        q.L3.get(key,0)*qty[3]+q.L4.get(key,0)*qty[4]+q.L5.get(key,0)*qty[5] &&
+        (count==0 || c.addons[key].get('active',true)==true);
+    }
+    function resolvedSlot(m,id) {
+      let l=m.lots[id];
+      return {'id':id,'qty':m.lotQty[id],'isInUse':m.lotQty[id]>0 ? m.activeLotId==id : id in m.zeroActiveIds,
+        'expiryDay':l.expiryDay,'receiveDay':l.receiveDay,'ordinal':l.ordinal};
+    }
+    function slots(m) {
+      return [resolvedSlot(m,m.slotIds[0]),resolvedSlot(m,m.slotIds[1]),resolvedSlot(m,m.slotIds[2]),resolvedSlot(m,m.slotIds[3])];
+    }
+    function available(lot,day) { return lot.expiryDay >= day ? lot.qty : 0; }
+    function minimum(a,b) { return a < b ? a : b; }
+    function lotChange(old,next,take,active) {
+      return next.diff(old).affectedKeys().hasOnly(['qty','isInUse']) && next.qty is int && next.qty == old.qty - take && next.isInUse == (old.id == active);
+    }
+    function validOneLot(before,after,row,day) {
+      let id = before.slotIds[0];
+      let old = before.lots[id];
+      let next = after.lots[id];
+      let eligible = available(old,day);
+      let take = minimum(row.needed,eligible);
+      return before.stock == old.qty && row.take == take && row.lotTakes == [take,0,0,0] && after.stock == before.stock - take &&
+        (row.shortage == 0 || before.inventoryType == 'packaging' || eligible == before.stock) &&
+        after.lots.diff(before.lots).affectedKeys().hasOnly(before.allocationIds) &&
+        (row.needed == 0 ? after.lots == before.lots && after.activeLotId == before.activeLotId :
+          after.activeLotId == (eligible - take > 0 ? id : '') &&
+          (before.allocationIds.size() == 0 || lotChange(old,next,take,after.activeLotId)));
+    }
+    function validFourLots(before,after,row,day) {
+      let old = slots(before);
+      let next = slots(after);
+      let eligible = [available(old[0],day),available(old[1],day),available(old[2],day),available(old[3],day)];
+      let t = row.lotTakes;
+      let active = eligible[0] - t[0] > 0 ? old[0].id : eligible[1] - t[1] > 0 ? old[1].id : eligible[2] - t[2] > 0 ? old[2].id : eligible[3] - t[3] > 0 ? old[3].id : '';
+      return before.stock == old[0].qty + old[1].qty + old[2].qty + old[3].qty && t.size() == 4 &&
+        t[0] == minimum(row.needed,eligible[0]) && t[1] == minimum(row.needed-t[0],eligible[1]) &&
+        t[2] == minimum(row.needed-t[0]-t[1],eligible[2]) && t[3] == minimum(row.needed-t[0]-t[1]-t[2],eligible[3]) &&
+        row.take == t[0]+t[1]+t[2]+t[3] && after.stock == before.stock - row.take &&
+        (row.shortage == 0 || before.inventoryType == 'packaging' || eligible[0]+eligible[1]+eligible[2]+eligible[3] == before.stock) &&
+        after.lots.diff(before.lots).affectedKeys().hasOnly(before.allocationIds) &&
+        (row.needed == 0 ? after.lots == before.lots && after.activeLotId == before.activeLotId : after.activeLotId == active &&
+          lotChange(old[0],next[0],t[0],active) && lotChange(old[1],next[1],t[1],active) &&
+          (before.allocationIds.size() < 3 || lotChange(old[2],next[2],t[2],active)) &&
+          (before.allocationIds.size() < 4 || lotChange(old[3],next[3],t[3],active)));
+    }
+    function summaryStock(before,after,row,day) {
+      return before.allocationIds.size()==1 ? summaryOneStock(before,after,row,day) : summaryMultiStock(before,after,row,day);
+    }
+    function summaryOneStock(before,after,row,day) {
+      let id=before.allocationIds[0];
+      let q=before.lotQty;
+      let nq=after.lotQty;
+      let lot=before.lots[id];
+      let eligible=lot.expiryDay>=day ? q[id] : 0;
+      let take=minimum(row.needed,eligible);
+      let active=eligible-take>0 ? id : '';
+      let dates=row.needed>0 && active!='' ? lot : {'receiveDay':before.lastStockInDay,'expiryDay':before.expiryDay};
+      return before.stock==q[id] && row.lotTakes==[take,0,0,0] && row.take==take && after.stock==before.stock-take &&
+        (row.shortage==0 || before.inventoryType=='packaging' || eligible==before.stock) &&
+        nq.diff(q).affectedKeys().hasOnly([id]) && nq[id]==q[id]-take &&
+        after.activeLotId==(row.needed==0 ? before.activeLotId : active) &&
+        after.zeroActiveIds==(row.needed==0 ? before.zeroActiveIds : []) &&
+        after.lastStockInDay==dates.receiveDay && after.expiryDay==dates.expiryDay;
+    }
+    function summaryMultiStock(before,after,row,day) {
+      let ids=before.slotIds;
+      let q=before.lotQty;
+      let nq=after.lotQty;
+      let lots=before.lots;
+      let needed=row.needed;
+      let take=row.take;
+      let e=[lots[ids[0]].expiryDay >= day ? q[ids[0]] : 0,lots[ids[1]].expiryDay >= day ? q[ids[1]] : 0,
+        lots[ids[2]].expiryDay >= day ? q[ids[2]] : 0,lots[ids[3]].expiryDay >= day ? q[ids[3]] : 0];
+      let t=row.lotTakes;
+      let active=e[0]-t[0]>0 ? ids[0] : e[1]-t[1]>0 ? ids[1] : e[2]-t[2]>0 ? ids[2] : e[3]-t[3]>0 ? ids[3] : '';
+      let dates=needed>0 && active!='' ? lots[active] : {'receiveDay':before.lastStockInDay,'expiryDay':before.expiryDay};
+      // Trusted import and every stock mutation preserve stock == sum(lotQty).
+      // The existing allocation covers all positive quantities; do not re-sum it here.
+      return t.size()==4 &&
+        t[0]==minimum(needed,e[0]) && t[1]==minimum(needed-t[0],e[1]) &&
+        t[2]==minimum(needed-t[0]-t[1],e[2]) && t[3]==minimum(needed-t[0]-t[1]-t[2],e[3]) &&
+        take==t[0]+t[1]+t[2]+t[3] && after.stock==before.stock-take &&
+        (row.shortage==0 || before.inventoryType=='packaging' || e[0]+e[1]+e[2]+e[3]==before.stock) &&
+        nq.diff(q).affectedKeys().hasOnly(before.allocationIds) &&
+        nq[ids[0]]==q[ids[0]]-t[0] && nq[ids[1]]==q[ids[1]]-t[1] &&
+        nq[ids[2]]==q[ids[2]]-t[2] && nq[ids[3]]==q[ids[3]]-t[3] &&
+        after.activeLotId == (needed==0 ? before.activeLotId : active) && after.zeroActiveIds == (needed==0 ? before.zeroActiveIds : []) &&
+        after.lastStockInDay==dates.receiveDay && after.expiryDay==dates.expiryDay;
+    }
+    function validMaterial(s,g,id) {
+      let before = resource.data;
+      let after = request.resource.data;
+      let o = getAfter(orderPath(s,g,after.lastOpId)).data;
+      let root = rootAfter(s);
+      let i=after.lastOpIndex;
+      let row = o.inventory[i];
+      let day = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
+      // Mandatory immutable order creation and root update validate auth, kind
+      // and active generation once. Revision fences reject an existing receipt.
+      return signedIn() &&
+        integer(i,0,14) && o.materialIds[i] == id && row.materialId == id &&
+        !before.deleted && before.id == id && before.recipeIndex.catalogRevision == root.catalogRevision &&
+        row.keys().hasOnly(['materialId','revision','costRank','needed','take','shortage','ingredientCostBaht','packagingCostCents','lotIds','lotTakes']) &&
+        row.revision == before.revision && row.costRank == before.costRank && integer(row.needed,0,1000000000) && row.needed == materialNeed(before,o) &&
+        (i<4 || counter(o,i,root.catalog)) &&
+
+        row.lotIds == before.allocationIds && before.allocationIds.size() <= 4 && row.shortage == row.needed - row.take && o.approvedShortages[id] == row.shortage &&
+        row.ingredientCostBaht == (before.inventoryType == 'ingredient' ? (row.needed / 100.0) * before.unitCost : 0) &&
+        row.packagingCostCents == (before.inventoryType == 'packaging' ? int(((row.take / 100.0) * before.unitCost) * 100.0 + 0.5) : 0) &&
+        after.diff(before).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        after.revision == before.revision + 1 &&
+        summaryStock(before,after,row,day) && (i>=3 || operandPair(o,i*2));
+    }
+    function touchedAt(s,g,o,i) {
+      let m = getAfter(materialPath(s,g,o.materialIds[i])).data;
+      return m.lastOpId == o.opId && m.lastOpIndex == i;
+    }
+    function touched(s,g,o,i) { return i >= o.materialIds.size() || touchedAt(s,g,o,i); }
+    function costs(o,ingredient) {
+      let zero = {'ingredientCostBaht':0,'packagingCostCents':0};
+      let rows = o.inventory.concat([zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero]);
+      let key = ingredient ? 'ingredientCostBaht' : 'packagingCostCents';
+      return rows[0][key]+rows[1][key]+rows[2][key]+rows[3][key]+rows[4][key]+rows[5][key]+rows[6][key]+rows[7][key]+
+        rows[8][key]+rows[9][key]+rows[10][key]+rows[11][key]+rows[12][key]+rows[13][key]+rows[14][key];
+    }
+    function lineAmount(o,i) { return i < o.lines.size() ? o.lines[i].totalCents : 0; }
+    function validOrder(s,g,id,o) {
+      let root = rootAfter(s);
+      let platform = root.catalog.platforms[o.platformId];
+      let line = getAfter(linePath(s,g,id,string(o.lineWitnessCount - 1))).data;
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','lines','materialIds','inventory','approvedShortages',
+          'platformId','platformRevision','subtotalCents','gpCents','netCents','ingredientCostCents','packagingCostCents','grossProfitCents','shopRevision','lineWitnessCount','addonKeys','addonCounts','lineMenuIds','lineQtys','lineOptionQuantities']) &&
+        o.schemaVersion == 2 && o.kind == 'sale_set' && o.status == 'committed' && o.opId == id && o.uid == request.auth.uid && o.createdAt == request.time &&
+        o.addonKeys.keys().toSet()==['A0','A1','A2','A3','A4','A5','A6','A7','A8','A9','A10'].toSet() &&
+        o.addonCounts.keys().toSet()==o.addonKeys.keys().toSet() &&
+        o.addonKeys.values().removeAll(['_']).toSet().size()==o.addonKeys.values().removeAll(['_']).size() && o.addonKeys.values().hasOnly(root.catalog.addonIds.concat(['_'])) &&
+        o.lines is list && integer(o.lines.size(),1,6) && validLineCache(o) && o.lineWitnessCount == int((o.lines.size() + 1) / 2) &&
+        o.materialIds == root.catalog.summaryMaterials && o.materialIds.toSet().size() == o.materialIds.size() && o.inventory.size() == o.materialIds.size() &&
+        o.approvedShortages.keys().hasOnly(o.materialIds) && o.approvedShortages.keys().size() == o.materialIds.size() &&
+        o.materialIds.size() + o.lineWitnessCount + 2 <= 20 && platform.active && o.platformRevision == platform.revision &&
+        integer(o.subtotalCents,0,1000000000) && o.subtotalCents == lineAmount(o,0) + lineAmount(o,1) + lineAmount(o,2) + lineAmount(o,3) + lineAmount(o,4) + lineAmount(o,5) &&
+        o.gpCents == int((o.subtotalCents * platform.gpBasisPoints + 5000) / 10000) && o.netCents == o.subtotalCents - o.gpCents &&
+        o.packagingCostCents == costs(o,false) &&
+        o.grossProfitCents == o.netCents - o.ingredientCostCents - o.packagingCostCents &&
+        line.opId == id && line.index == o.lineWitnessCount - 1 &&
+        touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14) &&
+        root.lastOpId == id && root.lastOpKind == 'sale_set' && root.revision == o.shopRevision;
+    }
+    function validRoot(s) {
+      let next = request.resource.data;
+      let o = getAfter(orderPath(s,resource.data.generation,next.lastOpId)).data;
+      return signedIn() && resource.data.status == 'active' && next.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
+        next.revision == resource.data.revision + 1 && o.opId == next.lastOpId && o.uid == request.auth.uid && o.shopRevision == next.revision &&
+        o.ingredientCostCents == int(costs(o,true) * 100.0 + 0.5) &&
+        touched(s,resource.data.generation,o,0) && touched(s,resource.data.generation,o,1) && touched(s,resource.data.generation,o,2) && touched(s,resource.data.generation,o,3) &&
+        touched(s,resource.data.generation,o,4) && touched(s,resource.data.generation,o,5) && touched(s,resource.data.generation,o,6) && touched(s,resource.data.generation,o,7) && touched(s,resource.data.generation,o,8);
+    }
+    function weighted(q,c,add,price) { return ((q / 100.0) * c + (add / 100.0) * price) / ((q + add) / 100.0); }
+    function roundedUnit(cost) { return int(cost * 10000.0 + 0.5) / 10000.0; }
+    function numberIn(n,lo,hi) { return n is number && n >= lo && n <= hi; }
+    function sortedLot(a,b) {
+      return a.isInUse != b.isInUse ? a.isInUse : a.expiryDay != b.expiryDay ? a.expiryDay < b.expiryDay :
+        a.receiveDay != b.receiveDay ? a.receiveDay < b.receiveDay : a.ordinal < b.ordinal;
+    }
+    function validIndexedLot(m,l,i) {
+      return i >= m.allocationIds.size() ? l.id == '_' : l.id == m.allocationIds[i] && (l.qty > 0 || l.isInUse) &&
+        (l.qty == 0 || l.isInUse == (l.id == m.activeLotId));
+    }
+    function validIndex(m) {
+      let a = slots(m);
+      return m.allocationIds is list && integer(m.allocationIds.size(),1,4) && m.allocationIds.toSet().size() == m.allocationIds.size() &&
+        m.allocationIds.hasOnly(m.lotIds) && m.slotIds is list && m.slotIds.size() == 4 && m.slotIds[0:m.allocationIds.size()] == m.allocationIds &&
+        validIndexedLot(m,a[0],0) && validIndexedLot(m,a[1],1) && validIndexedLot(m,a[2],2) && validIndexedLot(m,a[3],3) &&
+        m.stock == a[0].qty + a[1].qty + a[2].qty + a[3].qty &&
+        (m.allocationIds.size() < 2 || sortedLot(a[0],a[1])) && (m.allocationIds.size() < 3 || sortedLot(a[1],a[2])) &&
+        (m.allocationIds.size() < 4 || sortedLot(a[2],a[3]));
+    }
+    function stockMaterial(s,g,id) {
+      let before = resource.data;
+      let next = request.resource.data;
+      let o = getAfter(operationPath(s,g,next.lastOpId)).data;
+      return writable(s,g) && !before.deleted && before.id == id && o.uid == request.auth.uid && o.kind == 'stock_in' && o.materialId == id &&
+        o.materialRevision == before.revision && next.revision == before.revision + 1 && next.lastOpIndex == 0 &&
+        next.diff(before).affectedKeys().hasOnly(['stock','unitCost','packCostCents','lastStockInDay','expiryDay','lots','lotQty','zeroActiveIds','lotIds','allocationIds','slotIds','activeLotId','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        integer(next.stock,1,1000000000) && next.stock == before.stock + o.qtyQ && numberIn(next.unitCost,0,100000) && next.unitCost == roundedUnit(weighted(before.stock,before.unitCost,o.qtyQ,o.unitCost)) &&
+        next.packCostCents == o.packCostCents && next.lotQty.diff(before.lotQty).affectedKeys().hasOnly([o.lotId]) &&
+        next.lotQty[o.lotId] == before.lotQty.get(o.lotId,0)+o.qtyQ && next.zeroActiveIds == before.zeroActiveIds.removeAll([o.lotId]) && validStockDates(before,next,o);
+    }
+    function matchesReceipt(l,o) { return l.qty > 0 && l.receiveDay == o.receiveDay && l.expiryDay == o.expiryDay; }
+    function matchAt(before,o,i) {
+      let l = resolvedSlot(before,before.slotIds[i]);
+      return !matchesReceipt(l,o) || (o.mode == 'merge' && before.lots[o.lotId].ordinal <= l.ordinal);
+    }
+    function newStockLot(before,next,o) {
+      let l = next.lots[o.lotId];
+      let hadActive = before.activeLotId != '' && before.lotQty[before.activeLotId] > 0;
+      return !(o.lotId in before.lots) && o.lotId != '_' && next.lotIds == before.lotIds.concat([o.lotId]) &&
+        next.lots.keys().hasOnly(before.lots.keys().concat([o.lotId])) && next.lots.keys().hasAll(before.lots.keys()) &&
+        l.keys().hasOnly(['id','qty','initialQtyQ','unitCost','packCostCents','receiveDay','expiryDay','ordinal','isInUse','note','createdAt','createdByOpId','sortKey']) &&
+        numberIn(l.unitCost,0,100000) && l.id == o.lotId && l.qty == o.qtyQ && l.initialQtyQ == o.qtyQ && l.unitCost == o.unitCost && l.packCostCents == o.packCostCents &&
+        l.receiveDay == o.receiveDay && l.expiryDay == (before.inventoryType == 'packaging' ? 999999 : o.expiryDay) && l.ordinal == before.lotIds.size() && l.note == o.note && l.createdAt == o.lotCreatedAtISO && l.createdByOpId == o.opId &&
+        l.ordinal<1000 && l.sortKey==l.expiryDay*1000000000+l.receiveDay*1000+l.ordinal &&
+        l.isInUse == !hadActive && next.activeLotId == (hadActive ? before.activeLotId : o.lotId);
+    }
+    function mergeStockLot(before,next,o) {
+      let old=before.lots[o.lotId];
+      let l=next.lots[o.lotId];
+      let packaging=before.inventoryType=='packaging';
+      let q=before.lotQty[o.lotId];
+      let price=old.unitCost==0 ? o.unitCost : old.unitCost;
+      return next.lotIds==before.lotIds && next.lots.keys()==before.lots.keys() &&
+        l.diff(old).affectedKeys().hasOnly(packaging ? ['initialQtyQ','unitCost','packCostCents','note','receiveDay','sortKey'] : ['initialQtyQ','unitCost','packCostCents','note']) &&
+        l.sortKey==l.expiryDay*1000000000+l.receiveDay*1000+l.ordinal &&
+        l.initialQtyQ==old.initialQtyQ+o.qtyQ && l.packCostCents==o.packCostCents &&
+        l.note==(o.note=='' ? old.note : old.note=='' ? o.note : old.note+'; '+o.note) &&
+        numberIn(l.unitCost,0,100000) && l.unitCost==(packaging ? weighted(before.stock,before.unitCost,o.qtyQ,o.unitCost) : roundedUnit(weighted(q,price,o.qtyQ,o.unitCost))) &&
+        (packaging ? before.lotIds[0]==o.lotId && before.stock==q && l.receiveDay==o.receiveDay && next.activeLotId==o.lotId :
+          matchesReceipt(resolvedSlot(before,o.lotId),o) && next.activeLotId==before.activeLotId);
+    }
+    function datePreferred(l,other,day) {
+      return other.qty == 0 || (other.isInUse && other.expiryDay >= day ? l.id == other.id :
+        (l.isInUse && l.expiryDay >= day) || l.ordinal <= other.ordinal);
+    }
+    function validStockDates(before,next,o) {
+      let l = resolvedSlot(next,o.dateLotId);
+      let a = slots(next);
+      let day = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
+      return before.inventoryType == 'packaging' ? next.lastStockInDay == o.receiveDay && next.expiryDay == o.expiryDay :
+        o.dateLotId in next.allocationIds && l.qty > 0 && next.lastStockInDay == l.receiveDay && next.expiryDay == l.expiryDay &&
+        datePreferred(l,a[0],day) && datePreferred(l,a[1],day) && datePreferred(l,a[2],day) && datePreferred(l,a[3],day);
+    }
+    function stockOperation(s,g,id,o) {
+      let before = get(materialPath(s,g,o.materialId)).data;
+      let next = getAfter(materialPath(s,g,o.materialId)).data;
+      let root = rootAfter(s);
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','qtyQ','unitCost','packCostCents','receiveDay','expiryDay','note','lotId','mode','dateLotId','lotCreatedAtISO']) &&
+        o.schemaVersion == 2 && o.kind == 'stock_in' && o.status == 'committed' && o.opId == id && o.uid == request.auth.uid && o.createdAt == request.time &&
+        integer(o.qtyQ,1,1000000000) && numberIn(o.unitCost,0,100000) && integer(o.packCostCents,0,1000000000) &&
+        (integer(o.receiveDay,0,100000) || before.inventoryType == 'packaging' && o.receiveDay == 999999 && o.expiryDay == 999999) &&
+        (o.expiryDay == 999999 || integer(o.expiryDay,o.receiveDay,100000)) && o.note is string && o.note.size() <= 1000 &&
+        o.lotId is string && o.lotId.matches('^[A-Za-z0-9_-]{1,200}$') && o.lotCreatedAtISO is string && o.lotCreatedAtISO.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$') &&
+        next.lastOpId == id && next.lastOpKind == 'stock_in' && root.lastOpId == id && root.lastOpKind == 'stock_in' && root.revision == o.shopRevision &&
+        next.lots.diff(before.lots).affectedKeys().hasOnly([o.lotId]) &&
+        (before.inventoryType == 'packaging' ? (before.lotIds.size() == 0 ? o.mode == 'new' && newStockLot(before,next,o) : o.mode == 'merge' && mergeStockLot(before,next,o)) :
+          matchAt(before,o,0) && matchAt(before,o,1) && matchAt(before,o,2) && matchAt(before,o,3) &&
+          (o.mode == 'new' ? newStockLot(before,next,o) : o.mode == 'merge' && mergeStockLot(before,next,o)));
+    }
+    function stockRoot(s) {
+      let next = request.resource.data;
+      let o = getAfter(operationPath(s,resource.data.generation,next.lastOpId)).data;
+      return signedIn() && resource.data.status == 'active' && next.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
+        next.revision == resource.data.revision + 1 && o.kind == 'stock_in' && o.opId == next.lastOpId && o.uid == request.auth.uid && o.shopRevision == next.revision && validIndex(getAfter(materialPath(s,resource.data.generation,o.materialId)).data);
+    }
+
+    function platformAt(c,i) {
+      return i>=c.platformIds.size() || (c.platforms[c.platformIds[i]].keys().hasOnly(['revision','active','gpBasisPoints']) &&
+        c.platforms[c.platformIds[i]].active is bool && integer(c.platforms[c.platformIds[i]].revision,1,1000000000) && integer(c.platforms[c.platformIds[i]].gpBasisPoints,0,9999));
+    }
+    function basePriceAt(c,m,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      let prices=m.optionPrices.get(p,{});
+      return i>=c.platformIds.size() || integer(m.pricesCents[c.platformIds[i]],0,1000000000) &&
+        prices.keys().toSet()==m.optionIds.concat(['_']).toSet() && prices._==0;
+    }
+    function menuData(c,key) {
+      let m=c.menus[key];
+      return m.keys().hasOnly(['id','name','revision','active','pricesCents','recipe','optionIds','min','max','optionPrices','choiceMaterials','materialIds','priceMode','groupId']) &&
+        m.id==key && m.priceMode in ['addon','override'] && m.active is bool && integer(m.revision,1,1000000000) && m.recipe.keys().hasOnly(c.summaryMaterials) &&
+        (!m.keys().hasAny(['name']) || m.name is string && m.name.size()>0 && m.name.size()<=120) &&
+        m.materialIds is list && m.materialIds.toSet().size()==m.materialIds.size() && m.materialIds.hasOnly(c.summaryMaterials) && m.recipe.keys().hasOnly(m.materialIds) &&
+        m.optionIds is list && m.optionIds.toSet().size()==m.optionIds.size() && m.optionIds.hasOnly(c.addonIds) && m.choiceMaterials.keys().toSet()==m.optionIds.toSet() &&
+        m.optionIds.size()<=45 && integer(m.min,0,11) && integer(m.max,m.min,11) && m.max<=m.optionIds.size() &&
+        m.pricesCents.keys().toSet()==c.platformIds.toSet() && m.optionPrices.keys().toSet()==c.platformIds.toSet() &&
+        (m.get('groupId','')=='' || m.groupId is string && m.groupId in c.groupIds && c.groups[m.groupId].active &&
+          m.optionIds==[] && m.min==0 && m.max==0 && m.priceMode=='addon');
+    }
+    function addonPriceAt(c,key,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      return i>=c.platformIds.size() || integer(c.addons[key].pricesCents[p],0,1000000000) && c.addonPrices[p][key]==c.addons[key].pricesCents[p];
+    }
+    function addonData(c,key) {
+      let a=c.addons.get(key,{});
+      return a.keys().hasOnly(['recipe','pricesCents','name','active']) && a.recipe.keys().hasOnly(c.summaryMaterials) &&
+        (!a.keys().hasAny(['name']) || a.name is string && a.name.size()>0 && a.name.size()<=120) &&
+        (!a.keys().hasAny(['active']) || a.active is bool) &&
+        a.pricesCents.keys().toSet()==c.platformIds.toSet() && addonPriceAt(c,key,0) && addonPriceAt(c,key,1) && addonPriceAt(c,key,2) && addonPriceAt(c,key,3);
+    }
+    function addonPriceEdit(c,old,key,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      return i>=c.platformIds.size() || c.addonPrices[p].keys().toSet()==old.addonPrices[p].keys().toSet() && c.addonPrices[p].diff(old.addonPrices[p]).affectedKeys().hasOnly([key]);
+    }
+    function catalogEdit(c,old,o) {
+      let collection=o.collection;
+      let ids=c.counterIds.concat(c.platformIds);
+      return c.keys().toSet()==old.keys().toSet() && o.entityId!='_' &&
+        (collection=='addons' ? o.entityId in c.addonIds && (o.counterIndex==-1 ? !(o.entityId in c.counterIds) : integer(o.counterIndex,4,14) && c.counterIds[o.counterIndex]==o.entityId) : integer(o.counterIndex,0,18) && o.entityId==ids[o.counterIndex]) &&
+        o.entitySnapshot==c[collection][o.entityId] &&
+        (collection!='menus' || c.menus[o.entityId].get('groupId','')==old.menus[o.entityId].get('groupId','')) &&
+        c.diff(old).affectedKeys().hasOnly(collection=='addons' ? ['addons','addonPrices','menus'] : [collection]) &&
+        c[collection].keys().toSet()==old[collection].keys().toSet() && c[collection].diff(old[collection]).affectedKeys().hasOnly([o.entityId]) &&
+        (collection!='addons' || c.menus.keys().toSet()==old.menus.keys().toSet() && c.addonPrices.keys().toSet()==old.addonPrices.keys().toSet() &&
+          addonPriceEdit(c,old,o.entityId,0) && addonPriceEdit(c,old,o.entityId,1) && addonPriceEdit(c,old,o.entityId,2) && addonPriceEdit(c,old,o.entityId,3));
+    }
+    function addonMenuReference(c,old,key,i) {
+      let id=i<c.menuIds.size() ? c.menuIds[i] : '_';
+      let m=c.menus.get(id,{});
+      let before=old.menus.get(id,{});
+      let choices=m.get('choiceMaterials',{});
+      let oldChoices=before.get('choiceMaterials',{});
+      let refs=choices.get(key,[]);
+      let materials=m.get('materialIds',[]);
+      let ingredients=c.addons[key].recipe.keys();
+      return i>=c.menuIds.size() || (!(key in before.optionIds) ? m==before :
+        m.diff(before).affectedKeys().hasOnly(['choiceMaterials','materialIds']) &&
+        choices.keys().toSet()==oldChoices.keys().toSet() && choices.diff(oldChoices).affectedKeys().hasOnly([key]) &&
+        refs is list && refs.size()==ingredients.size() && refs.toSet()==ingredients.toSet() &&
+        materials is list && materials.toSet().size()==materials.size() && materials.toSet()==before.materialIds.concat(ingredients).toSet());
+    }
+    function addonMenuReferences(s,c,key,i) {
+      let old=get(rootPath(s)).data.catalog;
+      return addonMenuReference(c,old,key,i) && addonMenuReference(c,old,key,i+15) &&
+        addonMenuReference(c,old,key,i+30) && addonMenuReference(c,old,key,i+45);
+    }
+    function catalogMaterial(s,g,id) {
+      let after=request.resource.data;
+      let before=resource.data;
+      let root=rootAfter(s);
+      let c=root.catalog;
+      let o=getAfter(operationPath(s,g,after.lastOpId)).data;
+      let k=o.collection=='addons' ? 4 : o.collection=='platforms' ? 15 : o.counterIndex;
+      let index=after.recipeIndex;
+      let oldIndex=before.recipeIndex;
+      let addons=index.addons;
+      let oldAddons=oldIndex.addons;
+      return writable(s,g) && after.lastOpKind=='catalog' && o.uid==request.auth.uid && o.kind=='catalog' &&
+        oldIndex.catalogRevision==o.sourceCatalogRevision &&
+        integer(after.lastOpIndex,0,14) && c.summaryMaterials[after.lastOpIndex]==id &&
+        after.diff(before).affectedKeys().hasOnly(['recipeIndex','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        after.revision==before.revision+1 && index.keys().hasOnly(['catalogRevision','quantities','menus','addons']) &&
+        index.catalogRevision==root.catalogRevision && index.quantities==oldIndex.quantities &&
+        (k<4 ? index.menus.diff(oldIndex.menus).affectedKeys().hasOnly([o.entityId]) &&
+          index.menus[o.entityId]==c.menus[o.entityId].recipe.get(id,0) && integer(c.menus[o.entityId].recipe.get(id,0),0,1000000000) : index.menus==oldIndex.menus) &&
+        (k!=4 ? addons==oldAddons : addons.keys().toSet()==oldAddons.keys().toSet() && addons.diff(oldAddons).affectedKeys().hasOnly([o.entityId]) &&
+          addons[o.entityId]==c.addons[o.entityId].recipe.get(id,0) && integer(addons[o.entityId],0,1000000000)) &&
+        (k<4 ? menuChoices(c,c.menus[o.entityId],after.lastOpIndex) && (after.lastOpIndex>=4 || basePriceAt(c,c.menus[o.entityId],after.lastOpIndex)) : k!=4 || addonMenuReferences(s,c,o.entityId,after.lastOpIndex));
+    }
+    function catalogRoot(s) {
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,resource.data.generation,n.lastOpId)).data;
+      return signedIn() && resource.data.status=='active' &&
+        n.diff(resource.data).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+        n.revision==resource.data.revision+1 && n.catalogRevision==resource.data.catalogRevision+1 &&
+        o.kind=='catalog' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision && o.materialIds==n.catalog.summaryMaterials &&
+        catalogEdit(n.catalog,resource.data.catalog,o) &&
+        touched(s,resource.data.generation,o,0) && touched(s,resource.data.generation,o,1) && touched(s,resource.data.generation,o,2) && touched(s,resource.data.generation,o,3) && touched(s,resource.data.generation,o,4) && touched(s,resource.data.generation,o,5) && touched(s,resource.data.generation,o,6) && touched(s,resource.data.generation,o,7) && touched(s,resource.data.generation,o,8);
+    }
+    function catalogOperation(s,g,id,o) {
+      let root=rootAfter(s);
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','counterIndex','collection','entityId','entitySnapshot']) &&
+        o.schemaVersion==2 && o.kind=='catalog' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time &&
+        o.sourceCatalogRevision==get(rootPath(s)).data.catalogRevision && root.catalogRevision==o.sourceCatalogRevision+1 &&
+        o.collection in ['menus','addons','platforms'] && integer(o.counterIndex,-1,18) && (o.collection!='menus' || integer(o.counterIndex,0,3)) && (o.collection!='platforms' || integer(o.counterIndex,15,18) && platformAt(root.catalog,o.counterIndex-15)) && root.lastOpId==id && root.lastOpKind=='catalog' && root.revision==o.shopRevision && o.materialIds==root.catalog.summaryMaterials &&
+        (o.collection=='platforms' || (o.collection=='addons' ? addonData(root.catalog,o.entityId) && getAfter(referencePath(s,g,id)).data.opId==id : getAfter(shapePath(s,g,id)).data.opId==id)) &&
+        touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14);
+    }
+    function catalogReferenceProof(s,g,id,index,d) {
+      let root=rootAfter(s);
+      let old=get(rootPath(s)).data;
+      let o=getAfter(operationPath(s,g,id)).data;
+      return writable(s,g) && index=='0' && d.keys().hasOnly(['opId']) && d.opId==id && o.kind=='catalog' && o.uid==request.auth.uid &&
+        o.collection=='addons' && root.lastOpId==id && root.lastOpKind=='catalog' && root.revision==old.revision+1 && root.revision==o.shopRevision &&
+        addonMenuReference(root.catalog,old.catalog,o.entityId,60) && addonMenuReference(root.catalog,old.catalog,o.entityId,61) &&
+        addonMenuReference(root.catalog,old.catalog,o.entityId,62) && addonMenuReference(root.catalog,old.catalog,o.entityId,63);
+    }
+
+    function menuChoice(c,m,key) {
+      let refs=m.choiceMaterials[key];
+      let ingredients=c.addons[key].recipe.keys();
+      let platforms=c.platformIds;
+      let count=platforms.size();
+      let prices=m.optionPrices;
+      let a=count>0 ? prices[platforms[0]][key] : 0;
+      let b=count>1 ? prices[platforms[1]][key] : 0;
+      let d=count>2 ? prices[platforms[2]][key] : 0;
+      let e=count>3 ? prices[platforms[3]][key] : 0;
+      return refs is list && refs.toSet()==ingredients.toSet() && refs.size()==ingredients.size() && m.materialIds.hasAll(refs) &&
+        a is int && a>=0 && a<=1000000000 && b is int && b>=0 && b<=1000000000 &&
+        d is int && d>=0 && d<=1000000000 && e is int && e>=0 && e<=1000000000;
+    }
+    function menuChoices(c,m,i) {
+      let ids=m.optionIds;
+      let count=ids.size();
+      let a=i+15;
+      let b=i+30;
+      return (i>=count || menuChoice(c,m,ids[i])) && (a>=count || menuChoice(c,m,ids[a])) && (b>=count || menuChoice(c,m,ids[b]));
+    }
+    function menuShapeProof(s,g,id,index,d) {
+      let root=rootAfter(s);
+      let old=get(rootPath(s)).data;
+      let o=getAfter(operationPath(s,g,id)).data;
+      return writable(s,g) && index=='shape' && d.keys().hasOnly(['opId']) && d.opId==id && o.uid==request.auth.uid &&
+        (o.kind=='menu' || o.kind=='catalog' && o.collection=='menus') && root.lastOpId==id && root.lastOpKind==o.kind && root.revision==old.revision+1 && root.revision==o.shopRevision &&
+        menuData(root.catalog,o.entityId);
+    }
+    function menuMaterial(s,g,id) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let root=rootAfter(s);
+      let c=root.catalog;
+      let o=getAfter(operationPath(s,g,n.lastOpId)).data;
+      let i=n.lastOpIndex;
+      let menu=c.menus[o.entityId];
+      let index=n.recipeIndex;
+      let oldIndex=before.recipeIndex;
+      let menus=index.menus;
+      return writable(s,g) && o.kind=='menu' && o.uid==request.auth.uid && before.id==id && integer(i,0,14) && o.materialIds[i]==id &&
+        oldIndex.catalogRevision==o.sourceCatalogRevision && n.revision==before.revision+1 &&
+        n.diff(before).affectedKeys().hasOnly(['recipeIndex','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        index.diff(oldIndex).affectedKeys().hasOnly(['catalogRevision','menus']) && index.catalogRevision==root.catalogRevision &&
+        menus.diff(oldIndex.menus).affectedKeys().hasOnly([o.entityId]) &&
+        menus.keys().toSet()==(o.create ? oldIndex.menus.keys().concat([o.entityId]).toSet() : oldIndex.menus.keys().toSet()) &&
+        menus[o.entityId]==menu.recipe.get(id,0) &&
+        integer(menu.recipe.get(id,0),0,1000000000) && menuChoices(c,menu,i) && (i>=4 || basePriceAt(c,menu,i));
+    }
+    function menuBindings(c,old,id,create) {
+      let a=create ? '' : old.menus[id].get('groupId','');
+      let b=c.menus[id].get('groupId','');
+      return c.groups.keys().toSet()==old.groups.keys().toSet() &&
+        (a==b ? c.groups==old.groups : c.groups.diff(old.groups).affectedKeys().hasOnly([a,b]) &&
+          (a=='' || id in old.groups[a].menuIds && c.groups[a].diff(old.groups[a]).affectedKeys().hasOnly(['menuIds']) && c.groups[a].menuIds==old.groups[a].menuIds.removeAll([id])) &&
+          (b=='' || old.groups[b].active && !(id in old.groups[b].menuIds) && c.groups[b].diff(old.groups[b]).affectedKeys().hasOnly(['menuIds']) && c.groups[b].menuIds==old.groups[b].menuIds.concat([id])));
+    }
+    function menuRoot(s) {
+      let n=request.resource.data;
+      let before=resource.data;
+      let c=n.catalog;
+      let old=before.catalog;
+      let o=getAfter(operationPath(s,before.generation,n.lastOpId)).data;
+      let id=o.entityId;
+      return signedIn() && before.status=='active' && n.diff(before).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+        n.revision==before.revision+1 && n.catalogRevision==before.catalogRevision+1 && o.sourceCatalogRevision==before.catalogRevision &&
+        o.opId==n.lastOpId && o.kind=='menu' && o.uid==request.auth.uid && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
+        c.diff(old).affectedKeys().hasOnly(['menus','menuIds','groups']) && c.menus.diff(old.menus).affectedKeys().hasOnly([id]) && menuBindings(c,old,id,o.create) &&
+        o.create==!(id in old.menus) && c.menuIds.size()<=64 &&
+        c.menuIds==(o.create ? old.menuIds.concat([id]) : old.menuIds) &&
+        c.menus.keys().toSet()==(o.create ? old.menus.keys().concat([id]).toSet() : old.menus.keys().toSet()) &&
+        o.entitySnapshot==c.menus[id] && c.menus[id].revision==(o.create ? 1 : old.menus[id].revision+1) &&
+        touched(s,before.generation,o,0) && touched(s,before.generation,o,1) && touched(s,before.generation,o,2) && touched(s,before.generation,o,3) && touched(s,before.generation,o,4) &&
+        touched(s,before.generation,o,5) && touched(s,before.generation,o,6) && touched(s,before.generation,o,7) && touched(s,before.generation,o,8);
+    }
+    function menuOperation(s,g,id,o) {
+      let root=rootAfter(s);
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','entitySnapshot','create']) &&
+        o.schemaVersion==2 && o.kind=='menu' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time && o.create is bool &&
+        o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==root.catalog.summaryMaterials &&
+        root.lastOpId==id && root.lastOpKind=='menu' && root.revision==o.shopRevision && root.catalogRevision==o.sourceCatalogRevision+1 &&
+        getAfter(shapePath(s,g,id)).data.opId==id &&
+        touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14);
+    }
+
+    function addonEnrolPrice(c,old,key,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      return i>=c.platformIds.size() || c.addonPrices[p].keys().toSet()==old.addonPrices[p].keys().concat([key]).toSet() &&
+        c.addonPrices[p].diff(old.addonPrices[p]).affectedKeys().hasOnly([key]);
+    }
+    function addonMaterial(s,g,id) {
+      let n=request.resource.data;
+      let before=resource.data;
+      let root=rootAfter(s);
+      let o=getAfter(operationPath(s,g,n.lastOpId)).data;
+      let q=n.recipeIndex.quantities;
+      let k=o.counterIndex;
+      let value=root.catalog.addons[o.entityId].recipe.get(id,0);
+      return writable(s,g) && o.kind=='addon' && o.uid==request.auth.uid && before.id==id && integer(n.lastOpIndex,0,14) && o.materialIds[n.lastOpIndex]==id &&
+        before.recipeIndex.catalogRevision==o.sourceCatalogRevision && n.revision==before.revision+1 &&
+        n.diff(before).affectedKeys().hasOnly(['recipeIndex','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        n.recipeIndex.diff(before.recipeIndex).affectedKeys().hasOnly(['catalogRevision','quantities','addons']) && n.recipeIndex.catalogRevision==root.catalogRevision &&
+        n.recipeIndex.addons.keys().toSet()==before.recipeIndex.addons.keys().concat([o.entityId]).toSet() && n.recipeIndex.addons.diff(before.recipeIndex.addons).affectedKeys().hasOnly([o.entityId]) &&
+        integer(value,0,1000000000) && n.recipeIndex.addons[o.entityId]==value && q is list && q.size()==15 &&
+        (k>=15 ? q==before.recipeIndex.quantities : q[k]==value && q==before.recipeIndex.quantities[0:k].concat([value]).concat(k==14 ? [] : before.recipeIndex.quantities[(k+1):15])) &&
+        (n.lastOpIndex!=0 || addonData(root.catalog,o.entityId));
+    }
+    function addonRoot(s) {
+      let n=request.resource.data;
+      let before=resource.data;
+      let c=n.catalog;
+      let old=before.catalog;
+      let o=getAfter(operationPath(s,before.generation,n.lastOpId)).data;
+      let id=o.entityId;
+      let k=o.counterIndex;
+      return signedIn() && before.status=='active' && n.diff(before).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+        n.revision==before.revision+1 && n.catalogRevision==before.catalogRevision+1 && o.sourceCatalogRevision==before.catalogRevision &&
+        o.kind=='addon' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
+        c.diff(old).affectedKeys().hasOnly(['addons','addonIds','counterIds','addonPrices']) && !(id in old.addons) &&
+        c.addonIds==old.addonIds.concat([id]) && c.addonIds.size()<=64 && k==old.addonIds.size()+4 &&
+        (k>=15 ? c.counterIds==old.counterIds : old.counterIds[k]=='_' && c.counterIds==old.counterIds[0:k].concat([id]).concat(k==14 ? [] : old.counterIds[(k+1):15])) &&
+        c.addons.keys().toSet()==old.addons.keys().concat([id]).toSet() && c.addons.diff(old.addons).affectedKeys().hasOnly([id]) && o.entitySnapshot==c.addons[id] &&
+        c.addonPrices.keys().toSet()==old.addonPrices.keys().toSet() &&
+        addonEnrolPrice(c,old,id,0) && addonEnrolPrice(c,old,id,1) && addonEnrolPrice(c,old,id,2) && addonEnrolPrice(c,old,id,3) &&
+        touched(s,before.generation,o,0) && touched(s,before.generation,o,1) && touched(s,before.generation,o,2) && touched(s,before.generation,o,3) && touched(s,before.generation,o,4) &&
+        touched(s,before.generation,o,5) && touched(s,before.generation,o,6) && touched(s,before.generation,o,7) && touched(s,before.generation,o,8);
+    }
+    function addonOperation(s,g,id,o) {
+      let root=rootAfter(s);
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','entitySnapshot','counterIndex']) &&
+        o.schemaVersion==2 && o.kind=='addon' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time && integer(o.counterIndex,4,67) &&
+        o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==root.catalog.summaryMaterials &&
+        root.lastOpId==id && root.lastOpKind=='addon' && root.revision==o.shopRevision && root.catalogRevision==o.sourceCatalogRevision+1 &&
+        touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14);
+    }
+    function originalFlag(before,id) { return before.activeLotId==id || id in before.zeroActiveIds; }
+    function returnedFlag(before,next,id,kept) {
+      return next.lotQty[id]==0 || (kept ? !originalFlag(before,id) || id==next.activeLotId : !originalFlag(before,id) && next.lots[next.activeLotId].ordinal<=next.lots[id].ordinal);
+    }
+    function qtyIndexSlot(q,z,id,used) {
+      return used ? q[id]>0 || id in z : id=='_';
+    }
+    function qtySorted(lots,active,z,x,y) {
+      let a=lots[x];
+      let b=lots[y];
+      let ax=x==active || x in z;
+      let bx=y==active || y in z;
+      return ax!=bx ? ax : a.sortKey<b.sortKey;
+    }
+    function cancelIndex(m) {
+      let ids=m.slotIds;
+      let alloc=m.allocationIds;
+      let size=alloc.size();
+      let q=m.lotQty;
+      let z=m.zeroActiveIds;
+      let lots=m.lots;
+      let active=m.activeLotId;
+      return integer(size,1,4) && alloc.toSet().size()==size && alloc.hasOnly(m.lotIds) &&
+        ids==alloc.concat(['_','_','_','_'])[0:4] &&
+        qtyIndexSlot(q,z,ids[0],size>0) && qtyIndexSlot(q,z,ids[1],size>1) && qtyIndexSlot(q,z,ids[2],size>2) && qtyIndexSlot(q,z,ids[3],size>3) &&
+        m.stock==q[ids[0]]+q[ids[1]]+q[ids[2]]+q[ids[3]] &&
+        (size<2 || qtySorted(lots,active,z,ids[0],ids[1])) && (size<3 || qtySorted(lots,active,z,ids[1],ids[2])) && (size<4 || qtySorted(lots,active,z,ids[2],ids[3]));
+    }
+    function firstReturned(next) {
+      let a=next.slotIds;
+      let lots=next.lots;
+      let q=next.lotQty;
+      let ordinal=lots[next.activeLotId].ordinal;
+      return (q[a[0]]==0 || ordinal<=lots[a[0]].ordinal) &&
+        (q[a[1]]==0 || ordinal<=lots[a[1]].ordinal) &&
+        (q[a[2]]==0 || ordinal<=lots[a[2]].ordinal) &&
+        (q[a[3]]==0 || ordinal<=lots[a[3]].ordinal);
+    }
+    function cancelFlags(before,next,kept) {
+      let a=next.slotIds;
+      return before.zeroActiveIds.size()==0 ? kept ||
+        (before.activeLotId=='' || next.lotQty[before.activeLotId]==0) && firstReturned(next) :
+        returnedFlag(before,next,a[0],kept) && returnedFlag(before,next,a[1],kept) && returnedFlag(before,next,a[2],kept) && returnedFlag(before,next,a[3],kept);
+    }
+    function cancelState(before,next,row) {
+      let kept=next.activeLotId!='' && originalFlag(before,next.activeLotId);
+      let ids=row.lotIds.concat(['_','_','_','_']);
+      let t=row.lotTakes;
+      let q=before.lotQty;
+      let n=next.lotQty;
+      let cleared=[t[0]>0 ? ids[0] : '_',t[1]>0 ? ids[1] : '_',t[2]>0 ? ids[2] : '_',t[3]>0 ? ids[3] : '_'];
+      return row.take==0 ? next.lotQty==before.lotQty && next.activeLotId==before.activeLotId && next.zeroActiveIds==before.zeroActiveIds &&
+        next.allocationIds==before.allocationIds && next.slotIds==before.slotIds && next.lastStockInDay==before.lastStockInDay && next.expiryDay==before.expiryDay :
+        n.keys().toSet()==q.keys().toSet() && n.diff(q).affectedKeys().hasOnly(row.lotIds) &&
+        n[ids[0]]==q[ids[0]]+t[0] && n[ids[1]]==q[ids[1]]+t[1] && n[ids[2]]==q[ids[2]]+t[2] && n[ids[3]]==q[ids[3]]+t[3] &&
+        next.activeLotId in next.allocationIds && next.lotQty[next.activeLotId]>0 && cancelIndex(next) &&
+        cancelFlags(before,next,kept) &&
+        next.zeroActiveIds==(kept ? before.zeroActiveIds.removeAll(cleared) : []) &&
+        (kept ? next.lastStockInDay==before.lastStockInDay && next.expiryDay==before.expiryDay :
+          next.lastStockInDay==next.lots[next.activeLotId].receiveDay && next.expiryDay==next.lots[next.activeLotId].expiryDay);
+    }
+    function cancelMaterial(s,g,id) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,g,n.lastOpId)).data;
+      let sale=get(orderPath(s,g,o.orderId)).data;
+      let i=n.lastOpIndex;
+      let row=sale.inventory[i];
+      return writable(s,g) && o.kind=='cancel' && o.uid==request.auth.uid && integer(i,0,14) && o.materialIds[i]==id && sale.materialIds[i]==id &&
+        o.sourceRevisions[i]==before.revision && n.revision==before.revision+1 &&
+        n.diff(before).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        integer(n.stock,0,1000000000) && n.stock==before.stock+row.take && cancelState(before,n,row);
+    }
+    function cancelOrder(s,g,id) {
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,g,n.cancelOpId)).data;
+      return writable(s,g) && resource.data.status=='committed' && n.status=='cancelled' &&
+        n.diff(resource.data).affectedKeys().hasOnly(['status','cancelOpId','cancelledAt']) && n.cancelledAt==request.time &&
+        o.kind=='cancel' && o.orderId==id && o.uid==request.auth.uid;
+    }
+    function cancelOperation(s,g,id,o) {
+      let sale=get(orderPath(s,g,o.orderId)).data;
+      let next=getAfter(orderPath(s,g,o.orderId)).data;
+      let root=rootAfter(s);
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','orderId','materialIds','sourceRevisions','shopRevision']) &&
+        o.schemaVersion==2 && o.kind=='cancel' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time &&
+        sale.status=='committed' && o.materialIds==sale.materialIds && o.sourceRevisions is list && o.sourceRevisions.size()==15 &&
+        next.status=='cancelled' && next.cancelOpId==id && root.lastOpId==id && root.lastOpKind=='cancel' && root.revision==o.shopRevision &&
+        touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14);
+    }
+    function cancelRoot(s) {
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,resource.data.generation,n.lastOpId)).data;
+      return signedIn() && resource.data.status=='active' && n.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
+        n.revision==resource.data.revision+1 && o.kind=='cancel' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision &&
+        touched(s,resource.data.generation,o,0) && touched(s,resource.data.generation,o,1) && touched(s,resource.data.generation,o,2) && touched(s,resource.data.generation,o,3) &&
+        touched(s,resource.data.generation,o,4) && touched(s,resource.data.generation,o,5) && touched(s,resource.data.generation,o,6) && touched(s,resource.data.generation,o,7) && touched(s,resource.data.generation,o,8);
+    }
+
+    function produceInput(s,g,id) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,g,n.lastOpId)).data;
+      let recipe=get(materialPath(s,g,o.outputId)).data.productionRecipe;
+      let i=n.lastOpIndex;
+      let row=o.inputs[i];
+      let day=int((request.time+duration.value(7,'h')).date().toMillis() / 86400000);
+      return writable(s,g) && o.uid==request.auth.uid && o.kind=='produce' && integer(i,0,1) && o.materialIds[i]==id &&
+        !before.deleted && before.inventoryType=='ingredient' && row.materialId==id && row.revision==before.revision && row.costRank==before.costRank &&
+        row.keys().hasOnly(['materialId','revision','costRank','needed','take','shortage','ingredientCostBaht','packagingCostCents','lotIds','lotTakes']) &&
+        integer(row.needed,1,1000000000) && row.needed==int((recipe.quantities[i] / 100.0)*(o.qtyQ / float(recipe.yieldQ))*100.0+0.5) &&
+        row.shortage==0 && row.take==row.needed && row.packagingCostCents==0 && row.ingredientCostBaht==(row.needed / 100.0)*before.unitCost &&
+        row.lotIds==before.allocationIds && n.diff(before).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        n.revision==before.revision+1 && summaryStock(before,n,row,day);
+    }
+    function produceOutput(s,g,id) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,g,n.lastOpId)).data;
+      return writable(s,g) && o.uid==request.auth.uid && o.kind=='produce' && o.outputId==id && !before.deleted && before.inventoryType=='ingredient' &&
+        o.outputRevision==before.revision && n.revision==before.revision+1 && n.lastOpIndex==2 &&
+        n.diff(before).affectedKeys().hasOnly(['stock','unitCost','lots','lotIds','lotQty','allocationIds','slotIds','activeLotId','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        integer(n.stock,1,1000000000) && n.stock==before.stock+o.qtyQ &&
+        numberIn(n.unitCost,0,100000) && n.unitCost==((before.stock / 100.0)*before.unitCost+o.rawCostBaht) / (before.stock / 100.0+o.qtyQ / 100.0) &&
+        n.lotQty.diff(before.lotQty).affectedKeys().hasOnly([o.lotId]) && n.lotQty[o.lotId]==o.qtyQ &&
+        n.lots.diff(before.lots).affectedKeys().hasOnly([o.lotId]);
+    }
+    function produceLinked(s,g,o,i) {
+      let n=getAfter(materialPath(s,g,o.materialIds[i])).data;
+      return n.lastOpId==o.opId && n.lastOpKind=='produce' && n.lastOpIndex==i;
+    }
+    function produceOperation(s,g,id,o) {
+      let before=get(materialPath(s,g,o.outputId)).data;
+      let next=getAfter(materialPath(s,g,o.outputId)).data;
+      let r=before.productionRecipe;
+      let root=rootAfter(s);
+      let stock={'lotId':o.lotId,'qtyQ':o.qtyQ,'unitCost':o.rawCostBaht / (o.qtyQ / 100.0),'packCostCents':before.packCostCents,
+        'receiveDay':o.receiveDay,'expiryDay':o.expiryDay,'note':o.note,'lotCreatedAtISO':o.lotCreatedAtISO,'opId':id};
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialIds','inputs','outputId','outputRevision','qtyQ','rawCostBaht','shopRevision','note','lotId','receiveDay','expiryDay','lotCreatedAtISO']) &&
+        o.schemaVersion==2 && o.kind=='produce' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time &&
+        integer(o.qtyQ,1,1000000000) && integer(o.receiveDay,0,100000) && (o.expiryDay==999999 || integer(o.expiryDay,o.receiveDay,100000)) &&
+        o.note is string && o.note.size()<=1000 && o.lotId is string && o.lotId.matches('^[A-Za-z0-9_-]{1,200}$') &&
+        o.lotCreatedAtISO is string && o.lotCreatedAtISO.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$') &&
+        o.materialIds==r.inputIds && integer(o.materialIds.size(),1,2) && o.materialIds.toSet().size()==o.materialIds.size() && !(o.outputId in o.materialIds) &&
+        o.inputs.size()==o.materialIds.size() && r.quantities.size()==o.materialIds.size() && integer(r.yieldQ,1,1000000000) &&
+        o.rawCostBaht==o.inputs[0].ingredientCostBaht+(o.inputs.size()==2 ? o.inputs[1].ingredientCostBaht : 0) &&
+        next.lastOpId==id && next.lastOpKind=='produce' && root.lastOpId==id && root.lastOpKind=='produce' && root.revision==o.shopRevision &&
+        newStockLot(before,next,stock) && produceLinked(s,g,o,0) && (o.materialIds.size()==1 || produceLinked(s,g,o,1));
+    }
+    function produceRoot(s) {
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,resource.data.generation,n.lastOpId)).data;
+      let output=getAfter(materialPath(s,resource.data.generation,o.outputId)).data;
+      return signedIn() && resource.data.status=='active' && n.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
+        n.revision==resource.data.revision+1 && o.kind=='produce' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision && validIndex(output);
+    }
+
+    function switchMaterial(s,g,id) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,g,n.lastOpId)).data;
+      let lot=before.lots[o.lotId];
+      return writable(s,g) && !before.deleted && before.id==id && o.kind=='switch_lot' && o.uid==request.auth.uid && o.materialId==id &&
+        o.materialRevision==before.revision && n.revision==before.revision+1 && n.lastOpIndex==0 && o.lotId in before.lotIds &&
+        n.diff(before).affectedKeys().hasOnly(['activeLotId','zeroActiveIds','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        (before.lotQty[o.lotId]>0 ? n.activeLotId==o.lotId : before.stock==0 ? n.activeLotId=='' : n.activeLotId in before.lotIds && before.lotQty[n.activeLotId]>0 && firstReturned(n)) &&
+        n.zeroActiveIds==(before.lotQty[o.lotId]==0 ? [o.lotId] : []) &&
+        n.lastStockInDay==lot.receiveDay && n.expiryDay==lot.expiryDay;
+    }
+    function switchOperation(s,g,id,o) {
+      let n=getAfter(materialPath(s,g,o.materialId)).data;
+      let root=rootAfter(s);
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','lotId','shopRevision']) &&
+        o.schemaVersion==2 && o.kind=='switch_lot' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time &&
+        n.lastOpId==id && n.lastOpKind=='switch_lot' && root.lastOpId==id && root.lastOpKind=='switch_lot' && root.revision==o.shopRevision;
+    }
+    function switchRoot(s) {
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,resource.data.generation,n.lastOpId)).data;
+      let m=getAfter(materialPath(s,resource.data.generation,o.materialId)).data;
+      return signedIn() && resource.data.status=='active' && n.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
+        n.revision==resource.data.revision+1 && o.kind=='switch_lot' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision && cancelIndex(m);
+    }
+
+    function countCell(q,n,c) {
+      let id=c.id;
+      let to=c.to;
+      return c.keys().hasOnly(['id','from','to']) && id!='_' &&
+        c.from==q[id] && to is int && to>=0 && to<=1000000000 && n[id]==to;
+    }
+    function wasteIndex(before,next) {
+      let a=before.slotIds;
+      let q=next.lotQty;
+      let live=[q[a[0]]>0 ? a[0] : '_',q[a[1]]>0 ? a[1] : '_',q[a[2]]>0 ? a[2] : '_',q[a[3]]>0 ? a[3] : '_'].removeAll(['_']);
+      let active=next.activeLotId;
+      let ordered=(active=='' ? [] : [active]).concat(live.removeAll([active]));
+      return next.zeroActiveIds==[] ? next.allocationIds==ordered && next.slotIds==ordered.concat(['_','_','_','_'])[0:4] : cancelIndex(next);
+    }
+    function countIndex(before,next,mode,changed) {
+      let ids=next.slotIds;
+      let z=next.zeroActiveIds;
+      let q=next.lotQty;
+      let active=next.activeLotId;
+      let alloc=next.allocationIds;
+      // Surviving zero flags are frozen source zeros: changed IDs are removed by countState.
+      return z==[] && changed.hasOnly(before.allocationIds.concat(['_'])) ?
+        wasteIndex(before,next) && (mode=='waste' || (next.stock==0 ? active=='' : active!='' && q[active]>0)) :
+        mode=='waste' ? wasteIndex(before,next) : z.hasOnly(alloc) &&
+        (alloc.size()==0 ? next.stock==0 && ids==['_','_','_','_'] && z==[] && active=='' :
+          cancelIndex(next) && (next.stock==0 ? active=='' : active in alloc && q[active]>0));
+    }
+    function wastePreferred(lots,q,chosen,id,day) {
+      let other=lots[id];
+      return q[id]==0 || (chosen.expiryDay>=day ? other.expiryDay<day || chosen.ordinal<=other.ordinal :
+        other.expiryDay<day && chosen.ordinal<=other.ordinal);
+    }
+    function wasteState(before,next,row) {
+      let c=row.counts[0];
+      let from=c.from;
+      let to=c.to;
+      let active=next.activeLotId;
+      let day=int((request.time+duration.value(7,'h')).date().toMillis() / 86400000);
+      let a=next.slotIds;
+      let lots=next.lots;
+      let q=next.lotQty;
+      let chosen=lots.get(active,{'expiryDay':0,'ordinal':0});
+      let price=before.lots[c.id].unitCost==0 ? before.unitCost : before.lots[c.id].unitCost;
+      return row.counts.size()==1 && integer(row.requestedQ,1,1000000000) && from>0 && to==from-minimum(row.requestedQ,from) &&
+        row.lossCents==int((((from-to) / 100.0)*price)*100.0+0.5) &&
+        next.lastStockInDay==before.lastStockInDay && next.expiryDay==before.expiryDay &&
+        (before.activeLotId!=c.id || to>0 ? active==before.activeLotId : next.stock==0 ? active=='' :
+          active!='' && q[active]>0 && wastePreferred(lots,q,chosen,a[0],day) && wastePreferred(lots,q,chosen,a[1],day) && wastePreferred(lots,q,chosen,a[2],day) && (a[3]=='_' || wastePreferred(lots,q,chosen,a[3],day)));
+    }
+    function countDates(before,next) {
+      let id=next.activeLotId=='' ? before.lotIds[0] : next.activeLotId;
+      let l=before.lots[id];
+      return next.lastStockInDay==(l.receiveDay==999999 ? before.lastStockInDay : l.receiveDay) &&
+        next.expiryDay==(l.expiryDay==999999 ? before.expiryDay : l.expiryDay);
+    }
+    function countState(before,next,row) {
+      let zero={'id':'_','from':0,'to':0};
+      let counts=row.counts;
+      let size=counts.size();
+      let c=counts.concat([zero,zero,zero]);
+      let ids=[c[0].id,c[1].id,c[2].id,c[3].id];
+      let n=next.lotQty;
+      let q=before.lotQty;
+      return counts is list && size>=1 && size<=4 && ids[0:size].toSet().size()==size &&
+        countCell(q,n,c[0]) && (size<2 || countCell(q,n,c[1])) &&
+        (size<3 || countCell(q,n,c[2])) && (size<4 || countCell(q,n,c[3])) &&
+        n._==0 && n.diff(q).affectedKeys().hasOnly(ids) &&
+        integer(next.stock,0,1000000000) && next.stock==before.stock+c[0].to-c[0].from+c[1].to-c[1].from+c[2].to-c[2].from+c[3].to-c[3].from &&
+        next.zeroActiveIds==before.zeroActiveIds.removeAll(ids) && row.activeLotId==next.activeLotId && row.zeroActiveIds==next.zeroActiveIds &&
+        countIndex(before,next,row.mode,ids) && (row.mode=='waste' ? wasteState(before,next,row) :
+          row.mode=='count' && row.requestedQ==0 && row.lossCents==0 && countDates(before,next) &&
+          (next.stock==0 || (before.zeroActiveIds.size()==0 ?
+            before.activeLotId=='' || n[before.activeLotId]==0 || next.activeLotId==before.activeLotId :
+            before.activeLotId=='' && before.zeroActiveIds.size()==1 && originalFlag(before,next.activeLotId) ||
+            cancelFlags(before,next,originalFlag(before,next.activeLotId)))));
+    }
+    function countMaterial(s,g,id) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,g,n.lastOpId)).data;
+      let i=n.lastOpIndex;
+      let row=o.rows[i];
+      return writable(s,g) && !before.deleted && o.kind=='stock_count' && o.uid==request.auth.uid && integer(i,0,17) && o.materialIds[i]==id && row.materialId==id &&
+        row.revision==before.revision && n.revision==before.revision+1 &&
+        row.keys().hasOnly(['materialId','revision','mode','counts','requestedQ','reason','note','lossCents','activeLotId','zeroActiveIds']) &&
+        row.reason is string && row.reason.size()<=200 && row.note is string && row.note.size()<=1000 &&
+        n.diff(before).affectedKeys().hasOnly(['stock','lotQty','activeLotId','zeroActiveIds','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        countState(before,n,row);
+    }
+    function countOperation(s,g,id,o) {
+      let root=rootAfter(s);
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialIds','rows','shopRevision']) &&
+        o.schemaVersion==2 && o.kind=='stock_count' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time &&
+        o.materialIds is list && integer(o.materialIds.size(),1,18) && o.materialIds.toSet().size()==o.materialIds.size() && o.rows.size()==o.materialIds.size() &&
+        root.lastOpId==id && root.lastOpKind=='stock_count' && root.revision==o.shopRevision &&
+        touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14) && touched(s,g,o,15) && touched(s,g,o,16) && touched(s,g,o,17);
+    }
+    function countRoot(s) {
+      let n=request.resource.data;
+      let o=getAfter(operationPath(s,resource.data.generation,n.lastOpId)).data;
+      return signedIn() && resource.data.status=='active' && n.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
+        n.revision==resource.data.revision+1 && o.kind=='stock_count' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision &&
+        touched(s,resource.data.generation,o,0) && touched(s,resource.data.generation,o,1) && touched(s,resource.data.generation,o,2) && touched(s,resource.data.generation,o,3) && touched(s,resource.data.generation,o,4) &&
+        touched(s,resource.data.generation,o,5) && touched(s,resource.data.generation,o,6) && touched(s,resource.data.generation,o,7) && touched(s,resource.data.generation,o,8);
+    }
+
+    function groupData(c,g) {
+      return g.keys().hasOnly(['id','name','revision','active','min','max','allowRepeat','pricingMode','optionIds','optionPrices','menuIds']) &&
+        g.name is string && g.name.size()>0 && g.name.size()<=120 && g.name.matches('.*\\S.*') && integer(g.revision,1,1000000000) &&
+        g.active is bool && g.allowRepeat is bool && g.pricingMode in ['included','extra'] &&
+        g.optionIds is list && integer(g.optionIds.size(),1,45) && g.optionIds.toSet().size()==g.optionIds.size() && g.optionIds.hasOnly(c.addonIds) &&
+        integer(g.min,0,11) && integer(g.max,1,11) && g.min<=g.max && (g.allowRepeat ? g.max<=3 : g.min<=g.optionIds.size()) &&
+        g.optionPrices.keys().toSet()==c.platformIds.toSet() &&
+        g.menuIds is list && g.menuIds.toSet().size()==g.menuIds.size() && g.menuIds.hasOnly(c.menuIds);
+    }
+    function groupPriceKeys(c,g,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      let prices=g.optionPrices.get(p,{});
+      return i>=c.platformIds.size() || prices.keys().hasOnly(g.optionIds.concat(['_'])) && prices._==0;
+    }
+    function groupChoice(c,g,key) {
+      let platforms=c.platformIds;
+      let count=platforms.size();
+      let prices=g.optionPrices;
+      let a=count>0 ? prices[platforms[0]].get(key,0) : 0;
+      let b=count>1 ? prices[platforms[1]].get(key,0) : 0;
+      let d=count>2 ? prices[platforms[2]].get(key,0) : 0;
+      let e=count>3 ? prices[platforms[3]].get(key,0) : 0;
+      return a is int && a>=0 && a<=1000000000 && b is int && b>=0 && b<=1000000000 &&
+        d is int && d>=0 && d<=1000000000 && e is int && e>=0 && e<=1000000000;
+    }
+    function groupChoices(c,g,i) {
+      let ids=g.optionIds;
+      let count=ids.size();
+      return (i>=count || groupChoice(c,g,ids[i])) && (i+15>=count || groupChoice(c,g,ids[i+15])) && (i+30>=count || groupChoice(c,g,ids[i+30]));
+    }
+    function groupShapeProof(s,g,id,index,d) {
+      let root=rootAfter(s);
+      let o=getAfter(operationPath(s,g,id)).data;
+      return writable(s,g) && index=='shape' && d.keys().hasOnly(['opId']) && d.opId==id && o.kind=='group' && o.uid==request.auth.uid &&
+        root.lastOpId==id && root.lastOpKind=='group' && root.revision==get(rootPath(s)).data.revision+1 && root.revision==o.shopRevision &&
+        groupData(root.catalog,root.catalog.groups[o.entityId]);
+    }
+    function groupMaterial(s,g,id) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let root=rootAfter(s);
+      let o=getAfter(operationPath(s,g,n.lastOpId)).data;
+      let i=n.lastOpIndex;
+      let group=root.catalog.groups[o.entityId];
+      return writable(s,g) && o.kind=='group' && o.uid==request.auth.uid && integer(i,0,14) && o.materialIds[i]==id && before.id==id &&
+        before.recipeIndex.catalogRevision==o.sourceCatalogRevision && n.revision==before.revision+1 &&
+        n.diff(before).affectedKeys().hasOnly(['recipeIndex','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        n.recipeIndex.diff(before.recipeIndex).affectedKeys().hasOnly(['catalogRevision']) && n.recipeIndex.catalogRevision==root.catalogRevision &&
+        groupChoices(root.catalog,group,i) && (i>=4 || groupPriceKeys(root.catalog,group,i));
+    }
+    function groupRoot(s) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let c=n.catalog;
+      let old=before.catalog;
+      let o=getAfter(operationPath(s,before.generation,n.lastOpId)).data;
+      let id=o.entityId;
+      let group=c.groups[id];
+      return signedIn() && before.status=='active' && n.diff(before).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+        n.revision==before.revision+1 && n.catalogRevision==before.catalogRevision+1 && o.sourceCatalogRevision==before.catalogRevision &&
+        o.kind=='group' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
+        c.diff(old).affectedKeys().hasOnly(['groups','groupIds']) && c.groups.diff(old.groups).affectedKeys().hasOnly([id]) &&
+        o.create==!(id in old.groups) && c.groupIds.size()<=64 && c.groupIds==(o.create ? old.groupIds.concat([id]) : old.groupIds) &&
+        c.groups.keys().toSet()==(o.create ? old.groups.keys().concat([id]).toSet() : old.groups.keys().toSet()) &&
+        o.entitySnapshot==group && group.id==id && group.revision==(o.create ? 1 : old.groups[id].revision+1) &&
+        group.menuIds==(o.create ? [] : old.groups[id].menuIds) && (group.active || group.menuIds.size()==0) &&
+        touched(s,before.generation,o,0) && touched(s,before.generation,o,1) && touched(s,before.generation,o,2) && touched(s,before.generation,o,3) && touched(s,before.generation,o,4) &&
+        touched(s,before.generation,o,5) && touched(s,before.generation,o,6) && touched(s,before.generation,o,7) && touched(s,before.generation,o,8);
+    }
+    function groupOperation(s,g,id,o) {
+      let root=rootAfter(s);
+      return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','entitySnapshot','create']) &&
+        o.schemaVersion==2 && o.kind=='group' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time && o.create is bool &&
+        o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==root.catalog.summaryMaterials &&
+        root.lastOpId==id && root.lastOpKind=='group' && root.revision==o.shopRevision && root.catalogRevision==o.sourceCatalogRevision+1 &&
+        getAfter(shapePath(s,g,id)).data.opId==id && touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14);
+    }
+    match /shops/{s} {
+      allow read: if signedIn();
+      allow update: if request.resource.data.lastOpKind == 'sale_set' && validRoot(s);
+      allow update: if request.resource.data.lastOpKind != 'sale_set' && (
+        request.resource.data.lastOpKind == 'stock_in' && stockRoot(s) ||
+        request.resource.data.lastOpKind == 'catalog' && catalogRoot(s) ||
+        request.resource.data.lastOpKind == 'cancel' && cancelRoot(s) ||
+        request.resource.data.lastOpKind == 'produce' && produceRoot(s) ||
+        request.resource.data.lastOpKind == 'switch_lot' && switchRoot(s) ||
+        request.resource.data.lastOpKind == 'stock_count' && countRoot(s) ||
+        request.resource.data.lastOpKind == 'menu' && menuRoot(s) ||
+        request.resource.data.lastOpKind == 'addon' && addonRoot(s) ||
+        request.resource.data.lastOpKind == 'group' && groupRoot(s));
+      match /generations/{g}/operations/{id} {
+        allow read: if active(s,g);
+        allow create: if request.resource.data.kind == 'stock_in' && stockOperation(s,g,id,request.resource.data);
+        allow create: if request.resource.data.kind == 'catalog' && catalogOperation(s,g,id,request.resource.data);
+        allow create: if request.resource.data.kind == 'cancel' && cancelOperation(s,g,id,request.resource.data);
+        allow create: if request.resource.data.kind == 'produce' && produceOperation(s,g,id,request.resource.data);
+        allow create: if request.resource.data.kind == 'switch_lot' && switchOperation(s,g,id,request.resource.data);
+        allow create: if request.resource.data.kind == 'stock_count' && countOperation(s,g,id,request.resource.data);
+        allow create: if request.resource.data.kind == 'menu' && menuOperation(s,g,id,request.resource.data);
+        allow create: if request.resource.data.kind == 'addon' && addonOperation(s,g,id,request.resource.data);
+        allow create: if request.resource.data.kind == 'group' && groupOperation(s,g,id,request.resource.data);
+        match /referenceProofs/{index} {
+          allow read: if active(s,g);
+          allow create: if catalogReferenceProof(s,g,id,index,request.resource.data);
+          allow create: if menuShapeProof(s,g,id,index,request.resource.data);
+          allow create: if groupShapeProof(s,g,id,index,request.resource.data);
+        }
+      }
+      match /generations/{g}/orders/{id} {
+        allow read: if active(s,g);
+        allow create: if validOrder(s,g,id,request.resource.data);
+        allow update: if cancelOrder(s,g,id);
+        match /lineProofs/{index} {
+          allow read: if active(s,g);
+          allow create: if validLineProof(s,g,id,index,request.resource.data);
+        }
+      }
+      match /generations/{g}/materials/{id} {
+        allow read: if active(s,g);
+        allow update: if request.resource.data.lastOpKind == 'sale_set' && validMaterial(s,g,id);
+        allow update: if request.resource.data.lastOpKind != 'sale_set' && (
+          request.resource.data.lastOpKind == 'stock_in' && stockMaterial(s,g,id) ||
+          request.resource.data.lastOpKind == 'catalog' && catalogMaterial(s,g,id) ||
+          request.resource.data.lastOpKind == 'cancel' && cancelMaterial(s,g,id) ||
+          request.resource.data.lastOpKind == 'produce' && request.resource.data.lastOpIndex < 2 && produceInput(s,g,id) ||
+          request.resource.data.lastOpKind == 'produce' && request.resource.data.lastOpIndex == 2 && produceOutput(s,g,id) ||
+          request.resource.data.lastOpKind == 'switch_lot' && switchMaterial(s,g,id) ||
+          request.resource.data.lastOpKind == 'stock_count' && countMaterial(s,g,id) ||
+          request.resource.data.lastOpKind == 'menu' && menuMaterial(s,g,id) ||
+          request.resource.data.lastOpKind == 'addon' && addonMaterial(s,g,id) ||
+          request.resource.data.lastOpKind == 'group' && groupMaterial(s,g,id));
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
