@@ -9,7 +9,7 @@ The user chose Google login only: every signed-in account has equal access. Ther
 - Firebase is now an application dependency, pinned to the already-tested 12.19.0. Analytics is neither imported nor initialized.
 
 25 October update: `main.js` now selects a lazy entry through `src/cloud/appEntry.js`.
-Default/unset/`local` still loads the existing POS. Explicit `firebase` or
+Development default/unset/`local` loads the existing POS. Explicit `firebase` or
 `firebase-emulator` loads `src/CloudApp.vue`, which wires the client/session to
 Google login, readiness, reconnect and sign-out controls. It never mounts the
 old local POS/store. Authenticated readiness alone still exposes no sale/write
@@ -17,18 +17,29 @@ controls. This is an actual browser entry checkpoint, not an operational cloud P
 
 ## Select an explicit build
 
-`.env.firebase.example` contains the public web configuration supplied by the
-user. Copying its values into `.env.local` explicitly selects the production
-Firebase entry; do not enable it for a live release until import/core-command
-acceptance is complete. The chosen shop ID `greek-yogg` is a proposed namespace,
-not an assertion that production data already exists there.
+The user explicitly requested live login activation on25October. `.env.production`
+now selects the production Firebase root with the supplied public web config.
+`.env.firebase.example` can be copied to `.env.local` for development testing.
+The chosen shop ID `greek-yogg` is a proposed namespace, not an assertion that
+production stock has been imported. Root login activation does not enable sales.
+The explicit `local.html` entry keeps the existing POS on the same origin, with
+a local-data label and link back to Firebase. No browser storage is cleared or
+moved. There is no automatic local fallback from a Firebase error.
+
+Public Firebase project-config request responded200 and lists the live Pages
+domain in authorizedDomains. Production-build root/legacy entry tests and
+actionable domain/provider/API/database error tests pass. Full ordinary suite
+141files1155PASS with private-source optin, lint and dual-entry buildPASS.
+CLI had no authenticated account at inspection: production Rules/data deployment
+requires the project owner's CLI login. No auth-success or shared-stock claim
+follows merely from displaying a Google login button.
 
 `VITE_DATA_MODE=firebase` requires a non-demo project. For local testing use
 `firebase-emulator`, a `demo-` project config and an explicit shop ID. Unknown
 modes, malformed config and invalid shop IDs fail before loading either app;
 there is no automatic fallback to a disconnected local POS.
 Config is validated before client initialization; optional Analytics measurement
-configuration is discarded. No mode is activated or deployed by adding the example.
+configuration is discarded. Production selection comes from `.env.production`.
 
 The screen distinguishes signed-out, popup, connecting, missing-shop, import,
 maintenance and error states. Reconnect disposes the old session and rejects

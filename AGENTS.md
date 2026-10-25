@@ -22,8 +22,10 @@
 - Firebase Spark free; Google login only; every logged-in account is equal.
   No roles or membership approval. Block shop writes when server connectivity
   cannot be confirmed; retain carts/pending commands, with no offline sales queue.
-- Default/local builds continue to use the existing POS until the Firebase core
-  passes acceptance. An authentication-ready screen is not an operational POS.
+- Production root now opens Firebase login, explicitly requested 25 October.
+  `local.html` keeps the existing POS available with a local-data label while
+  integration/testing continues. Never silently fall back from Firebase to local.
+  An authentication-ready screen is not an operational POS.
 
 ## Communication and cost
 

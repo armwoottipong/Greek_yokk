@@ -20,6 +20,7 @@ it('starts the real session boundary and lets the user invoke Google login witho
  await w.get('button[data-sign-in]').trigger('click')
  expect(h.sessions[0].signIn).toHaveBeenCalledOnce()
  expect(w.text()).toContain('Google');expect(w.find('[data-local-pos]').exists()).toBe(false)
+ expect(w.get('a[data-local-link]').attributes('href')).toBe('/Greek_yokk/local.html')
 })
 it('disables duplicate login while the popup is pending and displays a recoverable error',async()=>{
  w=mount(CloudApp,{props:{connection}});await publish({phase:'signing_in'})

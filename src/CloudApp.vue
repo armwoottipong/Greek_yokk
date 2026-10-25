@@ -13,6 +13,8 @@
     <Button v-if="state.user" data-sign-out variant="secondary" :loading="signingOut" @click="leave">ออกจากระบบ</Button>
    </div>
    <p v-if="state.phase==='ready'" class="cloud-entry-note">ยังไม่เปิดขายระหว่างเตรียมข้อมูลและระบบบันทึกของร้าน</p>
+   <p class="cloud-entry-note">ระหว่างทดสอบ คุณยังทำงานในระบบเดิมได้</p>
+   <a :href="localUrl" data-local-link class="cloud-local-link">เปิดระบบเดิมบนเครื่องนี้</a>
   </section>
  </main>
 </template>
@@ -25,6 +27,7 @@ import {createShopSession} from '@/cloud/session.js'
 import {finishAppStartup} from '@/composables/appStartup.js'
 const props=defineProps({connection:{type:Object,required:true}})
 const mascot=`${import.meta.env.BASE_URL}brand/content-mascot.svg`
+const localUrl=`${import.meta.env.BASE_URL}local.html`
 const empty=()=>({phase:'connecting',user:null,shop:null,serverReady:false,message:''})
 const state=ref(empty()),signingOut=ref(false)
 let session=null,epoch=0
@@ -73,4 +76,5 @@ h1{font-size:clamp(1.5rem,5vw,2rem);font-weight:600;line-height:1.4;overflow-wra
 .cloud-entry-error{margin-top:20px;padding:14px;border:1px solid var(--accent-red);border-radius:12px;color:var(--accent-red);line-height:1.7}
 .cloud-entry-note{margin-top:20px;font-size:.875rem;line-height:1.7;color:var(--text-muted)}
 .cloud-entry-environment{margin-bottom:12px;font-size:.875rem;color:var(--text-muted)}
+.cloud-local-link{display:inline-flex;align-items:center;min-height:44px;margin-top:4px;font-size:.875rem;color:var(--accent-brand);text-decoration:underline;text-underline-offset:3px}
 </style>

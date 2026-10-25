@@ -1,5 +1,5 @@
 // Build-time selection only. Importing this module does not initialize Firebase.
-const loadersDefault={local:()=>import('../App.vue'),cloud:()=>import('../CloudApp.vue')}
+const loadersDefault={local:()=>import('../LocalApp.vue'),cloud:()=>import('../CloudApp.vue')}
 export function readCloudConfiguration(env){
  const mode=env.VITE_DATA_MODE==='firebase'?'production':env.VITE_DATA_MODE==='firebase-emulator'?'emulator':null
  if(!mode)throw new Error('Explicit Firebase build mode is required')
