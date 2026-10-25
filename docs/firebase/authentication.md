@@ -30,9 +30,11 @@ Public Firebase project-config request responded200 and lists the live Pages
 domain in authorizedDomains. Production-build root/legacy entry tests and
 actionable domain/provider/API/database error tests pass. Full ordinary suite
 141files1155PASS with private-source optin, lint and dual-entry buildPASS.
-CLI had no authenticated account at inspection: production Rules/data deployment
-requires the project owner's CLI login. No auth-success or shared-stock claim
-follows merely from displaying a Google login button.
+CLI initially had no authenticated account. The owner subsequently completed its
+Google OAuth flow; live Rules/bootstrap setup was inspected and the bounded
+shop-status read policy deployed. The user's live tab can now detect missing shop
+data instead of permission-denied. See bootstrap-read-access.md. No shared-stock
+claim follows from authentication or bootstrap reads.
 
 `VITE_DATA_MODE=firebase` requires a non-demo project. For local testing use
 `firebase-emulator`, a `demo-` project config and an explicit shop ID. Unknown
