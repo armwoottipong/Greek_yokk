@@ -18,8 +18,8 @@ with an `exists:false` precondition. It refuses to replace an existing shop.
 Original materials, catalogue, orders, activity logs and shortages are archived as
 immutable JSON records, preserving legacy values and nested structures. The root
 external Sheets connection URL is excluded. The original backup is unchanged.
-Legacy bills are readable; cancel them in the original system. New Firebase bills
-can be cancelled in the Firebase workspace.
+Legacy bills are readable for historical reference; their cancellation is not
+supported by the Firebase core workspace. New Firebase bills can be cancelled there.
 
 Before real cutover: export the latest local backup after finishing pending local
 bills, reconcile stock/history, rehearse the current snapshot, and switch once.
@@ -106,3 +106,19 @@ contention is additionally covered by two-account Emulator tests.
 The reconciled candidate must be staged with create-only writes and exact
 readback. Staging leaves the active trial root unchanged. Switching the actual
 business generation remains a separate, reviewable cutover step.
+
+## Actual cutover completed — 26 October 2026
+
+After explicit user approval, a final local export was compared with the staged
+source. All business records and revision matched; only the export timestamp
+changed. Every staged document was read back again before one atomic commit
+switched the active generation and set its display flag to `trial:false`.
+Update-time preconditions protected both changed documents. The previous
+generation and both original backups were retained.
+
+Post-switch server checks matched all twenty material balances, five menus, four
+legacy bills and thirty-three activity records. Trial receipts and trial production
+were excluded. Both physical devices showed five menus without the trial banner.
+The new menu calculated correctly in a temporary cart; it was removed without
+creating a live sale. Use the Firebase entry for current operations; local data
+remains a separate historical copy.
