@@ -14,7 +14,7 @@
     <Button v-if="state.user" data-sign-out variant="secondary" :loading="signingOut" @click="leave">ออกจากระบบ</Button>
    </div>
    <p v-if="state.phase==='ready'" class="cloud-entry-note">ยังไม่เปิดขายระหว่างเตรียมข้อมูลและระบบบันทึกของร้าน</p>
-   <p class="cloud-entry-note">ระหว่างทดสอบ คุณยังทำงานในระบบเดิมได้</p>
+   <p class="cloud-entry-note">ข้อมูลระบบเดิมแยกจาก Firebase และยังเก็บอยู่บนเครื่องนี้</p>
    <a :href="localUrl" data-local-link class="cloud-local-link">เปิดระบบเดิมบนเครื่องนี้</a>
   </section>
  </main>

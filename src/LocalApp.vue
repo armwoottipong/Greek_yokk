@@ -1,8 +1,8 @@
 <template>
  <div class="local-shell">
   <aside class="local-mode" aria-label="โหมดข้อมูล">
-   <span>ระบบเดิม · ข้อมูลเฉพาะเครื่อง</span>
-   <a :href="firebaseUrl">ทดสอบระบบ Firebase</a>
+   <span>ระบบเดิม · ข้อมูลเฉพาะเครื่อง (แยกจาก Firebase)</span>
+   <a :href="firebaseUrl">เปิดระบบ Firebase</a>
   </aside>
   <div class="local-content"><App style="height:100%;min-height:0" /></div>
  </div>
