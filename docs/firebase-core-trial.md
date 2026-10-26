@@ -27,7 +27,9 @@ Never promote trial balances to current balances without that reconciliation.
 
 ## Transaction behavior
 
-- Up to six distinct sale lines per bill; quantities of one menu may be combined.
+- Up to six distinct sale lines with fifteen protected stock items, or four lines
+  with sixteen items; quantities of one menu may be combined. The limit is shown
+  in the cart and checked before command preparation and again by Rules.
 - Explicitly approve displayed shortages. A changed shortage requires a new review.
 - Confirmation follows a server receipt, never an optimistic local write.
 - IndexedDB retains immutable pending commands. Reload/retry uses the same ID.
@@ -79,3 +81,28 @@ commands from two equal accounts are covered by the Emulator runtime tests.
 
 These operations changed only the explicitly marked trial generation. Current
 business balances still require a fresh export and cutover reconciliation.
+
+## Latest-source reconciliation — 26 October 2026
+
+The user confirmed the original system on this computer contains all current
+business data. A fresh backup was downloaded through that system's export UI.
+Compared with the original trial source: materials increased from 18 to 20,
+menus from four to five, and activity logs from 29 to 33. The four historical
+bills, eleven addons, channel settings and balances of existing materials match.
+No menu or material is dropped to fit the earlier prototype bounds.
+
+The latest recipes reference sixteen sale stock items. Four distinct lines per
+bill keep sixteen stock guards, two price witnesses, root and receipt within
+Firestore's twenty-document Rules access allowance. A fifteen-item shop retains
+the original six-line limit. The extra material's deduction, cost and restoration
+are validated, including rejection of an omitted sixteenth write.
+
+Two physical devices read the same trial stock. The user then confirmed the
+second device observed a second stock update without pressing reload. These
+changes are marked trial receipts and do not change the original local data.
+This demonstrates cross-device reads and live updates; concurrent command
+contention is additionally covered by two-account Emulator tests.
+
+The reconciled candidate must be staged with create-only writes and exact
+readback. Staging leaves the active trial root unchanged. Switching the actual
+business generation remains a separate, reviewable cutover step.

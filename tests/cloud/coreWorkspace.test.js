@@ -7,7 +7,14 @@ const state={user:{uid:'u'},shop:{generation:'g1',revision:1},serverReady:true}
 beforeEach(()=>{
  sessionStorage.clear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))
  h.preview.mockReturnValue({subtotalCents:6900,approvedShortages:{}})
- h.load.mockResolvedValue({shop:{generation:'g1',revision:1,catalog:{menus:{M:{id:'M',active:true,pricesCents:{P:6900},optionIds:[],min:0,max:0}},groups:{},platforms:{P:{active:true}},platformIds:['P']}},materials:[],display:{trial:true,sourceDate:'2026-10-20',menus:{M:{name:'โยเกิร์ต'}},addons:{},platforms:{P:{name:'หน้าร้าน'}}},orders:[]})
+ h.load.mockResolvedValue({shop:{generation:'g1',revision:1,catalog:{summaryMaterials:Array.from({length:15},(_,i)=>`M${i}`),menus:{M:{id:'M',active:true,pricesCents:{P:6900},optionIds:[],min:0,max:0}},groups:{},platforms:{P:{active:true}},platformIds:['P']}},materials:[],display:{trial:true,sourceDate:'2026-10-20',menus:{M:{name:'โยเกิร์ต'}},addons:{},platforms:{P:{name:'หน้าร้าน'}}},orders:[]})
+})
+it('shows the four-line limit for a sixteen-material shop and prevents creating a fifth line',async()=>{
+ const d=await h.load();d.shop.catalog.summaryMaterials.push('M15');h.load.mockResolvedValue(d)
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state}});await flushPromises()
+ await w.get('[data-menu="M"]').trigger('click')
+ for(let i=0;i<5;i++)await w.get('form.line-form').trigger('submit')
+ expect(w.findAll('[data-cart-line]')).toHaveLength(4);expect(w.text()).toContain('สูงสุด 4 รายการ');expect(w.get('[data-add-line]').attributes('disabled')).toBeDefined();w.unmount()
 })
 it('opens the trial workspace, retains cart after uncertain results, and only clears after a server receipt',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state}});await flushPromises()

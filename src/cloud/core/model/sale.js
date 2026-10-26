@@ -5,6 +5,7 @@ import { serverTimestamp } from 'firebase/firestore'
 import { allocateInventory } from '../../../domain/inventory.js'
 import { decodeSummaryMaterial } from './material.js'
 import { summaryMenuQuantity } from './recipe.js'
+import { maxSaleLines } from './limits.js'
 
 // Canonical core sale planner; the server independently validates its output.
 export function summarySale(shop,materials,lines,{platformId='P',opId='SUMMARY-SALE',uid='cashier'}={}) {
@@ -23,6 +24,7 @@ export function summarySale(shop,materials,lines,{platformId='P',opId='SUMMARY-S
 
 // Shared allocation engine. Every canonical line is still proved by Rules.
 export function summarySaleFromLines(shop,materials,orderLines,{platformId='P',opId='SUMMARY-SALE',uid='cashier'}={}){
+  if(orderLines.length>maxSaleLines(shop))throw Object.assign(new Error('SALE_LINE_LIMIT'),{code:'SALE_LINE_LIMIT'})
   const c=shop.catalog,p=c.platforms[platformId]
   if(!p?.active||orderLines.length<1||orderLines.length>6)throw new Error('Unsupported sale')
   const operands=addonOperands(orderLines,c)

@@ -50,14 +50,14 @@ function preparedWrite(s,g,id,index,d) {
         (replacing || append) && stagedLine(c,c.menus[line.menuId],line,d);
     }
 function preparedMatch(s,g,id,o,revision,i) {
-      let d=getAfter(preparedPath(s,g,id,string(i))).data;
+      let d=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/preparedSales/$(id)/lineProofs/$(string(i))).data;
       let start=i*2;
       return d.opId==id && d.index==i && d.uid==o.uid && d.catalogRevision==revision && d.platformId==o.platformId &&
         d.addonKeys==o.addonKeys && d.lines==o.lines[start:(start+2<o.lines.size() ? start+2 : o.lines.size())];
     }
 function signedIn() { return request.auth != null; }
 function integer(n,low,high) { return n is int && n >= low && n <= high; }
-function rootAfter(s) { return getAfter(rootPath(s)).data; }
+function rootAfter(s) { return getAfter(/databases/$(database)/documents/shops/$(s)).data; }
 function active(s,g) { return signedIn() && get(rootPath(s)).data.status == 'active' && get(rootPath(s)).data.generation == g; }
 function writable(s,g) { let root=rootAfter(s); return signedIn() && root.status == 'active' && root.generation == g; }
 function actualLineBasic(l) {
@@ -222,11 +222,11 @@ function validMaterial(s,g,id) {
       // Mandatory immutable order creation and root update validate auth, kind
       // and active generation once. Revision fences reject an existing receipt.
       return signedIn() &&
-        integer(i,0,14) && o.materialIds[i] == id && row.materialId == id &&
+        integer(i,0,15) && o.materialIds[i] == id && row.materialId == id &&
         !before.deleted && before.id == id && before.recipeIndex.catalogRevision == root.catalogRevision &&
         row.keys().hasOnly(['materialId','revision','costRank','needed','take','shortage','ingredientCostBaht','packagingCostCents','lotIds','lotTakes']) &&
         row.revision == before.revision && row.costRank == before.costRank && integer(row.needed,0,1000000000) && row.needed == materialNeed(before,o) &&
-        (i<4 || counter(o,i,root.catalog)) &&
+        (i<4 || i>=15 || counter(o,i,root.catalog)) &&
         (i!=3 || preparedMatch(s,g,o.opId,o,root.catalogRevision,0)) &&
 
         row.lotIds == before.allocationIds && before.allocationIds.size() <= 4 && row.shortage == row.needed - row.take && o.approvedShortages[id] == row.shortage &&
@@ -237,7 +237,7 @@ function validMaterial(s,g,id) {
         summaryStock(before,after,row,day) && (i>=3 || operandPair(o,i*2));
     }
 function touchedAt(s,g,o,i) {
-      let m = getAfter(materialPath(s,g,o.materialIds[i])).data;
+      let m = getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/materials/$(o.materialIds[i])).data;
       // Orders and operations have independent ID namespaces. A marker from a
       // different command kind cannot stand in for a material write in this batch.
       return [m.lastOpId,m.lastOpKind,m.lastOpIndex] == [o.opId,o.kind,i];
@@ -248,7 +248,7 @@ function costs(o,ingredient) {
       let rows = o.inventory;
       let key = ingredient ? 'ingredientCostBaht' : 'packagingCostCents';
       return rows[0][key]+rows[1][key]+rows[2][key]+rows[3][key]+rows[4][key]+rows[5][key]+rows[6][key]+rows[7][key]+
-        rows[8][key]+rows[9][key]+rows[10][key]+rows[11][key]+rows[12][key]+rows[13][key]+rows[14][key];
+        rows[8][key]+rows[9][key]+rows[10][key]+rows[11][key]+rows[12][key]+rows[13][key]+rows[14][key]+(rows.size()==16 ? rows[15][key] : 0);
     }
 function lineAmount(o,i) { return i < o.lines.size() ? o.lines[i].totalCents : 0; }
 function validOrder(s,g,id,o) {
@@ -262,7 +262,7 @@ function validOrder(s,g,id,o) {
         o.addonCounts.keys().toSet()==o.addonKeys.keys().toSet() &&
         o.addonKeys.values().removeAll(['_']).toSet().size()==o.addonKeys.values().removeAll(['_']).size() && o.addonKeys.values().hasOnly(root.catalog.addonIds.concat(['_'])) &&
         o.lines is list && integer(o.lines.size(),1,6) && validLineCache(o) && o.lineWitnessCount == int((o.lines.size() + 1) / 2) &&
-        o.materialIds == root.catalog.summaryMaterials && o.materialIds.toSet().size() == o.materialIds.size() && o.inventory.size() == 15 && o.inventory.size() == o.materialIds.size() &&
+        o.materialIds == root.catalog.summaryMaterials && o.materialIds.toSet().size() == o.materialIds.size() && o.inventory.size() in [15,16] && o.inventory.size() == o.materialIds.size() &&
         o.approvedShortages.keys().hasOnly(o.materialIds) && o.approvedShortages.keys().size() == o.materialIds.size() &&
         o.materialIds.size() + o.lineWitnessCount + 2 <= 20 && platform.active && o.platformRevision == platform.revision &&
         integer(o.subtotalCents,0,1000000000) && o.subtotalCents == lineAmount(o,0) + lineAmount(o,1) + lineAmount(o,2) + lineAmount(o,3) + lineAmount(o,4) + lineAmount(o,5) &&
@@ -282,7 +282,7 @@ function validRoot(s) {
         next.revision == resource.data.revision + 1 && o.opId == next.lastOpId && o.uid == request.auth.uid && o.shopRevision == next.revision &&
         o.ingredientCostCents == int(costs(o,true) * 100.0 + 0.5) &&
         touchedAt(s,resource.data.generation,o,0) && touchedAt(s,resource.data.generation,o,1) && touchedAt(s,resource.data.generation,o,2) && touchedAt(s,resource.data.generation,o,3) &&
-        touchedAt(s,resource.data.generation,o,4) && touchedAt(s,resource.data.generation,o,5) && touchedAt(s,resource.data.generation,o,6) && touchedAt(s,resource.data.generation,o,7) && (o.lineWitnessCount<2 || preparedMatch(s,resource.data.generation,o.opId,o,resource.data.catalogRevision,1));
+        touchedAt(s,resource.data.generation,o,4) && touchedAt(s,resource.data.generation,o,5) && touchedAt(s,resource.data.generation,o,6) && touchedAt(s,resource.data.generation,o,7) && (o.materialIds.size()==15 || touchedAt(s,resource.data.generation,o,15)) && (o.lineWitnessCount<3 || preparedMatch(s,resource.data.generation,o.opId,o,resource.data.catalogRevision,1));
     }
 function weighted(q,c,add,price) { return ((q / 100.0) * c + (add / 100.0) * price) / ((q + add) / 100.0); }
 function roundedUnit(cost) { return int(cost * 10000.0 + 0.5) / 10000.0; }
@@ -448,7 +448,7 @@ function cancelMaterial(s,g,id) {
       let sale=get(orderPath(s,g,o.orderId)).data;
       let i=n.lastOpIndex;
       let row=sale.inventory[i];
-      return writable(s,g) && o.kind=='cancel' && o.uid==request.auth.uid && integer(i,0,14) && o.materialIds[i]==id && sale.materialIds[i]==id &&
+      return writable(s,g) && o.kind=='cancel' && o.uid==request.auth.uid && integer(i,0,15) && o.materialIds[i]==id && sale.materialIds[i]==id &&
         o.sourceRevisions[i]==before.revision && n.revision==before.revision+1 &&
         n.diff(before).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
         integer(n.stock,0,1000000000) && n.stock==before.stock+row.take && cancelState(before,n,row);
@@ -466,9 +466,9 @@ function cancelOperation(s,g,id,o) {
       let root=rootAfter(s);
       return writable(s,g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','orderId','materialIds','sourceRevisions','shopRevision']) &&
         o.schemaVersion==2 && o.kind=='cancel' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time &&
-        sale.status=='committed' && o.materialIds==sale.materialIds && o.sourceRevisions is list && o.sourceRevisions.size()==15 &&
+        sale.status=='committed' && o.materialIds==sale.materialIds && o.sourceRevisions is list && o.materialIds.size() in [15,16] && o.sourceRevisions.size()==o.materialIds.size() &&
         next.status=='cancelled' && next.cancelOpId==id && root.lastOpId==id && root.lastOpKind=='cancel' && root.revision==o.shopRevision &&
-        touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14);
+        touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14) && touched(s,g,o,15);
     }
 function cancelRoot(s) {
       let n=request.resource.data;

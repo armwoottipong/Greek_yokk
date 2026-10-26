@@ -13,7 +13,7 @@
      <div class="menu-grid"><button v-for="m in menus" :key="m.id" :data-menu="m.id" :class="{selected:selectedMenu===m.id}" :disabled="locked" @click="selectMenu(m.id)"><span>{{ name('menus',m.id) }}</span><strong>{{ money(m.pricesCents[platformId]) }}</strong></button></div>
      <form v-if="menu" class="line-form" @submit.prevent="addLine"><h3>{{ name('menus',menu.id) }}</h3><label class="field">จำนวน<input v-model.number="quantity" type="number" min="1" max="1000000" step="1" required :disabled="locked"></label>
       <fieldset v-for="g in menuGroups" :key="g.id" :disabled="locked"><legend>{{ g.name }} · เลือก {{ g.min===g.max?g.min:`${g.min}–${g.max}` }} อย่าง{{ g.allowRepeat?' (เลือกซ้ำได้)':'' }}</legend><label v-for="id in g.optionIds" :key="id" class="option-row"><span>{{ name('addons',id) }} <small>{{ optionPrice(g,id) }}</small></span><input v-model.number="choices[g.id][id]" :aria-label="`${g.name} ${name('addons',id)} จำนวน`" type="number" min="0" :max="g.allowRepeat?g.max:1" step="1"></label></fieldset>
-      <label class="field">หมายเหตุ<input v-model="lineNote" maxlength="1000" :disabled="locked"></label><Button type="submit" data-add-line :disabled="locked||cart.length>=6">เพิ่มลงตะกร้า</Button><p class="muted">หนึ่งบิลได้สูงสุด 6 รายการ จำนวนเมนูเดียวกันรวมในรายการเดียวได้</p>
+      <label class="field">หมายเหตุ<input v-model="lineNote" maxlength="1000" :disabled="locked"></label><Button type="submit" data-add-line :disabled="locked||cart.length>=saleLimit">เพิ่มลงตะกร้า</Button><p class="muted">หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ จำนวนเมนูเดียวกันรวมในรายการเดียวได้</p>
      </form>
     </div>
     <aside class="cart-panel"><h2>ตะกร้า <span>{{ cart.length }} รายการ</span></h2><p v-if="!cart.length" class="muted">เลือกเมนูเพื่อเริ่มบิล</p><ol><li v-for="(line,i) in cart" :key="i" data-cart-line><div><strong>{{ name('menus',line.menuId) }} × {{ line.qty }}</strong><p>{{ lineDescription(line) }}</p><p v-if="line.note">{{ line.note }}</p></div><button :disabled="locked" :aria-label="`นำ ${name('menus',line.menuId)} ออกจากตะกร้า`" @click="cart.splice(i,1)">นำออก</button></li></ol>
@@ -33,6 +33,7 @@ import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw} from 'vue'
 import Button from '@/components/ui/Button.vue'
 import {createCoreWorkspace} from './workspace.js'
 import {toScaledExact} from '../conversion.js'
+import {maxSaleLines} from './model/limits.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
 defineEmits(['sign-out'])
 const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),message=ref(''),tab=ref('sale'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
@@ -50,6 +51,7 @@ try{
 const context=()=>({projectId:props.connection.config.projectId,shopId:props.connection.shopId,generation:props.state.shop?.generation,uid:props.state.user?.uid,deviceId,online:online.value,ready:props.state.serverReady===true,protocolCertified:true})
 const ready=computed(()=>initialized.value&&storageReady.value&&online.value&&props.state.serverReady===true&&!!data.value)
 const locked=computed(()=>busy.value||!!pendingCommand.value||!storageReady.value)
+const saleLimit=computed(()=>data.value?maxSaleLines(data.value.shop):0)
 const menus=computed(()=>Object.values(data.value?.shop.catalog.menus||{}).filter(m=>m.active))
 const platformIds=computed(()=>data.value?.shop.catalog.platformIds.filter(id=>data.value.shop.catalog.platforms[id].active)||[])
 const menu=computed(()=>data.value?.shop.catalog.menus[selectedMenu.value])
@@ -74,7 +76,7 @@ function selectMenu(id){selectedMenu.value=id;quantity.value=1;lineNote.value=''
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
 function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,platformId:platformId.value,command:pendingCommand.value,cartCommandId}));return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
 function addLine(){
- if(locked.value||!menu.value)return
+ if(locked.value||!menu.value||cart.value.length>=saleLimit.value)return
  try{
  const line={menuId:menu.value.id,qty:quantity.value,note:lineNote.value}
  if(menu.value.groupIds?.length)line.selections=menuGroups.value.flatMap(g=>g.optionIds.filter(id=>choices.value[g.id][id]>0).map(id=>({groupId:g.id,id,selectionQty:choices.value[g.id][id]})))

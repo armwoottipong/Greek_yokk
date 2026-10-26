@@ -58,7 +58,31 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
  const selected=new Set()
  function collect(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g)){const name=m[1];if(functions.has(name)&&!selected.has(name)){selected.add(name);collect(functions.get(name))}}}
  collect(matches)
- const bodies=[...functions].filter(([name])=>selected.has(name)).map(([,body])=>body)
+ const replace=(body,before,after)=>{if(!body.includes(before))throw new Error('Core validator source changed');return body.replace(before,after)}
+ function extend(name,body){
+  if(name==='touchedAt')body=replace(body,'getAfter(materialPath(s,g,o.materialIds[i]))','getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/materials/$(o.materialIds[i]))')
+  if(name==='rootAfter')body=replace(body,'getAfter(rootPath(s))','getAfter(/databases/$(database)/documents/shops/$(s))')
+  if(name==='preparedMatch')body=replace(body,'getAfter(preparedPath(s,g,id,string(i)))','getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/preparedSales/$(id)/lineProofs/$(string(i)))')
+  if(['validMaterial','cancelMaterial'].includes(name))body=replace(body,'integer(i,0,14)','integer(i,0,15)')
+  if(name==='validMaterial'){
+   body=replace(body,'(i<4 || counter(o,i,root.catalog))','(i<4 || i>=15 || counter(o,i,root.catalog))')
+  }
+  if(name==='validRoot'){
+   // First pair is bound by material3, last pair by the receipt. Only a
+   // three-pair sale needs a middle-pair check here. The freed read binds row16.
+   body=replace(body,'(o.lineWitnessCount<2 || preparedMatch','(o.materialIds.size()==15 || touchedAt(s,resource.data.generation,o,15)) && (o.lineWitnessCount<3 || preparedMatch')
+  }
+  if(name==='costs')body=replace(body,'rows[14][key];','rows[14][key]+(rows.size()==16 ? rows[15][key] : 0);')
+  if(name==='validOrder'){
+   body=replace(body,'o.inventory.size() == 15','o.inventory.size() in [15,16]')
+  }
+  if(name==='cancelOperation'){
+   body=replace(body,'o.sourceRevisions.size()==15','o.materialIds.size() in [15,16] && o.sourceRevisions.size()==o.materialIds.size()')
+   body=replace(body,'touched(s,g,o,14);','touched(s,g,o,14) && touched(s,g,o,15);')
+  }
+  return body
+ }
+ const bodies=[...functions].filter(([name])=>selected.has(name)).map(([name,body])=>extend(name,body))
  // A literal match confines access without repeating a path check inside every
  // validator invocation (the six-line final request is near Rules' expression cap).
  const scoped=matches.replace('/shops/{s}',`/shops/${shopId}`).replace(/\bs\b/g,`'${shopId}'`)

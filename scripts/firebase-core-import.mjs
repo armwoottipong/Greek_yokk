@@ -25,8 +25,8 @@ function decode(v){
 }
 const canonical=x=>JSON.stringify(x&&typeof x==='object'?Array.isArray(x)?x.map(v=>JSON.parse(canonical(v))):Object.fromEntries(Object.keys(x).sort().map(k=>[k,JSON.parse(canonical(x[k]))])):x)
 async function main(){
- const [mode,input,generation]=process.argv.slice(2)
- if(!['--check','--stage','--activate'].includes(mode)||!input||!generation)throw new Error('Usage: --check|--stage|--activate backup.json g_trial_ID')
+ const [mode,input,generation,expectedGeneration]=process.argv.slice(2)
+ if(!['--check','--stage','--stage-next','--activate'].includes(mode)||!input||!generation||mode==='--stage-next'&&!expectedGeneration)throw new Error('Usage: --check|--stage|--activate backup.json g_trial_ID; --stage-next also requires expected current trial generation')
  const bytes=await readFile(input),sourceSha256=createHash('sha256').update(bytes).digest('hex')
  const server=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),configFile:false,server:{middlewareMode:true,watch:null},appType:'custom',logLevel:'silent'})
  try{
@@ -38,8 +38,13 @@ async function main(){
   await require('firebase-tools/lib/requireAuth.js').requireAuth({project,...auth.getGlobalDefaultAccount()})
   const {Client}=require('firebase-tools/lib/apiv2.js'),api=new Client({urlPrefix:'https://firestore.googleapis.com',apiVersion:'v1'})
   const get=async path=>{try{return (await api.get(`/${database}/documents/${path}`,{skipLog:{resBody:true}})).body}catch(e){if(e.status===404||e.context?.response?.statusCode===404||e.message?.includes('NOT_FOUND'))return null;throw e}}
-  if(await get('shops/greek-yogg'))throw new Error('Shop already exists: refusing to replace business data')
-  if(mode==='--stage'){
+  const existing=await get('shops/greek-yogg')
+  if(mode==='--stage-next'){
+   if(existing?.fields?.generation?.stringValue!==expectedGeneration||expectedGeneration===generation)throw new Error('Unexpected staging predecessor')
+   const display=await get(`shops/greek-yogg/generations/${expectedGeneration}/display/catalog`)
+   if(display?.fields?.trial?.booleanValue!==true)throw new Error('Predecessor is not a trial shop')
+  }else if(existing)throw new Error('Shop already exists: refusing to replace business data')
+  if(['--stage','--stage-next'].includes(mode)){
    // Atomic create-only staging. Existing generations are never overwritten.
    await api.post(`/${database}/documents:commit`,{writes:plan.documents.map(d=>({update:{name:`${database}/documents/${d.path}`,fields:encode(d.data).mapValue.fields},currentDocument:{exists:false}}))},{skipLog:{body:true,resBody:true}})
   }
@@ -49,7 +54,8 @@ async function main(){
    const actual=await get('shops/greek-yogg');if(canonical(decode({mapValue:{fields:actual.fields}}))!==canonical(plan.shop))throw new Error('Root readback mismatch')
   }
   await writeFile(`.superpowers/sdd/2026-10-20-firebase-multidevice/core-import-${mode.slice(2)}.json`,JSON.stringify({report:plan.report,readbackVerified:true},null,2))
-  process.stdout.write(mode==='--activate'?'TRIAL shop activated; original local data unchanged.\n':'Staged all trial documents and verified every field; root remains absent.\n')
+  if(mode==='--stage-next'&&(await get('shops/greek-yogg'))?.fields?.generation?.stringValue!==expectedGeneration)throw new Error('Shop generation changed during staging')
+  process.stdout.write(mode==='--activate'?'TRIAL shop activated; original local data unchanged.\n':mode==='--stage-next'?'Staged the next trial candidate and verified every field; current root unchanged.\n':'Staged all trial documents and verified every field; root remains absent.\n')
  }finally{await server.close()}
 }
 main().catch(error=>{process.stderr.write(`Import stopped (${error.message?.includes('already exists')?'shop already exists':error.message?.startsWith('Invalid initial core')?error.message:'check validation, credentials or readback; source contents suppressed'}).\n`);process.exitCode=1})

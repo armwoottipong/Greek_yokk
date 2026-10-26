@@ -109,7 +109,7 @@ export function auditMaterialProfile(shop,materials){
   if(new Set(ids).size!==ids.length||shop.materialIds&&(shop.materialIds.length!==ids.length||!shop.materialIds.every(id=>ids.includes(id))||new Set(shop.materialIds).size!==shop.materialIds.length))violations.add('REGISTRY')
   const ranks=materials.map(m=>m.costRank)
   if(new Set(ranks).size!==ranks.length||ranks.some(r=>!Number.isSafeInteger(r)||r<0))violations.add('COST_RANK')
-  if(protectedIds.length!==15||new Set(protectedIds).size!==15||protectedIds.some(id=>!ids.includes(id)))violations.add('PROTECTED_MEMBERS')
+  if(![15,16].includes(protectedIds.length)||new Set(protectedIds).size!==protectedIds.length||protectedIds.some(id=>!ids.includes(id)))violations.add('PROTECTED_MEMBERS')
   for(const m of materials){
     const lotIds=m.lotIds,keys=Object.keys(m.lots).filter(id=>id!=='_'),quantities=Object.keys(m.lotQty).filter(id=>id!=='_')
     if(m.lotQty._!==0||m.lots._?.id!=='_'||m.lots._.qty!==0||m.lots._.isInUse!==false||m.lots._.expiryDay!==999999||m.lots._.receiveDay!==999999||m.lots._.ordinal!==999999)violations.add('SENTINEL')
