@@ -9,9 +9,9 @@
    <dl v-if="trackingMode!=='none'" class="lot-dates"><div><dt>{{ originLabel }}</dt><dd>{{ lot.receiveDate?formatDisplayDate(lot.receiveDate):'ไม่ระบุวันที่' }}</dd></div><div v-if="trackingMode!=='receive_only'"><dt>หมดอายุ</dt><dd>{{ lot.expiryDate?formatDisplayDate(lot.expiryDate):'ไม่ระบุวันที่' }}</dd></div></dl>
    <StatusBadge v-if="trackingMode!=='none' && lot.expiryDate && isExpired({expiryDate:lot.expiryDate})" label="หมดอายุแล้ว" tone="error" />
    <div v-if="!archived" class="lot-actions">
-    <Button variant="secondary" :data-lot-adjust="lot.id" :aria-label="`ปรับยอดล็อต ${lot.id}`" @click="$emit('adjust',lot.id)">ปรับยอด</Button>
-    <Button variant="quiet" :aria-label="`บันทึกของเสียล็อต ${lot.id}`" @click="$emit('waste',lot.id)">บันทึกของเสีย</Button>
-    <Button v-if="!lot.isInUse && lot.qty>0" variant="quiet" :aria-label="`เลือกใช้ล็อต ${lot.id}`" @click="$emit('switch',lot.id)">เลือกใช้ล็อตนี้</Button>
+    <Button :disabled="busy" variant="secondary" :data-lot-adjust="lot.id" :aria-label="`ปรับยอดล็อต ${lot.id}`" @click="$emit('adjust',lot.id)">ปรับยอด</Button>
+    <Button :disabled="busy" variant="quiet" :aria-label="`บันทึกของเสียล็อต ${lot.id}`" @click="$emit('waste',lot.id)">บันทึกของเสีย</Button>
+    <Button :disabled="busy" v-if="!lot.isInUse && lot.qty>0" variant="quiet" :aria-label="`เลือกใช้ล็อต ${lot.id}`" @click="$emit('switch',lot.id)">เลือกใช้ล็อตนี้</Button>
    </div>
   </article>
  </section>
@@ -20,7 +20,7 @@
 import {formatDisplayDate,isExpired} from '@/stores/posStore'
 import Button from '../ui/Button.vue'
 import StatusBadge from '../ui/StatusBadge.vue'
-defineProps({lots:{type:Array,default:()=>[]},trackingMode:String,unit:String,archived:Boolean,originLabel:{type:String,default:'วันรับเข้า'}})
+defineProps({busy:Boolean,lots:{type:Array,default:()=>[]},trackingMode:String,unit:String,archived:Boolean,originLabel:{type:String,default:'วันรับเข้า'}})
 defineEmits(['adjust','waste','switch'])
 </script>
 <style scoped>

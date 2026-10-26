@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :open="store.modals.waste.isOpen && Boolean(currentMaterial)" id="WasteModal" title="บันทึกของเสีย" description="เลือกจำนวนและเหตุผล เพื่อตัดสต็อกจากล็อตที่เสียหาย" :teleport="false" width="720px" @request-close="requestWasteClose">
+ <DialogFrame :busy="!!actionPending" :open="store.modals.waste.isOpen && Boolean(currentMaterial)" id="WasteModal" title="บันทึกของเสีย" description="เลือกจำนวนและเหตุผล เพื่อตัดสต็อกจากล็อตที่เสียหาย" :teleport="false" width="720px" @request-close="requestWasteClose">
 
  <div class="stock-form">
         <!-- Target Material & Lot Info Card -->
@@ -127,13 +127,13 @@
  <template #footer><div class="stock-form-footer">
         <Button variant="quiet"
           type="button"
-          @click="requestWasteClose"
+          :disabled="!!actionPending" @click="requestWasteClose"
         >
           ยกเลิก
         </Button>
         <Button variant="danger"
           type="button"
-          @click="confirmWaste"
+          :loading="!!actionPending" @click="confirmWaste"
           :disabled="!isValid"
         >
           <Trash2 class="w-3.5 h-3.5" />
@@ -155,6 +155,8 @@ import { formatThaiDate, getReceiveAgeStatus } from '@/stores/posStore'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { Trash2 } from 'lucide-vue-next'
 
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
 
 const wasteQty = ref(0)
@@ -230,7 +232,8 @@ function close() {
   store.closeWasteModal()
 }
 
-async function confirmWaste() {
+const confirmWaste=()=>runAction('stage',performStage)
+async function performStage() {
   if (!isValid.value || !currentMaterial.value || !currentLot.value) return
 
   const qty = Number(wasteQty.value) || 0

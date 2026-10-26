@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :open="store.modals.stockAdjust.isOpen" id="StockAdjustModal" title="ปรับยอดนับจริง" description="เทียบยอดจริงกับระบบ และระบุเหตุผลของผลต่าง" :teleport="false" width="720px" @request-close="requestClose(close)">
+ <DialogFrame :busy="!!actionPending" :open="store.modals.stockAdjust.isOpen" id="StockAdjustModal" title="ปรับยอดนับจริง" description="เทียบยอดจริงกับระบบ และระบุเหตุผลของผลต่าง" :teleport="false" width="720px" @request-close="requestClose(close)">
 
  <div class="stock-form">
         <div>
@@ -192,13 +192,13 @@
  <template #footer><div class="stock-form-footer">
         <Button variant="quiet"
           type="button"
-          @click="requestClose(close)"
+          :disabled="!!actionPending" @click="requestClose(close)"
         >
           ยกเลิก
         </Button>
         <Button variant="primary"
           type="button"
-          @click="submit"
+          :loading="!!actionPending" @click="submit"
         >
           <Check class="w-4 h-4" />
           <span>บันทึกปรับยอด</span>
@@ -218,6 +218,8 @@ import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { Check, Plus, Minus, History } from 'lucide-vue-next'
 
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
 
 const formError=ref('')
@@ -348,7 +350,8 @@ function close() {
   store.modals.stockAdjust.lotId = null
 }
 
-async function submit() {
+const submit=()=>runAction('stage',performStage)
+async function performStage() {
   formError.value=''
   if (!selectedMatId.value || !selectedMaterial.value) {
     store.showToast('กรุณาเลือกวัตถุดิบ', 'error')

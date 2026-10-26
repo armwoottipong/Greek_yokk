@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :open="store.modals.materialEdit.isOpen" id="MaterialEditModal" :title="isEditing?'แก้ไขวัตถุดิบ':'เพิ่มวัตถุดิบใหม่'" description="ชื่อและประเภท ตามด้วยหน่วยซื้อ ต้นทุน และสูตรผลิต" :teleport="false" width="720px" @request-close="requestClose(close)">
+ <DialogFrame :open="store.modals.materialEdit.isOpen" id="MaterialEditModal" :title="isEditing?'แก้ไขวัตถุดิบ':'เพิ่มวัตถุดิบใหม่'" description="ชื่อและประเภท ตามด้วยหน่วยซื้อ ต้นทุน และสูตรผลิต" :teleport="false" :busy="!!actionPending" width="720px" @request-close="requestClose(close)">
 
  <div class="stock-form">
 
@@ -427,7 +427,7 @@
         <div v-if="isEditing" class="flex items-center gap-2">
           <Button variant="quiet"
             type="button"
-            @click="handleArchiveToggle"
+            :loading="actionPending==='archive'" :disabled="!!actionPending" @click="handleArchiveToggle"
             :title="form.isDeleted ? 'ยกเลิกการจัดเก็บ คืนสู่วัตถุดิบใช้งานปกติ' : 'จัดเก็บวัตถุดิบเพื่อซ่อนจากหน้าหลัก'"
           >
             <Archive class="w-3.5 h-3.5 text-stone-500" />
@@ -435,7 +435,7 @@
           </Button>
           <Button variant="quiet"
             type="button"
-            @click="handlePermanentDelete"
+            :loading="actionPending==='delete'" :disabled="!!actionPending" @click="handlePermanentDelete"
             title="ลบวัตถุดิบนี้ออกจากระบบอย่างถาวร"
           >
             <Trash2 class="w-3.5 h-3.5" />
@@ -447,13 +447,13 @@
         <div class="stock-form-footer material-editor-footer">
           <Button variant="quiet"
             type="button"
-            @click="requestClose(close)"
+            :disabled="!!actionPending" @click="requestClose(close)"
           >
             ยกเลิก
           </Button>
           <Button variant="primary"
             type="button"
-            @click="submit"
+            :loading="actionPending==='save'" :disabled="!!actionPending" @click="submit"
           >
             <Check class="w-3.5 h-3.5" />
             <span>บันทึก</span>
@@ -478,6 +478,8 @@ import { validateLotDates } from '@/domain/lotDates'
 import { useModalForm } from '@/composables/useModalForm'
 import { X, Check, Plus, Minus, Archive, Trash2 } from 'lucide-vue-next'
 
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
 const formError = ref('')
 const materialKind = computed({
@@ -892,11 +894,10 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
   }
 })
 
-let archivePending = false
-async function handleArchiveToggle() {
-  if (!form.value.id || archivePending) return
+const handleArchiveToggle=()=>runAction('archive',performArchive)
+async function performArchive() {
+  if (!form.value.id) return
   const id = form.value.id, deleted = !form.value.isDeleted
-  archivePending = true
   formError.value = ''
   try {
     const result = await (deleted ? store.softDeleteMaterial(id) : store.restoreMaterial(id))
@@ -908,12 +909,11 @@ async function handleArchiveToggle() {
     form.value.isDeleted = deleted
   } catch {
     if (form.value.id === id) formError.value = 'ยังยืนยันสถานะไม่ได้ กรุณาตรวจผลจากเซิร์ฟเวอร์'
-  } finally {
-    archivePending = false
   }
 }
 
-async function handlePermanentDelete() {
+const handlePermanentDelete=()=>runAction('delete',performDelete)
+async function performDelete() {
   if (!form.value.id) return
   const usage = store.getMaterialUsage(form.value.id)
   if (usage.isInUse) {
@@ -939,7 +939,8 @@ function close() {
   store.modals.materialEdit.materialId = null
 }
 
-async function submit() {
+const submit=()=>runAction('save',performSubmit)
+async function performSubmit() {
   formError.value = ''
   if (form.value.hasSubRecipe && (!form.value.subRecipe.length ||
     !Number.isFinite(Number(form.value.yieldQty)) || Number(form.value.yieldQty) <= 0)) {

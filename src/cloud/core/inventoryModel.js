@@ -79,7 +79,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
  const recipes=(kind)=>Object.values(virtual.value.shop.catalog[kind]||{}).map(row=>({id:row.id,name:virtual.value.display[kind]?.[row.id]?.name||row.id,recipe:Object.entries(row.recipe||{}).filter(([,q])=>q>0).map(([materialId,q])=>({materialId,qty:q/100}))}))
  const valuation=rows=>rows.filter(m=>!m.isDeleted).reduce((n,m)=>n+Math.max(0,m.stock)*(m.unitCost||0),0)
  const model=reactive({
-  modals:state.modals,emojiCatalog:EMOJI_CATALOG,get toasts(){return state.toasts},get activityLogs(){return state.logs},get orders(){return []},
+  get inventorySaving(){return state.saving},modals:state.modals,emojiCatalog:EMOJI_CATALOG,get toasts(){return state.toasts},get activityLogs(){return state.logs},get orders(){return []},
   get materials(){return virtual.value.materials.map(view)},get activeMaterials(){return this.materials.filter(m=>!m.isDeleted)},get matMap(){return Object.fromEntries(this.materials.map(m=>[m.id,m]))},
   get materialKindOptions(){return MATERIAL_KIND_OPTIONS},getMaterialKind,get materialUsageById(){return buildMaterialUsage({materials:this.materials,menus:recipes('menus'),addons:recipes('addons')})},
   get lowStockMaterials(){return this.activeMaterials.filter(m=>m.stock<=m.minAlert)},get outOfStockMaterials(){return this.activeMaterials.filter(m=>m.stock<=0)},

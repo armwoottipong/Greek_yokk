@@ -94,3 +94,23 @@ Material edits and archive/restore wait for server confirmation directly. Reload
 never discards or automatically sends uncommitted session drafts. Permanent
 erasure and history clearing remain unavailable; supported archive/restore keeps
 audit evidence. See the bounds above before bulk operations.
+
+
+## Loading feedback and repeated-action protection (26 October 2026)
+
+Firebase mutations now keep the initiating button spinning and disabled until
+both the server result and post-write reload complete. This covers checkout,
+cancellation, explicit retry, stopping an unresolved sale, inventory draft Save,
+material Save/Archive/Restore, and the original context/detail actions. Original
+layout/CSS stay unchanged. Disabled/busy state also prevents dismissing the active
+edit/review dialog or starting a conflicting action while its operation is pending.
+
+Local draft forms do not write Firebase immediately. Their async production,
+physical-adjustment and waste lot decisions are guarded too, so repeated taps do
+not duplicate staged intent. Locks are set before the first await, released in
+finally, and preserve original forms/drafts on failed or uncertain results. Retry
+uses the same immutable command ID; uncertain commands are not discarded.
+
+Manual reload shows its spinner through both inventory and order reads, sharing
+in-flight requests. A successful mutation waits for any older read, then starts a
+fresh reload before unlocking. No artificial sleep or fixed delay is introduced.

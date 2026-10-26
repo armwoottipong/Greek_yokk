@@ -12,8 +12,8 @@ it('names deletion, starts on cancel, and offers archive for a referenced materi
  expect(document.activeElement.textContent).toContain('ยกเลิก')
  expect(document.querySelector('[data-delete-material]')).toBeNull()
  w.vm.closeDeleteModal();expect(store.materials[0].isDeleted).not.toBe(true)
- w.vm.onActionArchive(store.materials[0]);expect(store.materials[0].isDeleted).toBe(true)
- w.vm.onActionRestore(store.materials[0]);expect(store.materials[0].isDeleted).toBe(false);w.unmount()
+ await w.vm.onActionArchive(store.materials[0]);expect(store.materials[0].isDeleted).toBe(true)
+ await w.vm.onActionRestore(store.materials[0]);expect(store.materials[0].isDeleted).toBe(false);w.unmount()
 })
 it('consumes a confirm callback once even when callback leaves the dialog open',()=>{
  const store=createTestStore();const callback=vi.fn();store.modals.confirm={isOpen:true,title:'Test',onConfirm:callback}

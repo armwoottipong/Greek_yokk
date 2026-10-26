@@ -3,11 +3,11 @@ import {mount,flushPromises} from '@vue/test-utils'
 import CoreWorkspace from '../../src/cloud/core/CoreWorkspace.vue'
 import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
-const h=vi.hoisted(()=>({execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn()}))
-vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,pending:h.pending,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,close:()=>{}})}))
+const h=vi.hoisted(()=>({abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn()}))
+vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,close:()=>{}})}))
 const state={user:{uid:'u'},shop:{generation:'g1',revision:1},serverReady:true}
 beforeEach(()=>{
- sessionStorage.clear();h.orders.mockResolvedValue([]);h.history.mockResolvedValue([]);h.execute.mockClear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))
+ sessionStorage.clear();h.abandon.mockReset();h.orders.mockResolvedValue([]);h.history.mockResolvedValue([]);h.execute.mockClear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))
  h.preview.mockReturnValue({subtotalCents:6900,approvedShortages:{}})
  h.load.mockResolvedValue({shop:{generation:'g1',revision:1,catalog:{summaryMaterials:Array.from({length:15},(_,i)=>`M${i}`),menus:{M:{id:'M',active:true,pricesCents:{P:6900},optionIds:[],min:0,max:0}},groups:{},platforms:{P:{active:true}},platformIds:['P']}},materials:[],display:{trial:true,sourceDate:'2026-10-20',menus:{M:{name:'โยเกิร์ต'}},addons:{},platforms:{P:{name:'หน้าร้าน'}}},orders:[]})
 })
@@ -129,4 +129,72 @@ it('opens the original receipt only after its matching server-confirmed sale',as
  expect(w.get('.receipt-paper').text()).toContain('฿69')
  expect(w.get('.receipt-paper').text()).toContain(h.execute.mock.calls.at(-1)[0].opId)
  w.unmount()
+})
+
+
+it('keeps checkout locked and spinning until the post-write server reload finishes',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');await w.get('[data-cart-open]').trigger('click');await flushPromises()
+ const snapshot=await h.load();let resolveLoad
+ h.load.mockImplementationOnce(()=>new Promise(r=>{resolveLoad=r}))
+ await w.get('[data-checkout]').trigger('click');await flushPromises()
+ expect(w.get('[data-checkout]').attributes('disabled')).toBeDefined()
+ expect(w.get('[data-checkout]').attributes('aria-busy')).toBe('true')
+ await w.get('[data-checkout]').trigger('click');expect(h.execute).toHaveBeenCalledTimes(1)
+ resolveLoad(snapshot);await flushPromises()
+ expect(w.findAll('[data-cart-line]')).toHaveLength(0);w.unmount()
+})
+
+
+it('holds the same visible cancellation button through the receipt and order reload',async()=>{
+ h.orders.mockResolvedValue([{opId:'BILL',status:'committed',subtotalCents:6900,platformId:'P',lines:[{menuId:'M',qty:1}]}])
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('button[aria-label="ประวัติบิลขายและคืนบิล"]').trigger('click');await flushPromises()
+ await w.get('.order-list button').trigger('click');await flushPromises()
+ let resolve;h.orders.mockImplementationOnce(()=>new Promise(r=>{resolve=r}))
+ const button=()=>w.get('#cloud-cancel-order .ui-button--primary')
+ await button().trigger('click');await flushPromises()
+ expect(button().attributes('aria-busy')).toBe('true');expect(button().attributes('disabled')).toBeDefined()
+ await button().trigger('click');expect(h.execute).toHaveBeenCalledTimes(1)
+ resolve([]);await flushPromises();expect(w.find('#cloud-cancel-order .ui-button--primary').exists()).toBe(false);w.unmount()
+})
+
+
+it('spins on stop-pending-sale and suppresses duplicates until server data has reloaded',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+ h.execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT'})
+ await w.get('[data-checkout]').trigger('click');await flushPromises()
+ const d=await h.load();let resolveLoad
+ h.load.mockImplementationOnce(()=>new Promise(r=>{resolveLoad=r}))
+ h.abandon.mockResolvedValue({ok:true,value:{kind:'sale',abandoned:true,opId:'stopped'}})
+ const button=()=>w.get('.pending-panel .ui-button--secondary')
+ await button().trigger('click');await flushPromises()
+ expect(button().attributes('aria-busy')).toBe('true');await button().trigger('click');expect(h.abandon).toHaveBeenCalledTimes(1)
+ resolveLoad(d);await flushPromises();expect(w.find('.pending-panel').exists()).toBe(false);expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
+})
+
+
+it('keeps manual reload spinning through the orders read and shares an in-flight reload',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('button[aria-label="ประวัติบิลขายและคืนบิล"]').trigger('click');await flushPromises()
+ let resolve;h.orders.mockImplementationOnce(()=>new Promise(r=>{resolve=r}));const before=h.orders.mock.calls.length
+ const button=()=>w.get('button[aria-label="โหลดข้อมูลล่าสุด"]')
+ await button().trigger('click');await flushPromises()
+ expect(button().attributes('aria-busy')).toBe('true');await button().trigger('click');expect(h.orders.mock.calls.length).toBe(before+1)
+ resolve([]);await flushPromises();expect(button().attributes('aria-busy')).toBeUndefined();w.unmount()
+})
+
+
+it('starts a fresh read after an update even if a manual reload began before the write',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');await w.get('[data-cart-open]').trigger('click');await flushPromises()
+ const old=await h.load(),fresh={...old,shop:{...old.shop,revision:old.shop.revision+1}};let resolveOld
+ h.load.mockImplementationOnce(()=>new Promise(r=>{resolveOld=r})).mockResolvedValueOnce(fresh)
+ const before=h.load.mock.calls.length
+ await w.get('button[aria-label="โหลดข้อมูลล่าสุด"]').trigger('click');await flushPromises()
+ await w.get('[data-checkout]').trigger('click');await flushPromises()
+ expect(h.execute).toHaveBeenCalledTimes(1)
+ resolveOld(old);await flushPromises()
+ expect(h.load.mock.calls.length).toBe(before+2);expect(w.findAll('[data-cart-line]')).toHaveLength(0);w.unmount()
 })

@@ -30,8 +30,8 @@ it('stock delete warning lists addons using a later recipe row and offers archiv
  s.menus=[];s.addons=[{id:'A',name:'Fruit kit',recipe:[{materialId:s.materials[1].id,qty:25},{materialId:mat.id,qty:2}]}]
  const w=mount(StockView,{attachTo:document.body});w.vm.onActionPermanentDelete(mat);await flushPromises()
  expect(w.vm.deleteUsageWarning.usedInAddons).toEqual(['Fruit kit'])
- w.vm.confirmDeletePermanently();expect(s.materials.some(m=>m.id===mat.id)).toBe(true)
- w.vm.confirmArchiveInstead();expect(s.materials.find(m=>m.id===mat.id).isArchived).toBe(true);w.unmount()
+ await w.vm.confirmDeletePermanently();expect(s.materials.some(m=>m.id===mat.id)).toBe(true)
+ await w.vm.confirmArchiveInstead();expect(s.materials.find(m=>m.id===mat.id).isArchived).toBe(true);w.unmount()
 })
 it('metadata-only edits preserve lots and totals',()=> {
  const s=createTestStore({storage:{GY_MATERIALS:[material()]}});expect(s.saveMaterial({...s.materials[0],name:'new name'}).ok).toBe(true);expect(s.materials[0].stock).toBe(100)
@@ -70,4 +70,45 @@ it('keeps original draft review open when an uncertain cloud command prevents di
  vi.spyOn(s,'discardStockDrafts').mockResolvedValue({ok:false,message:'pending receipt'})
  w.vm.showDraftDetails=true;await flushPromises();await w.vm.revertPendingChanges();await flushPromises()
  expect(w.vm.showDraftDetails).toBe(true);w.unmount()
+})
+
+
+it('shows a spinner on archive and ignores a second click until Firebase completes',async()=>{
+ const s=createTestStore();s.resetDemoData();const mat=s.materials[0];let resolve
+ const archive=vi.spyOn(s,'softDeleteMaterial').mockImplementation(()=>new Promise(r=>{resolve=r}))
+ const w=mount(MaterialEdit);s.modals.materialEdit={isOpen:true,materialId:mat.id};await flushPromises()
+ const button=w.get('button[title="จัดเก็บวัตถุดิบเพื่อซ่อนจากหน้าหลัก"]')
+ await button.trigger('click');await flushPromises()
+ expect(button.attributes('aria-busy')).toBe('true');expect(button.find('.ui-button-spinner').exists()).toBe(true)
+ await button.trigger('click');expect(archive).toHaveBeenCalledTimes(1)
+ resolve({ok:false,message:'rejected'});await flushPromises()
+ expect(button.attributes('aria-busy')).toBeUndefined();expect(s.modals.materialEdit.isOpen).toBe(true);w.unmount()
+})
+
+
+it('locks the draft confirmation button and dialog during an unresolved server commit',async()=>{
+ const s=createTestStore();s.resetDemoData();const m=s.materials[0]
+ s.stockAdjust(m.id,Math.max(0,m.stock-1),'count','',true)
+ let resolve;const commit=vi.spyOn(s,'commitStockDrafts').mockImplementation(()=>new Promise(r=>{resolve=r}))
+ const w=mount(StockView,{global:{stubs:{teleport:true}}});w.vm.showDraftDetails=true;await flushPromises()
+ const button=()=>w.get('#stock-draft-review .draft-review-actions .ui-button--primary')
+ await button().trigger('click');await flushPromises()
+ expect(button().attributes('aria-busy')).toBe('true');expect(button().find('.ui-button-spinner').exists()).toBe(true)
+ await button().trigger('click');expect(commit).toHaveBeenCalledTimes(1)
+ expect(w.get('#stock-draft-review .dialog-frame-header button').attributes('disabled')).toBeDefined()
+ resolve({ok:false,message:'uncertain'});await flushPromises()
+ expect(w.vm.showDraftDetails).toBe(true);expect(button().attributes('aria-busy')).toBeUndefined();w.unmount()
+})
+
+it('allows only one save confirmation and one cloud save while the original editor is pending',async()=>{
+ const s=createTestStore();s.resetDemoData();const mat=s.materials[0]
+ let confirm,save;const confirmation=vi.spyOn(s,'confirmDialog').mockImplementation(()=>new Promise(r=>{confirm=r}))
+ const persist=vi.spyOn(s,'saveMaterial').mockImplementation(()=>new Promise(r=>{save=r}))
+ const w=mount(MaterialEdit);s.modals.materialEdit={isOpen:true,materialId:mat.id};await flushPromises()
+ const button=w.get('.material-editor-footer .ui-button--primary')
+ await button.trigger('click');await button.trigger('click');await flushPromises()
+ expect(confirmation).toHaveBeenCalledTimes(1);expect(button.attributes('aria-busy')).toBe('true')
+ confirm(true);await flushPromises();await button.trigger('click');expect(persist).toHaveBeenCalledTimes(1)
+ save({ok:false,message:'retry after checking result'});await flushPromises()
+ expect(s.modals.materialEdit.isOpen).toBe(true);expect(button.attributes('aria-busy')).toBeUndefined();w.unmount()
 })

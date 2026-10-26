@@ -1,21 +1,21 @@
 <template>
- <CloudProductShell :model="productModel" :title="pageTitle" :busy="busy" :online="online" @history="tab='orders'" @reload="reloadEverything" @sign-out="$emit('sign-out')">
+ <CloudProductShell :model="productModel" :title="pageTitle" :loading="loading||reloading" :busy="busy" :online="online" @history="tab='orders'" @reload="reloadEverything" @sign-out="$emit('sign-out')">
   <p v-if="data?.display.trial" class="trial-banner"><strong>ข้อมูลทดสอบ — ยังไม่ใช่ยอดร้านปัจจุบัน</strong><br>จากไฟล์สำรอง {{ sourceDate }} · <a :href="localUrl">เปิดระบบเดิม</a></p>
   <p v-if="!state.serverReady||!online" class="connection-warning" role="status">ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว กรุณาเชื่อมต่อก่อนบันทึก</p>
   <p v-if="message" class="notice" role="status" aria-live="polite">{{ message }}</p>
   <p v-if="error" class="error" role="alert">{{ error }}</p>
-  <section v-if="pendingCommand" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนเริ่มรายการใหม่ เพื่อไม่สร้างบิลซ้ำ</p><Button data-retry-command :disabled="!ready" :loading="busy" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button></section>
+  <section v-if="pendingCommand" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนเริ่มรายการใหม่ เพื่อไม่สร้างบิลซ้ำ</p><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button></section>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
    <section v-show="tab==='sale'" ref="saleRoot" class="pos-workspace" :class="{'is-split':split}" aria-label="ขายสินค้า">
     <PosCatalog :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="locked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
-    <CartPanel :model="productModel" :presentation="split?'panel':'sheet'" :open="cartOpen" :checkout-pending="busy" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
+    <CartPanel :model="productModel" :presentation="split?'panel':'sheet'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
      <template #review>
       <div class="cart-cloud-review">
        <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ · จำนวนเมนูเดียวกันรวมเป็นรายการเดียวได้</p>
        <section v-if="shortages.length" class="shortage"><h3>สต็อกไม่พอ</h3><p v-for="[id,q] in shortages" :key="id">{{ materialName(id) }} ขาด {{ amount(q) }} {{ material(id)?.unit }}</p><label><input v-model="approveShortage" type="checkbox" :disabled="locked"> ยืนยันขายตามจำนวนที่ขาดข้างต้น</label></section>
        <p v-if="previewError" class="error" role="alert">{{ previewError }}</p>
-       <div v-if="pendingCommand"><strong>ยังไม่ทราบผลการบันทึก</strong><p>ตรวจผลด้วยคำสั่งเดิมก่อนเริ่มบิลใหม่</p><Button :disabled="!ready||busy" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="quiet" :disabled="!ready||busy" @click="abandon">หยุดบิลและเก็บตะกร้า</Button></div>
+       <div v-if="pendingCommand"><strong>ยังไม่ทราบผลการบันทึก</strong><p>ตรวจผลด้วยคำสั่งเดิมก่อนเริ่มบิลใหม่</p><Button :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="quiet" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลและเก็บตะกร้า</Button></div>
        <p>ยืนยันจากเซิร์ฟเวอร์ก่อนถือว่าขายสำเร็จ · บรรจุภัณฑ์ตัดตามสูตรที่บันทึกไว้</p>
       </div>
      </template>
@@ -36,7 +36,7 @@
   </form>
   <template v-if="menu" #footer><div class="custom-order-footer"><div class="bowl-total"><span>จำนวนชาม</span><strong>{{ quantity }} ชาม</strong></div><AppQuantityInput v-model="quantity" label="จำนวนชาม" :min="1" :max="1000000" :disabled="locked"/><div class="custom-order-footer-actions"><Button type="submit" form="cloud-line-form" data-add-line :disabled="locked||cart.length>=saleLimit">เพิ่มลงตะกร้า</Button></div><p class="muted">หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ</p></div></template>
  </DialogFrame>
- <DialogFrame :open="!!cancelId" id="cloud-cancel-order" title="ยืนยันคืนบิล" :busy="busy" @request-close="cancelId=''"><p>ยืนยันคืนเงินและคืนสต็อกบิลนี้ตามล็อตเดิม?</p><p v-if="error" class="error" role="alert">{{ error }}</p><template #footer><Button variant="secondary" :disabled="busy" @click="cancelId=''">เก็บบิลไว้</Button><Button :disabled="locked||!ready" :loading="busy" @click="cancelOrder(cancelId)">ยืนยันคืนบิล</Button></template></DialogFrame>
+ <DialogFrame :open="!!cancelId" id="cloud-cancel-order" title="ยืนยันคืนบิล" :busy="busy" @request-close="cancelId=''"><p>ยืนยันคืนเงินและคืนสต็อกบิลนี้ตามล็อตเดิม?</p><p v-if="error" class="error" role="alert">{{ error }}</p><template #footer><Button variant="secondary" :disabled="busy" @click="cancelId=''">เก็บบิลไว้</Button><Button :disabled="locked||!ready" :loading="activeAction==='cancel'" @click="cancelOrder(cancelId)">ยืนยันคืนบิล</Button></template></DialogFrame>
  <DialogFrame :open="clearConfirm" id="cloud-clear-cart" title="ล้างตะกร้านี้?" @request-close="answerClear(false)"><p>รายการสินค้า ท็อปปิ้ง และหมายเหตุที่ยังไม่ได้ชำระจะถูกล้าง</p><template #footer><Button variant="secondary" @click="answerClear(false)">เก็บออเดอร์ไว้</Button><Button variant="danger" @click="answerClear(true)">ล้างตะกร้า</Button></template></DialogFrame>
 </template>
 
@@ -62,6 +62,7 @@ import {createCoreWorkspace} from './workspace.js'
 import {maxSaleLines} from './model/limits.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
 defineEmits(['sign-out'])
+const activeAction=ref(''),reloading=ref(false)
 const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),message=ref(''),tab=ref('sale'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
 const localUrl=`${import.meta.env.BASE_URL}local.html`
@@ -125,18 +126,27 @@ function addLine(){
  service.previewSale({platformId:platformId.value,lines:[...plain(cart.value),line]});cart.value.push(line);error.value='';lineError.value='';message.value='';selectedMenu.value='';if(!split.value)cartOpen.value=true}catch(e){lineError.value=explain(e)}
 }
 function explain(e){const code=e?.code||e?.message||'';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
-async function refresh(){
- if(!service||disposed)return
- if(loading.value){refreshAgain=true;return}
+let refreshTask=null
+function refresh(){
+ if(!service||disposed)return Promise.resolve()
+ if(refreshTask){refreshAgain=true;return refreshTask}
  loading.value=true
- try{const result=await service.load();if(disposed)return;data.value=result;if(!platformId.value)platformId.value=platformIds.value[0]||'';error.value=''}catch(e){if(!disposed)error.value=explain(e)}finally{loading.value=false;if(refreshAgain&&!disposed){refreshAgain=false;void refresh()}}
+ refreshTask=(async()=>{
+  do {
+   refreshAgain=false
+   try{const result=await service.load();if(disposed)return;data.value=result;if(!platformId.value)platformId.value=platformIds.value[0]||'';error.value=''}catch(e){if(!disposed)error.value=explain(e)}
+  }while(refreshAgain&&!disposed)
+ })().finally(()=>{loading.value=false;refreshTask=null})
+ return refreshTask
 }
+
 async function updatePending(){const p=await service.pending();if(disposed)return;if(p.length)pendingCommand.value=p[0].envelope;else if(!storedCommand)pendingCommand.value=null;save()}
-async function send(command){
+async function send(command,action=command.kind){
  if(busy.value||!ready.value)return {ok:false,code:'NOT_READY'}
- busy.value=true;error.value='';pendingCommand.value=plain(command);storedCommand=pendingCommand.value
- if(!save()){busy.value=false;return {ok:false,code:'LOCAL_JOURNAL_FAILED'}}
- try{let result=await service.execute(plain(command));if(disposed)return {ok:false};if(!result.ok&&command.payload.expectedRevision!==undefined&&service.rejectStaleInventory){const resolved=await service.rejectStaleInventory();if(resolved.ok&&resolved.value)result=resolved}if(result.ok)finish(result.value);else {message.value='ยังไม่ทราบผลการบันทึก กรุณาตรวจผลและลองคำสั่งเดิมต่อ';error.value=result.code==='PENDING_RESULT'?'':explain({code:result.code})}return result}catch(e){if(!disposed){message.value='ยังไม่ทราบผลการบันทึก';error.value=explain(e)}return {ok:false,code:'PENDING_RESULT'}}finally{busy.value=false;if(!disposed)await reloadEverything()}
+ let refreshed=false
+ busy.value=true;activeAction.value=action;error.value='';pendingCommand.value=plain(command);storedCommand=pendingCommand.value
+ if(!save()){busy.value=false;activeAction.value='';return {ok:false,code:'LOCAL_JOURNAL_FAILED'}}
+ try{let result=await service.execute(plain(command));if(disposed)return {ok:false};if(!result.ok&&command.payload.expectedRevision!==undefined&&service.rejectStaleInventory){const resolved=await service.rejectStaleInventory();if(resolved.ok&&resolved.value)result=resolved}if(result.ok){await reloadAfterWrite();refreshed=true;if(!disposed)finish(result.value)}else {message.value='ยังไม่ทราบผลการบันทึก กรุณาตรวจผลและลองคำสั่งเดิมต่อ';error.value=result.code==='PENDING_RESULT'?'':explain({code:result.code})}return result}catch(e){if(!disposed){message.value='ยังไม่ทราบผลการบันทึก';error.value=explain(e)}return {ok:false,code:'PENDING_RESULT'}}finally{try{if(!disposed&&!refreshed)await reloadEverything()}finally{busy.value=false;activeAction.value=''}}
 }
 function finish(value){
  inventoryWorkspace.value?.acknowledge(value)
@@ -145,12 +155,35 @@ function finish(value){
  cancelId.value='';pendingCommand.value=null;storedCommand=null;cartCommandId=null;approveShortage.value=false;save();message.value=value.abandoned?'หยุดบิลแล้ว ตะกร้ายังอยู่':'บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว'
 }
 function checkout(){if(!canCheckout.value)return;cartCommandId=crypto.randomUUID();void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),subtotalCents:preview.value.subtotalCents,approvedShortages:Object.fromEntries(shortages.value)}})}
-async function retry(){if(!pendingCommand.value)return;await send(plain(pendingCommand.value))}
-async function abandon(){if(busy.value||!ready.value)return;busy.value=true;try{const r=await service.abandon();if(!disposed){if(r.ok)finish(r.value);else error.value=explain(r)}}catch(e){error.value=explain(e)}finally{busy.value=false;await refresh()}}
+async function retry(){if(!pendingCommand.value)return;await send(plain(pendingCommand.value),'retry')}
+async function abandon(){
+ if(busy.value||!ready.value)return
+ busy.value=true;activeAction.value='abandon'
+ try{const r=await service.abandon();await reloadAfterWrite();if(!disposed){if(r.ok)finish(r.value);else error.value=explain(r)}}catch(e){if(!disposed)error.value=explain(e)}finally{busy.value=false;activeAction.value=''}
+}
+
 function cancelOrder(orderId){if(!locked.value&&ready.value)void send({opId:crypto.randomUUID(),kind:'cancel',payload:{orderId}})}
 async function loadHistory(e){if(e.target.open&&!legacyOrders.value.length)try{legacyOrders.value=await service.history()}catch{error.value='โหลดประวัติเดิมไม่ได้ กรุณาเชื่อมต่อแล้วลองใหม่'}}
-async function loadOrders(){try{const orders=await service.orders();if(!disposed&&data.value)data.value={...data.value,orders}}catch{if(!disposed)error.value='โหลดบิลไม่ได้ กรุณาเชื่อมต่อแล้วกดโหลดข้อมูลล่าสุด'}}
-async function reloadEverything(){await refresh();if(tab.value==='orders'&&!disposed)await loadOrders()}
+let ordersTask=null,reloadTask=null
+function loadOrders(){
+ if(ordersTask)return ordersTask
+ ordersTask=(async()=>{try{const orders=await service.orders();if(!disposed&&data.value)data.value={...data.value,orders}}catch{if(!disposed)error.value='โหลดบิลไม่ได้ กรุณาเชื่อมต่อแล้วกดโหลดข้อมูลล่าสุด'}})().finally(()=>{ordersTask=null})
+ return ordersTask
+}
+function reloadEverything(){
+ if(reloadTask)return reloadTask
+ reloading.value=true
+ reloadTask=(async()=>{await refresh();if(tab.value==='orders'&&!disposed)await loadOrders()})().finally(()=>{reloading.value=false;reloadTask=null})
+ return reloadTask
+}
+
+async function reloadAfterWrite(){
+ // A read started before the receipt is not proof of the updated inventory.
+ if(reloadTask)await reloadTask
+ if(ordersTask)await ordersTask
+ await reloadEverything()
+}
+
 const connectivity=()=>{online.value=navigator.onLine;if(online.value&&props.state.serverReady)void refresh()}
 watch([cart,platformId],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
 watch(()=>JSON.stringify(shortages.value),()=>{approveShortage.value=false})

@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :open="store.modals.stockIn.isOpen" id="StockInModal" :title="isProducedFromRecipe?'ผลิตตามสูตร':'รับเข้าสต็อก'" :description="isProducedFromRecipe?'ระบุจำนวนผลิต ตรวจส่วนผสม และวันที่ของล็อต':'ระบุจำนวน ต้นทุน และวันที่ของล็อตที่รับเข้า'" :teleport="false" width="680px" compact @request-close="requestClose(close)">
+ <DialogFrame :busy="!!actionPending" :open="store.modals.stockIn.isOpen" id="StockInModal" :title="isProducedFromRecipe?'ผลิตตามสูตร':'รับเข้าสต็อก'" :description="isProducedFromRecipe?'ระบุจำนวนผลิต ตรวจส่วนผสม และวันที่ของล็อต':'ระบุจำนวน ต้นทุน และวันที่ของล็อตที่รับเข้า'" :teleport="false" width="680px" compact @request-close="requestClose(close)">
   <div class="stock-receipt-form" :class="{'is-production':isProducedFromRecipe}">
    <section class="receipt-material">
     <div class="receipt-heading"><label>วัตถุดิบ</label><IconButton v-if="selectedMatId" label="ดูประวัติการรับเข้า/ผลิต" @click="store.openActivityLog('stock',selectedMatId)"><History :size="16"/></IconButton></div>
@@ -49,7 +49,7 @@
    <div class="receipt-note"><label>หมายเหตุ <span>(ถ้ามี)</span></label><AppInput v-model="note" aria-label="หมายเหตุ" :placeholder="isProducedFromRecipe?'เช่น หมักนมสด Meiji + หัวเชื้อ 16 ชม.':'เช่น ซื้อจากแม็คโคร, ล็อต 25/10'"/></div>
    <p v-if="formError" id="StockInModal-error" role="alert" class="stock-form-error">{{ formError }}</p>
   </div>
-  <template #footer><div class="receipt-footer"><Button variant="quiet" @click="requestClose(close)">ยกเลิก</Button><Button :disabled="isProducedFromRecipe&&(!canProduce||produceYieldQty<=0)" @click="submit"><Check :size="16"/><span>{{ isProducedFromRecipe?'บันทึกการผลิต':'บันทึกรับเข้าสต็อก' }}</span></Button></div></template>
+  <template #footer><div class="receipt-footer"><Button variant="quiet" :disabled="!!actionPending" @click="requestClose(close)">ยกเลิก</Button><Button :disabled="isProducedFromRecipe&&(!canProduce||produceYieldQty<=0)" :loading="!!actionPending" @click="submit"><Check :size="16"/><span>{{ isProducedFromRecipe?'บันทึกการผลิต':'บันทึกรับเข้าสต็อก' }}</span></Button></div></template>
  </DialogFrame>
 </template>
 <script setup>
@@ -66,6 +66,8 @@ import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { Check, Plus, Minus, History, X, Package, Layers } from 'lucide-vue-next'
 
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
 
 const formError=ref('')
@@ -249,7 +251,8 @@ function close() {
   store.modals.stockIn.materialId = null
 }
 
-async function submit() {
+const submit=()=>runAction('stage',performStage)
+async function performStage() {
   formError.value=''
   const mat = currentMat.value
   if (!mat) {

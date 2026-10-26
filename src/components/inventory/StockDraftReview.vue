@@ -9,7 +9,7 @@
    <Button data-review-stock-drafts @click="$emit('open')">ตรวจทานแบบร่าง<ChevronRight :size="16" aria-hidden="true"/></Button>
   </section>
  </Transition>
- <DialogFrame id="stock-draft-review" title="ตรวจทานแบบร่างสต็อก" description="ยังไม่บันทึกจริงจนกว่าจะกดยืนยันบันทึก" :open="open" width="720px" compact contained-body @request-close="$emit('close')">
+ <DialogFrame id="stock-draft-review" title="ตรวจทานแบบร่างสต็อก" description="ยังไม่บันทึกจริงจนกว่าจะกดยืนยันบันทึก" :busy="busy" :open="open" width="720px" compact contained-body @request-close="$emit('close')">
   <div class="draft-review-layout">
    <div class="draft-review-heading"><h4>รายการที่แก้ไข</h4><span>{{ items.length }} รายการ</span></div>
    <ul v-if="items.length" class="draft-review-list" aria-label="รายการแบบร่างสต็อก">
@@ -20,14 +20,14 @@
    </ul>
    <div v-else class="draft-review-empty"><ClipboardCheck :size="28" aria-hidden="true"/><strong>ไม่มีแบบร่างค้างอยู่</strong><p>กลับไปจัดการรายการในคลังได้เลย</p></div>
   </div>
-  <template #footer><div class="draft-review-footer"><Button variant="danger" class="draft-review-discard" :disabled="!items.length" @click="$emit('discard')"><Trash2 :size="15"/>ยกเลิกแบบร่างทั้งหมด</Button><div class="draft-review-actions"><Button variant="secondary" @click="$emit('close')">กลับไปแก้ไข</Button><Button :disabled="!items.length" @click="$emit('commit')"><Check :size="16"/>ยืนยันบันทึก</Button></div></div></template>
+  <template #footer><div class="draft-review-footer"><Button variant="danger" class="draft-review-discard" :loading="discarding" :disabled="busy||!items.length" @click="$emit('discard')"><Trash2 :size="15"/>ยกเลิกแบบร่างทั้งหมด</Button><div class="draft-review-actions"><Button variant="secondary" :disabled="busy" @click="$emit('close')">กลับไปแก้ไข</Button><Button :loading="saving" :disabled="busy||!items.length" @click="$emit('commit')"><Check :size="16"/>ยืนยันบันทึก</Button></div></div></template>
  </DialogFrame>
 </template>
 <script setup>
 import Button from '../ui/Button.vue'
 import DialogFrame from '../ui/DialogFrame.vue'
 import {ClipboardCheck,Trash2,Check,ChevronRight} from 'lucide-vue-next'
-const props=defineProps({open:Boolean,hasDrafts:Boolean,items:{type:Array,default:()=>[]},snapshot:Array,materials:Array})
+const props=defineProps({busy:Boolean,saving:Boolean,discarding:Boolean,open:Boolean,hasDrafts:Boolean,items:{type:Array,default:()=>[]},snapshot:Array,materials:Array})
 defineEmits(['open','close','discard','commit'])
 const baseline=id=>Number(props.snapshot?.find(m=>m.id===id)?.stock||0).toLocaleString('th-TH')
 const current=id=>Number(props.materials?.find(m=>m.id===id)?.stock||0).toLocaleString('th-TH')

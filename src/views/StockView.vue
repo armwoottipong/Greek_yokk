@@ -6,7 +6,7 @@
       <StockMaterialCard v-for="mat in filteredMaterials" :key="mat.id" :material="mat" :usage="store.materialUsageById.get(mat.id)" :draft-diff="getDraftDiff(mat)" :pack-cost="getDisplayPackCost(mat)" :lot-count="getDisplayLots(mat).length" :tracking-mode="store.getMaterialTrackingMode(mat)" :more-open="activeActionMenuId===mat.id" @more="toggleActionMenu" @details="detailMaterialId=$event" @receive="openStockIn" />
       <p v-if="!filteredMaterials.length" class="p-6 text-sm">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก ลองเปลี่ยนตัวกรองหรือคำค้นหา</p>
     </div></section>
-    <MaterialDetails :open="Boolean(detailMaterialId)" :material="detailMaterial" :usage="store.materialUsageById.get(detailMaterialId)" :lots="detailMaterial?getDisplayLots(detailMaterial):[]" :tracking-mode="detailMaterial?store.getMaterialTrackingMode(detailMaterial):'none'" :pack-cost="detailMaterial?getDisplayPackCost(detailMaterial):0" :draft-diff="detailMaterial?getDraftDiff(detailMaterial):0" @close="detailMaterialId=null" @adjust="onActionStockAdjustLot" @waste="onActionWasteLot" @switch="onActionSwitchLot" @restore="onActionRestore" @delete="onActionPermanentDelete" @edit="openEditMaterial" @receive="openStockIn" />
+    <MaterialDetails :busy="actionBusy" :restoring="actionPending==='restore'" :open="Boolean(detailMaterialId)" :material="detailMaterial" :usage="store.materialUsageById.get(detailMaterialId)" :lots="detailMaterial?getDisplayLots(detailMaterial):[]" :tracking-mode="detailMaterial?store.getMaterialTrackingMode(detailMaterial):'none'" :pack-cost="detailMaterial?getDisplayPackCost(detailMaterial):0" :draft-diff="detailMaterial?getDraftDiff(detailMaterial):0" @close="detailMaterialId=null" @adjust="onActionStockAdjustLot" @waste="onActionWasteLot" @switch="onActionSwitchLot" @restore="onActionRestore" @delete="onActionPermanentDelete" @edit="openEditMaterial" @receive="openStockIn" />
     <!-- Material Inventory Table -->
     <div class="desktop-material-table stock-table-surface">
       <div class="stock-table-scroll">
@@ -362,27 +362,27 @@
       </div>
     </div>
 
-    <StockDraftReview :open="showDraftDetails" :has-drafts="store.hasStockDrafts" :items="store.stockDraftSummary.items" :snapshot="store.stockDraftSnapshot" :materials="store.materials" @open="showDraftDetails=true" @close="showDraftDetails=false" @commit="savePendingChanges" @discard="revertPendingChanges" />
+    <StockDraftReview :busy="actionBusy" :saving="actionPending==='commit'" :discarding="actionPending==='discard'" :open="showDraftDetails" :has-drafts="store.hasStockDrafts" :items="store.stockDraftSummary.items" :snapshot="store.stockDraftSnapshot" :materials="store.materials" @open="showDraftDetails=true" @close="showDraftDetails=false" @commit="savePendingChanges" @discard="revertPendingChanges" />
     <!-- Teleported Floating Action Menu (Never clipped by table rows or overflow-x container) -->
-    <DialogFrame id="stock-material-actions" :open="Boolean(activeActionMenuId&&activeMenuMat)" :title="activeMenuMat?.name||'งานวัตถุดิบ'" presentation="sheet" description="เลือกงานที่ต้องการจัดการกับรายการนี้" @request-close="closeActionMenu">
+    <DialogFrame id="stock-material-actions" :busy="actionBusy" :open="Boolean(activeActionMenuId&&activeMenuMat)" :title="activeMenuMat?.name||'งานวัตถุดิบ'" presentation="sheet" description="เลือกงานที่ต้องการจัดการกับรายการนี้" @request-close="closeActionMenu">
  <div v-if="activeMenuMat" class="stock-context-actions">
-  <Button v-if="!activeMenuMat.isDeleted" variant="secondary" @click="onActionStockIn(activeMenuMat.id)">{{ activeMenuMat.hasSubRecipe?'ผลิตตามสูตร':'รับเข้าสต็อก' }}</Button>
-  <Button v-if="!activeMenuMat.isDeleted" variant="secondary" @click="onActionStockAdjust(activeMenuMat.id)">ปรับยอดนับจริง</Button>
-  <Button variant="secondary" @click="onActionEdit(activeMenuMat.id)">แก้ไขข้อมูล</Button>
-  <Button variant="quiet" @click="onActionHistory(activeMenuMat.id)">ประวัติสต็อก</Button>
-  <Button v-if="!activeMenuMat.isDeleted" variant="quiet" @click="onActionWaste(activeMenuMat.id)">บันทึกของเสีย</Button>
-  <Button v-if="!activeMenuMat.isDeleted" variant="quiet" @click="onActionArchive(activeMenuMat)">จัดเก็บรายการ</Button>
-  <template v-else><Button variant="secondary" @click="onActionRestore(activeMenuMat)">กู้คืนรายการ</Button><Button variant="danger" @click="onActionPermanentDelete(activeMenuMat)">ลบถาวร</Button></template>
+  <Button v-if="!activeMenuMat.isDeleted" variant="secondary" :disabled="actionBusy" @click="onActionStockIn(activeMenuMat.id)">{{ activeMenuMat.hasSubRecipe?'ผลิตตามสูตร':'รับเข้าสต็อก' }}</Button>
+  <Button v-if="!activeMenuMat.isDeleted" variant="secondary" :disabled="actionBusy" @click="onActionStockAdjust(activeMenuMat.id)">ปรับยอดนับจริง</Button>
+  <Button variant="secondary" :disabled="actionBusy" @click="onActionEdit(activeMenuMat.id)">แก้ไขข้อมูล</Button>
+  <Button variant="quiet" :disabled="actionBusy" @click="onActionHistory(activeMenuMat.id)">ประวัติสต็อก</Button>
+  <Button v-if="!activeMenuMat.isDeleted" variant="quiet" :disabled="actionBusy" @click="onActionWaste(activeMenuMat.id)">บันทึกของเสีย</Button>
+  <Button v-if="!activeMenuMat.isDeleted" variant="quiet" :loading="actionPending==='archive'" :disabled="actionBusy" @click="onActionArchive(activeMenuMat)">จัดเก็บรายการ</Button>
+  <template v-else><Button variant="secondary" :loading="actionPending==='restore'" :disabled="actionBusy" @click="onActionRestore(activeMenuMat)">กู้คืนรายการ</Button><Button variant="danger" :disabled="actionBusy" @click="onActionPermanentDelete(activeMenuMat)">ลบถาวร</Button></template>
  </div>
 </DialogFrame>
 
-    <DialogFrame id="stock-delete-material" title="ยืนยันลบวัตถุดิบถาวร" :open="showDeleteModal" width="440px" initial-focus="[data-delete-cancel]" @request-close="closeDeleteModal">
+    <DialogFrame id="stock-delete-material" :busy="actionBusy" title="ยืนยันลบวัตถุดิบถาวร" :open="showDeleteModal" width="440px" initial-focus="[data-delete-cancel]" @request-close="closeDeleteModal">
       <template v-if="materialToDelete">
         <p class="font-semibold">{{ materialToDelete.name }} · {{ materialToDelete.id }}</p>
         <template v-if="deleteUsageWarning?.isInUse"><p class="mt-3">รายการนี้ยังอยู่ในสูตร จัดเก็บแทนเพื่อรักษาข้อมูลสูตร</p><ul class="mt-3 space-y-2"><li v-for="name in [...deleteUsageWarning.usedInMenus,...deleteUsageWarning.usedInAddons,...deleteUsageWarning.usedInMaterials]" :key="name">{{ name }}</li></ul></template>
         <p v-else class="mt-3 text-sm">ข้อมูลวัตถุดิบและล็อตจะถูกลบอย่างถาวร และกู้คืนไม่ได้</p>
       </template>
-      <template #footer><Button variant="secondary" data-delete-cancel @click="closeDeleteModal">ยกเลิก</Button><Button v-if="deleteUsageWarning?.isInUse" @click="confirmArchiveInstead">จัดเก็บแทน</Button><Button v-else variant="danger" data-delete-material @click="confirmDeletePermanently">ลบถาวร</Button></template>
+      <template #footer><Button variant="secondary" data-delete-cancel :disabled="actionBusy" @click="closeDeleteModal">ยกเลิก</Button><Button v-if="deleteUsageWarning?.isInUse" :loading="actionPending==='archive'" :disabled="actionBusy" @click="confirmArchiveInstead">จัดเก็บแทน</Button><Button v-else variant="danger" data-delete-material :loading="actionPending==='delete'" :disabled="actionBusy" @click="confirmDeletePermanently">ลบถาวร</Button></template>
     </DialogFrame>
   </div>
 </template>
@@ -434,6 +434,9 @@ import {
   ClipboardCheck, ArrowUp, ArrowDown, ArrowUpDown
 } from 'lucide-vue-next'
 
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
+const actionBusy=computed(()=>!!actionPending.value||!!store.inventorySaving)
 const store = useInventoryStore()
 function applyStockFilters(values){selectedRole.value=values.role;selectedKind.value=values.kind;showDeleted.value=values.showDeleted}
 
@@ -603,15 +606,15 @@ function onActionEdit(matId) {
   openEditMaterial(matId)
 }
 
-function onActionArchive(mat) {
-  closeActionMenu()
-  store.softDeleteMaterial(mat.id)
-}
+const onActionArchive=mat=>runAction('archive',async()=>{
+ const result=await store.softDeleteMaterial(mat.id)
+ if(result!==false&&result?.ok!==false&&result?.success!==false)closeActionMenu()
+})
 
-function onActionRestore(mat) {
-  closeActionMenu()
-  store.restoreMaterial(mat.id)
-}
+const onActionRestore=mat=>runAction('restore',async()=>{
+ const result=await store.restoreMaterial(mat.id)
+ if(result!==false&&result?.ok!==false&&result?.success!==false)closeActionMenu()
+})
 
 function onActionPermanentDelete(mat) {
   closeActionMenu()
@@ -626,14 +629,16 @@ function closeDeleteModal() {
   deleteUsageWarning.value = null
 }
 
-async function confirmArchiveInstead() {
+const confirmArchiveInstead=()=>runAction('archive',performArchiveInstead)
+async function performArchiveInstead() {
   if (!materialToDelete.value) return
   const result = await store.softDeleteMaterial(materialToDelete.value.id)
   if (result === false || result?.ok === false || result?.success === false) return
   closeDeleteModal()
 }
 
-async function confirmDeletePermanently() {
+const confirmDeletePermanently=()=>runAction('delete',performDeletePermanently)
+async function performDeletePermanently() {
   if(!showDeleteModal.value || deleteUsageWarning.value?.isInUse)return
   if (materialToDelete.value) {
     const result = await store.deleteMaterialPermanently(materialToDelete.value.id)
@@ -662,13 +667,15 @@ function onActionSwitchLot(matId, lotId) {
 // -------------------------------------------------------------
 const showDraftDetails = ref(false)
 
-async function savePendingChanges() {
+const savePendingChanges=()=>runAction('commit',performCommit)
+async function performCommit() {
   const result=await store.commitStockDrafts()
   if(result?.ok || result?.success)showDraftDetails.value = false
   else store.showToast(result?.message||'บันทึกไม่สำเร็จ แบบร่างยังอยู่ กรุณาลองอีกครั้ง','error')
 }
 
-async function revertPendingChanges() {
+const revertPendingChanges=()=>runAction('discard',performDiscard)
+async function performDiscard() {
   const discard=await store.confirmDialog({title:'ยกเลิกแบบร่างทั้งหมด?',message:'ยอดในแบบร่างจะกลับไปเป็นยอดที่บันทึกไว้ก่อนหน้า',type:'danger',confirmText:'ยกเลิกแบบร่าง',cancelText:'เก็บแบบร่างไว้'})
   if(!discard)return
   const result = await store.discardStockDrafts()
