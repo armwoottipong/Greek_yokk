@@ -626,17 +626,18 @@ function closeDeleteModal() {
   deleteUsageWarning.value = null
 }
 
-function confirmArchiveInstead() {
-  if (materialToDelete.value) {
-    store.softDeleteMaterial(materialToDelete.value.id)
-  }
+async function confirmArchiveInstead() {
+  if (!materialToDelete.value) return
+  const result = await store.softDeleteMaterial(materialToDelete.value.id)
+  if (result === false || result?.ok === false || result?.success === false) return
   closeDeleteModal()
 }
 
-function confirmDeletePermanently() {
+async function confirmDeletePermanently() {
   if(!showDeleteModal.value || deleteUsageWarning.value?.isInUse)return
   if (materialToDelete.value) {
-    store.deleteMaterialPermanently(materialToDelete.value.id)
+    const result = await store.deleteMaterialPermanently(materialToDelete.value.id)
+    if (result === false || result?.ok === false || result?.success === false) return
   }
   closeDeleteModal()
 }
@@ -670,7 +671,8 @@ async function savePendingChanges() {
 async function revertPendingChanges() {
   const discard=await store.confirmDialog({title:'ยกเลิกแบบร่างทั้งหมด?',message:'ยอดในแบบร่างจะกลับไปเป็นยอดที่บันทึกไว้ก่อนหน้า',type:'danger',confirmText:'ยกเลิกแบบร่าง',cancelText:'เก็บแบบร่างไว้'})
   if(!discard)return
-  store.discardStockDrafts()
+  const result = await store.discardStockDrafts()
+  if (result === false || result?.ok === false || result?.success === false) return
   showDraftDetails.value = false
 }
 

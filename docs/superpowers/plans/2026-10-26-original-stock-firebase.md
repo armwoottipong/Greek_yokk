@@ -14,3 +14,12 @@ User approved: complete inventory first; use exact original UI, no layout or sty
 Release: full tests/lint/build and original-UI acceptance; deploy verified Rules without replacing live data; commit/push, verify Pages Actions and live assets. Delivery report records the result.
 
 Constraints: Spark free, Google login, no roles. Four distinct sale lines/16 protected materials unchanged. Count command bound18 materials and4working lots; multi-command draft review may confirm operations sequentially, reporting partial completion and retaining remaining drafts. Never report all saved after partial failure. Live business test writes require user intentional transaction; use emulator for dummy mutations. Permanent erasure/history clearing cannot erase immutable audit receipts through a generic client mutation.
+
+
+## Warehouse completion follow-through (26 October 2026)
+
+- [x] Make original archive/restore/delete/discard handlers wait for confirmed results; retain the form/review on rejection. Preserve templates/styles and local-mode compatibility.
+- [x] Exercise the original inventory model against the real Firestore emulator transport for receiving, production, stocktake/waste, lot selection and material lifecycle; verify independent-account reads and uncertain-result replay.
+- [x] Run appropriate regression checks, lint/build. Release result (commit/push/Pages and live SHA/assets) is recorded in the delivery ledger. Keep immutable audit records and explicit limitations intact.
+
+User said to use currently visible data; this supplies no measured receipt/count amount. Use existing shop data for read-only live acceptance and isolated emulator fixtures for stock-changing tests; do not invent live business quantities.

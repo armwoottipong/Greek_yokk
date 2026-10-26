@@ -41,3 +41,33 @@ it('duplicate production ingredients are aggregated before mutation',()=> {
  const result=s.batchProduce('OUT',20,[{materialId:'RAW',qty:60},{materialId:'RAW',qty:60}],'',{},true)
  expect(result?.success??result).toBe(false);expect(s.materials[0].stock).toBe(100);expect(s.materials[1].stock).toBe(0)
 })
+
+
+it('waits for cloud archive confirmation and retains the original editor state after rejection',async()=>{
+ const s=createTestStore();s.resetDemoData();const mat=s.materials[0]
+ let resolve;const archive=vi.spyOn(s,'softDeleteMaterial').mockImplementation(()=>new Promise(r=>{resolve=r}))
+ const w=mount(MaterialEdit);s.modals.materialEdit={isOpen:true,materialId:mat.id};await flushPromises()
+ const task=w.vm.handleArchiveToggle()
+ expect(w.vm.form.isDeleted).toBe(false)
+ resolve({ok:false,message:'server rejected'});await task;await flushPromises()
+ expect(w.vm.form.isDeleted).toBe(false);expect(s.modals.materialEdit.isOpen).toBe(true)
+ expect(archive).toHaveBeenCalledTimes(1);w.unmount()
+})
+
+it('keeps the original editor open when cloud permanent deletion is unavailable',async()=>{
+ const s=createTestStore();s.resetDemoData();const mat=s.materials[0]
+ vi.spyOn(s,'getMaterialUsage').mockReturnValue({isInUse:false})
+ vi.spyOn(s,'confirmDialog').mockResolvedValue(true)
+ vi.spyOn(s,'deleteMaterialPermanently').mockResolvedValue({ok:false,message:'audit retained'})
+ const w=mount(MaterialEdit);s.modals.materialEdit={isOpen:true,materialId:mat.id};await flushPromises()
+ await w.vm.handlePermanentDelete();await flushPromises()
+ expect(s.modals.materialEdit.isOpen).toBe(true);expect(w.vm.formError).toBe('audit retained');w.unmount()
+})
+
+it('keeps original draft review open when an uncertain cloud command prevents discard',async()=>{
+ const s=createTestStore();s.resetDemoData();const w=mount(StockView)
+ vi.spyOn(s,'confirmDialog').mockResolvedValue(true)
+ vi.spyOn(s,'discardStockDrafts').mockResolvedValue({ok:false,message:'pending receipt'})
+ w.vm.showDraftDetails=true;await flushPromises();await w.vm.revertPendingChanges();await flushPromises()
+ expect(w.vm.showDraftDetails).toBe(true);w.unmount()
+})

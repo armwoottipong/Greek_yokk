@@ -892,14 +892,24 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
   }
 })
 
-function handleArchiveToggle() {
-  if (!form.value.id) return
-  if (form.value.isDeleted) {
-    store.restoreMaterial(form.value.id)
-    form.value.isDeleted = false
-  } else {
-    store.softDeleteMaterial(form.value.id)
-    form.value.isDeleted = true
+let archivePending = false
+async function handleArchiveToggle() {
+  if (!form.value.id || archivePending) return
+  const id = form.value.id, deleted = !form.value.isDeleted
+  archivePending = true
+  formError.value = ''
+  try {
+    const result = await (deleted ? store.softDeleteMaterial(id) : store.restoreMaterial(id))
+    if (form.value.id !== id) return
+    if (result === false || result?.ok === false || result?.success === false) {
+      formError.value = result?.message || 'บันทึกสถานะไม่สำเร็จ กรุณาตรวจผลจากเซิร์ฟเวอร์'
+      return
+    }
+    form.value.isDeleted = deleted
+  } catch {
+    if (form.value.id === id) formError.value = 'ยังยืนยันสถานะไม่ได้ กรุณาตรวจผลจากเซิร์ฟเวอร์'
+  } finally {
+    archivePending = false
   }
 }
 
@@ -913,7 +923,13 @@ async function handlePermanentDelete() {
   }
 
   if (await store.confirmDialog({title:'ลบวัตถุดิบถาวร?',message:form.value.name+' · '+form.value.id+'\nข้อมูลวัตถุดิบและล็อตจะถูกลบและกู้คืนไม่ได้',confirmText:'ลบถาวร',cancelText:'ยกเลิก',type:'danger'})) {
-    store.deleteMaterialPermanently(form.value.id)
+    const id = form.value.id
+    const result = await store.deleteMaterialPermanently(id)
+    if (form.value.id !== id) return
+    if (result === false || result?.ok === false || result?.success === false) {
+      formError.value = result?.message || 'ลบไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง'
+      return
+    }
     close()
   }
 }

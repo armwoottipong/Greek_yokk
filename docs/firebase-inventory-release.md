@@ -64,3 +64,33 @@ responsive styles are replaced. Unfinished destinations remain disabled.
 Production opens from the original stock row action. Bill history/cancellation
 remains accessible from the header History action rather than an extra sidebar
 entry. This change does not deploy Rules or write business data.
+
+
+## Inventory completion checks (26 October 2026)
+
+The original editor now waits for archive/restore confirmation before changing
+its displayed state. A rejected deletion keeps the editor open with its existing
+error field. The original delete/alternative-archive dialog and draft review stay
+open if the command cannot finish. Synchronous local-store behavior is preserved;
+no templates or styles changed.
+
+Additional native tests connect the actual original inventory model directly to
+the Firestore runtime transport and scoped Rules. They verify editor creation with
+initial stock, receiving, packaging, production/input deductions, physical count,
+waste, lot switching, archive/restore, independent-account reads, same-command
+recovery after a lost result, and rejection of stale counts. The combined core,
+inventory and workflow suites pass69 native cases, including both private source
+backups. Ordinary tests pass1209 cases with one conditional skip; lint/build pass.
+
+Read-only inspection of the existing live Google session confirmed milk receiving
++4000ml and physical count -2000ml on26 October with2000ml remaining, as shown in
+the original history modal. These were existing business records; no new live
+stock operation or data import was performed for acceptance. Final physical
+second-device/operator acceptance remains separate from emulator race proofs.
+
+For normal receiving/production/count/waste/lot changes, use the original form,
+review the original draft bar, and choose Save; wait for Firebase confirmation.
+Material edits and archive/restore wait for server confirmation directly. Reload
+never discards or automatically sends uncommitted session drafts. Permanent
+erasure and history clearing remain unavailable; supported archive/restore keeps
+audit evidence. See the bounds above before bulk operations.
