@@ -403,8 +403,8 @@ import ModalShell from '@/components/ui/ModalShell.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import {
-  usePosStore,
   getExpiryStatus,
   formatThaiDate,
 
@@ -434,7 +434,7 @@ import {
   ClipboardCheck, ArrowUp, ArrowDown, ArrowUpDown
 } from 'lucide-vue-next'
 
-const store = usePosStore()
+const store = useInventoryStore()
 function applyStockFilters(values){selectedRole.value=values.role;selectedKind.value=values.kind;showDeleted.value=values.showDeleted}
 
 const detailMaterialId=ref(null)
@@ -661,8 +661,8 @@ function onActionSwitchLot(matId, lotId) {
 // -------------------------------------------------------------
 const showDraftDetails = ref(false)
 
-function savePendingChanges() {
-  const result=store.commitStockDrafts()
+async function savePendingChanges() {
+  const result=await store.commitStockDrafts()
   if(result?.ok || result?.success)showDraftDetails.value = false
   else store.showToast(result?.message||'บันทึกไม่สำเร็จ แบบร่างยังอยู่ กรุณาลองอีกครั้ง','error')
 }

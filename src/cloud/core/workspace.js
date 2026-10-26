@@ -4,9 +4,7 @@ import {createCommandJournal} from '../journal.js'
 import {createCoreTransport} from './transport.js'
 import {createCoreCommands} from './commands.js'
 import {summaryMultiGroupSale} from './model/saleGroups.js'
-import {summaryStock} from './model/stock.js'
-import {summaryPackageStock} from './model/packageStock.js'
-import {summaryProduce} from './model/produce.js'
+import {planInventoryCommand} from './inventoryPlan.js'
 export function createCoreWorkspace({connection,getContext}){
  const {db}=getFirebaseClient({mode:connection.mode,config:connection.config})
  const journal=createCommandJournal(),transport=createCoreTransport({db,getContext}),commands=createCoreCommands({journal,transport,getContext})
@@ -22,14 +20,9 @@ export function createCoreWorkspace({connection,getContext}){
   current={...snapshot,display:display.data(),orders:current?.orders||[]};return current
  }
  function previewSale(payload){if(!current)throw new Error('NOT_READY');return summaryMultiGroupSale(current.shop,current.materials,payload.lines,{platformId:payload.platformId}).order}
- function previewInventory(kind,payload){
-  if(!current)throw new Error('NOT_READY')
-  if(kind==='produce')return summaryProduce(current.shop,current.materials,payload.materialId,payload.input)
-  const m=current.materials.find(m=>m.id===payload.materialId)
-  if(!m||m.deleted)throw new Error('MATERIAL_NOT_FOUND')
-  return (m.inventoryType==='packaging'?summaryPackageStock:summaryStock)(current.shop,m,payload.input)
- }
+ function previewCommand(command,snapshot=current){if(!snapshot)throw new Error('NOT_READY');return planInventoryCommand(snapshot.shop,snapshot.materials,command)}
+ function previewInventory(kind,payload){return previewCommand({kind,payload})}
  async function orders(){const rows=await getDocsFromServer(query(collection(db,`${base()}/orders`),orderBy('createdAt','desc'),limit(100))),orders=rows.docs.map(d=>d.data());if(current)current={...current,orders};return orders}
  async function history(){const path=base(),rows=await Promise.all(Array.from({length:current?.display.legacyOrderCount||0},(_,i)=>getDocFromServer(doc(db,`${path}/legacyRecords/orders_${i}`))));return rows.map(d=>JSON.parse(d.data().json))}
- return {...commands,load,orders,previewSale,previewInventory,history,close:()=>journal.close()}
+ return {...commands,load,orders,previewSale,previewInventory,previewCommand,history,close:()=>journal.close()}
 }

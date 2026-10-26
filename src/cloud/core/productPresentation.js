@@ -19,7 +19,7 @@ export function projectCart(lines,data){
 }
 const date=day=>Number.isInteger(day)&&day>=0&&day<999999?new Date(day*86400000).toISOString().slice(0,10):''
 export function projectMaterial(m){
- return {...m,stock:m.stock/100,minAlert:(m.minAlertQ||0)/100,packCost:(m.packCostCents||0)/100,isDeleted:!!m.deleted,hasSubRecipe:!!m.productionRecipe,lastStockInDate:date(m.lastStockInDay),expiryDate:date(m.expiryDay),lots:(m.lotIds||[]).map(id=>({...m.lots[id],id,qty:(m.lotQty?.[id]??m.lots[id].qty)/100,isInUse:id===m.activeLotId,receiveDate:date(m.lots[id].receiveDay),expiryDate:date(m.lots[id].expiryDay)}))}
+ return {...m,stock:m.stock/100,minAlert:(m.minAlertQ||0)/100,packCost:(m.packCostCents||0)/100,isDeleted:!!m.deleted,hasSubRecipe:!!m.productionRecipe,yieldQty:(m.productionRecipe?.yieldQ||0)/100,subRecipe:m.productionRecipe?.inputIds?.map((materialId,i)=>({materialId,qty:m.productionRecipe.quantities[i]/100}))||[],lastStockInDate:date(m.lastStockInDay),expiryDate:date(m.expiryDay),lots:(m.lotIds||[]).map(id=>({...m.lots[id],id,qty:(m.lotQty?.[id]??m.lots[id].qty)/100,isInUse:id===m.activeLotId||(m.zeroActiveIds||[]).includes(id),receiveDate:date(m.lots[id].receiveDay),expiryDate:date(m.lots[id].expiryDay)}))}
 }
 
 export function projectReceipt(receipt,data){

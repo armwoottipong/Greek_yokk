@@ -11,6 +11,7 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
   while(depth&&end<mask.length){if(mask[end]==='{')depth++;if(mask[end]==='}')depth--;end++}
   functions.set(m[1],source.slice(m.index,end))
  }
+ const inventoryKinds={stock_count:'count',switch_lot:'switch',material_create:'materialCreate',material_archive:'materialArchive',material_metadata:'materialMetadata',material_measure:'materialMeasure',material_details:'materialDetails',material_type:'materialType',production_recipe:'productionRecipe'}
  const matches=`
  match /shops/{s} {
   allow get: if signedIn();
@@ -19,8 +20,10 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
   allow update: if request.resource.data.lastOpKind=='package_stock_in' && packageStockRoot(s);
   allow update: if request.resource.data.lastOpKind=='produce' && produceRoot(s);
   allow update: if request.resource.data.lastOpKind=='cancel' && cancelRoot(s);
+  ${Object.entries(inventoryKinds).map(([kind,name])=>`allow update: if request.resource.data.lastOpKind=='${kind}' && ${name}Root(s);`).join('\n')}
   match /generations/{g}/operations/{id} {
    allow read: if active(s,g);
+   ${Object.entries(inventoryKinds).map(([kind,name])=>`allow create: if request.resource.data.kind=='${kind}' && ${name}Operation(s,g,id,request.resource.data);`).join('\n')}
    allow create: if request.resource.data.kind=='stock_in' && stockOperation(s,g,id,request.resource.data);
    allow create: if request.resource.data.kind=='package_stock_in' && packageStockOperation(s,g,id,request.resource.data);
    allow create: if request.resource.data.kind=='produce' && produceOperation(s,g,id,request.resource.data);
@@ -50,6 +53,7 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
    allow update: if request.resource.data.lastOpKind=='cancel' && cancelMaterial(s,g,id);
    allow update: if request.resource.data.lastOpKind=='produce' && request.resource.data.lastOpIndex<2 && produceInput(s,g,id);
    allow update: if request.resource.data.lastOpKind=='produce' && request.resource.data.lastOpIndex==2 && produceOutput(s,g,id);
+   ${Object.entries(inventoryKinds).map(([kind,name])=>`allow ${kind==='material_create'?'create':'update'}: if request.resource.data.lastOpKind=='${kind}' && ${name}Material(s,g,id);`).join('\n')}
   }
   match /generations/{g}/display/{id} { allow read: if active(s,g); }
   match /generations/{g}/legacyRecords/{id} { allow read: if active(s,g); }
@@ -76,6 +80,14 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
   if(name==='validOrder'){
    body=replace(body,'o.inventory.size() == 15','o.inventory.size() in [15,16]')
   }
+  if(name==='materialTypeRoot'){
+   body=replace(body,'c.summaryMaterials.size()==15 && c.summaryMaterials.toSet().size()==15','c.summaryMaterials.size() in [15,16] && c.summaryMaterials.toSet().size()==c.summaryMaterials.size()')
+  }
+  if(name==='materialTypeMaterial'){
+   body=replace(body,'integer(i,0,15)','integer(i,0,16)')
+   body=body.replaceAll('i==15','i==root.catalog.summaryMaterials.size()')
+  }
+  if(name==='materialTypeOperation')body=replace(body,'touched(s,g,o,15);','touched(s,g,o,15) && touched(s,g,o,16);')
   if(name==='cancelOperation'){
    body=replace(body,'o.sourceRevisions.size()==15','o.materialIds.size() in [15,16] && o.sourceRevisions.size()==o.materialIds.size()')
    body=replace(body,'touched(s,g,o,14);','touched(s,g,o,14) && touched(s,g,o,15);')

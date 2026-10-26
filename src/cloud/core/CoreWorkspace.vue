@@ -22,13 +22,7 @@
     </CartPanel>
     <CartReviewBar v-if="!split" :quantity="cartQuantity" :subtotal="(preview?.subtotalCents||0)/100" :open="cartOpen" @open="cartOpen=true"/>
    </section>
-   <section v-if="tab==='stock'" class="stock-workspace" aria-label="สต็อกและรับเข้า">
-    <StockSummary :valuation="stockValuation" :projected="stockValuation" :draft-diff="0" :budget="stockBudget" :low-count="lowMaterials.length" :out-count="outMaterials.length"/>
-    <div class="stock-toolbar"><div class="stock-actions"><Button data-stock-receive :disabled="locked||!ready" @click="openReceive()"><ArrowDownToLine :size="16"/>รับเข้าสต็อก</Button><Button variant="secondary" :disabled="locked||!ready" @click="tab='produce'"><Factory :size="16"/>ผลิต</Button></div><AppSearch v-model="stockSearch" label="ค้นหาวัตถุดิบ" placeholder="ค้นหาชื่อหรือหน่วย"/></div>
-    <section class="stock-directory"><header><h3>วัตถุดิบและบรรจุภัณฑ์</h3><span>{{ filteredMaterials.length }} รายการ</span></header><StockMaterialCard v-for="m in filteredMaterials" :key="m.id" :material="m" :pack-cost="m.packCost||Math.round((m.packSize||1)*m.unitCost*100)/100" :lot-count="m.lots.length" :tracking-mode="m.inventoryType==='packaging'?'none':'expiry_and_receive'" supported-only :disabled="locked||!ready" @details="detailId=$event" @receive="openMaterialAction"/><p v-if="!filteredMaterials.length" class="muted">ไม่พบวัตถุดิบ ลองเปลี่ยนคำค้นหา</p></section>
-    <p class="scope-note">ปรับยอด ตรวจนับ บันทึกของเสีย และแก้ข้อมูลวัตถุดิบ ยังไม่เปิดใช้ใน Firebase</p>
-   </section>
-   <section v-if="tab==='produce'" class="stock-workspace" aria-label="ผลิต"><div class="section-heading"><div><h3>ผลิตจากสูตรของร้าน</h3><p>เลือกสินค้าที่ต้องการผลิต ระบบจะตัดวัตถุดิบตามสูตร</p></div></div><p v-if="!productionMaterials.length">ยังไม่มีสูตรผลิตในข้อมูลร้านชุดนี้</p><section class="stock-directory"><StockMaterialCard v-for="m in productMaterials.filter(m=>m.hasSubRecipe)" :key="m.id" :material="m" :pack-cost="m.packCost||Math.round((m.packSize||1)*m.unitCost*100)/100" :lot-count="m.lots.length" tracking-mode="expiry_and_receive" supported-only :disabled="locked||!ready" @details="detailId=$event" @receive="openProduce"/></section></section>
+   <CloudStockWorkspace ref="inventoryWorkspace" v-show="tab==='stock'||tab==='produce'" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory"/>
    <section v-if="tab==='orders'" aria-label="ประวัติบิล"><div class="section-heading"><div><h3>บิลขายและคืนบิล</h3><p>100 บิลล่าสุดจาก Firebase · คืนสต็อกตามล็อตเดิมเมื่อคืนบิล</p></div></div><p v-if="!data.orders.length" class="empty-orders">ยังไม่มีบิลจาก Firebase</p><ol class="order-list"><li v-for="o in data.orders" :key="o.opId"><div><StatusBadge :label="o.status==='cancelled'?'คืนบิลแล้ว':'ขายสำเร็จ'" :tone="o.status==='cancelled'?'neutral':'success'"/><strong>{{ money(o.subtotalCents) }}</strong><p>{{ orderDate(o) }} · {{ name('platforms',o.platformId) }}</p><p>{{ o.lines.map(l=>`${name('menus',l.menuId)} × ${l.qty}`).join(', ') }}</p><small>{{ o.opId }}</small></div><Button v-if="o.status==='committed'" variant="secondary" :disabled="locked||!ready" @click="cancelId=o.opId">คืนบิล</Button></li></ol><details @toggle="loadHistory"><summary>ประวัติบิลจากระบบเดิม (อ่านอย่างเดียว)</summary><p class="muted">ใช้ตรวจย้อนหลัง การคืนบิลรองรับเฉพาะบิลที่ขายผ่าน Firebase</p><p v-for="(o,i) in legacyOrders" :key="i">{{ o.createdAt }} · {{ o.platformName }} · {{ money(Math.round((o.subtotal||0)*100)) }} · {{ o.status||'ประวัติเดิม' }}</p></details></section>
   </template>
  </CloudProductShell>
@@ -42,20 +36,12 @@
   </form>
   <template v-if="menu" #footer><div class="custom-order-footer"><div class="bowl-total"><span>จำนวนชาม</span><strong>{{ quantity }} ชาม</strong></div><AppQuantityInput v-model="quantity" label="จำนวนชาม" :min="1" :max="1000000" :disabled="locked"/><div class="custom-order-footer-actions"><Button type="submit" form="cloud-line-form" data-add-line :disabled="locked||cart.length>=saleLimit">เพิ่มลงตะกร้า</Button></div><p class="muted">หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ</p></div></template>
  </DialogFrame>
- <DialogFrame :open="inventoryOpen" id="cloud-stock-in" :title="inventoryKind==='produce'?'ผลิตสินค้า':'รับเข้าสต็อก'" width="600px" :busy="busy" @request-close="inventoryOpen=false">
-  <form id="cloud-inventory-form" class="stock-form inventory-form" @submit.prevent="submitInventory(inventoryKind)">
-   <template v-if="inventoryKind==='inventory'"><label class="field">วัตถุดิบ<AppSelect v-model="receiveId" aria-label="วัตถุดิบ" :disabled="locked"><option value="" disabled>เลือกวัตถุดิบ</option><option v-for="m in productMaterials" :key="m.id" :value="m.id">{{ m.name||m.id }}</option></AppSelect></label><label class="field">จำนวน ({{ material(receiveId)?.unit||'หน่วย' }})<AppInput v-model="receiveQty" aria-label="จำนวนรับเข้า" required type="number" min="0.01" step="0.01" :disabled="locked"/></label><label class="field">ต้นทุนต่อหน่วย (บาท)<AppInput v-model="receiveCost" aria-label="ต้นทุนต่อหน่วย" required type="number" min="0" max="100000" step="any" :disabled="locked"/></label><div class="date-fields"><label class="field">วันที่รับเข้า<AppInput v-model="receiveDate" aria-label="วันที่รับเข้า" required type="date" :disabled="locked"/></label><label v-if="material(receiveId)?.inventoryType!=='packaging'" class="field">วันหมดอายุ<AppInput v-model="receiveExpiry" aria-label="วันหมดอายุรับเข้า" type="date" :disabled="locked"/></label></div><label class="field">หมายเหตุ<AppInput v-model="receiveNote" maxlength="1000" :disabled="locked"/></label></template>
-   <template v-else><label class="field">สินค้าที่ผลิต<AppSelect v-model="produceId" aria-label="สินค้าที่ผลิต" :disabled="locked"><option value="" disabled>เลือกสินค้า</option><option v-for="m in productionMaterials" :key="m.id" :value="m.id">{{ m.name||m.id }}</option></AppSelect></label><p v-if="productionRecipe" class="recipe-description">สูตรต่อ {{ amount(productionRecipe.yieldQ) }} {{ material(produceId)?.unit }}: {{ productionRecipe.inputIds.map((id,i)=>`${materialName(id)} ${amount(productionRecipe.quantities[i])} ${material(id)?.unit||''}`).join(' + ') }}</p><label class="field">จำนวนที่ผลิตได้ ({{ material(produceId)?.unit||'หน่วย' }})<AppInput v-model="produceQty" aria-label="จำนวนที่ผลิตได้" required type="number" min="0.01" step="0.01" :disabled="locked"/></label><div class="date-fields"><label class="field">วันที่ผลิต<AppInput v-model="produceDate" aria-label="วันที่ผลิต" required type="date" :disabled="locked"/></label><label class="field">วันหมดอายุ<AppInput v-model="produceExpiry" aria-label="วันหมดอายุผลิต" type="date" :disabled="locked"/></label></div><label class="field">หมายเหตุ<AppInput v-model="produceNote" maxlength="1000" :disabled="locked"/></label></template>
-   <p v-if="error" class="error" role="alert">{{ error }}</p>
-  </form><template #footer><Button type="submit" form="cloud-inventory-form" :disabled="locked||!ready||!(inventoryKind==='produce'?produceId:receiveId)" :loading="busy">{{ inventoryKind==='produce'?'ผลิตและตัดวัตถุดิบ':'บันทึกรับเข้า' }}</Button></template>
- </DialogFrame>
- <DialogFrame :open="!!detailMaterial" id="cloud-material-details" :title="detailMaterial?.name||'วัตถุดิบ'" presentation="panel" @request-close="detailId=''"><template v-if="detailMaterial"><p class="material-balance">{{ detailMaterial.stock.toLocaleString('th-TH') }} {{ detailMaterial.unit }}</p><StockLotList :lots="detailMaterial.lots" :unit="detailMaterial.unit" :tracking-mode="detailMaterial.inventoryType==='packaging'?'none':'expiry_and_receive'" :origin-label="detailMaterial.hasSubRecipe?'วันที่ผลิต':'วันรับเข้า'" archived/><p class="scope-note">ล็อตจัดสรรตามระบบ · การปรับยอด ของเสีย และเลือกล็อตเองยังไม่เปิดใช้</p></template></DialogFrame>
  <DialogFrame :open="!!cancelId" id="cloud-cancel-order" title="ยืนยันคืนบิล" :busy="busy" @request-close="cancelId=''"><p>ยืนยันคืนเงินและคืนสต็อกบิลนี้ตามล็อตเดิม?</p><p v-if="error" class="error" role="alert">{{ error }}</p><template #footer><Button variant="secondary" :disabled="busy" @click="cancelId=''">เก็บบิลไว้</Button><Button :disabled="locked||!ready" :loading="busy" @click="cancelOrder(cancelId)">ยืนยันคืนบิล</Button></template></DialogFrame>
  <DialogFrame :open="clearConfirm" id="cloud-clear-cart" title="ล้างตะกร้านี้?" @request-close="answerClear(false)"><p>รายการสินค้า ท็อปปิ้ง และหมายเหตุที่ยังไม่ได้ชำระจะถูกล้าง</p><template #footer><Button variant="secondary" @click="answerClear(false)">เก็บออเดอร์ไว้</Button><Button variant="danger" @click="answerClear(true)">ล้างตะกร้า</Button></template></DialogFrame>
 </template>
 
 <script setup>
-import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive} from 'vue'
+import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive,nextTick} from 'vue'
 import Button from '@/components/ui/Button.vue'
 import CloudProductShell from './CloudProductShell.vue'
 import PosCatalog from '@/components/pos/PosCatalog.vue'
@@ -64,25 +50,20 @@ import CartReviewBar from '@/components/pos/CartReviewBar.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import AppQuantityInput from '@/components/ui/AppQuantityInput.vue'
 import AppInput from '@/components/ui/AppInput.vue'
-import AppSelect from '@/components/ui/AppSelect.vue'
-import AppSearch from '@/components/ui/AppSearch.vue'
-import StockMaterialCard from '@/components/inventory/StockMaterialCard.vue'
-import StockSummary from '@/components/inventory/StockSummary.vue'
-import StockLotList from '@/components/inventory/StockLotList.vue'
+import CloudStockWorkspace from './CloudStockWorkspace.vue'
+import {loadInventoryHistory} from './inventoryHistory.js'
+import {getFirebaseClient} from '../firebaseClient.js'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import ReceiptModal from '@/components/modals/ReceiptModal.vue'
-import {ShoppingBag,Package,Factory,History,LayoutDashboard,UtensilsCrossed,Sparkles,Settings,ArrowDownToLine,Check,Plus} from 'lucide-vue-next'
+import {ShoppingBag,Package,Factory,History,LayoutDashboard,UtensilsCrossed,Sparkles,Settings,Check,Plus} from 'lucide-vue-next'
 import {useElementWidth} from '@/composables/useElementWidth'
-import {projectMenus,projectMaterial,projectCart,optionCents,projectReceipt} from './productPresentation.js'
+import {projectMenus,projectCart,optionCents,projectReceipt} from './productPresentation.js'
 import {createCoreWorkspace} from './workspace.js'
-import {toScaledExact} from '../conversion.js'
 import {maxSaleLines} from './model/limits.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
 defineEmits(['sign-out'])
 const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),message=ref(''),tab=ref('sale'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
-const receiveId=ref(''),receiveQty=ref(''),receiveCost=ref(''),receiveDate=ref(today()),receiveExpiry=ref(''),receiveNote=ref('')
-const produceId=ref(''),produceQty=ref(''),produceDate=ref(today()),produceExpiry=ref(''),produceNote=ref('')
 const localUrl=`${import.meta.env.BASE_URL}local.html`
 let service,storageKey,deviceId,disposed=false,refreshAgain=false,storedCommand=null,cartCommandId=null
 try{
@@ -99,8 +80,6 @@ const menus=computed(()=>Object.values(data.value?.shop.catalog.menus||{}).filte
 const platformIds=computed(()=>data.value?.shop.catalog.platformIds.filter(id=>data.value.shop.catalog.platforms[id].active)||[])
 const menu=computed(()=>data.value?.shop.catalog.menus[selectedMenu.value])
 const menuGroups=computed(()=>{const m=menu.value,c=data.value?.shop.catalog;if(!m)return [];if(m.groupIds?.length)return m.groupIds.map(id=>c.groups[id]);if(m.groupId)return [c.groups[m.groupId]];return m.optionIds?.length?[{...m,id:'legacy',name:'ท็อปปิ้ง',allowRepeat:false}]:[]})
-const productionMaterials=computed(()=>data.value?.materials.filter(m=>!m.deleted&&m.productionRecipe)||[])
-const productionRecipe=computed(()=>material(produceId.value)?.productionRecipe)
 const sourceDate=computed(()=>String(data.value?.display.sourceDate||'ไม่ระบุวันที่').slice(0,10))
 const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return {};return {order:service.previewSale({platformId:platformId.value,lines:plain(cart.value)})}}catch(e){return {error:explain(e)}}})
 const preview=computed(()=>previewResult.value.order),previewError=computed(()=>previewResult.value.error)
@@ -111,18 +90,12 @@ const amount=q=>new Intl.NumberFormat('th-TH',{maximumFractionDigits:2}).format(
 const plain=v=>JSON.parse(JSON.stringify(toRaw(v)))
 
 const saleRoot=ref(null),saleWidth=useElementWidth(saleRoot),split=computed(()=>saleWidth.value>=696)
-const cartOpen=ref(false),searchQuery=ref(''),stockSearch=ref(''),lineError=ref(''),inventoryOpen=ref(false),inventoryKind=ref('inventory'),detailId=ref(''),clearConfirm=ref(false),receiptState=reactive({isOpen:false,order:null})
+const cartOpen=ref(false),searchQuery=ref(''),lineError=ref(''),clearConfirm=ref(false),receiptState=reactive({isOpen:false,order:null})
 let clearAnswer
 const productMenus=computed(()=>projectMenus(data.value))
 const productPlatforms=computed(()=>platformIds.value.map(id=>({id,name:name('platforms',id),isActive:true,gpPercent:(data.value.shop.catalog.platforms[id].gpBasisPoints||0)/100})))
 const filteredMenus=computed(()=>productMenus.value.filter(m=>m.name.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
 const cartQuantity=computed(()=>cart.value.reduce((n,l)=>n+l.qty,0)),cartQuantities=computed(()=>cart.value.reduce((r,l)=>({...r,[l.menuId]:(r[l.menuId]||0)+l.qty}),{}))
-const productMaterials=computed(()=>data.value?.materials.filter(m=>!m.deleted).map(projectMaterial)||[])
-const filteredMaterials=computed(()=>productMaterials.value.filter(m=>`${m.name} ${m.unit}`.toLowerCase().includes(stockSearch.value.trim().toLowerCase())))
-const lowMaterials=computed(()=>productMaterials.value.filter(m=>m.stock>0&&m.stock<=m.minAlert)),outMaterials=computed(()=>productMaterials.value.filter(m=>m.stock<=0))
-const stockValuation=computed(()=>productMaterials.value.reduce((sum,m)=>sum+Math.max(0,m.stock)*m.unitCost,0))
-const stockBudget=computed(()=>productMaterials.value.reduce((sum,m)=>sum+Math.max(0,2*m.minAlert-m.stock)*m.unitCost,0))
-const detailMaterial=computed(()=>productMaterials.value.find(m=>m.id===detailId.value))
 const navigation=[{id:'dashboard',label:'ภาพรวม & งบต้นทุน',icon:LayoutDashboard,disabled:true},{id:'sale',label:'แคชเชียร์ (POS)',icon:ShoppingBag},{id:'menu',label:'จัดการเมนู',icon:UtensilsCrossed,disabled:true},{id:'addon',label:'จัดการ Add-on',icon:Sparkles,disabled:true},{id:'stock',label:'คลังวัตถุดิบ & Package',icon:Package},{id:'produce',label:'ผลิตสินค้า',icon:Factory},{id:'orders',label:'บิลขาย & คืนบิล',icon:History},{id:'settings',label:'ตั้งค่าระบบ',icon:Settings,disabled:true}]
 const pageTitle=computed(()=>navigation.find(n=>n.id===tab.value)?.label||'Greek Yogg.')
 const productModel=reactive({cloud:true,modals:{receipt:receiptState},get currentTab(){return tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab(id){if(navigation.some(n=>n.id===id&&!n.disabled))tab.value=id},get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get cartPackagePlan(){return {items:[]}},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value)cart.value=[]},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
@@ -132,12 +105,11 @@ function setPlatform(id){if(!locked.value)platformId.value=id}
 function groupCount(g){return Object.values(choices.value[g.id]||{}).reduce((n,q)=>n+Number(q),0)}
 function toggleChoice(g,id){if(!locked.value)choices.value[g.id][id]=choices.value[g.id][id]?0:1}
 function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(c.groupId||c.groupIds?.length)return false;return Object.values(service.previewSale({platformId:platformId.value,lines:[{menuId:m.id,qty:1,optionIds:[]}]}).approvedShortages||{}).some(q=>q>0)}catch{return false}}
-function openReceive(id=''){receiveId.value=id;inventoryKind.value='inventory';inventoryOpen.value=true;error.value=''}
-function openProduce(id){produceId.value=id;inventoryKind.value='produce';inventoryOpen.value=true;error.value=''}
-function openMaterialAction(id){if(material(id)?.productionRecipe)openProduce(id);else openReceive(id)}
+const inventoryWorkspace=ref(null)
+async function readStockHistory(){const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config});return loadInventoryHistory({db,shopId:props.connection.shopId,generation:props.state.shop.generation,materials:data.value.materials,display:data.value.display})}
+watch(tab,async value=>{if(value==='produce'){await nextTick();const model=inventoryWorkspace.value?.model,m=model?.activeMaterials.find(m=>m.hasSubRecipe);if(m)model.modals.stockIn={isOpen:true,materialId:m.id}}})
 watch(split,value=>{if(value)cartOpen.value=false})
 
-function today(){return new Date(Date.now()+7*3600000).toISOString().slice(0,10)}
 function material(id){return data.value?.materials.find(m=>m.id===id)}
 function materialName(id){return material(id)?.name||id}
 function name(kind,id){return data.value?.display[kind]?.[id]?.name||id}
@@ -163,31 +135,20 @@ async function refresh(){
 }
 async function updatePending(){const p=await service.pending();if(disposed)return;if(p.length)pendingCommand.value=p[0].envelope;else if(!storedCommand)pendingCommand.value=null;save()}
 async function send(command){
- if(busy.value||!ready.value)return
+ if(busy.value||!ready.value)return {ok:false,code:'NOT_READY'}
  busy.value=true;error.value='';pendingCommand.value=plain(command);storedCommand=pendingCommand.value
- if(!save()){busy.value=false;return}
- try{const result=await service.execute(plain(command));if(disposed)return;if(result.ok)finish(result.value);else {message.value='ยังไม่ทราบผลการบันทึก กรุณาตรวจผลและลองคำสั่งเดิมต่อ';error.value=result.code==='PENDING_RESULT'?'':explain({code:result.code})}}catch(e){if(!disposed){message.value='ยังไม่ทราบผลการบันทึก';error.value=explain(e)}}finally{busy.value=false;if(!disposed)await reloadEverything()}
+ if(!save()){busy.value=false;return {ok:false,code:'LOCAL_JOURNAL_FAILED'}}
+ try{let result=await service.execute(plain(command));if(disposed)return {ok:false};if(!result.ok&&command.payload.expectedRevision!==undefined&&service.rejectStaleInventory){const resolved=await service.rejectStaleInventory();if(resolved.ok&&resolved.value)result=resolved}if(result.ok)finish(result.value);else {message.value='ยังไม่ทราบผลการบันทึก กรุณาตรวจผลและลองคำสั่งเดิมต่อ';error.value=result.code==='PENDING_RESULT'?'':explain({code:result.code})}return result}catch(e){if(!disposed){message.value='ยังไม่ทราบผลการบันทึก';error.value=explain(e)}return {ok:false,code:'PENDING_RESULT'}}finally{busy.value=false;if(!disposed)await reloadEverything()}
 }
 function finish(value){
+ inventoryWorkspace.value?.acknowledge(value)
+ if(value.rejected){pendingCommand.value=null;storedCommand=null;save();message.value='';error.value='ยอดคลังเปลี่ยน คำสั่งที่ยังไม่สำเร็จถูกหยุดแล้ว กรุณาตรวจแบบร่างที่เหลือใหม่';return}
   if(value.kind==='sale'&&!value.abandoned&&value.opId===cartCommandId){cart.value=[];cartOpen.value=false;receiptState.order=projectReceipt({...value.result,opId:value.opId},data.value);receiptState.isOpen=true}
- if(value.kind==='inventory'){receiveQty.value='';receiveNote.value=''}
- if(value.kind==='produce'){produceQty.value='';produceNote.value=''}
- inventoryOpen.value=false;cancelId.value='';pendingCommand.value=null;storedCommand=null;cartCommandId=null;approveShortage.value=false;save();message.value=value.abandoned?'หยุดบิลแล้ว ตะกร้ายังอยู่':'บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว'
+ cancelId.value='';pendingCommand.value=null;storedCommand=null;cartCommandId=null;approveShortage.value=false;save();message.value=value.abandoned?'หยุดบิลแล้ว ตะกร้ายังอยู่':'บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว'
 }
 function checkout(){if(!canCheckout.value)return;cartCommandId=crypto.randomUUID();void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),subtotalCents:preview.value.subtotalCents,approvedShortages:Object.fromEntries(shortages.value)}})}
 async function retry(){if(!pendingCommand.value)return;await send(plain(pendingCommand.value))}
 async function abandon(){if(busy.value||!ready.value)return;busy.value=true;try{const r=await service.abandon();if(!disposed){if(r.ok)finish(r.value);else error.value=explain(r)}}catch(e){error.value=explain(e)}finally{busy.value=false;await refresh()}}
-function scaled(v){const r=toScaledExact(Number(v),100);if(!r.ok||r.value<1)throw new Error('Invalid quantity');return r.value}
-function day(v){if(!v)return 999999;const n=Date.parse(`${v}T00:00:00Z`)/86400000;if(!Number.isInteger(n)||n<0||n>100000)throw new Error('Invalid date');return n}
-function submitInventory(kind){
- if(locked.value||!ready.value)return
- try{
-  const opId=crypto.randomUUID(),production=kind==='produce',id=production?produceId.value:receiveId.value
-  const input={qtyQ:scaled(production?produceQty.value:receiveQty.value),receiveDay:day(production?produceDate.value:receiveDate.value),expiryDay:!production&&material(id)?.inventoryType==='packaging'?999999:day(production?produceExpiry.value:receiveExpiry.value),note:production?produceNote.value:receiveNote.value,lotCreatedAtISO:new Date().toISOString()}
-  if(production)input.lotId=`LOT-${opId}`;else {if(receiveCost.value===''||!Number.isFinite(Number(receiveCost.value)))throw new Error('Invalid cost');input.unitCost=Number(receiveCost.value);input.newLotId=`LOT-${opId}`}
-  const payload={materialId:id,input};service.previewInventory(kind,payload);void send({opId,kind,payload})
- }catch(e){error.value=explain(e)}
-}
 function cancelOrder(orderId){if(!locked.value&&ready.value)void send({opId:crypto.randomUUID(),kind:'cancel',payload:{orderId}})}
 async function loadHistory(e){if(e.target.open&&!legacyOrders.value.length)try{legacyOrders.value=await service.history()}catch{error.value='โหลดประวัติเดิมไม่ได้ กรุณาเชื่อมต่อแล้วลองใหม่'}}
 async function loadOrders(){try{const orders=await service.orders();if(!disposed&&data.value)data.value={...data.value,orders}}catch{if(!disposed)error.value='โหลดบิลไม่ได้ กรุณาเชื่อมต่อแล้วกดโหลดข้อมูลล่าสุด'}}

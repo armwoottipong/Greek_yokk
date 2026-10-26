@@ -61,11 +61,12 @@ import {validateLotDates} from '@/domain/lotDates'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
-import { usePosStore, getTodayString, addDays, formatThaiDate } from '@/stores/posStore'
+import { getTodayString, addDays, formatThaiDate } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { Check, Plus, Minus, History, X, Package, Layers } from 'lucide-vue-next'
 
-const store = usePosStore()
+const store = useInventoryStore()
 
 const formError=ref('')
 const selectedMatId = ref('')

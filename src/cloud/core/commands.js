@@ -10,6 +10,18 @@ export function createCoreCommands({journal,transport,getContext}){
   execute:command=>executor.execute(scope,command),
   reconcile:()=>executor.reconcile(scope),
   pending:()=>journal.listUnresolved(scope),
+  async rejectStaleInventory(){
+   try{
+    const c=getContext()
+    if(!c.online||!c.ready||!c.protocolCertified||['uid','generation','deviceId','shopId','projectId'].some(k=>c[k]!==scope[k]))return {ok:false,code:'NOT_READY'}
+    const [record]=await journal.listUnresolved(scope)
+    if(!record)return {ok:true,value:null}
+    const envelope=record.envelope,result=await transport.rejectStaleInventory({...envelope,kind:transportKind(envelope.kind)})
+    const value=result.receipt?wrap(envelope.kind,result.receipt):{opId:envelope.opId,kind:envelope.kind,rejected:true,code:result.code}
+    await journal.resolve(scope,envelope.opId,value)
+    return {ok:true,value}
+   }catch(error){return {ok:false,code:error.code||'PENDING_RESULT'}}
+  },
   async abandon(){
    const c=getContext()
    if(!c.online||!c.ready||['uid','generation','deviceId','shopId','projectId'].some(k=>c[k]!==scope[k]))return {ok:false,code:'NOT_READY'}

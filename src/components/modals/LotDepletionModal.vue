@@ -121,9 +121,10 @@
 import {AlertTriangle} from 'lucide-vue-next'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { computed, ref } from 'vue'
-import { usePosStore, formatDisplayDate } from '@/stores/posStore'
+import { formatDisplayDate } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 
-const store = usePosStore()
+const store = useInventoryStore()
 const modal = computed(() => store.modals.lotDepletion || {})
 const confirmButtonRef = ref(null)
 

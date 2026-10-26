@@ -151,10 +151,11 @@ import FormField from '@/components/ui/FormField.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import {useModalForm} from '@/composables/useModalForm'
 import { ref, computed, watch } from 'vue'
-import { usePosStore, formatThaiDate, getReceiveAgeStatus } from '@/stores/posStore'
+import { formatThaiDate, getReceiveAgeStatus } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import { Trash2 } from 'lucide-vue-next'
 
-const store = usePosStore()
+const store = useInventoryStore()
 
 const wasteQty = ref(0)
 const selectedReason = ref('ผลไม้ช้ำ/ขึ้นรา')

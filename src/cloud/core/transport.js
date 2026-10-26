@@ -1,9 +1,7 @@
 import {doc,collection,getDocFromServer,getDocsFromServer,runTransaction,serverTimestamp} from 'firebase/firestore'
 import {summaryMultiGroupSale} from './model/saleGroups.js'
 import {summaryCancel} from './model/cancel.js'
-import {summaryStock} from './model/stock.js'
-import {summaryPackageStock} from './model/packageStock.js'
-import {summaryProduce} from './model/produce.js'
+import {planInventoryCommand} from './inventoryPlan.js'
 import {commitMetrics} from './model/metrics.js'
 const fail=code=>Object.assign(new Error(code),{code})
 const canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v)
@@ -38,27 +36,35 @@ export function createCoreTransport({db,getContext}){
    const f=summaryCancel(shop,materials,order,options)
    return {f,receipt:f.operation,materials:f.nextMaterials,order:f.nextOrder}
   }
-  if(command.kind==='receive'){
-   const m=materials.find(m=>m.id===p.materialId);if(!m)throw fail('MATERIAL_NOT_FOUND')
-   const f=(m.inventoryType==='packaging'?summaryPackageStock:summaryStock)(shop,m,{...p.input,...options})
-   return {f,receipt:f.operation,materials:[f.next]}
-  }
-  if(command.kind==='produce'){
-   const f=summaryProduce(shop,materials,p.materialId,{...p.input,...options})
-   return {f,receipt:f.operation,materials:[...f.nextInputs,f.nextOutput]}
-  }
-  throw fail('UNKNOWN_COMMAND')
+  const f=planInventoryCommand(shop,materials,command,s.uid)
+  return {f,receipt:f.operation,materials:f.nextMaterials}
  }
  const collectionFor=kind=>kind==='sale'?'orders':'operations'
  function checkReceipt(s,command,r){
-  const kinds={sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce']}
+  const kinds={sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['stock_count','switch_lot','material_create','material_archive','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
   if(r.opId!==command.opId||r.uid!==s.uid||!kinds[command.kind]?.includes(r.kind))throw fail('COMMAND_ID_COLLISION')
   const p=command.payload
   if(p){
    if(command.kind==='cancel'&&r.orderId!==p.orderId)throw fail('COMMAND_ID_COLLISION')
-   if(['receive','produce'].includes(command.kind)){
+   if(['inventory','receive','produce'].includes(command.kind)){
     if((r.materialId||r.outputId)!==p.materialId)throw fail('COMMAND_ID_COLLISION')
-    for(const [k,v] of Object.entries(p.input))if(Object.hasOwn(r,k)&&!equal(r[k],v))throw fail('COMMAND_ID_COLLISION')
+    for(const [k,v] of Object.entries(p.input||{}))if(Object.hasOwn(r,k)&&!equal(r[k],v))throw fail('COMMAND_ID_COLLISION')
+   }
+   if(p.expectedRevision!==undefined&&r.shopRevision!==p.expectedRevision+1)throw fail('COMMAND_ID_COLLISION')
+   if(command.kind==='stock_count'){
+    if(!Array.isArray(p.requests)||p.requests.length!==r.rows.length)throw fail('COMMAND_ID_COLLISION')
+    p.requests.forEach((q,i)=>{const row=r.rows[i],counts=q.counts?.map(c=>({id:c.id,to:c.to})),saved=row.counts.map(c=>({id:c.id,to:c.to}))
+     if(q.materialId!==row.materialId||(q.mode||'count')!==row.mode||(q.reason||'')!==row.reason||(q.note||'')!==row.note||(q.requestedQ||0)!==row.requestedQ||!equal(counts,saved))throw fail('COMMAND_ID_COLLISION')
+    })
+   }
+   if(command.kind==='material_create'){
+    const input=Object.fromEntries(['id','name','emoji','unit','inventoryType','packSize','minAlertQ'].map(key=>[key,r.materialSnapshot[key]]))
+    if(!equal(input,p.input))throw fail('COMMAND_ID_COLLISION')
+   }
+   if(['switch_lot','material_archive','material_metadata','material_measure','material_details','material_type','production_recipe'].includes(command.kind)){
+    if((r.materialId||r.targetId)!==p.materialId)throw fail('COMMAND_ID_COLLISION')
+    const key={switch_lot:'lotId',material_archive:'deleted',material_metadata:'metadata',material_measure:'measure',material_details:'details',material_type:'inventoryType',production_recipe:'recipe'}[command.kind]
+    if(!equal(r[key],p[key]))throw fail('COMMAND_ID_COLLISION')
    }
    if(command.kind==='sale'){
     if(r.platformId!==p.platformId||r.lines.length!==p.lines.length)throw fail('COMMAND_ID_COLLISION')
@@ -131,6 +137,18 @@ export function createCoreTransport({db,getContext}){
   // Always return the persisted server receipt, including resolved timestamps.
   return await receipt(command.kind,result.opId)
  }
+ async function rejectStaleInventory(command){
+  const s=scope(),expected=command.payload?.expectedRevision
+  const kinds=['inventory','receive','produce','stock_count','switch_lot','material_create','material_archive','material_metadata','material_measure','material_details','material_type','production_recipe']
+  if(!kinds.includes(command.kind)||!Number.isSafeInteger(expected)||expected<0)throw fail('STALE_NOT_PROVEN')
+  // Read the advanced root first. Once observed it fences this immutable draft;
+  // a subsequent server receipt read also catches commits completed before it.
+  const fresh=await snapshot();guard(s)
+  if(fresh.shop.revision<=expected)throw fail('STALE_NOT_PROVEN')
+  const saved=await receipt(command.kind,command.opId);guard(s)
+  if(saved)return {receipt:checkReceipt(s,command,saved)}
+  return {rejected:true,code:'STALE_INVENTORY_DRAFT'}
+ }
  async function abandonSale(command){
   const s=scope(),saved=await receipt('sale',command.opId);if(saved)return {receipt:checkReceipt(s,command,saved)}
   const initial=await snapshot(),f=summaryMultiGroupSale(initial.shop,initial.materials,command.payload.lines,{opId:command.opId,uid:s.uid,platformId:command.payload.platformId})
@@ -148,5 +166,5 @@ export function createCoreTransport({db,getContext}){
    return {abandoned:true}
   })
  }
- return {snapshot,commit,receipt,abandonSale}
+ return {snapshot,commit,receipt,abandonSale,rejectStaleInventory}
 }

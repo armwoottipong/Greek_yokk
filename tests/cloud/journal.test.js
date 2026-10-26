@@ -131,3 +131,10 @@ describe('durable scoped command journal', () => {
     await expect(make().prepare(scope, { ...command(), opId: 1 })).rejects.toMatchObject({ code: 'INVALID_COMMAND' })
   })
 })
+it.each(['stock_count','switch_lot','material_create','material_archive','material_metadata','material_measure','material_details','material_type','production_recipe','receive'])('durably retains certified %s commands',async kind=>{
+ const journal=make(),envelope={opId:'INVENTORY',kind,payload:{expectedRevision:3}}
+ await journal.prepare(scope,envelope);expect((await journal.listUnresolved(scope))[0].envelope).toEqual(envelope)
+})
+it('rejects commands outside the journal allowlist',async()=>{
+ await expect(make().prepare(scope,{opId:'UNSUPPORTED',kind:'anything',payload:{}})).rejects.toMatchObject({code:'INVALID_COMMAND'})
+})

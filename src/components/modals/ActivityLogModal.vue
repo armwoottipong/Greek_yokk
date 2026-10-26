@@ -62,7 +62,8 @@ import { businessDateKey } from '@/domain/businessDate'
 import { csvField } from '@/domain/csv'
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed, watch } from 'vue'
-import { usePosStore, formatThaiDate } from '@/stores/posStore'
+import { formatThaiDate } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import HistoryLogEntry from '@/components/ui/HistoryLogEntry.vue'
 import FilterDropdown from '@/components/ui/FilterDropdown.vue'
 import {
@@ -72,7 +73,7 @@ import {
   SlidersHorizontal, MoreHorizontal, ChevronDown
 } from 'lucide-vue-next'
 
-const store = usePosStore()
+const store = useInventoryStore()
 const ordersById = computed(() => new Map((store.orders || []).map(order => [order.orderId, order])))
 async function confirmUndoOrder(orderId) {
   const confirmed = await store.confirmDialog({

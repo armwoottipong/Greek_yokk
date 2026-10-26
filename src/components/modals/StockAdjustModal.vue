@@ -213,11 +213,12 @@ import Button from '@/components/ui/Button.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
-import { usePosStore, formatThaiDate } from '@/stores/posStore'
+import { formatThaiDate } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { Check, Plus, Minus, History } from 'lucide-vue-next'
 
-const store = usePosStore()
+const store = useInventoryStore()
 
 const formError=ref('')
 const selectedMatId = ref('')

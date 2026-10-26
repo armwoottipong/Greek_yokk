@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { usePosStore } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 
 /**
  * Composable for standardized modal form management:
@@ -8,7 +8,7 @@ import { usePosStore } from '@/stores/posStore'
  * - Standardizes save confirmation dialogs
  */
 export function useModalForm(getCurrentState) {
-  const store = usePosStore()
+  const store = useInventoryStore()
   const initialSnapshot = ref('')
 
   function saveSnapshot(customState = null) {

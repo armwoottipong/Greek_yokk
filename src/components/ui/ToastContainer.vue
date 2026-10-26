@@ -28,11 +28,11 @@
 </template>
 
 <script setup>
-import { usePosStore } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import {ref,watch,nextTick,onUnmounted} from 'vue'
 import { CheckCircle2, AlertTriangle, Info, X } from 'lucide-vue-next'
 
-const store = usePosStore()
+const store = useInventoryStore()
 const announcement=ref('')
 const timers=new Map()
 let announcedIds=new Set()

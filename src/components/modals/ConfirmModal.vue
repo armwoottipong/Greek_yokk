@@ -11,8 +11,8 @@
 import Button from '@/components/ui/Button.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import {computed} from 'vue'
-import {usePosStore} from '@/stores/posStore'
-const store=usePosStore()
+import { useInventoryStore } from '@/composables/useInventoryStore'
+const store=useInventoryStore()
 const modal=computed(()=>store.modals.confirm||{})
 function onConfirm() {
   if(!modal.value.isOpen)return

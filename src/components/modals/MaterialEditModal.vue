@@ -470,14 +470,15 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
-import { usePosStore, getTodayString } from '@/stores/posStore'
+import { getTodayString } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import MaterialUsage from '@/components/inventory/MaterialUsage.vue'
 import { MATERIAL_KIND_OPTIONS, getMaterialKind } from '@/domain/materialClassification'
 import { validateLotDates } from '@/domain/lotDates'
 import { useModalForm } from '@/composables/useModalForm'
 import { X, Check, Plus, Minus, Archive, Trash2 } from 'lucide-vue-next'
 
-const store = usePosStore()
+const store = useInventoryStore()
 const formError = ref('')
 const materialKind = computed({
   get: () => getMaterialKind(form.value),
@@ -958,7 +959,7 @@ async function submit() {
     pCost = Number(form.value.packCost) >= 0 ? Number(form.value.packCost) : 0
   }
 
-  const result = store.saveMaterial({
+  const result = await store.saveMaterial({
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     category: form.value.category,

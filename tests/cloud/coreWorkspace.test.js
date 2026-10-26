@@ -1,6 +1,8 @@
 import {it,expect,vi,beforeEach} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import CoreWorkspace from '../../src/cloud/core/CoreWorkspace.vue'
+import {summaryFixture} from '../firestore/summaryFixture.js'
+import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
 const h=vi.hoisted(()=>({execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn()}))
 vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,pending:h.pending,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,close:()=>{}})}))
 const state={user:{uid:'u'},shop:{generation:'g1',revision:1},serverReady:true}
@@ -78,27 +80,32 @@ it('locks original cart quantity and platform controls while a server result is 
  w.unmount()
 })
 
-it('receives stock from the original material row using the cloud command path',async()=>{
- const d=await h.load();d.materials=[{id:'I',name:'นม',stock:200,minAlertQ:100,unit:'มล.',unitCost:.05,packSize:1000,packCostCents:6000,inventoryType:'ingredient',lotIds:[],lots:{}}];h.load.mockResolvedValue(d)
+it('stages receiving with the original stock UI and only sends Firebase on original draft confirmation',async()=>{
+ const f=summaryFixture(),m=f.materials[0];m.name='นม';m.unit='มล.';m.packSize=1000;m.packUnit='กล่อง';m.packCostCents=6000
+ const d={shop:materialRegistryShop(f.shop,f.materials),materials:f.materials,display:{menus:{},addons:{},platforms:{}},orders:[]};h.load.mockResolvedValue(d)
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  await w.get('.brand-navigation button[title="คลังวัตถุดิบ & Package"]').trigger('click');await flushPromises()
- expect(w.get('.stock-management-row').text()).toContain('2 มล.')
- expect(w.get('.stock-row-cost').text()).toContain('฿60')
+ expect(w.find('.desktop-material-table').exists()).toBe(true);expect(w.get('.stock-row-cost').text()).toContain('฿60')
  await w.get('button[aria-label="รับเข้า นม"]').trigger('click');await flushPromises()
- await w.get('input[aria-label="จำนวนรับเข้า"]').setValue('1.25');await w.get('input[aria-label="ต้นทุนต่อหน่วย"]').setValue('.05')
- await w.get('#cloud-inventory-form').trigger('submit');await flushPromises()
- expect(h.execute.mock.calls.at(-1)[0]).toMatchObject({kind:'inventory',payload:{materialId:'I',input:{qtyQ:125,unitCost:.05}}})
- expect(w.text()).toContain('บันทึกสำเร็จ');w.unmount()
+ await w.get('input[aria-label="จำนวนแพ็คที่รับเข้า"]').setValue('1');await w.get('input[aria-label="ราคาซื้อ"]').setValue('60')
+ await w.get('#StockInModal .receipt-footer .ui-button--primary').trigger('click');await flushPromises()
+ expect(h.execute).not.toHaveBeenCalled();expect(w.find('[data-review-stock-drafts]').exists()).toBe(true)
+ await w.get('[data-review-stock-drafts]').trigger('click');await flushPromises()
+ await w.get('#stock-draft-review .draft-review-actions .ui-button--primary').trigger('click');await flushPromises()
+ expect(h.execute.mock.calls.at(-1)[0]).toMatchObject({kind:'inventory',payload:{materialId:m.id,input:{qtyQ:100000,unitCost:.06}}});w.unmount()
 })
-it('produces from the original stock row and confirms cancellation before sending a cloud command',async()=>{
- const d=await h.load();d.materials=[{id:'Y',name:'โยเกิร์ต',stock:1000,unit:'กรัม',unitCost:1,packSize:1,inventoryType:'ingredient',lotIds:[],lots:{},productionRecipe:{yieldQ:1000,inputIds:['I'],quantities:[200]}}];h.load.mockResolvedValue(d)
+it('produces through the original modal then confirms cancellation before sending a cloud command',async()=>{
+ const f=summaryFixture(),output=f.materials[12];output.name='โยเกิร์ต';output.unit='กรัม';output.productionRecipe={yieldQ:1000,inputIds:['S0','S1'],quantities:[100,100]}
+ const d={shop:materialRegistryShop(f.shop,f.materials),materials:f.materials,display:{menus:{M:{name:'โยเกิร์ต'}},addons:{},platforms:{P:{name:'หน้าร้าน'}}},orders:[]};h.load.mockResolvedValue(d)
  h.orders.mockResolvedValue([{opId:'BILL',status:'committed',subtotalCents:6900,platformId:'P',lines:[{menuId:'M',qty:1}]}])
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  await w.get('.brand-navigation button[title="ผลิตสินค้า"]').trigger('click');await flushPromises()
- await w.get('button[aria-label="ผลิต โยเกิร์ต"]').trigger('click');await flushPromises()
- await w.get('input[aria-label="จำนวนที่ผลิตได้"]').setValue('5')
- await w.get('#cloud-inventory-form').trigger('submit');await flushPromises()
- expect(h.execute.mock.calls.at(-1)[0]).toMatchObject({kind:'produce',payload:{materialId:'Y',input:{qtyQ:500}}})
+ await w.get('input[aria-label="จำนวนรอบผลิต"]').setValue('.5')
+ await w.get('#StockInModal .receipt-footer .ui-button--primary').trigger('click');await flushPromises()
+ expect(h.execute).not.toHaveBeenCalled()
+ await w.get('[data-review-stock-drafts]').trigger('click');await flushPromises()
+ await w.get('#stock-draft-review .draft-review-actions .ui-button--primary').trigger('click');await flushPromises()
+ expect(h.execute.mock.calls.at(-1)[0]).toMatchObject({kind:'produce',payload:{materialId:output.id,input:{qtyQ:500}}})
  await w.get('.brand-navigation button[title="บิลขาย & คืนบิล"]').trigger('click');await flushPromises()
  await w.get('.order-list button').trigger('click');await flushPromises()
  expect(h.execute.mock.calls.filter(([c])=>c.kind==='cancel')).toHaveLength(0)

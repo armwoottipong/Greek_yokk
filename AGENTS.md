@@ -33,3 +33,12 @@
   concrete milestone. Do not inflate readiness from prototype test counts.
 - Minimize total tokens. Use the smallest adequate model for delegated work;
   avoid unnecessary agents, repeated context reads and redundant test runs.
+
+## Original UI requirement (26 October 2026)
+
+- Preserve original product UI layouts, templates and styles; settings is the
+  only design exception explicitly allowed by the user. Connect Firebase through
+  data/command bindings. In particular use StockView and its original stock
+  modals, filters, table, lot details and draft review/save flow; do not substitute
+  a new inventory layout or a simplified test workspace.
+- Complete inventory integration before moving to menu settings or reports.

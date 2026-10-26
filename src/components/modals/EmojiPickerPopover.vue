@@ -44,13 +44,13 @@
 <script setup>
 import ModalShell from '@/components/ui/ModalShell.vue'
 import { ref, computed } from 'vue'
-import { usePosStore } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import { X } from 'lucide-vue-next'
 import AppSearch from '@/components/ui/AppSearch.vue'
 import IconButton from '@/components/ui/IconButton.vue'
 import Button from '@/components/ui/Button.vue'
 
-const store = usePosStore()
+const store = useInventoryStore()
 const searchQuery = ref('')
 const activeCategory = ref('ทั้งหมด')
 

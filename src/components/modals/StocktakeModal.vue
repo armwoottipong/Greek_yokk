@@ -64,10 +64,10 @@ import Button from '@/components/ui/Button.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import { ref, computed, watch } from 'vue'
-import { usePosStore } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import { Check, Search, RotateCcw, ClipboardCheck } from 'lucide-vue-next'
 
-const store = usePosStore()
+const store = useInventoryStore()
 
 const searchQuery = ref('')
 const selectedCategory = ref('all')
