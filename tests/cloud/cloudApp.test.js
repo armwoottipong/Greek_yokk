@@ -51,3 +51,14 @@ it('signs out and disposes subscriptions on unmount',async()=>{
  await w.get('[data-sign-out]').trigger('click');expect(h.sessions[0].signOut).toHaveBeenCalledOnce()
  w.unmount();expect(h.sessions[0].dispose).toHaveBeenCalledOnce();w=null
 })
+it('keeps an active cart workspace during cache loss, and removes it immediately on account change',async()=>{
+ w=mount(CloudApp,{props:{connection},global:{stubs:{CoreWorkspace:{props:['state'],template:'<div data-workspace>{{ state.user.uid }}:{{ state.shop.generation }}:{{ state.serverReady }}</div>'}}}})
+ await publish({phase:'ready',user:{uid:'a'},serverReady:true,shop:{generation:'g1',revision:1,catalog:{},materialIds:[]}})
+ expect(w.get('[data-workspace]').text()).toBe('a:g1:true')
+ await publish({phase:'loading',user:{uid:'a'},serverReady:false,shop:null})
+ expect(w.get('[data-workspace]').text()).toBe('a:g1:false')
+ await publish({phase:'loading',user:{uid:'b'},serverReady:false,shop:null})
+ expect(w.find('[data-workspace]').exists()).toBe(false)
+ await publish({phase:'ready',user:{uid:'b'},serverReady:true,shop:{generation:'g2',revision:1,catalog:{},materialIds:[]}})
+ expect(w.get('[data-workspace]').text()).toBe('b:g2:true')
+})

@@ -1,5 +1,6 @@
 <template>
- <main class="cloud-entry" aria-labelledby="cloud-title">
+ <CoreWorkspace v-if="workspaceState" :key="`${workspaceState.user.uid}:${workspaceState.shop.generation}`" :connection="connection" :state="workspaceState" @sign-out="leave" />
+ <main v-else class="cloud-entry" aria-labelledby="cloud-title">
   <section class="cloud-entry-panel">
    <img :src="mascot" width="112" height="112" alt="" class="cloud-entry-mascot" />
    <p v-if="connection.mode==='emulator'" class="cloud-entry-environment">ทดสอบบนเครื่องนี้</p>
@@ -22,6 +23,7 @@
 <script setup>
 import {computed,onMounted,onUnmounted,ref} from 'vue'
 import Button from '@/components/ui/Button.vue'
+import CoreWorkspace from '@/cloud/core/CoreWorkspace.vue'
 import {getFirebaseClient} from '@/cloud/firebaseClient.js'
 import {createShopSession} from '@/cloud/session.js'
 import {finishAppStartup} from '@/composables/appStartup.js'
@@ -30,6 +32,8 @@ const mascot=`${import.meta.env.BASE_URL}brand/content-mascot.svg`
 const localUrl=`${import.meta.env.BASE_URL}local.html`
 const empty=()=>({phase:'connecting',user:null,shop:null,serverReady:false,message:''})
 const state=ref(empty()),signingOut=ref(false)
+const lastShop=ref(null),lastUid=ref(null)
+const workspaceState=computed(()=>state.value.user&&lastShop.value&&state.value.user.uid===lastUid.value?{...state.value,shop:state.value.shop||lastShop.value}:null)
 let session=null,epoch=0
 const descriptions={
  connecting:{title:'กำลังเปิดร้าน',description:'กำลังตรวจสอบการเข้าสู่ระบบ'},
@@ -48,7 +52,14 @@ function connect(){
  session?.dispose();session=null;state.value=empty()
  try{
   const {auth,db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config})
-  session=createShopSession({auth,db,shopId:props.connection.shopId,onState:value=>{if(token===epoch)state.value=value}})
+  session=createShopSession({auth,db,shopId:props.connection.shopId,onState:value=>{
+   if(token!==epoch)return
+   if(value.user?.uid!==lastUid.value){lastShop.value=null;lastUid.value=value.user?.uid||null}
+   if(value.serverReady&&value.shop?.catalog&&value.shop?.materialIds)lastShop.value=value.shop
+   // Keep an existing workspace/cart mounted during transient cache/offline states.
+   // Maintenance/import/generation changes still block all command writes.
+   state.value=value
+  }})
   session.start()
  }catch{state.value={...empty(),phase:'error',message:'เปิดการเชื่อมต่อไม่ได้ กรุณาตรวจการตั้งค่าร้านแล้วลองใหม่'}}
 }

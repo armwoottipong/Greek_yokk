@@ -4,7 +4,7 @@ import {assertSucceeds,assertFails} from '@firebase/rules-unit-testing'
 import {doc,getDoc,setDoc,deleteDoc,collection,getDocs} from 'firebase/firestore'
 import {createRulesTest} from './helpers.js'
 let env
-beforeAll(async()=>{env=await createRulesTest({rules:await readFile(new URL('../../firestore.rules',import.meta.url),'utf8')})})
+beforeAll(async()=>{env=await createRulesTest({rules:await readFile(new URL('./candidates/bootstrap.rules',import.meta.url),'utf8')})})
 beforeEach(async()=>{await env.clearFirestore()})
 afterAll(async()=>{await env?.cleanup()})
 it('allows a signed-in user to detect that the target shop still needs setup',async()=>{

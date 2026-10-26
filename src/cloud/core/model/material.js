@@ -1,0 +1,1 @@
+export function decodeSummaryMaterial(m){const next=structuredClone(m);for(const id of next.lotIds){next.lots[id].qty=next.lotQty[id];next.lots[id].isInUse=next.lotQty[id]>0?next.activeLotId===id:next.zeroActiveIds.includes(id)}delete next.lotQty;delete next.zeroActiveIds;return next}

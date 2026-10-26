@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Bootstrap only: signed-in users can read the configured shop status or
+    // detect missing setup. Core command/data access is activated separately.
+    match /shops/{shopId} {
+      allow get: if request.auth != null && shopId == 'greek-yogg' &&
+        (!exists(/databases/$(database)/documents/shops/$(shopId)) ||
+          resource.data.keys().hasOnly(['status', 'generation']));
+    }
+    // Do not expose experimental command policies or permit client writes.
+    match /{document=**} { allow read, write: if false; }
+  }
+}
