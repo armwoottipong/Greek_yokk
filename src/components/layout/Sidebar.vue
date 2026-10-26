@@ -46,7 +46,7 @@
     </nav>
 
     <!-- Bottom Store Info & Sync -->
-    <div v-if="!model" class="hidden md:block p-4 border-t border-stone-100 bg-[#FBF5EA] text-xs">
+    <div class="hidden md:block p-4 border-t border-stone-100 bg-[#FBF5EA] text-xs">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[11px] font-medium text-stone-500">สถานะคลัง & ต้นทุน</span>
         <div class="flex items-center gap-1.5 font-number">
@@ -65,8 +65,8 @@
       </div>
       <div class="flex items-center justify-between text-[12px] text-stone-500">
         <span class="flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full" :class="store.gasApiUrl ? 'bg-emerald-500' : 'bg-stone-300'"></span>
-          {{ store.gasApiUrl ? 'Google Sheets (ตั้งค่าแล้ว)' : 'Offline / Local' }}
+          <span class="w-2 h-2 rounded-full" :class="(model ? model.connected : store.gasApiUrl) ? 'bg-emerald-500' : 'bg-stone-300'"></span>
+          {{ model ? (model.connected ? 'Firebase (เชื่อมต่อแล้ว)' : 'Firebase (ขาดการเชื่อมต่อ)') : store.gasApiUrl ? 'Google Sheets (ตั้งค่าแล้ว)' : 'Offline / Local' }}
         </span>
         <button
           v-if="store.gasApiUrl"
@@ -77,7 +77,6 @@
         </button>
       </div>
     </div>
-    <div v-if="model" class="cloud-sidebar-status"><span class="cloud-status-dot" :class="{connected:model.connected}"></span>{{ model.connected?'Firebase · เชื่อมต่อแล้ว':'ขาดการเชื่อมต่อ' }}<small>{{ model.account }}</small></div>
   </aside>
 </template>
 
@@ -127,7 +126,7 @@ const navItems = computed(() => props.items || [
   { id: 'addon', label: 'จัดการ Add-on', icon: Sparkles, badge: `${store.addons.length} รายการ`, badgeColor: 'bg-stone-100 text-stone-600' },
   { id: 'stock', label: 'คลังวัตถุดิบ & Package', icon: Package, alert: store.lowStockMaterials.length > 0 },
   { id: 'settings', label: 'ตั้งค่า & ระบบ API', icon: Settings }
-])
+].map(item => ({...item, disabled: !!props.model && !props.model.availableTabs.includes(item.id)})))
 </script>
 <style scoped>
 .brand-sidebar{background:var(--bg-card);border-right:1px solid transparent}
@@ -159,6 +158,5 @@ const navItems = computed(() => props.items || [
 </style>
 
 
-<style scoped>.cloud-sidebar-status{padding:20px 16px;font-size:.75rem;color:var(--text-muted);line-height:1.8}.cloud-sidebar-status small{display:block;overflow-wrap:anywhere}.cloud-status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--state-warning);margin-right:7px}.cloud-status-dot.connected{background:var(--accent-green)}@media(min-width:768px) and (max-width:1199px){.is-tablet-rail .cloud-sidebar-status{display:none}}</style>
 
 <style scoped>.brand-nav-item:disabled{opacity:.5;cursor:not-allowed}</style>

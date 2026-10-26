@@ -1,5 +1,5 @@
 <template>
- <CloudProductShell :model="productModel" :items="navigation" :title="pageTitle" :busy="busy" :online="online" @reload="reloadEverything" @sign-out="$emit('sign-out')">
+ <CloudProductShell :model="productModel" :title="pageTitle" :busy="busy" :online="online" @history="tab='orders'" @reload="reloadEverything" @sign-out="$emit('sign-out')">
   <p v-if="data?.display.trial" class="trial-banner"><strong>ข้อมูลทดสอบ — ยังไม่ใช่ยอดร้านปัจจุบัน</strong><br>จากไฟล์สำรอง {{ sourceDate }} · <a :href="localUrl">เปิดระบบเดิม</a></p>
   <p v-if="!state.serverReady||!online" class="connection-warning" role="status">ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว กรุณาเชื่อมต่อก่อนบันทึก</p>
   <p v-if="message" class="notice" role="status" aria-live="polite">{{ message }}</p>
@@ -22,7 +22,7 @@
     </CartPanel>
     <CartReviewBar v-if="!split" :quantity="cartQuantity" :subtotal="(preview?.subtotalCents||0)/100" :open="cartOpen" @open="cartOpen=true"/>
    </section>
-   <CloudStockWorkspace ref="inventoryWorkspace" v-show="tab==='stock'||tab==='produce'" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory"/>
+   <CloudStockWorkspace ref="inventoryWorkspace" v-show="tab==='stock'" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory"/>
    <section v-if="tab==='orders'" aria-label="ประวัติบิล"><div class="section-heading"><div><h3>บิลขายและคืนบิล</h3><p>100 บิลล่าสุดจาก Firebase · คืนสต็อกตามล็อตเดิมเมื่อคืนบิล</p></div></div><p v-if="!data.orders.length" class="empty-orders">ยังไม่มีบิลจาก Firebase</p><ol class="order-list"><li v-for="o in data.orders" :key="o.opId"><div><StatusBadge :label="o.status==='cancelled'?'คืนบิลแล้ว':'ขายสำเร็จ'" :tone="o.status==='cancelled'?'neutral':'success'"/><strong>{{ money(o.subtotalCents) }}</strong><p>{{ orderDate(o) }} · {{ name('platforms',o.platformId) }}</p><p>{{ o.lines.map(l=>`${name('menus',l.menuId)} × ${l.qty}`).join(', ') }}</p><small>{{ o.opId }}</small></div><Button v-if="o.status==='committed'" variant="secondary" :disabled="locked||!ready" @click="cancelId=o.opId">คืนบิล</Button></li></ol><details @toggle="loadHistory"><summary>ประวัติบิลจากระบบเดิม (อ่านอย่างเดียว)</summary><p class="muted">ใช้ตรวจย้อนหลัง การคืนบิลรองรับเฉพาะบิลที่ขายผ่าน Firebase</p><p v-for="(o,i) in legacyOrders" :key="i">{{ o.createdAt }} · {{ o.platformName }} · {{ money(Math.round((o.subtotal||0)*100)) }} · {{ o.status||'ประวัติเดิม' }}</p></details></section>
   </template>
  </CloudProductShell>
@@ -41,7 +41,7 @@
 </template>
 
 <script setup>
-import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive,nextTick} from 'vue'
+import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive} from 'vue'
 import Button from '@/components/ui/Button.vue'
 import CloudProductShell from './CloudProductShell.vue'
 import PosCatalog from '@/components/pos/PosCatalog.vue'
@@ -55,7 +55,7 @@ import {loadInventoryHistory} from './inventoryHistory.js'
 import {getFirebaseClient} from '../firebaseClient.js'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import ReceiptModal from '@/components/modals/ReceiptModal.vue'
-import {ShoppingBag,Package,Factory,History,LayoutDashboard,UtensilsCrossed,Sparkles,Settings,Check,Plus} from 'lucide-vue-next'
+import {Check,Plus} from 'lucide-vue-next'
 import {useElementWidth} from '@/composables/useElementWidth'
 import {projectMenus,projectCart,optionCents,projectReceipt} from './productPresentation.js'
 import {createCoreWorkspace} from './workspace.js'
@@ -96,9 +96,8 @@ const productMenus=computed(()=>projectMenus(data.value))
 const productPlatforms=computed(()=>platformIds.value.map(id=>({id,name:name('platforms',id),isActive:true,gpPercent:(data.value.shop.catalog.platforms[id].gpBasisPoints||0)/100})))
 const filteredMenus=computed(()=>productMenus.value.filter(m=>m.name.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
 const cartQuantity=computed(()=>cart.value.reduce((n,l)=>n+l.qty,0)),cartQuantities=computed(()=>cart.value.reduce((r,l)=>({...r,[l.menuId]:(r[l.menuId]||0)+l.qty}),{}))
-const navigation=[{id:'dashboard',label:'ภาพรวม & งบต้นทุน',icon:LayoutDashboard,disabled:true},{id:'sale',label:'แคชเชียร์ (POS)',icon:ShoppingBag},{id:'menu',label:'จัดการเมนู',icon:UtensilsCrossed,disabled:true},{id:'addon',label:'จัดการ Add-on',icon:Sparkles,disabled:true},{id:'stock',label:'คลังวัตถุดิบ & Package',icon:Package},{id:'produce',label:'ผลิตสินค้า',icon:Factory},{id:'orders',label:'บิลขาย & คืนบิล',icon:History},{id:'settings',label:'ตั้งค่าระบบ',icon:Settings,disabled:true}]
-const pageTitle=computed(()=>navigation.find(n=>n.id===tab.value)?.label||'Greek Yogg.')
-const productModel=reactive({cloud:true,modals:{receipt:receiptState},get currentTab(){return tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab(id){if(navigation.some(n=>n.id===id&&!n.disabled))tab.value=id},get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get cartPackagePlan(){return {items:[]}},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value)cart.value=[]},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
+const pageTitle=computed(()=>({sale:'แคชเชียร์ (POS)',stock:'คลังวัตถุดิบ & Package',orders:'บิลขาย & คืนบิล'})[tab.value]||'Greek Yogg.')
+const productModel=reactive({cloud:true,modals:{receipt:receiptState},availableTabs:['pos','stock'],get menus(){return projectMenus(data.value)},get addons(){return Object.values(data.value?.shop.catalog.addons||data.value?.display.addons||{})},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab(id){if(id==='pos')tab.value='sale';else if(id==='stock')tab.value=id},get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get cartPackagePlan(){return {items:[]}},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value)cart.value=[]},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
 function answerClear(value){clearConfirm.value=false;clearAnswer?.(value);clearAnswer=null}
 function updateCartQty(index,qty){if(locked.value)return;try{const next=plain(cart.value);next[index].qty=qty;service.previewSale({platformId:platformId.value,lines:next});cart.value=next}catch(e){error.value=explain(e)}}
 function setPlatform(id){if(!locked.value)platformId.value=id}
@@ -107,7 +106,6 @@ function toggleChoice(g,id){if(!locked.value)choices.value[g.id][id]=choices.val
 function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(c.groupId||c.groupIds?.length)return false;return Object.values(service.previewSale({platformId:platformId.value,lines:[{menuId:m.id,qty:1,optionIds:[]}]}).approvedShortages||{}).some(q=>q>0)}catch{return false}}
 const inventoryWorkspace=ref(null)
 async function readStockHistory(){const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config});return loadInventoryHistory({db,shopId:props.connection.shopId,generation:props.state.shop.generation,materials:data.value.materials,display:data.value.display})}
-watch(tab,async value=>{if(value==='produce'){await nextTick();const model=inventoryWorkspace.value?.model,m=model?.activeMaterials.find(m=>m.hasSubRecipe);if(m)model.modals.stockIn={isOpen:true,materialId:m.id}}})
 watch(split,value=>{if(value)cartOpen.value=false})
 
 function material(id){return data.value?.materials.find(m=>m.id===id)}

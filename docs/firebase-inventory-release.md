@@ -53,3 +53,14 @@ acceptance uses a local harness that refuses writes, then read-only live checks.
 Deploy the verified scoped Rules, commit/push the completed package, verify Pages
 Actions and live version.json/entry assets. Keep the previous Rules source for
 rollback; never roll back or re-import live business balances.
+
+## Original sidebar restoration (26 October 2026)
+
+The Firebase shell now uses the shared Sidebar's original six menu definitions,
+icons, order, badges, low-stock alert and inventory valuation footer. The cloud
+model supplies canonical catalogue counts and the inventory model's live/draft
+valuations. Only the connection label changes to Firebase. No sidebar layout or
+responsive styles are replaced. Unfinished destinations remain disabled.
+Production opens from the original stock row action. Bill history/cancellation
+remains accessible from the header History action rather than an extra sidebar
+entry. This change does not deploy Rules or write business data.
