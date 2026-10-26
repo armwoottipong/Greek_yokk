@@ -61,3 +61,21 @@ material and retain historical lots; exceeding a bound stops the command.
    the previous live Rules before activation. Default deny remains in force.
 5. Deploy Pages, verify Actions and the live commit/entry; test actual browser
    receipts and shared stock before describing the trial as operational.
+
+## Live browser verification — 26 October 2026
+
+Verified Google login and loading the trial data on the published GitHub Pages
+site. A marked trial bill received a server confirmation, deducted stock, and
+was cancelled through the bills screen. All affected balances returned to their
+starting values. Two ingredient receipts and a small production run then received
+server confirmations; the output increased and both inputs decreased according
+to the stored recipe. The resulting balances survived a page reload.
+
+Desktop and mobile layouts were inspected. The desktop workspace needed an
+explicit full width inside the existing flex shell; the mobile stock view fit its
+viewport. A second automated browser login could not be completed, so the live
+browser verification does not substitute for a two-device rehearsal. Concurrent
+commands from two equal accounts are covered by the Emulator runtime tests.
+
+These operations changed only the explicitly marked trial generation. Current
+business balances still require a fresh export and cutover reconciliation.
