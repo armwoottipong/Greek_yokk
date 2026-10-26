@@ -1,9 +1,9 @@
 <template>
  <div v-if="store.cart.length" class="cart-payment-footer">
-  <fieldset><legend>วิธีชำระเงิน</legend><AppChoiceGroup v-model="store.paymentMethod" class="cart-payment-methods" aria-label="วิธีชำระเงิน" :options="methods" variant="cards" :disabled="busy"/></fieldset>
+  <fieldset v-if="!model?.cloud"><legend>วิธีชำระเงิน</legend><AppChoiceGroup v-model="store.paymentMethod" class="cart-payment-methods" aria-label="วิธีชำระเงิน" :options="methods" variant="cards" :disabled="busy"/></fieldset>
   <div class="cart-payment-total"><span>ยอดชำระ</span><strong class="font-number">฿{{ money(store.cartSummary.subtotal) }}</strong></div>
   <dl class="cart-gp-summary" aria-label="ค่าธรรมเนียมออเดอร์"><div data-order-gp><dt>หัก GP ({{ store.cartSummary.gpPercent }}%)</dt><dd>−฿{{ feeMoney(store.cartSummary.gpAmount) }}</dd></div><div data-order-net><dt>ร้านได้รับหลังหัก GP</dt><dd>฿{{ feeMoney(store.cartSummary.netRevenue) }}</dd></div></dl>
-  <Button class="cart-checkout" :loading="busy" :disabled="!store.cart.length" @click="$emit('checkout')"><Check :size="18" aria-hidden="true"/>ชำระเงินและตัดสต็อก</Button>
+  <Button data-checkout class="cart-checkout" :loading="busy" :disabled="!store.cart.length||store.checkoutDisabled" @click="$emit('checkout')"><Check :size="18" aria-hidden="true"/>ชำระเงินและตัดสต็อก</Button>
  </div>
 </template>
 <script setup>
@@ -12,9 +12,9 @@ import {usePosStore} from '@/stores/posStore'
 import {money} from '@/domain/dashboard'
 import Button from '@/components/ui/Button.vue'
 import AppChoiceGroup from '@/components/ui/AppChoiceGroup.vue'
-defineProps({busy:Boolean})
+const props=defineProps({busy:Boolean,model:Object})
 defineEmits(['checkout'])
-const store=usePosStore()
+const store=props.model||usePosStore()
 const feeMoney=value=>Number(value).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})
 const methods=[{value:'QR PromptPay',label:'QR',description:'PromptPay'},{value:'เงินสด',label:'เงินสด',description:'Cash'},{value:'Platform Delivery',label:'Platform',description:'Delivery'}]
 </script>

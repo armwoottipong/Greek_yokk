@@ -122,3 +122,24 @@ were excluded. Both physical devices showed five menus without the trial banner.
 The new menu calculated correctly in a temporary cart; it was removed without
 creating a live sale. Use the Firebase entry for current operations; local data
 remains a separate historical copy.
+
+
+## Original product UI on Firebase (26 October 2026)
+
+The cloud entry now reuses the original sidebar, menu catalogue/cards, cart,
+receipt, stock summary/material rows and lot list. Menu customization and stock
+forms use the original dialog and form components/styles. The cloud presentation
+passes an explicit model; it does not instantiate the local POS store. The
+existing cloud command service remains the sole sale/receive/produce/cancel
+write path, including the four-line bound and immutable pending-command retry.
+Receipts open only after the matching server-confirmed sale.
+
+Dashboard reports, catalogue editing and settings remain visibly disabled.
+Stock adjustment, stocktake, waste, manual lot selection, package overrides and
+payment-method recording are not offered as supported cloud actions. Core
+receiving and production use the base units shown in their forms. Archived bills
+remain read-only. Original local.html behavior is preserved separately.
+
+No Rules, generation, live balance or billing changes are part of this UI
+release. Browser acceptance used a local presentation harness whose execute
+method refuses writes; release acceptance uses read-only live data checks.

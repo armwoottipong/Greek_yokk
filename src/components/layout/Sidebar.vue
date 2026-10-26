@@ -12,8 +12,8 @@
     <nav aria-label="เมนูหลัก" class="brand-navigation flex md:block md:flex-1 p-2 md:p-3 md:space-y-1.5 overflow-x-auto md:overflow-y-auto text-xs gap-1">
       <button
         v-for="item in navItems"
-        :key="item.id"
-        :aria-label="item.label + (item.alert ? ' มีวัตถุดิบใกล้หมด' : item.badge ? ' ' + item.badge : '')" :title="item.label"
+        :key="item.id" :disabled="item.disabled"
+        :aria-label="item.label + (item.alert ? ' มีวัตถุดิบใกล้หมด' : item.badge ? ' ' + item.badge : '')" :title="item.label + (item.disabled ? ' · ยังไม่เปิดใช้ใน Firebase' : '')"
         @click="navigate(item.id)"
         :aria-current="store.currentTab === item.id ? 'page' : undefined"
         :class="[
@@ -46,7 +46,7 @@
     </nav>
 
     <!-- Bottom Store Info & Sync -->
-    <div class="hidden md:block p-4 border-t border-stone-100 bg-[#FBF5EA] text-xs">
+    <div v-if="!model" class="hidden md:block p-4 border-t border-stone-100 bg-[#FBF5EA] text-xs">
       <div class="flex items-center justify-between mb-2">
         <span class="text-[11px] font-medium text-stone-500">สถานะคลัง & ต้นทุน</span>
         <div class="flex items-center gap-1.5 font-number">
@@ -77,6 +77,7 @@
         </button>
       </div>
     </div>
+    <div v-if="model" class="cloud-sidebar-status"><span class="cloud-status-dot" :class="{connected:model.connected}"></span>{{ model.connected?'Firebase · เชื่อมต่อแล้ว':'ขาดการเชื่อมต่อ' }}<small>{{ model.account }}</small></div>
   </aside>
 </template>
 
@@ -94,8 +95,8 @@ import {
   Settings
 } from 'lucide-vue-next'
 
-const store = usePosStore()
-const props=defineProps({mobileOpen:Boolean})
+const props=defineProps({mobileOpen:Boolean,model:Object,items:Array})
+const store = props.model || usePosStore()
 const emit=defineEmits(['close'])
 const sidebar=ref(null)
 const isMobile=useMediaQuery('(max-width:767px)'),isCompact=useMediaQuery('(max-width:1199px)')
@@ -119,7 +120,7 @@ onMounted(()=>document.addEventListener('keydown',handleKeys))
 onUnmounted(()=>document.removeEventListener('keydown',handleKeys))
 const mascotUrl = `${import.meta.env.BASE_URL}brand/sidebar-header.png`
 
-const navItems = computed(() => [
+const navItems = computed(() => props.items || [
   { id: 'dashboard', label: 'ภาพรวม & งบต้นทุน', icon: LayoutDashboard },
   { id: 'pos', label: 'แคชเชียร์ (POS)', icon: ShoppingBag, badge: store.cart.length > 0 ? store.cart.reduce((s, i) => s + i.qty, 0) : null, badgeColor: 'bg-amber-600 text-white' },
   { id: 'menu', label: 'จัดการเมนู', icon: UtensilsCrossed, badge: `${store.menus.length} รายการ`, badgeColor: 'bg-stone-100 text-stone-600' },
@@ -157,3 +158,7 @@ const navItems = computed(() => [
 }
 </style>
 
+
+<style scoped>.cloud-sidebar-status{padding:20px 16px;font-size:.75rem;color:var(--text-muted);line-height:1.8}.cloud-sidebar-status small{display:block;overflow-wrap:anywhere}.cloud-status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--state-warning);margin-right:7px}.cloud-status-dot.connected{background:var(--accent-green)}@media(min-width:768px) and (max-width:1199px){.is-tablet-rail .cloud-sidebar-status{display:none}}</style>
+
+<style scoped>.brand-nav-item:disabled{opacity:.5;cursor:not-allowed}</style>

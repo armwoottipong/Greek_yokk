@@ -2,12 +2,12 @@
  <section class="pos-catalog" aria-label="เลือกสินค้า">
   <header class="pos-catalog-heading"><div><h3>เลือกเมนู</h3><p>เลือกชามโปรด แล้วเพิ่มลงออเดอร์</p></div><span>{{ menus.length }} เมนู</span></header>
   <div class="pos-catalog-controls">
-   <div class="pos-channel"><span>ช่องทางขาย</span><div role="tablist" aria-label="ช่องทางขาย" class="pos-platform-tabs"><button v-for="p in activePlatforms" :id="`${tabsId}-${p.id}`" :key="p.id" type="button" role="tab" :aria-selected="platformId === p.id" :tabindex="platformId === p.id ? 0 : -1" :aria-controls="`${tabsId}-panel`" @click="$emit('platform',p.id)" @keydown="switchTab($event,p.id)">{{ p.name }}</button></div></div>
+   <div class="pos-channel"><span>ช่องทางขาย</span><div role="tablist" aria-label="ช่องทางขาย" class="pos-platform-tabs"><button v-for="p in activePlatforms" :id="`${tabsId}-${p.id}`" :key="p.id" :disabled="disabled" type="button" role="tab" :aria-selected="platformId === p.id" :tabindex="platformId === p.id ? 0 : -1" :aria-controls="`${tabsId}-panel`" @click="$emit('platform',p.id)" @keydown="switchTab($event,p.id)">{{ p.name }}</button></div></div>
    <label class="pos-search"><span>ค้นหาเมนู</span><div><Search :size="17" aria-hidden="true"/><input type="search" data-pos-search aria-label="ค้นหาเมนู" :value="search" placeholder="ชื่อเมนูหรือรายละเอียด" @input="$emit('update:search',$event.target.value)"></div></label>
   </div>
   <p class="pos-channel-context">{{ selectedPlatform?.gpPercent ? 'ค่าธรรมเนียมช่องทาง '+selectedPlatform.gpPercent+'%' : selectedPlatform ? 'ไม่มีค่าธรรมเนียมช่องทาง' : 'เลือกช่องทางขายก่อนเริ่มออเดอร์' }}</p>
   <div :id="`${tabsId}-panel`" role="tabpanel" :aria-labelledby="`${tabsId}-${platformId}`" class="pos-catalog-scroll">
-   <div v-if="menus.length" class="pos-menu-grid"><PosMenuCard v-for="menu in menus" :key="menu.id" :menu="menu" :price="priceFor(menu)" :cart-quantity="cartQuantities[menu.id]||0" :out-of-stock="unavailableFor(menu)" @select="$emit('select-menu',$event)"/></div>
+   <div v-if="menus.length" class="pos-menu-grid"><PosMenuCard v-for="menu in menus" :key="menu.id" :menu="menu" :disabled="disabled" :price="priceFor(menu)" :cart-quantity="cartQuantities[menu.id]||0" :out-of-stock="unavailableFor(menu)" @select="$emit('select-menu',$event)"/></div>
    <div v-else class="interface-empty"><Search :size="28" aria-hidden="true"/><strong>{{ search ? 'ไม่พบเมนู' : 'ยังไม่มีเมนูพร้อมขาย' }}</strong><p>{{ search ? 'ลองค้นหาด้วยชื่อเมนูหรือรายละเอียดอื่น' : 'เพิ่มเมนูและตั้งราคาในหน้าจัดการเมนูก่อนเริ่มขาย' }}</p><Button v-if="search" variant="secondary" @click="$emit('update:search','')">แสดงเมนูทั้งหมด</Button></div>
   </div>
  </section>
@@ -17,11 +17,12 @@ import {computed,useId} from 'vue'
 import {Search} from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import PosMenuCard from './PosMenuCard.vue'
-const props=defineProps({menus:{type:Array,required:true},platforms:{type:Array,required:true},cartQuantities:{type:Object,default:()=>({})},platformId:String,search:String,priceFor:{type:Function,required:true},unavailableFor:{type:Function,required:true}})
+const props=defineProps({disabled:Boolean,menus:{type:Array,required:true},platforms:{type:Array,required:true},cartQuantities:{type:Object,default:()=>({})},platformId:String,search:String,priceFor:{type:Function,required:true},unavailableFor:{type:Function,required:true}})
 const emit=defineEmits(['update:search','platform','select-menu'])
 const tabsId=`pos-platform-${useId()}`
 const activePlatforms=computed(()=>props.platforms.filter(p=>p.isActive!==false))
 function switchTab(event,id){
+ if(props.disabled)return
  if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return
  event.preventDefault()
  const platforms=activePlatforms.value,index=platforms.findIndex(p=>p.id===id)

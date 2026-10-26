@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :open="store.modals.receipt.isOpen && Boolean(order)" id="ReceiptModal" title="ใบเสร็จรับเงิน" width="440px" :teleport="false" @request-close="close">
+ <DialogFrame :open="store.modals.receipt.isOpen && Boolean(order)" id="ReceiptModal" title="ใบเสร็จรับเงิน" width="440px" :teleport="teleport" @request-close="close">
 
   <div class="receipt-paper" id="printable-receipt">
         <div class="text-center pb-4 border-b border-dashed border-stone-300">
@@ -22,7 +22,7 @@
             <span class="text-stone-400">ช่องทางขาย:</span>
             <span class="font-semibold">{{ order.platformName }}</span>
           </div>
-          <div class="flex justify-between">
+          <div v-if="order.paymentMethod" class="flex justify-between">
             <span class="text-stone-400">ชำระโดย:</span>
             <span>{{ order.paymentMethod }}</span>
           </div>
@@ -105,7 +105,8 @@ import { computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { Printer } from 'lucide-vue-next'
 
-const store = usePosStore()
+const props=defineProps({model:Object,teleport:Boolean})
+const store = props.model || usePosStore()
 
 const order = computed(() => store.modals.receipt.order)
 

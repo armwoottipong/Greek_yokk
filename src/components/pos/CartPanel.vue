@@ -1,12 +1,12 @@
 <template>
  <section v-if="presentation==='panel'" class="cart-panel" aria-label="ตะกร้า">
   <header><div><h3>ออเดอร์นี้</h3><span>{{ store.currentPlatform?.name }}</span></div><ShoppingBag :size="22" aria-hidden="true"/></header>
-  <div class="cart-panel-scroll"><CartBody :busy="checkoutPending" @switch-lot="$emit('switch-lot',$event)"/></div>
-  <footer v-if="store.cart.length"><CartPaymentFooter :busy="checkoutPending" @checkout="$emit('checkout')"/></footer>
+  <div class="cart-panel-scroll"><CartBody :model="model" :busy="checkoutPending||disabled" @switch-lot="$emit('switch-lot',$event)"/><slot name="review"/></div>
+  <footer v-if="store.cart.length"><CartPaymentFooter :model="model" :busy="checkoutPending" @checkout="$emit('checkout')"/></footer>
  </section>
  <DialogFrame v-else :open="open" id="pos-cart-review" title="ตรวจออเดอร์" :description="store.currentPlatform?.name" presentation="sheet" :busy="checkoutPending" @request-close="$emit('request-close')">
-  <CartBody :busy="checkoutPending" @switch-lot="$emit('switch-lot',$event)"/>
-  <template v-if="store.cart.length" #footer><CartPaymentFooter :busy="checkoutPending" @checkout="$emit('checkout')"/></template>
+  <CartBody :model="model" :busy="checkoutPending||disabled" @switch-lot="$emit('switch-lot',$event)"/><slot name="review"/>
+  <template v-if="store.cart.length" #footer><CartPaymentFooter :model="model" :busy="checkoutPending" @checkout="$emit('checkout')"/></template>
  </DialogFrame>
 </template>
 <script setup>
@@ -15,9 +15,9 @@ import DialogFrame from '@/components/ui/DialogFrame.vue'
 import CartBody from './CartBody.vue'
 import CartPaymentFooter from './CartPaymentFooter.vue'
 import {ShoppingBag} from 'lucide-vue-next'
-defineProps({presentation:{type:String,default:'panel'},open:Boolean,checkoutPending:Boolean})
+const props=defineProps({model:Object,disabled:Boolean,presentation:{type:String,default:'panel'},open:Boolean,checkoutPending:Boolean})
 defineEmits(['checkout','switch-lot','request-close'])
-const store=usePosStore()
+const store=props.model||usePosStore()
 </script>
 <style scoped>
 .cart-panel{display:flex;flex-direction:column;flex-shrink:0;width:clamp(320px,30%,380px);min-height:0;overflow:hidden;background:var(--bg-card);border:0;border-radius:20px}

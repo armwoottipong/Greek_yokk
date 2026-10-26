@@ -4,7 +4,7 @@
   <div class="stock-row-quantity"><small>คงเหลือ</small><strong>{{ number(material.stock) }} <span>{{ material.unit }}</span></strong><small v-if="draftDiff" class="stock-row-draft">รอยืนยัน {{ draftDiff>0?'+':'' }}{{ number(draftDiff) }} {{ material.unit }}</small><small v-if="material.packSize>1">≈ {{ number(Number(material.stock||0)/material.packSize) }} {{ material.packUnit }}</small><StatusBadge :label="status" :tone="tone"/></div>
   <div class="stock-row-cost"><small>ต้นทุน / {{ material.packUnit||material.unit }}</small><strong>฿{{ number(packCost) }}</strong><small v-if="material.packSize>1||material.hasSubRecipe">฿{{ number(material.unitCost) }} / {{ material.unit }}</small></div>
   <div class="stock-row-value"><small>มูลค่าคงเหลือ</small><strong>฿{{ money(Math.max(0,Number(material.stock)||0)*Number(material.unitCost||0)) }}</strong><Button class="stock-row-lots" variant="quiet" size="compact" :aria-label="`ดูล็อต ${material.name}`" @click="$emit('details',material.id)">{{ lotCount }} ล็อต</Button></div>
-  <div class="stock-row-actions"><Button v-if="!material.isDeleted" variant="secondary" :aria-label="`${material.hasSubRecipe?'ผลิต':'รับเข้า'} ${material.name}`" @click="$emit('receive',material.id)">{{ material.hasSubRecipe?'ผลิต':'รับเข้า' }}</Button><IconButton :label="`งานเพิ่มเติม ${material.name}`" :aria-expanded="moreOpen" @click="$emit('more',material.id,$event)"><MoreHorizontal :size="20" aria-hidden="true"/></IconButton></div>
+  <div class="stock-row-actions"><Button v-if="!material.isDeleted" :disabled="disabled" variant="secondary" :aria-label="`${material.hasSubRecipe?'ผลิต':'รับเข้า'} ${material.name}`" @click="$emit('receive',material.id)">{{ material.hasSubRecipe?'ผลิต':'รับเข้า' }}</Button><IconButton v-if="!supportedOnly" :label="`งานเพิ่มเติม ${material.name}`" :aria-expanded="moreOpen" @click="$emit('more',material.id,$event)"><MoreHorizontal :size="20" aria-hidden="true"/></IconButton></div>
  </article>
 </template>
 <script setup>
@@ -16,7 +16,7 @@ import IconButton from '../ui/IconButton.vue'
 import StatusBadge from '../ui/StatusBadge.vue'
 import MaterialUsage from './MaterialUsage.vue'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
-const props=defineProps({material:{type:Object,required:true},usage:Object,draftDiff:{type:Number,default:0},packCost:{type:Number,default:0},lotCount:{type:Number,default:0},trackingMode:String,moreOpen:Boolean})
+const props=defineProps({material:{type:Object,required:true},usage:Object,draftDiff:{type:Number,default:0},packCost:{type:Number,default:0},lotCount:{type:Number,default:0},trackingMode:String,moreOpen:Boolean,supportedOnly:Boolean,disabled:Boolean})
 defineEmits(['details','receive','more'])
 const status=computed(()=>props.material.isDeleted?'จัดเก็บแล้ว':isExpired(props.material)?'หมดอายุแล้ว':props.material.stock<=0?'หมดสต็อก':props.material.stock<=props.material.minAlert?'ใกล้หมด':'ปกติ')
 const tone=computed(()=>props.material.isDeleted?'neutral':isExpired(props.material)||props.material.stock<=0?'error':props.material.stock<=props.material.minAlert?'warning':'success')
