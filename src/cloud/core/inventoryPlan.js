@@ -12,6 +12,7 @@ import {summaryMaterialType} from './model/materialType.js'
 import {summaryProductionRecipe} from './model/productionRecipe.js'
 import {summaryMaterialDelete} from './model/materialDelete.js'
 import {planHistoryClear} from './model/historyClear.js'
+import {planPlatformSettings} from './model/platformSettings.js'
 const fail=code=>Object.assign(new Error(code),{code})
 export function planInventoryCommand(shop,materials,command,uid='preview'){
  const p=command.payload||{},options={opId:command.opId,uid}
@@ -19,6 +20,7 @@ export function planInventoryCommand(shop,materials,command,uid='preview'){
  const material=()=>{const m=materials.find(m=>m.id===p.materialId);if(!m)throw fail('MATERIAL_NOT_FOUND');return m}
  let f
  switch(command.kind){
+  case 'platform_gp':f=planPlatformSettings(shop,p,options);break
   case 'menu':case 'addon':case 'group':f=planCatalogCommand(shop,materials,command,uid);break
   case 'history_clear':f=planHistoryClear(shop,options);break
   case 'inventory':case 'receive':{const m=material();if(m.deleted)throw fail('MATERIAL_NOT_FOUND');f=(m.inventoryType==='packaging'?summaryPackageStock:summaryStock)(shop,m,{...p.input,...options});break}

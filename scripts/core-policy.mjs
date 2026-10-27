@@ -1,4 +1,5 @@
 import {compactRules} from './compact-rules.mjs'
+import {platformSettingsPolicy} from './platform-settings-policy.mjs'
 import {materialTypePolicy} from './material-type-policy.mjs'
 import {materialReferencePolicy} from './material-reference-policy.mjs'
 import {recipeAdmissionPolicy} from './recipe-admission-policy.mjs'
@@ -11,7 +12,7 @@ import {inventoryDeletePolicy} from './inventory-delete-policy.mjs'
 // mandatory catalog witnesses and shop-scoped command/read surfaces.
 export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
  if(!/^[A-Za-z0-9_-]{1,120}$/.test(shopId))throw new Error('Invalid shop')
- const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8')+'\n'+inventoryDeletePolicy+'\n'+inventoryHistoryPolicy+'\n'+catalogPolicy+'\n'+dynamicRecipePolicy+'\n'+recipeAdmissionPolicy+'\n'+materialReferencePolicy+'\n'+materialTypePolicy
+ const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8')+'\n'+inventoryDeletePolicy+'\n'+inventoryHistoryPolicy+'\n'+catalogPolicy+'\n'+dynamicRecipePolicy+'\n'+recipeAdmissionPolicy+'\n'+materialReferencePolicy+'\n'+materialTypePolicy+'\n'+platformSettingsPolicy
  const mask=source.replace(/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g,s=>' '.repeat(s.length))
  const functions=new Map()
  for(const m of mask.matchAll(/function\s+(\w+)\s*\([^)]*\)\s*\{/g)){
@@ -34,8 +35,10 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
   ${Object.entries(inventoryKinds).map(([kind,name])=>`allow update: if request.resource.data.lastOpKind=='${kind}' && ${name}Root(s);`).join('\n')}
   ${Object.entries(catalogKinds).map(([kind,name])=>`allow update: if request.resource.data.lastOpKind=='${kind}' && ${name}Root(s);`).join('\n')}
   allow update: if request.resource.data.lastOpKind=='material_delete' && materialDeleteRoot(s);
+  allow update: if request.resource.data.lastOpKind=='platform_gp' && gpRoot(s);
   match /generations/{g}/operations/{id} {
    allow read: if active(s,g);
+   allow create: if request.resource.data.kind=='platform_gp' && gpOperation(s,g,id,request.resource.data);
    ${Object.entries(catalogKinds).map(([kind,name])=>`allow create: if request.resource.data.kind=='${kind}' && ${name}Operation(s,g,id,request.resource.data);`).join('\n')}
    match /referenceProofs/{index} {
     allow create: if index.matches('^type([0-9]|1[0-5])$') && materialTypeProof(s,g,id,index,request.resource.data);

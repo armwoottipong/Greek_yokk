@@ -5,10 +5,10 @@
       <div>
       <h2>ตั้งค่าร้านให้ลงตัว</h2>
       <p class="text-xs text-stone-400 mt-0.5">
-        ข้อมูลหลักเก็บในเครื่องนี้ จัดหมวดหมู่ สำรองข้อมูล และดูการเชื่อมต่อได้ในที่เดียว
+        {{ store.cloud ? 'ข้อมูลร้านใช้ร่วมกันผ่าน Firebase · ตั้งค่า GP และตรวจการเชื่อมต่อ' : 'ข้อมูลหลักเก็บในเครื่องนี้ จัดหมวดหมู่ สำรองข้อมูล และดูการเชื่อมต่อได้ในที่เดียว' }}
       </p>
       </div>
-      <span class="settings-local"><Database :size="15" /> ข้อมูลหลักเก็บในเครื่อง</span>
+      <span class="settings-local"><Database :size="15" /> {{ store.cloud ? 'ข้อมูลร้านบน Firebase' : 'ข้อมูลหลักเก็บในเครื่อง' }}</span>
     </div>
 
     <div class="settings-layout">
@@ -22,9 +22,15 @@
       </button>
     </nav>
     <div class="settings-content">
+    <div v-if="store.cloud" id="settings-firebase" v-show="activeSettingsSection==='firebase'" class="editorial-card p-4 sm:p-6 space-y-4">
+      <h3>การเชื่อมต่อ Firebase</h3>
+      <p role="status">{{ store.connected ? 'เชื่อมต่อเซิร์ฟเวอร์แล้ว' : 'ยังยืนยันการเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ · พักการบันทึก' }}</p>
+      <dl><dt>โปรเจกต์</dt><dd>{{ store.projectId }}</dd><dt>ร้าน</dt><dd>{{ store.shopId }}</dd><dt>บัญชี Google</dt><dd>{{ store.account }}</dd></dl>
+      <p class="text-sm text-stone-500">ใช้ข้อมูลร้านร่วมกันทุกเครื่อง บันทึกสำเร็จเมื่อได้รับการยืนยันจากเซิร์ฟเวอร์</p>
+    </div>
 
     <!-- Section 1: Google Apps Script Web App Integration -->
-    <div id="settings-sheets" data-settings="sheets" v-show="activeSettingsSection === 'sheets'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
+    <div v-if="!store.cloud" id="settings-sheets" data-settings="sheets" v-show="activeSettingsSection === 'sheets'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
       <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
         <div class="p-2 rounded-xl bg-emerald-50 text-emerald-800">
           <Cloud class="w-5 h-5" />
@@ -104,21 +110,25 @@
         <div class="settings-gp-fields">
           <FormField v-for="plat in store.platforms" :key="plat.id" :id="`gp-${plat.id}`"
             :label="plat.name" :error="gpErrors[plat.id]" v-slot="{controlId,describedBy,invalid}">
-            <AppInput :id="controlId" v-model="gpDraft[plat.id]" type="number" min="0" max="100" step="any"
+            <AppInput :id="controlId" v-model="gpDraft[plat.id]" type="number" min="0" max="100" :step="store.cloud ? '0.01' : 'any'" @update:model-value="gpSaved=false"
+              :disabled="gpSaving || store.settingsBlocked"
               :aria-label="`GP ${plat.name}`" :aria-describedby="describedBy" :aria-invalid="invalid">
               <template #suffix>%</template>
             </AppInput>
           </FormField>
         </div>
         <p class="settings-gp-help">กรอกตั้งแต่ 0 และน้อยกว่า 100% · ใช้กับบิลใหม่และราคาแนะนำ ไม่เปลี่ยนราคาขายเมนูหรือบิลที่บันทึกแล้ว</p>
+        <p v-if="store.cloud" class="settings-gp-help">รองรับทศนิยมไม่เกิน 2 ตำแหน่ง · บันทึก GP ของทุกช่องทางพร้อมกัน</p>
         <p v-if="gpSaveError" data-gp-save-error role="alert" class="settings-gp-error">{{ gpSaveError }}</p>
-        <div class="settings-gp-actions"><Button type="submit" :disabled="!gpDirty || Object.keys(gpErrors).length > 0">บันทึก GP</Button></div>
+        <p v-if="gpConflict" role="alert">ข้อมูลร้านเปลี่ยนแล้ว กรุณาโหลดค่าใหม่และตรวจ GP อีกครั้งก่อนบันทึก</p>
+        <p v-if="gpSaved" role="status">บันทึก GP สำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว</p>
+        <div class="settings-gp-actions"><Button type="submit" :loading="gpSaving" :disabled="!gpDirty || gpConflict || store.settingsBlocked || Object.keys(gpErrors).length > 0">บันทึก GP</Button><Button v-if="store.cloud" variant="secondary" :disabled="gpSaving || store.settingsBlocked" @click="resetGpDraft">โหลดค่าปัจจุบัน</Button></div>
       </form>
     </div>
 
     <!-- Section 3: Category Management (จัดการหมวดหมู่ระบบ) -->
     <!-- Section 4: Data Management & Backup -->
-    <div id="settings-backup" data-settings="backup" v-show="activeSettingsSection === 'backup'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
+    <div v-if="!store.cloud" id="settings-backup" data-settings="backup" v-show="activeSettingsSection === 'backup'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
       <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
         <div class="p-2 rounded-xl bg-rose-50 text-rose-800">
           <Database class="w-5 h-5" />
@@ -224,7 +234,7 @@
     <div class="settings-footer">
       <div class="flex items-center gap-2">
         <Database :size="14" />
-        <span>Greek Yogg. · ข้อมูลในเครื่องนี้</span>
+        <span>Greek Yogg. · {{ store.cloud ? 'Firebase' : 'ข้อมูลในเครื่องนี้' }}</span>
       </div>
       <div>
         {{ (store.materials.length + store.menus.length + store.addons.length + store.orders.length) }} รายการ
@@ -260,9 +270,13 @@ import {
   X
 } from 'lucide-vue-next'
 
-const store = usePosStore()
-const activeSettingsSection = ref('backup')
-const settingsSections = [
+const props=defineProps({model:{type:Object,default:null}})
+const store = props.model || usePosStore()
+const activeSettingsSection = ref(store.cloud ? 'platforms' : 'backup')
+const settingsSections = store.cloud ? [
+  {id:'platforms',label:'ช่องทางขาย',description:'ตั้งค่า GP แต่ละช่องทาง',icon:Store},
+  {id:'firebase',label:'Firebase',description:'สถานะการเชื่อมต่อร้าน',icon:Cloud}
+] : [
   { id: 'backup', label: 'สำรองและกู้คืน', description: 'เก็บข้อมูลร้านให้อุ่นใจ', icon: Database },
   { id: 'platforms', label: 'ช่องทางขาย', description: 'ตั้งค่า GP แต่ละช่องทาง', icon: Store },
   { id: 'sheets', label: 'Google Sheets', description: 'เชื่อมต่อและสำรองออนไลน์', icon: Cloud }
@@ -271,19 +285,31 @@ const gasUrlInput = ref(store.gasApiUrl)
 const fileInput = ref(null)
 const gpDraft = ref({})
 const gpSaveError = ref('')
-watch(() => JSON.stringify(store.platforms.map(p => [p.id, p.gpPercent])), () => {
+const gpSaving=ref(false),gpSaved=ref(false),gpConflict=ref(false),gpRevision=ref(null)
+function resetGpDraft(){
   gpDraft.value = Object.fromEntries(store.platforms.map(p => [p.id, p.gpPercent]))
-  gpSaveError.value = ''
-}, { immediate: true })
+  gpSaveError.value = '';gpConflict.value=false;gpSaved.value=false;gpRevision.value=store.revision
+}
+resetGpDraft()
+watch(() => JSON.stringify(store.platforms.map(p => [p.id, p.gpPercent])), () => {
+  if(store.cloud && gpDirty.value){if(!gpSaving.value)gpConflict.value=true;return}
+  resetGpDraft()
+})
 const gpErrors = computed(() => Object.fromEntries(store.platforms
   .filter(p => !isValidGp(gpDraft.value[p.id]))
   .map(p => [p.id, 'กรอก GP ตั้งแต่ 0 และน้อยกว่า 100%'])))
 const gpDirty = computed(() => store.platforms.some(p => Number(gpDraft.value[p.id]) !== p.gpPercent || !isValidGp(gpDraft.value[p.id])))
-function saveGpRates() {
+watch(()=>store.revision,()=>{if(!store.cloud||gpSaving.value)return;if(gpDirty.value)gpConflict.value=true;else resetGpDraft()})
+async function saveGpRates() {
   gpSaveError.value = ''
-  if (Object.keys(gpErrors.value).length || !gpDirty.value) return
-  const result = store.savePlatformGpRates(gpDraft.value)
-  if (!result.ok) gpSaveError.value = result.message
+  if (gpSaving.value || store.settingsBlocked || gpConflict.value || Object.keys(gpErrors.value).length || !gpDirty.value) return
+  gpSaving.value=true;gpSaved.value=false
+  try{
+    const result = await store.savePlatformGpRates({...gpDraft.value},gpRevision.value)
+    if (!result.ok) gpSaveError.value = result.message || 'ยังยืนยันการบันทึกไม่ได้ กรุณาตรวจคำสั่งค้างก่อนลองใหม่'
+    else if(store.cloud){resetGpDraft();gpSaved.value=true}
+  }catch{gpSaveError.value='ยังยืนยันการบันทึกไม่ได้ กรุณาตรวจคำสั่งค้างก่อนลองใหม่'}
+  finally{gpSaving.value=false;if(store.cloud&&gpDirty.value&&gpRevision.value!==store.revision)gpConflict.value=true}
 }
 
 // ==========================================

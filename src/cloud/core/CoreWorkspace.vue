@@ -24,6 +24,7 @@
    </section>
    <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
    <CloudStockWorkspace ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory"/>
+   <SettingsView v-if="settingsVisited" v-show="tab==='settings'" :model="settingsModel"/>
    <section v-if="tab==='orders'" aria-label="ประวัติบิล"><div class="section-heading"><div><h3>บิลขายและคืนบิล</h3><p>100 บิลล่าสุดจาก Firebase · คืนสต็อกตามล็อตเดิมเมื่อคืนบิล</p></div></div><p v-if="!data.orders.length" class="empty-orders">ยังไม่มีบิลจาก Firebase</p><ol class="order-list"><li v-for="o in data.orders" :key="o.opId"><div><StatusBadge :label="o.status==='cancelled'?'คืนบิลแล้ว':'ขายสำเร็จ'" :tone="o.status==='cancelled'?'neutral':'success'"/><strong>{{ money(o.subtotalCents) }}</strong><p>{{ orderDate(o) }} · {{ name('platforms',o.platformId) }}</p><p>{{ o.lines.map(l=>`${name('menus',l.menuId)} × ${l.qty}`).join(', ') }}</p><small>{{ o.opId }}</small></div><Button v-if="o.status==='committed'" variant="secondary" :disabled="locked||!ready" @click="cancelId=o.opId">คืนบิล</Button></li></ol><details @toggle="loadHistory"><summary>ประวัติบิลจากระบบเดิม (อ่านอย่างเดียว)</summary><p class="muted">ใช้ตรวจย้อนหลัง การคืนบิลรองรับเฉพาะบิลที่ขายผ่าน Firebase</p><p v-for="(o,i) in legacyOrders" :key="i">{{ o.createdAt }} · {{ o.platformName }} · {{ money(Math.round((o.subtotal||0)*100)) }} · {{ o.status||'ประวัติเดิม' }}</p></details></section>
   </template>
  </CloudProductShell>
@@ -53,6 +54,7 @@ import AppQuantityInput from '@/components/ui/AppQuantityInput.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import CloudStockWorkspace from './CloudStockWorkspace.vue'
 import CloudDashboardWorkspace from './CloudDashboardWorkspace.vue'
+import SettingsView from '@/views/SettingsView.vue'
 import {loadInventoryHistory} from './inventoryHistory.js'
 import {getFirebaseClient} from '../firebaseClient.js'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -100,14 +102,31 @@ const productPlatforms=computed(()=>platformIds.value.map(id=>({id,name:name('pl
 const filteredMenus=computed(()=>productMenus.value.filter(m=>m.name.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
 const cartQuantity=computed(()=>cart.value.reduce((n,l)=>n+l.qty,0)),cartQuantities=computed(()=>cart.value.reduce((r,l)=>({...r,[l.menuId]:(r[l.menuId]||0)+l.qty}),{}))
 const pageTitle=computed(()=>({dashboard:'ภาพรวม & งบต้นทุน',sale:'แคชเชียร์ (POS)',stock:'คลังวัตถุดิบ & Package',menu:'จัดการเมนู',addon:'จัดการ Add-on',orders:'บิลขาย & คืนบิล'})[tab.value]||'Greek Yogg.')
-const productModel=reactive({cloud:true,modals:{receipt:receiptState},availableTabs:['dashboard','pos','stock','menu','addon'],get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab(id){if(id==='pos')tab.value='sale';else if(['dashboard','stock','menu','addon'].includes(id))tab.value=id},get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get cartPackagePlan(){return {items:[]}},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value)cart.value=[]},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
+const productModel=reactive({cloud:true,modals:{receipt:receiptState},availableTabs:['dashboard','pos','stock','menu','addon','settings'],get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab(id){if(id==='pos')tab.value='sale';else if(['dashboard','stock','menu','addon','settings'].includes(id))tab.value=id},get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get cartPackagePlan(){return {items:[]}},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value)cart.value=[]},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
+const settingsModel=reactive({cloud:true,
+ get platforms(){const c=data.value?.shop.catalog;return c?c.platformIds.map(id=>({id,name:name('platforms',id),gpPercent:c.platforms[id].gpBasisPoints/100})):[]},
+ get revision(){return data.value?.shop.revision},get connected(){return ready.value},get settingsBlocked(){return !ready.value||locked.value},
+ get projectId(){return props.connection.config.projectId},get shopId(){return props.connection.shopId},get account(){return props.state.user?.email||''},
+ get materials(){return data.value?.materials||[]},get menus(){return productMenus.value},get addons(){return inventoryWorkspace.value?.model.addons||[]},get orders(){return data.value?.orders||[]},
+ async savePlatformGpRates(draft,expectedRevision){
+  if(!ready.value||locked.value)return {ok:false}
+  const rates={}
+  for(const [id,value] of Object.entries(draft)){
+   const n=Number(value)*100,rounded=Math.round(n)
+   if(!Number.isFinite(n)||Math.abs(n-rounded)>0.000001||rounded<0||rounded>=10000)return {ok:false,message:'GP ต้องอยู่ระหว่าง 0 ถึง 99.99% และมีทศนิยมไม่เกิน 2 ตำแหน่ง'}
+   rates[id]=rounded
+  }
+  const result=await send({kind:'platform_gp',opId:crypto.randomUUID(),payload:{rates,expectedRevision}})
+  return result.value?.rejected?{ok:false,message:'ข้อมูลร้านเปลี่ยนแล้ว กรุณาโหลดค่าปัจจุบันและตรวจ GP ใหม่'}:result
+ }
+})
 function answerClear(value){clearConfirm.value=false;clearAnswer?.(value);clearAnswer=null}
 function updateCartQty(index,qty){if(locked.value)return;try{const next=plain(cart.value);next[index].qty=qty;service.previewSale({platformId:platformId.value,lines:next});cart.value=next}catch(e){error.value=explain(e)}}
 function setPlatform(id){if(!locked.value)platformId.value=id}
 function groupCount(g){return Object.values(choices.value[g.id]||{}).reduce((n,q)=>n+Number(q),0)}
 function toggleChoice(g,id){if(!locked.value)choices.value[g.id][id]=choices.value[g.id][id]?0:1}
 function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(c.groupId||c.groupIds?.length)return false;return Object.values(service.previewSale({platformId:platformId.value,lines:[{menuId:m.id,qty:1,optionIds:[]}]}).approvedShortages||{}).some(q=>q>0)}catch{return false}}
-const inventoryWorkspace=ref(null),reportVisited=ref(false),reportRefreshKey=ref(0)
+const inventoryWorkspace=ref(null),reportVisited=ref(false),settingsVisited=ref(false),reportRefreshKey=ref(0)
 async function readStockHistory(options={}){const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config});return loadInventoryHistory({db,shopId:props.connection.shopId,generation:props.state.shop.generation,materials:data.value.materials,display:data.value.display,clearedThroughRevision:Math.max(data.value.shop.inventoryHistoryCutoff||0,options.clearedThroughRevision||0)})}
 watch(split,value=>{if(value)cartOpen.value=false})
 
@@ -189,7 +208,7 @@ async function reloadAfterWrite(){
 const connectivity=()=>{online.value=navigator.onLine;if(online.value&&props.state.serverReady)void refresh()}
 watch([cart,platformId],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
 watch(()=>JSON.stringify(shortages.value),()=>{approveShortage.value=false})
-watch(tab,value=>{if(value==='orders')void loadOrders();if(value==='dashboard')reportVisited.value=true})
+watch(tab,value=>{if(value==='orders')void loadOrders();if(value==='dashboard')reportVisited.value=true;if(value==='settings')settingsVisited.value=true})
 watch(()=>data.value?.shop.catalogRevision,(revision,previous)=>{
  if(previous===undefined||revision===previous)return
  approveShortage.value=false

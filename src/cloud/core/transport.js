@@ -43,10 +43,11 @@ export function createCoreTransport({db,getContext}){
  const cacheChanged=(a,b)=>a.revision!==b.revision||!equal(a.billPreparations||{},b.billPreparations||{})||a.billPreparationId!==b.billPreparationId
  const collectionFor=kind=>kind==='sale'?'orders':'operations'
  function checkReceipt(s,command,r){
-  const kinds={menu:['menu'],addon:['addon','catalog'],group:['group'],sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
+  const kinds={menu:['menu'],addon:['addon','catalog'],group:['group'],sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['platform_gp','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
   if(r.opId!==command.opId||r.uid!==s.uid||!kinds[command.kind]?.includes(r.kind))throw fail('COMMAND_ID_COLLISION')
   const p=command.payload
   if(p){
+   if(command.kind==='platform_gp'&&!equal(r.rates,p.rates))throw fail('COMMAND_ID_COLLISION')
    if(['menu','addon','group'].includes(command.kind)&&(!equal(r.input,p.input)||!equal(r.display,p.display)||r.entityId!==(command.kind==='addon'?p.entityId:p.input.id)))throw fail('COMMAND_ID_COLLISION')
    if(command.kind==='cancel'&&r.orderId!==p.orderId)throw fail('COMMAND_ID_COLLISION')
    if(['inventory','receive','produce'].includes(command.kind)){
@@ -230,7 +231,7 @@ export function createCoreTransport({db,getContext}){
  }
  async function rejectStaleInventory(command){
   const s=scope(),expected=command.payload?.expectedRevision
-  const kinds=['menu','addon','group','inventory','receive','produce','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe']
+  const kinds=['platform_gp','menu','addon','group','inventory','receive','produce','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe']
   if(!kinds.includes(command.kind)||!Number.isSafeInteger(expected)||expected<0)throw fail('STALE_NOT_PROVEN')
   // Read the advanced root first. Once observed it fences this immutable draft;
   // a subsequent server receipt read also catches commits completed before it.
