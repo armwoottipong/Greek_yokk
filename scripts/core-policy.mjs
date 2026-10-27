@@ -141,9 +141,38 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
   }
   return body
  }
- const bodies=[...functions].filter(([name])=>selected.has(name)).map(([name,body])=>extend(name,body))
- // A literal match confines access without repeating a path check inside every
- // validator invocation (the six-line final request is near Rules' expression cap).
- const scoped=matches.replace('/shops/{s}',`/shops/${shopId}`).replace(/\bs\b/g,`'${shopId}'`)
- return `rules_version = '2';\nservice cloud.firestore {\nmatch /databases/{database}/documents {\n${bodies.join('\n')}\n${scoped}\n}\n}\n`
+ const bodies=new Map([...functions].filter(([name])=>selected.has(name)).map(([name,body])=>[name,extend(name,body)]))
+ // Flatten collection matches and keep single-surface helpers local. Inheriting
+ // every validator into every nested match exhausts the production compiler's
+ // scope traversal stack even when the emulator accepts the same source.
+ const scopes=[]
+ function flatten(text,parent=''){
+  const pattern=/match\s+(.+?)\s+\{/g
+  let match
+  while((match=pattern.exec(text))){
+   const start=pattern.lastIndex;let end=start,depth=1
+   while(depth&&end<text.length){if(text[end]==='{')depth++;if(text[end]==='}')depth--;end++}
+   const body=text.slice(start,end-1),path=parent+match[1]
+   const children=flatten(body,path)
+   const direct=children.reduceRight((value,child)=>value.slice(0,child.start)+value.slice(child.end),body)
+   scopes.push({path,body:direct,needed:new Set()})
+   pattern.lastIndex=end
+  }
+  const spans=[];pattern.lastIndex=0
+  while((match=pattern.exec(text))){let end=pattern.lastIndex,depth=1;while(depth&&end<text.length){if(text[end]==='{')depth++;if(text[end]==='}')depth--;end++}spans.push({start:match.index,end});pattern.lastIndex=end}
+  return spans
+ }
+ flatten(matches)
+ for(const scope of scopes){
+  function need(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g))if(bodies.has(m[1])&&!scope.needed.has(m[1])){scope.needed.add(m[1]);need(bodies.get(m[1]))}}
+  need(scope.body)
+ }
+ const owners=new Map([...bodies.keys()].map(name=>[name,scopes.filter(scope=>scope.needed.has(name))]))
+ const shared=[...bodies].filter(([name])=>owners.get(name).length>1).map(([,body])=>body)
+ const scoped=scopes.map(scope=>{
+  const local=[...bodies].filter(([name])=>owners.get(name).length===1&&scope.needed.has(name)).map(([,body])=>body)
+  const path=scope.path.replace('/shops/{s}',`/shops/${shopId}`),body=scope.body.trim().replace(/[ \t]+$/gm,'').replace(/\bs\b/g,`'${shopId}'`)
+  return `match ${path} {\n${local.join('\n')}\n${body}\n}`
+ }).join('\n')
+ return `rules_version = '2';\nservice cloud.firestore {\nmatch /databases/{database}/documents {\n${shared.join('\n')}\n${scoped}\n}\n}\n`
 }

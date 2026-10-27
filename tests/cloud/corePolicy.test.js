@@ -5,6 +5,8 @@ import {readFileSync} from 'node:fs'
 it('builds a shop-scoped policy containing only the first operational commands',()=>{
  const text=buildCorePolicy({shopId:'greek-yogg'})
  expect(text).toContain('match /shops/greek-yogg {')
+ expect(text).toContain('match /shops/greek-yogg/generations/{g}/operations/{id}/referenceProofs/{index} {')
+ expect(text).not.toContain('match /generations/{g}')
  expect(text).toContain('function validRoot(')
  expect(text).toContain('function preparationCreate(')
  expect(text).toContain('function catalogRoot(')

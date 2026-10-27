@@ -59,3 +59,10 @@ is now refused and the corresponding unreferenced positive request commits.
 Lint and production build pass. Style blocks in all eight changed Vue components
 match the prior release. Active live Rules were backed up and matched the prior
 Git release; the live root remains revision4 during read-only preflight.
+
+Production compiler gate: the all-global validator scope returned503 while the
+preceding live Rules compiled. Flattening collection matches and moving helpers
+used by one surface into that match produced HTTP200 with no issues. Every retained
+validator body matches the reviewed catalog version; one unused display-path helper
+is omitted. Native operational/catalog tests are rerun against the localized
+generated source before publication.
