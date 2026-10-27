@@ -12,7 +12,16 @@ const root='shops/proof-shop',path=()=>`${root}/generations/${f.shop.generation}
 const command=(opId='GP',expectedRevision=f.shop.revision)=>({kind:'platform_gp',opId,payload:{expectedRevision,rates:Object.fromEntries(f.shop.catalog.platformIds.map(id=>[id,2550]))}})
 const client=uid=>{const db=env.authenticatedContext(uid).firestore();return {db,api:createCoreTransport({db,getContext:()=>({projectId:'demo-greek-yogg',shopId:'proof-shop',generation:f.shop.generation,uid,deviceId:uid,ready:true,online:true})})}}
 beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
-beforeEach(async()=>{await env.clearFirestore();f=summaryFixture();await env.withSecurityRulesDisabled(async c=>{const d=c.firestore(),b=writeBatch(d);b.set(doc(d,root),f.shop);for(const m of f.materials)b.set(doc(d,`${path()}/materials/${m.id}`),m);await b.commit()});({db,api}=client('alice'))})
+beforeEach(async()=>{
+ await env.clearFirestore();f=summaryFixture()
+ // Exercise all four deployed channel slots, including the last Rules branch.
+ const c=f.shop.catalog,source=c.platformIds[0]
+ for(const id of ['P2','P3','P4']){
+  c.platformIds.push(id);c.platforms[id]=structuredClone(c.platforms[source]);c.addonPrices[id]=structuredClone(c.addonPrices[source])
+  for(const entity of [...Object.values(c.menus),...Object.values(c.addons)]){entity.pricesCents[id]=entity.pricesCents[source];if(entity.optionPrices)entity.optionPrices[id]=structuredClone(entity.optionPrices[source])}
+ }
+ await env.withSecurityRulesDisabled(async ctx=>{const d=ctx.firestore(),b=writeBatch(d);b.set(doc(d,root),f.shop);for(const m of f.materials)b.set(doc(d,`${path()}/materials/${m.id}`),m);await b.commit()});({db,api}=client('alice'))
+})
 afterAll(async()=>env.cleanup())
 async function direct(change=()=>{},actor=db,mode='both'){
  const planned=planInventoryCommand(f.shop,f.materials,command(),'alice');change(planned)
