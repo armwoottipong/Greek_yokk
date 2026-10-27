@@ -3,11 +3,11 @@ import {mount,flushPromises} from '@vue/test-utils'
 import CoreWorkspace from '../../src/cloud/core/CoreWorkspace.vue'
 import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
-const h=vi.hoisted(()=>({abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn()}))
-vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,close:()=>{}})}))
+const h=vi.hoisted(()=>({abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn()}))
+vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,report:h.report,close:()=>{}})}))
 const state={user:{uid:'u'},shop:{generation:'g1',revision:1},serverReady:true}
 beforeEach(()=>{
- sessionStorage.clear();h.abandon.mockReset();h.orders.mockResolvedValue([]);h.history.mockResolvedValue([]);h.execute.mockClear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))
+ sessionStorage.clear();h.report.mockReset();h.report.mockResolvedValue({receipts:[],legacyOrders:[]});h.abandon.mockReset();h.orders.mockResolvedValue([]);h.history.mockResolvedValue([]);h.execute.mockClear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))
  h.preview.mockReturnValue({subtotalCents:6900,approvedShortages:{}})
  h.load.mockResolvedValue({shop:{generation:'g1',revision:1,catalog:{summaryMaterials:Array.from({length:15},(_,i)=>`M${i}`),menus:{M:{id:'M',active:true,pricesCents:{P:6900},optionIds:[],min:0,max:0}},groups:{},platforms:{P:{active:true}},platformIds:['P']}},materials:[],display:{trial:true,sourceDate:'2026-10-20',menus:{M:{name:'โยเกิร์ต'}},addons:{},platforms:{P:{name:'หน้าร้าน'}}},orders:[]})
 })
@@ -223,4 +223,16 @@ it('keeps a cart and safely resets an open option form when another device chang
  next.shop.catalog.addons={A:{active:true,recipe:{},pricesCents:{P:0}}};next.shop.catalog.addonIds=['A'];next.display.addons={A:{name:'New choice'}};next.shop.catalog.menus.M.groupId='G'
  h.load.mockResolvedValue(next);await w.setProps({state:{...state,shop:{...state.shop,revision:2}}});await flushPromises()
  expect(w.text()).toContain('กรุณาเลือกตัวเลือกใหม่');expect(w.findAll('.bowl-addon')).toHaveLength(1);expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
+})
+
+it('opens the original Dashboard from the sidebar without a local fallback or the 100-bill history limit',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises();await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+  await w.get('.brand-navigation button[title="ภาพรวม & งบต้นทุน"]').trigger('click');await flushPromises()
+  expect(w.find('[data-sales-total]').isVisible()).toBe(true);expect(h.report).toHaveBeenCalledTimes(1);expect(h.orders).not.toHaveBeenCalled()
+  await w.get('[data-period="all"]').trigger('click');await flushPromises();expect(h.report).toHaveBeenLastCalledWith({start:null,end:null})
+  const calls=h.report.mock.calls.length;await w.get('button[aria-label="โหลดข้อมูลล่าสุด"]').trigger('click');await flushPromises();expect(h.report.mock.calls.length).toBeGreaterThan(calls)
+  await w.get('.brand-navigation button[title="แคชเชียร์ (POS)"]').trigger('click');await flushPromises();expect(w.findAll('[data-cart-line]')).toHaveLength(1)
+ }finally{w.unmount()}
 })

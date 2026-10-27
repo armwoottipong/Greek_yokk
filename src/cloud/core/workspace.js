@@ -1,3 +1,4 @@
+import {createReportReader} from './reportReader.js'
 import {doc,collection,getDocFromServer,getDocsFromServer,query,orderBy,limit} from 'firebase/firestore'
 import {getFirebaseClient} from '../firebaseClient.js'
 import {createCommandJournal} from '../journal.js'
@@ -8,6 +9,7 @@ import {planInventoryCommand} from './inventoryPlan.js'
 export function createCoreWorkspace({connection,getContext}){
  const {db}=getFirebaseClient({mode:connection.mode,config:connection.config})
  const journal=createCommandJournal(),transport=createCoreTransport({db,getContext}),commands=createCoreCommands({journal,transport,getContext})
+ const reports=createReportReader({db,getContext})
  let current
  const base=()=>{const c=getContext();return `shops/${c.shopId}/generations/${c.generation}`}
  async function load(){
@@ -31,5 +33,5 @@ export function createCoreWorkspace({connection,getContext}){
  function previewInventory(kind,payload){return previewCommand({kind,payload})}
  async function orders(){const rows=await getDocsFromServer(query(collection(db,`${base()}/orders`),orderBy('createdAt','desc'),limit(100))),orders=rows.docs.map(d=>d.data());if(current)current={...current,orders};return orders}
  async function history(){const path=base(),rows=await Promise.all(Array.from({length:current?.display.legacyOrderCount||0},(_,i)=>getDocFromServer(doc(db,`${path}/legacyRecords/orders_${i}`))));return rows.map(d=>JSON.parse(d.data().json))}
- return {...commands,load,orders,previewSale,previewInventory,previewCommand,history,close:()=>journal.close()}
+ return {...commands,load,orders,previewSale,previewInventory,previewCommand,history,report:range=>{if(!current)throw new Error('NOT_READY');return reports.read(range,{legacyOrderCount:current.display.legacyOrderCount??0})},close:()=>{reports.close();return journal.close()}}
 }

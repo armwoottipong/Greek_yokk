@@ -1,6 +1,6 @@
 import {it,expect,vi,beforeEach} from 'vitest'
 const h=vi.hoisted(()=>({snapshot:vi.fn(),read:vi.fn()}))
-vi.mock('firebase/firestore',()=>({doc:(_db,path)=>({path}),collection:(_db,path)=>({path}),getDocFromServer:h.read,getDocsFromServer:vi.fn(),query:vi.fn(),orderBy:vi.fn(),limit:vi.fn(),serverTimestamp:vi.fn()}))
+vi.mock('firebase/firestore',async importOriginal=>({...await importOriginal(),doc:(_db,path)=>({path}),collection:(_db,path)=>({path}),getDocFromServer:h.read,getDocsFromServer:vi.fn(),query:vi.fn(),orderBy:vi.fn(),limit:vi.fn(),serverTimestamp:vi.fn()}))
 vi.mock('../../src/cloud/firebaseClient.js',()=>({getFirebaseClient:()=>({db:{}})}))
 vi.mock('../../src/cloud/journal.js',()=>({createCommandJournal:()=>({close(){}})}))
 vi.mock('../../src/cloud/core/transport.js',()=>({createCoreTransport:()=>({snapshot:h.snapshot})}))
