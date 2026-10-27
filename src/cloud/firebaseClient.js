@@ -1,8 +1,8 @@
 import {initializeApp} from 'firebase/app'
-import {initializeAuth,browserSessionPersistence,browserPopupRedirectResolver,connectAuthEmulator} from 'firebase/auth'
+import {initializeAuth,indexedDBLocalPersistence,browserLocalPersistence,browserSessionPersistence,browserPopupRedirectResolver,connectAuthEmulator} from 'firebase/auth'
 import {initializeFirestore,memoryLocalCache,connectFirestoreEmulator} from 'firebase/firestore'
 
-const sdkDefault={initializeApp,initializeAuth,browserSessionPersistence,browserPopupRedirectResolver,
+const sdkDefault={initializeApp,initializeAuth,indexedDBLocalPersistence,browserLocalPersistence,browserSessionPersistence,browserPopupRedirectResolver,
   connectAuthEmulator,initializeFirestore,memoryLocalCache,connectFirestoreEmulator}
 const fields=['apiKey','authDomain','projectId','appId','storageBucket','messagingSenderId']
 
@@ -25,7 +25,7 @@ export function createFirebaseClientFactory(sdk=sdkDefault) {
    return existing.client
   }
   const app=sdk.initializeApp(clean,`greek-yogg-${mode}-${config.projectId}`)
-  const auth=sdk.initializeAuth(app,{persistence:sdk.browserSessionPersistence,popupRedirectResolver:sdk.browserPopupRedirectResolver})
+  const auth=sdk.initializeAuth(app,{persistence:[sdk.indexedDBLocalPersistence,sdk.browserLocalPersistence,sdk.browserSessionPersistence],popupRedirectResolver:sdk.browserPopupRedirectResolver})
   const db=sdk.initializeFirestore(app,{localCache:sdk.memoryLocalCache()})
   if(mode==='emulator') {
    sdk.connectAuthEmulator(auth,'http://127.0.0.1:9098',{disableWarnings:true})

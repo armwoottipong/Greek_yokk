@@ -4,7 +4,7 @@ const config={apiKey:'demo-key',authDomain:'demo-test.firebaseapp.com',projectId
 function sdkMock() {
  const app={},auth={},db={},memory={}
  return {app,auth,db,memory,initializeApp:vi.fn(()=>app),initializeAuth:vi.fn(()=>auth),
-  initializeFirestore:vi.fn(()=>db),memoryLocalCache:vi.fn(()=>memory),browserSessionPersistence:{type:'session'},browserPopupRedirectResolver:{},
+  initializeFirestore:vi.fn(()=>db),memoryLocalCache:vi.fn(()=>memory),indexedDBLocalPersistence:{type:'indexedDB'},browserLocalPersistence:{type:'local'},browserSessionPersistence:{type:'session'},browserPopupRedirectResolver:{},
   connectAuthEmulator:vi.fn(),connectFirestoreEmulator:vi.fn()}
 }
 describe('explicit Firebase bootstrap without live test traffic',()=>{
@@ -32,10 +32,10 @@ describe('explicit Firebase bootstrap without live test traffic',()=>{
   expect(()=>factory({mode:'emulator',config:{...config,[field]:''}})).toThrow(field)
   expect(sdk.initializeApp).not.toHaveBeenCalled()
  })
- it('uses memory-only Firestore, per-tab auth persistence and only the fixed local emulators',()=>{
+ it('uses memory-only Firestore, remembered auth with storage fallbacks and only the fixed local emulators',()=>{
   const sdk=sdkMock(),factory=createFirebaseClientFactory(sdk),client=factory({mode:'emulator',config})
   expect(client).toMatchObject({app:sdk.app,auth:sdk.auth,db:sdk.db,mode:'emulator',projectId:'demo-test'})
-  expect(sdk.initializeAuth).toHaveBeenCalledWith(sdk.app,{persistence:sdk.browserSessionPersistence,popupRedirectResolver:sdk.browserPopupRedirectResolver})
+  expect(sdk.initializeAuth).toHaveBeenCalledWith(sdk.app,{persistence:[sdk.indexedDBLocalPersistence,sdk.browserLocalPersistence,sdk.browserSessionPersistence],popupRedirectResolver:sdk.browserPopupRedirectResolver})
   expect(sdk.initializeFirestore).toHaveBeenCalledWith(sdk.app,{localCache:sdk.memory})
   expect(sdk.connectAuthEmulator).toHaveBeenCalledWith(sdk.auth,'http://127.0.0.1:9098',{disableWarnings:true})
   expect(sdk.connectFirestoreEmulator).toHaveBeenCalledWith(sdk.db,'127.0.0.1',8088)
