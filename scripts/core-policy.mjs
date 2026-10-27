@@ -94,7 +94,18 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
   }
   if(name==='menuChoice')body=body.replace('return refs is list',"return (!m.active || c.addons[key].get('active',true)) && refs is list")
   if(name==='groupChoice')body=body.replace('return a is int',"return (!g.active || c.addons[key].get('active',true)) && a is int")
-  if(name==='catalogEdit')body=body.replaceAll('c.counterIds',"c.get('counterIds',[])")
+  // Generic catalog edits in this release are exclusively Add-on edits. Remove
+  // unreachable menu/platform branches rather than carrying their compiled AST.
+  if(name==='catalogEdit')body=`function catalogEdit(c,old,o) {
+   let ids=c.get('counterIds',[]);
+   return o.collection=='addons' && c.keys().toSet()==old.keys().toSet() && o.entityId!='_' && o.entityId in c.addonIds &&
+    (o.counterIndex==-1 ? !(o.entityId in ids) : integer(o.counterIndex,4,14) && ids[o.counterIndex]==o.entityId) &&
+    o.entitySnapshot==c.addons[o.entityId] && c.diff(old).affectedKeys().hasOnly(['addons','addonPrices','menus']) &&
+    c.addons.keys().toSet()==old.addons.keys().toSet() && c.addons.diff(old.addons).affectedKeys().hasOnly([o.entityId]) &&
+    c.menus.keys().toSet()==old.menus.keys().toSet() && c.addonPrices.keys().toSet()==old.addonPrices.keys().toSet() &&
+    addonPriceEdit(c,old,o.entityId,0) && addonPriceEdit(c,old,o.entityId,1) && addonPriceEdit(c,old,o.entityId,2) && addonPriceEdit(c,old,o.entityId,3);
+  }`
+
   if(name==='addonRoot')body=body.replace('touched(s,before.generation,o,0) && touched(s,before.generation,o,1) && touched(s,before.generation,o,2) &&','').replace("(k>=15 ? c.counterIds==old.counterIds :", "(!old.keys().hasAny(['counterIds']) ? !c.keys().hasAny(['counterIds']) : k>=15 ? c.counterIds==old.counterIds :")
   if(name==='addonOperation')body=body.replace("root.lastOpId==id &&","getAfter(shapePath(s,g,id)).data.opId==id && root.lastOpId==id &&")
   if(name==='addonMaterial')body=body.replace('let q=n.recipeIndex.quantities;',"let q=n.recipeIndex.get('quantities',[]);").replace('q.size()==15', "(!before.recipeIndex.keys().hasAny(['quantities']) ? q.size()==0 : q.size()==15)").replace('(k>=15 ? q==before.recipeIndex.quantities :', "(!before.recipeIndex.keys().hasAny(['quantities']) ? !n.recipeIndex.keys().hasAny(['quantities']) : k>=15 ? q==before.recipeIndex.quantities :")
@@ -102,7 +113,10 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
   if(name==='catalogReferenceProof')body=replace(body,'addonMenuReference(root.catalog,old.catalog,o.entityId,63)',"addonMenuReference(root.catalog,old.catalog,o.entityId,63) && (o.materialIds.size()==16 || addonRetirementGroup(root.catalog,o.entityId,60) && addonRetirementGroup(root.catalog,o.entityId,61) && addonRetirementGroup(root.catalog,o.entityId,62) && addonRetirementGroup(root.catalog,o.entityId,63))")
   if(name==='catalogRoot')body=body.replace('touchedAt(s,resource.data.generation,o,0) && touchedAt(s,resource.data.generation,o,1) && touchedAt(s,resource.data.generation,o,2) &&','')
   if(name==='catalogReferenceProof'){const end=body.lastIndexOf(';');body=body.slice(0,end)+' && touchedAt(s,g,o,0) && touchedAt(s,g,o,1) && touchedAt(s,g,o,2)'+body.slice(end)}
-  if(name==='catalogOperation')body=body.replace("o.collection in ['menus','addons','platforms']", "o.collection=='addons'")
+  if(name==='catalogOperation'){
+   body=replace(body,"o.collection in ['menus','addons','platforms'] && integer(o.counterIndex,-1,18) && (o.collection!='menus' || integer(o.counterIndex,0,3)) && (o.collection!='platforms' || integer(o.counterIndex,15,18) && platformAt(root.catalog,o.counterIndex-15))","o.collection=='addons' && integer(o.counterIndex,-1,14)")
+   body=replace(body,"(o.collection=='platforms' || (o.collection=='addons' ? addonData(root.catalog,o.entityId) && getAfter(referencePath(s,g,id)).data.opId==id : getAfter(shapePath(s,g,id)).data.opId==id))","addonData(root.catalog,o.entityId) && getAfter(referencePath(s,g,id)).data.opId==id")
+  }
   if(name==='addonMenuReference')body=body.replace('return i>=c.menuIds.size() ||', "return i>=c.menuIds.size() || (c.addons[key].get('active',true) || !before.active || !(key in before.optionIds)) &&")
   if(name==='catalogMaterial')body=body.replace('oldIndex.catalogRevision==o.sourceCatalogRevision &&', "(o.collection!='addons' || addonRetirementGroup(c,o.entityId,after.lastOpIndex*4) && addonRetirementGroup(c,o.entityId,after.lastOpIndex*4+1) && addonRetirementGroup(c,o.entityId,after.lastOpIndex*4+2) && addonRetirementGroup(c,o.entityId,after.lastOpIndex*4+3)) && oldIndex.catalogRevision==o.sourceCatalogRevision &&")
 

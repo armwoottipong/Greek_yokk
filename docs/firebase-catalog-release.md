@@ -62,7 +62,9 @@ Git release; the live root remains revision4 during read-only preflight.
 
 Production compiler gate: the all-global validator scope returned503 while the
 preceding live Rules compiled. Flattening collection matches and moving helpers
-used by one surface into that match produced HTTP200 with no issues. Every retained
-validator body matches the reviewed catalog version; one unused display-path helper
-is omitted. Native operational/catalog tests are rerun against the localized
+used by one surface into that match produced HTTP200 with no issues. Scope localization preserves validator bodies and omits one unused display-path
+helper. The activation gate also exposed a compiled-size overrun of773bytes.
+The generic catalog edit/receipt validators are specialized to Add-on edits, the
+only generic collection permitted by this release; unreachable menu/platform
+branches are removed while retaining all Add-on checks. Native operational/catalog tests are rerun against the localized
 generated source before publication.
