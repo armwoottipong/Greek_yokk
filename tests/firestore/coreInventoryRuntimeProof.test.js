@@ -57,7 +57,7 @@ it('creates, edits metadata/measurement/details/recipe and archives an unreferen
 it('reclassifies a protected material and preserves the declared recipes',async()=>{
  const {base}=typeFixture();await seed(base);const {api}=setup()
  await api.commit(command('material_type',{materialId:'S11',inventoryType:'ingredient'}))
- const after=await api.snapshot();expect(after.materials.find(m=>m.id==='S11').recipeIndex.menus.SIMPLE).toBe(100);expect(after.shop.catalog).toEqual(base.shop.catalog)
+ const after=await api.snapshot();expect(after.materials.find(m=>m.id==='S11').recipeIndex).toEqual(base.materials.find(m=>m.id==='S11').recipeIndex);expect(after.shop.catalog.menus.SIMPLE.rawRecipe).toEqual(base.shop.catalog.menus.SIMPLE.rawRecipe);expect(after.shop.catalog.menus.SIMPLE.recipe.S11).toBe(100)
 })
 it.each(['omitMaterial','omitOperation','omitShop','forgedCost'])('rejects %s inventory writes atomically',async tamper=>{
  const base=await seed(),{db,api}=setup(),{planInventoryCommand}=await import('../../src/cloud/core/inventoryPlan.js'),m=base.materials[0]
@@ -94,19 +94,20 @@ it('resolves only a proven stale inventory command and fences late replay after 
 import {compileCoreImport} from '../../scripts/core-import.js'
 import {coreSource} from '../fixtures/coreSource.js'
 import {planInventoryCommand} from '../../src/cloud/core/inventoryPlan.js'
-it('reclassifies all sixteen protected materials including the last guard',async()=>{
+it('reclassifies the last protected material with all mandatory projection witnesses',async()=>{
  const p=compileCoreImport(coreSource(),{shopId:'proof-shop',generation:'g_trial_type',sourceSha256:'a'.repeat(64)})
  p.shop.generation='g1';const materials=p.documents.filter(d=>d.path.includes('/materials/')).map(d=>d.data)
  await seedSetCatalog(env,{shop:p.shop,materials});const {api}=setup()
  const targetId=materials.find(m=>m.costRank===15).id
  const f=planInventoryCommand(p.shop,materials,command('material_type',{materialId:targetId,inventoryType:'packaging'},'OMIT-LAST'),'cashier'),db=env.authenticatedContext('cashier').firestore(),batch=writeBatch(db)
  batch.set(doc(db,ROOT),f.nextShop);batch.set(doc(db,`${GENERATION}/operations/OMIT-LAST`),f.operation)
- for(const m of f.nextMaterials.slice(0,15))batch.set(doc(db,`${GENERATION}/materials/${m.id}`),m)
+ for(const m of f.nextMaterials)batch.set(doc(db,`${GENERATION}/materials/${m.id}`),m)
+ for(const proof of f.checkProofs.filter(p=>p.index!==15))batch.set(doc(db,`${GENERATION}/operations/OMIT-LAST/referenceProofs/type${proof.index}`),proof.data)
  await assertFails(batch.commit())
  const result=await api.commit(command('material_type',{materialId:targetId,inventoryType:'packaging'}))
- expect(result.materialIds).toHaveLength(16)
+ expect(result.materialIds).toEqual([targetId])
  const after=await api.snapshot();expect(after.materials.find(m=>m.id===targetId).inventoryType).toBe('packaging')
- expect(after.materials.every(m=>m.recipeIndex.catalogRevision===after.shop.catalogRevision)).toBe(true)
+ expect(Object.fromEntries(after.materials.map(m=>[m.id,m.recipeIndex]))).toEqual(Object.fromEntries(materials.map(m=>[m.id,m.recipeIndex])))
 })
 it('counts eighteen materials with four live lots per material through the runtime',async()=>{
  const base=summaryFixture({prepareMaterials:materials=>{
@@ -142,10 +143,13 @@ it.each(editCases.flatMap(([kind,payload])=>['omitMaterial','omitOperation','omi
  const {base}=typeFixture();
  if(kind==='material_archive'){const added=planInventoryCommand(base.shop,base.materials,command('material_create',{input:{id:'ARCHIVE',name:'Archive',emoji:'',unit:'g',inventoryType:'ingredient',packSize:1,minAlertQ:0}},'TRUSTED'));base.shop=added.nextShop;base.materials.push(added.nextMaterials[0])}
  await seed(base);const {db,api}=setup(),f=planInventoryCommand(base.shop,base.materials,command(kind,payload,'FORGED-EDIT'),'cashier')
+ if(kind==='material_archive')for(let index=0;index<8;index++)await setDoc(doc(db,`${GENERATION}/materialReferences/FORGED-EDIT/parts/${index}`),{opId:'FORGED-EDIT',index,uid:'cashier',sourceRevision:base.shop.revision,kind,materialId:payload.materialId})
  if(tamper==='forgedStock')f.nextMaterials[0].stock++
  const batch=writeBatch(db)
  if(tamper!=='omitShop')batch.set(doc(db,ROOT),f.nextShop)
  if(tamper!=='omitOperation')batch.set(doc(db,`${GENERATION}/operations/FORGED-EDIT`),f.operation)
+ for(const proof of f.checkProofs||[])batch.set(doc(db,`${GENERATION}/operations/FORGED-EDIT/referenceProofs/${proof.namespace}${proof.index}`),proof.data)
+ if(f.referenceProof)batch.set(doc(db,`${GENERATION}/operations/FORGED-EDIT/referenceProofs/0`),f.referenceProof)
  for(const [i,m] of f.nextMaterials.entries())if(tamper!=='omitMaterial'||i!==f.nextMaterials.length-1)batch.set(doc(db,`${GENERATION}/materials/${m.id}`),m)
  await assertFails(batch.commit());expect((await api.snapshot()).shop.revision).toBe(base.shop.revision)
 })

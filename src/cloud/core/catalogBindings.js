@@ -8,7 +8,7 @@ export function createCatalogBindings({snapshot,mutate,error}){
  const money=(values,c)=>Object.fromEntries(c.platformIds.map(id=>[id,scaled(values?.[id]??0)]))
  function recipe(rows,c,materials){
   const result={}
-  for(const row of rows||[]){const m=materials.find(m=>m.id===row.materialId),qty=scaled(row.qty);if(!m||m.deleted)throw new Error('วัตถุดิบในสูตรไม่พบหรือถูกจัดเก็บแล้ว');if(!c.summaryMaterials.includes(m.id))throw new Error('วัตถุดิบนี้ยังไม่ได้อยู่ในชุดวัตถุดิบสำหรับการขาย กรุณาเลือกวัตถุดิบที่รองรับก่อน');if(!qty)throw new Error('ปริมาณในสูตรต้องมากกว่า 0');result[m.id]=(result[m.id]||0)+qty}
+  for(const row of rows||[]){const m=materials.find(m=>m.id===row.materialId),qty=scaled(row.qty);if(!m||m.deleted)throw new Error('วัตถุดิบในสูตรไม่พบหรือถูกจัดเก็บแล้ว');if(!qty)throw new Error('ปริมาณในสูตรต้องมากกว่า 0');result[m.id]=(result[m.id]||0)+qty}
   return result
  }
  function menuPayload(input,retire=false){

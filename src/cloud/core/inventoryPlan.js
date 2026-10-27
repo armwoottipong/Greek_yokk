@@ -35,5 +35,5 @@ export function planInventoryCommand(shop,materials,command,uid='preview'){
   case 'production_recipe':f=summaryProductionRecipe(shop,materials,p.materialId,p.recipe,options);break
   default:throw fail('UNKNOWN_COMMAND')
  }
- return {inputProof:f.inputProof,shapeProof:f.shapeProof,referenceProof:f.referenceProof,displayChange:f.displayChange,nextShop:f.nextShop,nextMaterials:f.nextMaterials|| (f.nextInputs?[...f.nextInputs,f.nextOutput]:[f.next]),removedMaterialIds:f.removedMaterialIds||[],operation:f.operation}
+ return {admittedProof:f.admittedProof,checkProofs:f.checkProofs,inputProof:f.inputProof,shapeProof:f.shapeProof,referenceProof:f.referenceProof,displayChange:f.displayChange,nextShop:f.nextShop,nextMaterials:f.nextMaterials|| (f.nextInputs?[...f.nextInputs,f.nextOutput]:[f.next]),removedMaterialIds:f.removedMaterialIds||[],operation:f.operation}
 }

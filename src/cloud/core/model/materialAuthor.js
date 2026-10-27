@@ -1,3 +1,4 @@
+import {hasDeclaredMaterial} from './materialReferences.js'
 import { serverTimestamp } from 'firebase/firestore'
 import { validateMaterialMetadata } from './materialMetadata.js'
 const validId=id=>typeof id==='string'&&/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)
@@ -26,7 +27,7 @@ export function summaryMaterialCreate(shop,input,{opId='MATERIAL-CREATE',uid='ca
 }
 export function summaryMaterialArchive(shop,material,deleted,{opId='MATERIAL-ARCHIVE',uid='cashier'}={}){
   if(typeof deleted!=='boolean'||material.deleted===deleted||!shop.materialIds?.includes(material.id)||shop.catalog.summaryMaterials.includes(material.id)||
-    shop.productionUsers?.[material.id]?.length!==0||Object.values(material.recipeIndex.menus).some(q=>q!==0)||Object.values(material.recipeIndex.addons).some(q=>q!==0))throw new Error('Material still referenced or unchanged')
+    shop.productionUsers?.[material.id]?.length!==0||deleted&&hasDeclaredMaterial(shop,material.id))throw new Error('Material still referenced or unchanged')
   return {next:{...structuredClone(material),deleted,revision:material.revision+1,lastOpId:opId,lastOpKind:'material_archive',lastOpIndex:0},
-    nextShop:nextRoot(shop,opId,'material_archive'),operation:{...operation(shop,material.id,material.revision,'material_archive',opId,uid),deleted}}
+    nextShop:nextRoot(shop,opId,'material_archive'),...(deleted?{referenceProof:{opId}}:{}),operation:{...operation(shop,material.id,material.revision,'material_archive',opId,uid),deleted}}
 }

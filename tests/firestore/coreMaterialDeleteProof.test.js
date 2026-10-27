@@ -26,6 +26,9 @@ function fixture(){
  f.materials.find(m=>m.id==='REMOVE').deleted=true
  return f
 }
+async function referenceParts(db,shop,kind,opId='FORGED'){
+ for(let index=0;index<8;index++)await setDoc(doc(db,`${GENERATION}/materialReferences/${opId}/parts/${index}`),{opId,index,uid:'cashier',sourceRevision:shop.revision,kind,materialId:'REMOVE'})
+}
 it('atomically deletes with an immutable receipt, retries, recreates without rank reuse and still cancels earlier sales',async()=>{
  const f=fixture();await seedSetCatalog(env,f);const {api,db}=setup()
  const sale=await api.commit(command('sale',{platformId:'P',lines:[{menuId:'SIMPLE',qty:1,optionIds:[]}]},'OLD-SALE'))
@@ -47,27 +50,33 @@ it.each(['omitRoot','omitReceipt','omitDelete','snapshot','rank','registry'])('r
  if(tamper==='snapshot')p.operation.materialSnapshot.name='forged'
  if(tamper==='rank')p.nextShop.nextMaterialCostRank=16
  if(tamper==='registry')p.nextShop.materialIds=p.nextShop.materialIds.filter(id=>id!=='KEEP')
+ await referenceParts(db,f.shop,'material_delete')
  const batch=writeBatch(db)
+ batch.set(doc(db,`${GENERATION}/operations/FORGED/referenceProofs/0`),p.referenceProof)
  if(tamper!=='omitRoot')batch.set(doc(db,ROOT),p.nextShop)
  if(tamper!=='omitReceipt')batch.set(doc(db,`${GENERATION}/operations/FORGED`),p.operation)
  if(tamper!=='omitDelete')batch.delete(doc(db,`${GENERATION}/materials/REMOVE`))
  await assertFails(batch.commit());expect((await api.snapshot()).materials).toHaveLength(17)
 })
-it.each(['live','stock','lot','menu','addon','counter','input','output','protected'])('denies direct forged deletion of %s materials',async condition=>{
+it.each(['live','stock','lot','menu','addon','sold','input','output','protected'])('denies direct forged deletion of %s materials',async condition=>{
  const f=fixture(),m=f.materials.find(m=>m.id==='REMOVE')
  // Build the attempted transaction first, then seed an ineligible before state.
  const p=planInventoryCommand(f.shop,f.materials,command('material_delete',{materialId:m.id},'FORGED'),'cashier')
  if(condition==='live')m.deleted=false
  if(condition==='stock')m.stock=1
  if(condition==='lot')m.lotQty._=1
- if(condition==='menu')m.recipeIndex.menus.SIMPLE=1
- if(condition==='addon')m.recipeIndex.addons.A0=1
- if(condition==='counter')m.recipeIndex.quantities[0]=1
+ if(condition==='menu')f.shop.catalog.menus.SIMPLE.rawRecipe={...f.shop.catalog.menus.SIMPLE.recipe,REMOVE:1}
+ if(condition==='addon')f.shop.catalog.addons[f.shop.catalog.addonIds[0]].recipe.REMOVE=1
+ if(condition==='sold')f.shop.returnMaterials={REMOVE:true}
  if(condition==='input')f.shop.productionUsers[m.id]=['KEEP']
  if(condition==='output')m.productionRecipe={inputIds:['S0'],quantities:[1],yieldQ:1}
  if(condition==='protected'){f.shop.catalog.summaryMaterials.push(m.id);p.nextShop.catalog.summaryMaterials.push(m.id)}
  p.operation.materialSnapshot=structuredClone(m)
- await seedSetCatalog(env,f);const {db}=setup(),batch=writeBatch(db)
+ await seedSetCatalog(env,f);const {db}=setup()
+ if(['menu','addon'].includes(condition)){await expect(referenceParts(db,f.shop,'material_delete')).rejects.toMatchObject({code:'permission-denied'});await assertFails(deleteDoc(doc(db,`${GENERATION}/materials/REMOVE`)));return}
+ await referenceParts(db,f.shop,'material_delete')
+ const batch=writeBatch(db)
+ batch.set(doc(db,`${GENERATION}/operations/FORGED/referenceProofs/0`),p.referenceProof)
  batch.set(doc(db,ROOT),p.nextShop);batch.set(doc(db,`${GENERATION}/operations/FORGED`),p.operation);batch.delete(doc(db,`${GENERATION}/materials/REMOVE`))
  await assertFails(batch.commit());await assertFails(deleteDoc(doc(db,`${GENERATION}/materials/REMOVE`)))
 })

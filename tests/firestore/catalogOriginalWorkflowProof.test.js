@@ -38,7 +38,7 @@ async function workflow(source){
   expect((await model.deleteAddon(addon.id)).ok).toBe(false)
   const retiredMenu=await model.deleteMenu(menu.id);expect(retiredMenu).toMatchObject({ok:true})
   const retiredGroup=await model.deleteAddonGroup(group.id);expect(retiredGroup).toMatchObject({ok:true})
-  const retiredAddon=await model.deleteAddon(addon.id);expect(retiredAddon).toMatchObject({ok:true})
+  const retiredAddon=await model.deleteAddon(addon.id);expect(retiredAddon,retiredAddon.message).toMatchObject({ok:true})
   expect(model.menus.some(m=>m.id===menu.id)).toBe(false);expect(model.addonGroups.some(g=>g.id===group.id)).toBe(false);expect(model.addons.some(a=>a.id===addon.id)).toBe(false)
   expect((await other.snapshot()).shop.catalog.addons[addon.id].active).toBe(false)
  } finally {model.close()}

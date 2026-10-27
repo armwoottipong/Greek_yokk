@@ -19,14 +19,14 @@ it('removes an archived empty material, preserving immutable history and cost ra
  expect(created.nextMaterials[0].costRank).toBe(17);expect(created.nextShop.nextMaterialCostRank).toBe(18)
  expect(f).toEqual(before)
 })
-it.each(['live','stock','lot','menu','addon','counter','input','output','protected'])('rejects %s material deletion',condition=>{
+it.each(['live','stock','lot','menu','addon','sold','input','output','protected'])('rejects %s material deletion',condition=>{
  const f=fixture(),m=f.materials.find(m=>m.id==='REMOVE')
  if(condition==='live')m.deleted=false
  if(condition==='stock')m.stock=1
  if(condition==='lot')m.lotQty._=1
- if(condition==='menu')m.recipeIndex.menus.SIMPLE=1
- if(condition==='addon')m.recipeIndex.addons.A0=1
- if(condition==='counter')m.recipeIndex.quantities[0]=1
+ if(condition==='menu')f.shop.catalog.menus.SIMPLE.rawRecipe={...f.shop.catalog.menus.SIMPLE.recipe,REMOVE:1}
+ if(condition==='addon')f.shop.catalog.addons[f.shop.catalog.addonIds[0]].recipe.REMOVE=1
+ if(condition==='sold')f.shop.returnMaterials={REMOVE:true}
  if(condition==='input')f.shop.productionUsers[m.id]=['KEEP']
  if(condition==='output')m.productionRecipe={inputIds:['S0'],quantities:[1],yieldQ:1}
  if(condition==='protected')f.shop.catalog.summaryMaterials.push(m.id)

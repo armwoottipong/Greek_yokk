@@ -17,7 +17,7 @@ export function summaryPreparedMenu(shop,materials,input,options){
   }
   if(hasRaw){
     if(!input.rawRecipe||typeof input.rawRecipe!=='object'||Array.isArray(input.rawRecipe)||typeof input.hasPackage!=='boolean')throw new Error('Invalid prepared recipe')
-    const materialIds=shop?.catalog?.summaryMaterials
+    const materialIds=shop?.materialIds||shop?.catalog?.summaryMaterials
     if(!Array.isArray(materialIds))throw new Error('Invalid prepared material registry')
     const entries=Object.entries(input.rawRecipe)
     for(const [id,quantity] of entries){

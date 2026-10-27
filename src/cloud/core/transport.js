@@ -40,6 +40,7 @@ export function createCoreTransport({db,getContext}){
   const f=planInventoryCommand(shop,materials,command,s.uid)
   return {f,receipt:f.operation,materials:f.nextMaterials}
  }
+ const cacheChanged=(a,b)=>a.revision!==b.revision||!equal(a.billPreparations||{},b.billPreparations||{})||a.billPreparationId!==b.billPreparationId
  const collectionFor=kind=>kind==='sale'?'orders':'operations'
  function checkReceipt(s,command,r){
   const kinds={menu:['menu'],addon:['addon','catalog'],group:['group'],sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
@@ -95,24 +96,97 @@ export function createCoreTransport({db,getContext}){
    for(let count=1;count<=lines.length;count++)await runTransaction(db,async t=>{
     guard(s);const shop=await t.get(doc(db,root(s)));checkRoot(s,shop.data())
     const before=await t.get(doc(db,path));guard(s)
-    const data={opId:id,index:i,uid:s.uid,catalogRevision:f.shop.catalogRevision,platformId:f.order.platformId,addonKeys:f.order.addonKeys,lines:lines.slice(0,count)}
+    const data={opId:id,index:i,uid:s.uid,catalogRevision:f.shop.catalogRevision,platformId:f.order.platformId,addonKeys:f.order.addonKeys,materialIds:f.order.materialIds,billOperands:f.order.billOperands,lines:lines.slice(0,count),coverageCount:0}
     if(before.exists()){
-     const saved=before.data()
-     if(equal(saved,data))return
-     if(saved.lines.length>count&&equal({...saved,lines:saved.lines.slice(0,count)},data))return
+     const saved=before.data(),savedShape={...saved};delete savedShape.coverageCount
+     const shape={...data};delete shape.coverageCount
+     if(saved.lines.length>=count&&equal({...savedShape,lines:saved.lines.slice(0,count)},shape))return
      if(saved.uid!==s.uid||saved.opId!==id||saved.catalogRevision!==data.catalogRevision||saved.platformId!==data.platformId)throw fail('COMMAND_ID_COLLISION')
+     if(count===2&&saved.lines.length===1)data.coverageCount=saved.coverageCount
     }
     admit(s,[{path,data}]);t.set(doc(db,path),data)
    })
+   for(let count=1;count<=lines.length;count++)await runTransaction(db,async t=>{
+    guard(s);const before=await t.get(doc(db,path));guard(s)
+    const saved=before.data();if(saved.coverageCount>=count)return
+    const data={...saved,coverageCount:count};admit(s,[{path,data}]);t.set(doc(db,path),data)
+   })
   }
+  const certificatePath=`${gen(s)}/preparedSales/${id}/certificates/bill`
+  const certificate={opId:id,uid:s.uid,catalogRevision:f.shop.catalogRevision,platformId:f.order.platformId,addonKeys:f.order.addonKeys,materialIds:f.order.materialIds,billOperands:f.order.billOperands,lines:f.order.lines}
+  await runTransaction(db,async t=>{
+   guard(s);const rootDoc=await t.get(doc(db,root(s)));checkRoot(s,rootDoc.data())
+   if(rootDoc.data().catalogRevision!==f.shop.catalogRevision)throw fail('PRICE_REVIEW_REQUIRED')
+   const saved=await t.get(doc(db,certificatePath));guard(s)
+   if(saved.exists()){if(!equal(saved.data(),certificate))throw fail('COMMAND_ID_COLLISION');return}
+   admit(s,[{path:certificatePath,data:certificate}]);t.set(doc(db,certificatePath),certificate)
+  })
+  // Validate canonical quantities separately from stock allocation. The final
+  // atomic sale matches and consumes these per-command material cache entries.
+  let attemptedCacheRows
+  for(let attempt=0;attempt<4;attempt++)try{await runTransaction(db,async t=>{
+   guard(s);const rootDoc=await t.get(doc(db,root(s)));checkRoot(s,rootDoc.data())
+   if(rootDoc.data().catalogRevision!==f.shop.catalogRevision)throw fail('PRICE_REVIEW_REQUIRED')
+   const rows=[]
+   for(const row of f.order.inventory){const ref=doc(db,`${gen(s)}/materials/${row.materialId}`),before=await t.get(ref);if(!before.exists())throw fail('INCOMPLETE_INVENTORY');rows.push({row,ref,before:before.data()})}
+   attemptedCacheRows=rows
+   const writes=rows.map(({row,ref,before})=>{
+    const data={...before,billPreparationId:id,billPreparations:{...before.billPreparations,[id]:{uid:s.uid,catalogRevision:f.shop.catalogRevision,needed:row.needed}}}
+    if(Object.keys(data.billPreparations).length>64)throw fail('PREPARATION_LIMIT')
+    return {path:ref.path,data}
+   })
+   guard(s);admit(s,writes);for(const w of writes)t.set(doc(db,w.path),w.data)
+  });break
+  }catch(error){
+   if(error.code==='PREPARATION_LIMIT'&&attempt<3&&await recoverExpiredCapacity(s,attemptedCacheRows))continue
+   if(attempt===3||!['permission-denied','aborted'].includes(error.code)||!attemptedCacheRows)throw error
+   let changed=false
+   for(const {ref,before} of attemptedCacheRows){const latest=await getDocFromServer(ref);guard(s);if(latest.exists()&&cacheChanged(before,latest.data()))changed=true}
+   if(!changed)throw error
+  }
+
+ }
+
+ async function prepareCatalog(s,command,f,sourceRevision){
+  const operation=f.operation,ids=operation.validationIds
+  for(let index=0;index*4<ids.length;index++)await runTransaction(db,async t=>{
+   guard(s);const rootDoc=await t.get(doc(db,root(s)));checkRoot(s,rootDoc.data())
+   if(rootDoc.data().revision!==sourceRevision)throw fail('STALE_CATALOG_PREPARATION')
+   const path=`${gen(s)}/recipeAdmissions/${command.opId}/parts/${index}`,ref=doc(db,path),saved=await t.get(ref)
+   const data={opId:command.opId,index,uid:s.uid,sourceRevision,kind:command.kind,entityId:operation.entityId,input:operation.input,entitySnapshot:operation.entitySnapshot,materialIds:ids.slice(index*4,index*4+4)}
+   guard(s)
+   if(saved.exists()){
+    const before=saved.data()
+    if(before.uid!==s.uid||before.entityId!==data.entityId||before.kind!==data.kind||!equal(before.input,data.input))throw fail('COMMAND_ID_COLLISION')
+    if(equal(before,data))return
+   }
+   admit(s,[{path,data}]);t.set(ref,data)
+  })
+ }
+ async function prepareMaterialReferences(s,command,shop){
+  if(command.kind==='material_archive'&&command.payload.deleted===false)return
+  for(let index=0;index<8;index++)await runTransaction(db,async t=>{
+   guard(s);const rootDoc=await t.get(doc(db,root(s)));checkRoot(s,rootDoc.data())
+   if(rootDoc.data().revision!==shop.revision)throw fail('STALE_INVENTORY_DRAFT')
+   const path=`${gen(s)}/materialReferences/${command.opId}/parts/${index}`,ref=doc(db,path),saved=await t.get(ref)
+   const data={opId:command.opId,index,uid:s.uid,sourceRevision:shop.revision,kind:command.kind,materialId:command.payload.materialId}
+   guard(s)
+   if(saved.exists()){
+    const before=saved.data();if(before.uid!==s.uid||before.kind!==data.kind||before.materialId!==data.materialId)throw fail('COMMAND_ID_COLLISION')
+    if(equal(before,data))return
+   }
+   admit(s,[{path,data}]);t.set(ref,data)
+  })
  }
  async function commit(command){
   const s=scope()
   if(!/^[A-Za-z0-9_-]{1,120}$/.test(command.opId||''))throw fail('INVALID_COMMAND_ID')
   const saved=await receipt(command.kind,command.opId);if(saved)return checkReceipt(s,command,saved)
   const initial=await snapshot();guard(s)
+  if(['material_archive','material_delete'].includes(command.kind)){plan(s,command,initial.shop,initial.materials);await prepareMaterialReferences(s,command,initial.shop)}
   if(command.kind==='sale')await prepareSale(s,plan(s,command,initial.shop,initial.materials).f)
-  let attemptedRevision,result
+  if(['menu','addon','group'].includes(command.kind))await prepareCatalog(s,command,plan(s,command,initial.shop,initial.materials).f,initial.shop.revision)
+  let attemptedRevision,attemptedMaterials,result
   for(let attempt=0;attempt<3;attempt++)try{
    result=await runTransaction(db,async t=>{
    guard(s);const shopDoc=await t.get(doc(db,root(s)));checkRoot(s,shopDoc.data())
@@ -121,6 +195,7 @@ export function createCoreTransport({db,getContext}){
    const shop=shopDoc.data(),ids=shop.materialIds||shop.catalog.summaryMaterials,materials=[]
    attemptedRevision=shop.revision
    for(const id of ids){const m=await t.get(doc(db,`${gen(s)}/materials/${id}`));if(!m.exists())throw fail('INCOMPLETE_INVENTORY');materials.push(m.data())}
+   attemptedMaterials=materials
    let oldOrder
    if(command.kind==='cancel'){const o=await t.get(doc(db,`${gen(s)}/orders/${command.payload.orderId}`));if(!o.exists())throw fail('ORDER_NOT_FOUND');oldOrder=o.data()}
    let display
@@ -128,6 +203,8 @@ export function createCoreTransport({db,getContext}){
    guard(s);const p=plan(s,command,shop,materials,oldOrder)
    const writes=[{path:root(s),data:p.f.nextShop},{path:receiptRef.path,data:p.receipt},...p.materials.map(m=>({path:`${gen(s)}/materials/${m.id}`,data:m}))]
    if(p.f.displayChange)writes.push({path:`${gen(s)}/display/catalog`,data:applyCatalogDisplay(display,p.f.displayChange)})
+   for(const proof of p.f.checkProofs||[])writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/${proof.namespace||'check'}${proof.index}`,data:proof.data})
+   if(p.f.admittedProof)writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/admitted`,data:p.f.admittedProof})
    if(p.f.inputProof)writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/input`,data:p.f.inputProof})
    if(p.f.shapeProof)writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/shape`,data:p.f.shapeProof})
    if(p.f.referenceProof)writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/0`,data:p.f.referenceProof})
@@ -143,7 +220,9 @@ export function createCoreTransport({db,getContext}){
    // only after proving the root actually advanced. Never queue in the background.
    if(attempt===2||!['permission-denied','aborted'].includes(error.code))throw error
    const fresh=await snapshot();guard(s)
-   if(fresh.shop.revision===attemptedRevision)throw error
+   if(fresh.shop.revision===attemptedRevision&&!attemptedMaterials?.some(before=>{const after=fresh.materials.find(m=>m.id===before.id);return after&&cacheChanged(before,after)}))throw error
+   if(['menu','addon','group'].includes(command.kind))await prepareCatalog(s,command,plan(s,command,fresh.shop,fresh.materials).f,fresh.shop.revision)
+   if(['material_archive','material_delete'].includes(command.kind)){plan(s,command,fresh.shop,fresh.materials);await prepareMaterialReferences(s,command,fresh.shop)}
   }
   guard(s)
   // Always return the persisted server receipt, including resolved timestamps.
@@ -163,20 +242,69 @@ export function createCoreTransport({db,getContext}){
  }
  async function abandonSale(command){
   const s=scope(),saved=await receipt('sale',command.opId);if(saved)return {receipt:checkReceipt(s,command,saved)}
-  const initial=await snapshot(),f=summaryMultiGroupSale(initial.shop,initial.materials,command.payload.lines,{opId:command.opId,uid:s.uid,platformId:command.payload.platformId})
+  const proofCount=Math.ceil((command.payload.lines?.length||0)/2)
+  if(proofCount<1||proofCount>3)throw fail('INVALID_COMMAND')
   // Establish the same manifest before closing it, fencing late sale attempts.
   const path=`${gen(s)}/preparations/sale_${command.opId}`,ref=doc(db,path)
-  await runTransaction(db,async t=>{guard(s);const m=await t.get(ref);if(m.exists())return;t.set(ref,{kind:'sale_set',opId:command.opId,uid:s.uid,proofCount:f.order.lineWitnessCount,stepCount:0,materialCount:0,state:'open',createdAt:serverTimestamp(),lifetimeDays:7})})
-  return runTransaction(db,async t=>{
+  await runTransaction(db,async t=>{guard(s);const m=await t.get(ref);if(m.exists())return;t.set(ref,{kind:'sale_set',opId:command.opId,uid:s.uid,proofCount,stepCount:0,materialCount:0,state:'open',createdAt:serverTimestamp(),lifetimeDays:7})})
+  const result=await runTransaction(db,async t=>{
    guard(s);const r=await t.get(doc(db,`${gen(s)}/orders/${command.opId}`)),m=await t.get(ref)
    if(r.exists())return {receipt:checkReceipt(s,command,r.data())}
+   const certificateRef=doc(db,`${gen(s)}/preparedSales/${command.opId}/certificates/bill`),certificate=await t.get(certificateRef)
    if(m.data().uid!==s.uid)throw fail('COMMAND_ID_COLLISION')
    if(m.data().state==='abandoned')return {abandoned:true}
    if(m.data().state!=='open')throw fail('PREPARATION_CLOSED')
-   guard(s);t.update(ref,{state:'abandoned',closedAt:serverTimestamp()})
+   guard(s);t.update(ref,{state:'abandoned',closedAt:serverTimestamp()});if(certificate.exists())t.delete(certificateRef)
    for(let i=0;i<m.data().proofCount;i++)t.delete(doc(db,`${gen(s)}/preparedSales/${command.opId}/lineProofs/${i}`))
    return {abandoned:true}
   })
+  if(result.abandoned)await cleanupBillCache(s,command.opId)
+  return result
+ }
+ async function recoverExpiredCapacity(s,rows){
+  let recovered=false
+  for(const {ref} of rows||[]){
+   const current=await getDocFromServer(ref);guard(s)
+   const entries=current.data()?.billPreparations||{}
+   if(Object.keys(entries).length<64)continue
+   let cleared=false
+   for(const opId of Object.keys(entries)){
+    const manifestRef=doc(db,`${gen(s)}/preparations/sale_${opId}`),manifest=await getDocFromServer(manifestRef);guard(s)
+    const m=manifest.data()
+    if(!m||m.kind!=='sale_set'||!['open','expired','abandoned'].includes(m.state)||m.createdAt.toMillis()+7*86400000>Date.now())continue
+    await runTransaction(db,async t=>{
+     guard(s);const before=await t.get(manifestRef),receiptDoc=await t.get(doc(db,`${gen(s)}/orders/${opId}`)),certificateRef=doc(db,`${gen(s)}/preparedSales/${opId}/certificates/bill`),certificate=await t.get(certificateRef)
+     const saved=before.data();guard(s)
+     if(receiptDoc.exists()||['expired','abandoned'].includes(saved.state))return
+     if(saved.state!=='open')throw fail('PREPARATION_CLOSED')
+     t.update(manifestRef,{state:'expired',closedAt:serverTimestamp()})
+     if(certificate.exists())t.delete(certificateRef)
+     for(let i=0;i<saved.proofCount;i++)t.delete(doc(db,`${gen(s)}/preparedSales/${opId}/lineProofs/${i}`))
+    })
+    await cleanupBillCache(s,opId,true);cleared=true;recovered=true;break
+   }
+   if(!cleared)return false
+  }
+  return recovered
+ }
+ async function cleanupBillCache(s,opId,expired=false){
+  const initial=await snapshot(),ids=initial.materials.filter(m=>m.billPreparations?.[opId]&&(expired||m.billPreparations[opId].uid===s.uid)).map(m=>m.id)
+  if(!ids.length)return
+  let attempted
+  for(let attempt=0;attempt<4;attempt++)try{await runTransaction(db,async t=>{
+   guard(s);const rootDoc=await t.get(doc(db,root(s)));checkRoot(s,rootDoc.data())
+   const rows=[];for(const id of ids){const ref=doc(db,`${gen(s)}/materials/${id}`),d=await t.get(ref);if(d.exists())rows.push({ref,before:d.data()})}
+   attempted=rows;const writes=[]
+   for(const {ref,before} of rows)if(before.billPreparations?.[opId]&&(expired||before.billPreparations[opId].uid===s.uid)){
+    const entries={...before.billPreparations};delete entries[opId]
+    const data={...before,billPreparationId:opId,billPreparations:entries};writes.push({path:ref.path,data})
+   }
+   guard(s);admit(s,writes);for(const w of writes)t.set(doc(db,w.path),w.data)
+  });return}catch(error){
+   if(attempt===3||!['permission-denied','aborted'].includes(error.code)||!attempted)throw error
+   let changed=false;for(const {ref,before} of attempted){const current=await getDocFromServer(ref);guard(s);if(current.exists()&&cacheChanged(before,current.data()))changed=true}
+   if(!changed)throw error
+  }
  }
  return {snapshot,commit,receipt,abandonSale,rejectStaleInventory}
 }

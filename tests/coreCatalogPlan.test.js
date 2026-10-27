@@ -11,16 +11,18 @@ export function catalogBase(source=coreSource()){
 export const addon=(id='NEW')=>({kind:'addon',opId:`ADD_${id}`,payload:{entityId:id,input:{name:id,active:true,recipe:{[key('M0')]:100},pricesCents:{[key('P')]:1000}},display:{name:id,emoji:'',category:'Fruit'}}})
 export const group=id=>({kind:'group',opId:`GROUP_${id}`,payload:{input:{id,name:id,active:true,allowRepeat:false,pricingMode:'extra',min:0,max:3,optionIds:['NEW'],optionPrices:{[key('P')]:{_:0,NEW:100}}},display:{name:id,emoji:''}}})
 export const menu=()=>({kind:'menu',opId:'MENU',payload:{input:{id:'NEW_MENU',name:'New menu',active:true,pricesCents:{[key('P')]:6900},rawRecipe:{[key('M0')]:100},hasPackage:true,recipe:{[key('M0')]:100},optionIds:[],min:0,max:0,priceMode:'addon',optionPrices:{[key('P')]:{_:0}},groupIds:['G','H']},display:{name:'New menu',emoji:'',description:'Two choices'}}})
-export function advance(base,command){const f=planInventoryCommand(base.shop,base.materials,command,'cashier');return {shop:f.nextShop,materials:base.materials.map(m=>f.nextMaterials.find(n=>n.id===m.id)||m),display:applyCatalogDisplay(base.display,f.displayChange)}}
-it('plans two bound groups without mutating input and refreshes every registry cache',()=>{
+export function advance(base,command){const f=planInventoryCommand(base.shop,base.materials,command,'cashier');return {shop:f.nextShop,materials:base.materials,display:applyCatalogDisplay(base.display,f.displayChange)}}
+it('plans two bound groups without mutating input or warehouse records',()=>{
  const source=coreSource();source.materials.push({...source.materials[0],id:'IDLE',name:'Idle',lots:[{id:'IDLE_LOT',qty:1000,isInUse:true}]})
  let b=catalogBase(source),before=structuredClone(b)
  b=advance(b,addon());expect(before.shop.catalog.addonIds).toEqual([])
  for(const id of ['G','H'])b=advance(b,group(id))
  b=advance(b,menu());expect(b.shop.catalog.menus.NEW_MENU.groupIds).toEqual(['G','H'])
  expect(b.shop.catalog.groups.G.multiMenuIds).toEqual(['NEW_MENU'])
- expect(b.materials.every(m=>m.recipeIndex.catalogRevision===b.shop.catalogRevision)).toBe(true)
- expect(b.materials.find(m=>m.id===key('IDLE')).recipeIndex.menus.NEW_MENU).toBe(0)
+ expect(b.materials).toEqual(before.materials)
+ expect(b.shop.catalog.menus.NEW_MENU.baseMaterialIds).toEqual([key('M0')])
+ expect(b.shop.catalog.addons.NEW.materialIds).toEqual([key('M0')])
+ expect(b.shop.catalog.recipeRegistryIds).toContain(key('M0'))
  expect(b.display.menus.NEW_MENU.description).toBe('Two choices')
  const retire=addon();retire.payload.input.active=false;retire.payload.display.deleted=true
  expect(()=>advance(b,retire)).toThrow('ADDON_STILL_REFERENCED')

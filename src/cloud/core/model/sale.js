@@ -4,7 +4,7 @@ import { addonOperands } from './addonOperands.js'
 import { serverTimestamp } from 'firebase/firestore'
 import { allocateInventory } from '../../../domain/inventory.js'
 import { decodeSummaryMaterial } from './material.js'
-import { summaryMenuQuantity } from './recipe.js'
+import { summaryMenuQuantity,saleMaterials } from './recipe.js'
 import { maxSaleLines } from './limits.js'
 
 // Canonical core sale planner; the server independently validates its output.
@@ -28,11 +28,8 @@ export function summarySaleFromLines(shop,materials,orderLines,{platformId='P',o
   const c=shop.catalog,p=c.platforms[platformId]
   if(!p?.active||orderLines.length<1||orderLines.length>6)throw new Error('Unsupported sale')
   const operands=addonOperands(orderLines,c)
-  const touched=c.summaryMaterials.map(id=>{
-    const m=materials.find(m=>m.id===id)
-    if(!m||m.recipeIndex.catalogRevision!==shop.catalogRevision)throw new Error('Stale material recipe')
-    return m
-  })
+  const touched=saleMaterials(shop,materials,orderLines)
+  if(orderLines.length>2*(18-touched.length))throw new Error('SALE_LINE_LIMIT')
   const needs=touched.map(m=>orderLines.reduce((sum,l)=>sum+(summaryMenuQuantity(c.menus[l.menuId],m)+l.optionIds.reduce((n,key)=>n+(c.addons[key].recipe[m.id]||0)*l.optionQuantities[key],0))*l.qty,0))
   if(needs.some(n=>!Number.isSafeInteger(n)||n<0||n>1e9))throw new Error('Unsupported required quantity')
   const dayDate=d=>d===999999?null:new Date(d*86400000).toISOString().slice(0,10)
@@ -47,8 +44,9 @@ export function summarySaleFromLines(shop,materials,orderLines,{platformId='P',o
   const allocation=allocateInventory(ingredients.materials,requirements('packaging'),{allowShortage:true,expiredAsShortage:true})
   if(!allocation.ok)throw new Error('Invalid packaging allocation')
   const order={...lineOperands(orderLines),schemaVersion:2,kind:'sale_set',status:'committed',opId,uid,createdAt:serverTimestamp(),lines:orderLines,
-    materialIds:[...c.summaryMaterials],inventory:[],approvedShortages:{},platformId,platformRevision:p.revision,
+    materialIds:touched.map(m=>m.id),inventory:[],approvedShortages:{},platformId,platformRevision:p.revision,
     subtotalCents:orderLines.reduce((sum,l)=>sum+l.totalCents,0),shopRevision:shop.revision+1,lineWitnessCount:Math.ceil(orderLines.length/2),...operands}
+  order.billOperands={lineMenuIds:order.lineMenuIds,lineQtys:order.lineQtys,addonKeys:order.addonKeys,addonCounts:order.addonCounts}
   let ingredientBalance=0,packagingBalance=0
   const nextMaterials=touched.map((m,i)=>{
     const next=allocation.materials.find(item=>item.id===m.id),needed=needs[i]
@@ -61,12 +59,14 @@ export function summarySaleFromLines(shop,materials,orderLines,{platformId='P',o
     order.approvedShortages[m.id]=shortage
     ingredientBalance+=ingredientCostBaht;packagingBalance+=packagingCostCents
     const active=needed===0?m.activeLotId:next.lots.find(l=>l.qty>0&&l.isInUse)?.id||''
-    return {...structuredClone(m),stock:m.stock-take,lotQty,zeroActiveIds:needed===0?[...m.zeroActiveIds]:[],activeLotId:active,
+    const prepared=structuredClone(m)
+    if(prepared.billPreparations){delete prepared.billPreparations[opId];if(!Object.keys(prepared.billPreparations).length)delete prepared.billPreparations}
+    return {...prepared,stock:m.stock-take,lotQty,zeroActiveIds:needed===0?[...m.zeroActiveIds]:[],activeLotId:active,
       lastStockInDay:needed>0&&active?m.lots[active].receiveDay:m.lastStockInDay,expiryDay:needed>0&&active?m.lots[active].expiryDay:m.expiryDay,
       revision:m.revision+1,lastOpId:opId,lastOpKind:'sale_set',lastOpIndex:i}
   })
   order.gpCents=Math.round(order.subtotalCents*p.gpBasisPoints/10000);order.netCents=order.subtotalCents-order.gpCents
   order.ingredientCostCents=Math.round(ingredientBalance*100);order.packagingCostCents=packagingBalance
   order.grossProfitCents=order.netCents-order.ingredientCostCents-order.packagingCostCents
-  return {shop,materials,order,nextMaterials,nextShop:{...structuredClone(shop),revision:shop.revision+1,lastOpId:opId,lastOpKind:'sale_set'}}
+  return {shop,materials,order,nextMaterials,nextShop:{...structuredClone(shop),returnMaterials:{...shop.returnMaterials,...Object.fromEntries(touched.map(m=>[m.id,true]))},revision:shop.revision+1,lastOpId:opId,lastOpKind:'sale_set'}}
 }

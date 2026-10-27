@@ -80,7 +80,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   if(command.kind==='history_clear'){historyRequest++;state.historyLoading=false;state.logs=[]}
   rebuild();persist()
  }
- const recipes=(kind)=>Object.entries(virtual.value.shop.catalog[kind]||{}).map(([id,row])=>({id,isDeleted:!!virtual.value.display[kind]?.[id]?.deleted,name:virtual.value.display[kind]?.[id]?.name||row.name||id,recipe:Object.entries(row.recipe||{}).filter(([,q])=>q>0).map(([materialId,q])=>({materialId,qty:q/100}))}))
+ const recipes=(kind)=>Object.entries(virtual.value.shop.catalog[kind]||{}).map(([id,row])=>({id,isDeleted:!!virtual.value.display[kind]?.[id]?.deleted,name:virtual.value.display[kind]?.[id]?.name||row.name||id,recipe:Object.entries(row.rawRecipe||row.recipe||{}).filter(([,q])=>q>0).map(([materialId,q])=>({materialId,qty:q/100}))}))
  const valuation=rows=>rows.filter(m=>!m.isDeleted).reduce((n,m)=>n+Math.max(0,m.stock)*(m.unitCost||0),0)
  const model=reactive({
   ...createCatalogBindings({snapshot:()=>virtual.value,mutate,error}),
