@@ -41,7 +41,7 @@ export function createCoreTransport({db,getContext}){
  }
  const collectionFor=kind=>kind==='sale'?'orders':'operations'
  function checkReceipt(s,command,r){
-  const kinds={sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['stock_count','switch_lot','material_create','material_archive','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
+  const kinds={sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
   if(r.opId!==command.opId||r.uid!==s.uid||!kinds[command.kind]?.includes(r.kind))throw fail('COMMAND_ID_COLLISION')
   const p=command.payload
   if(p){
@@ -61,6 +61,8 @@ export function createCoreTransport({db,getContext}){
     const input=Object.fromEntries(['id','name','emoji','unit','inventoryType','packSize','minAlertQ'].map(key=>[key,r.materialSnapshot[key]]))
     if(!equal(input,p.input))throw fail('COMMAND_ID_COLLISION')
    }
+   if(command.kind==='history_clear'&&r.clearedThroughRevision!==r.shopRevision)throw fail('COMMAND_ID_COLLISION')
+   if(command.kind==='material_delete'&&r.materialId!==p.materialId)throw fail('COMMAND_ID_COLLISION')
    if(['switch_lot','material_archive','material_metadata','material_measure','material_details','material_type','production_recipe'].includes(command.kind)){
     if((r.materialId||r.targetId)!==p.materialId)throw fail('COMMAND_ID_COLLISION')
     const key={switch_lot:'lotId',material_archive:'deleted',material_metadata:'metadata',material_measure:'measure',material_details:'details',material_type:'inventoryType',production_recipe:'recipe'}[command.kind]
@@ -122,7 +124,9 @@ export function createCoreTransport({db,getContext}){
    guard(s);const p=plan(s,command,shop,materials,oldOrder)
    const writes=[{path:root(s),data:p.f.nextShop},{path:receiptRef.path,data:p.receipt},...p.materials.map(m=>({path:`${gen(s)}/materials/${m.id}`,data:m}))]
    if(command.kind==='cancel')writes.push({path:`${gen(s)}/orders/${command.payload.orderId}`,data:p.order})
-   admit(s,writes);for(const w of writes)t.set(doc(db,w.path),w.data)
+   // An empty set is a conservative admission bound for the smaller delete wire.
+   for(const id of p.f.removedMaterialIds||[])writes.push({path:`${gen(s)}/materials/${id}`,data:{},remove:true})
+   admit(s,writes);for(const w of writes)if(w.remove)t.delete(doc(db,w.path));else t.set(doc(db,w.path),w.data)
    return p.receipt
    });break
   }catch(error){
@@ -139,7 +143,7 @@ export function createCoreTransport({db,getContext}){
  }
  async function rejectStaleInventory(command){
   const s=scope(),expected=command.payload?.expectedRevision
-  const kinds=['inventory','receive','produce','stock_count','switch_lot','material_create','material_archive','material_metadata','material_measure','material_details','material_type','production_recipe']
+  const kinds=['inventory','receive','produce','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe']
   if(!kinds.includes(command.kind)||!Number.isSafeInteger(expected)||expected<0)throw fail('STALE_NOT_PROVEN')
   // Read the advanced root first. Once observed it fences this immutable draft;
   // a subsequent server receipt read also catches commits completed before it.

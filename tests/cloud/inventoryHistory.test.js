@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('firebase/firestore', () => ({
+  doc: vi.fn((db,path)=>({db,path})),
+  getDocFromServer: vi.fn(),
   collection: vi.fn((db, path) => ({ db, path })),
   getDocsFromServer: vi.fn(),
   limit: vi.fn(value => ({ type: 'limit', value })),
@@ -8,7 +10,7 @@ vi.mock('firebase/firestore', () => ({
   query: vi.fn((source, ...constraints) => ({ source, constraints })),
 }))
 
-import { collection, getDocsFromServer, limit, orderBy, query } from 'firebase/firestore'
+import { collection, getDocFromServer, getDocsFromServer, limit, orderBy, query } from 'firebase/firestore'
 import { loadInventoryHistory, projectInventoryHistory } from '../../src/cloud/core/inventoryHistory.js'
 
 const materials = [
@@ -120,4 +122,30 @@ it('reads the actual per-record archive JSON and links legacy material IDs to th
  expect(rows).toHaveLength(1)
  expect(rows[0]).toMatchObject({id:'OLD-LOG',targetId:'l_TUFUMDAy',beforeStock:10,afterStock:9,delta:-1})
  expect(legacy.targetId).toBe('MAT002')
+})
+
+
+it('clears only the visible history through a confirmed revision while preserving later returns',()=>{
+ const orders=[{opId:'SALE',kind:'sale_set',shopRevision:4,inventory:[{materialId:'MILK',take:100}]}]
+ const operations=[{opId:'OLD',kind:'stock_in',shopRevision:3,materialId:'MILK',qtyQ:100},{opId:'NEW',kind:'stock_in',shopRevision:7,materialId:'MILK',qtyQ:200},{opId:'RETURN',kind:'cancel',shopRevision:8,orderId:'SALE'}]
+ const legacyLogs=[{id:'legacy',module:'stock',action:'adjust',targetId:'MILK',delta:1}]
+ const logs=projectInventoryHistory({orders,operations,legacyLogs,materials,clearedThroughRevision:5})
+ expect(logs.map(l=>l.id).sort()).toEqual(['NEW:stock_in','RETURN:return:MILK'])
+ expect(orders).toHaveLength(1);expect(operations).toHaveLength(3)
+})
+
+
+it('retains deleted material identity in its earlier history from the deletion receipt snapshot',()=>{
+ const logs=projectInventoryHistory({materials:[],operations:[{opId:'IN',kind:'stock_in',materialId:'REMOVED',qtyQ:100},{opId:'DEL',kind:'material_delete',materialId:'REMOVED',materialSnapshot:{id:'REMOVED',name:'Historical milk',unit:'ml'}}]})
+ expect(logs.find(l=>l.id==='IN:stock_in').targetName).toBe('Historical milk')
+ expect(logs.find(l=>l.id==='DEL:material_delete').targetName).toBe('Historical milk')
+})
+
+
+it('loads a missing old source bill for a recent cancellation without adding that bill to the visible sale window',async()=>{
+ getDocsFromServer.mockReset();getDocFromServer.mockReset()
+ getDocsFromServer.mockResolvedValueOnce({size:1,docs:[{data:()=>({opId:'RETURN',kind:'cancel',shopRevision:9,orderId:'OLD'})}]}).mockResolvedValueOnce({size:500,docs:[]}).mockResolvedValueOnce({size:0,docs:[]})
+ getDocFromServer.mockResolvedValue({exists:()=>true,data:()=>({opId:'OLD',kind:'sale_set',shopRevision:2,inventory:[{materialId:'MILK',take:200}]})})
+ const result=await loadInventoryHistory({db:{},shopId:'shop',generation:'g1',materials,clearedThroughRevision:5})
+ expect(getDocFromServer).toHaveBeenCalledTimes(1);expect(result.logs).toHaveLength(1);expect(result.logs[0]).toMatchObject({action:'order_cancel',delta:2})
 })

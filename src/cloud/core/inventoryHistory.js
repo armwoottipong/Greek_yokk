@@ -1,4 +1,4 @@
-import { collection, getDocsFromServer, limit, orderBy, query } from 'firebase/firestore'
+import { collection, doc, getDocFromServer, getDocsFromServer, limit, orderBy, query } from 'firebase/firestore'
 
 const HISTORY_LIMIT = 500
 const asTimestamp = value => {
@@ -110,6 +110,10 @@ function operationEntries(operation, materials) {
 
   const simpleMaterialId = operation.materialId || operation.targetId
   const simpleMaterial = getMaterial(simpleMaterialId)
+  if (kind === 'material_delete') {
+    const snapshot=operation.materialSnapshot||{}
+    return [make(kind,{targetId:simpleMaterialId,targetName:displayName(snapshot),targetEmoji:snapshot.emoji||'',action:'delete',title:'ลบวัตถุดิบถาวร',description:`ลบ ${displayName(snapshot)}`})]
+  }
   if (kind === 'material_create') {
     const snapshot = operation.materialSnapshot || {}
     return [make(kind, { targetId: snapshot.id || simpleMaterialId, targetName: displayName(snapshot), targetEmoji: snapshot.emoji || '', action: 'create', title: 'สร้างวัตถุดิบ', description: `เพิ่ม ${displayName(snapshot)} ลงในระบบ` })]
@@ -154,7 +158,7 @@ function orderEntries(order, materials) {
 }
 
 function cancellationEntries(operation, order, materials) {
-  if (!order || order.kind !== 'sale_set') return []
+  if (!order || order.kind !== 'sale_set') return [entry({},{id:`${operation.opId}:return:unknown`,timestamp:operation.createdAt,action:'order_cancel',title:'คืนบิล',description:`คืนบิล ${operation.orderId} · ไม่พบรายละเอียดบิลต้นทาง`,user:operation.uid||''})]
   const opId = operation.opId || operation.id || 'cancel'
   return (order.inventory || []).flatMap(row => {
     const delta = quantity(row.take)
@@ -200,16 +204,19 @@ function dedupe(logs) {
   })
 }
 
-export function projectInventoryHistory({ operations = [], orders = [], legacyLogs = [], materials = [], display }) {
+export function projectInventoryHistory({ operations = [], orders = [], sourceOrders = [], legacyLogs = [], materials = [], display, clearedThroughRevision = 0 }) {
   void display
-  const byOrder = new Map(orders.map(order => [order.opId, order]))
+  // Deleted materials still have immutable identity snapshots in their receipts.
+  materials=[...materials,...operations.filter(o=>o.kind==='material_delete'&&o.materialSnapshot).map(o=>o.materialSnapshot)]
+  const byOrder = new Map([...orders,...sourceOrders].map(order => [order.opId, order]))
   const projected = []
   for (const operation of operations) {
+    if(clearedThroughRevision>0&&!(operation.shopRevision>clearedThroughRevision))continue
     if (operation.kind === 'cancel') projected.push(...cancellationEntries(operation, byOrder.get(operation.orderId), materials))
     else projected.push(...operationEntries(operation, materials))
   }
-  for (const order of orders) projected.push(...orderEntries(order, materials))
-  const normalizedLegacy = parseLegacyLogs(legacyLogs).map(log => {
+  for (const order of orders) if(!clearedThroughRevision||order.shopRevision>clearedThroughRevision)projected.push(...orderEntries(order, materials))
+  const normalizedLegacy = parseLegacyLogs(clearedThroughRevision>0?[]:legacyLogs).map(log => {
     const id=log.targetId||log.materialId||''
     const material=materials.find(m=>m.id===id||m.legacyId===id)
     return {...log,timestamp:asTimestamp(log.timestamp),module:'stock',targetId:material?.id||id,
@@ -227,7 +234,7 @@ function decodeLegacyRecord(document) {
   return { id: document.id, json: document.data()?.json }
 }
 
-export async function loadInventoryHistory({ db, shopId, generation, materials = [], display } = {}) {
+export async function loadInventoryHistory({ db, shopId, generation, materials = [], display, clearedThroughRevision = 0 } = {}) {
   if (!db || !shopId || !generation) throw new Error('INVALID_HISTORY_SCOPE')
   const root = `shops/${shopId}/generations/${generation}`
   const [operationSnapshot, orderSnapshot, legacySnapshot] = await Promise.all([
@@ -237,9 +244,17 @@ export async function loadInventoryHistory({ db, shopId, generation, materials =
   ])
   const operations = operationSnapshot.docs.map(document => document.data())
   const orders = orderSnapshot.docs.map(document => document.data())
+  const knownOrders=new Set(orders.map(o=>o.opId))
+  const missingIds=[...new Set(operations.filter(o=>o.kind==='cancel'&&(!clearedThroughRevision||o.shopRevision>clearedThroughRevision)).map(o=>o.orderId))].filter(id=>typeof id==='string'&&/^[A-Za-z0-9_-]{1,120}$/.test(id)&&!knownOrders.has(id))
+  const sourceOrders=[]
+  // Resolve old source bills in bounded groups, without widening the visible sale window.
+  for(let i=0;i<missingIds.length;i+=20){
+    const snapshots=await Promise.all(missingIds.slice(i,i+20).map(id=>getDocFromServer(doc(db,`${root}/orders/${id}`))))
+    sourceOrders.push(...snapshots.filter(d=>d.exists()).map(d=>d.data()))
+  }
   const legacyLogs = legacySnapshot.docs.map(decodeLegacyRecord).filter(Boolean)
   return {
-    logs: projectInventoryHistory({ operations, orders, legacyLogs, materials, display }),
+    logs: projectInventoryHistory({ operations, orders, sourceOrders, legacyLogs, materials, display, clearedThroughRevision }),
     truncated: operationSnapshot.size >= HISTORY_LIMIT || orderSnapshot.size >= HISTORY_LIMIT,
   }
 }

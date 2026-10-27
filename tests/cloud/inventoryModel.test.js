@@ -4,13 +4,13 @@ import {summaryFixture} from '../firestore/summaryFixture.js'
 import {typeFixture} from '../firestore/summaryMaterialTypeFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
 import {createInventoryModel} from '../../src/cloud/core/inventoryModel.js'
-function setup(customize=()=>{}){
+function setup(customize=()=>{},readHistory=async()=>({logs:[]})){
  sessionStorage.clear()
  const f=summaryFixture();customize(f);const shop=materialRegistryShop(f.shop,f.materials)
  const data={shop,materials:f.materials,display:{menus:{},addons:{},platforms:{}}}
  let ready=true,blocked=false,source=data,model
  const execute=vi.fn(async command=>{const value={opId:command.opId,kind:command.kind};model.acknowledge(value);return {ok:true,value}})
- model=createInventoryModel({getData:()=>source,loadServer:async()=>source,execute,isReady:()=>ready,isBlocked:()=>blocked,storageKey:'inventory-test'})
+ model=createInventoryModel({getData:()=>source,loadServer:async()=>source,execute,isReady:()=>ready,isBlocked:()=>blocked,storageKey:'inventory-test',readHistory})
  return {model,data,execute,setReady:v=>ready=v,setBlocked:v=>blocked=v,setData:v=>{source=v;model.update(v)}}
 }
 it('stages original receiving UI inputs as canonical quantities, without a network write before Save',async()=>{
@@ -89,4 +89,55 @@ it('increases the current live lot when an imported depleted lot retains a histo
  const {model,data}=setup(f=>{const m=f.materials[0],old=m.lots[m.lotIds[0]];m.lotIds=['OLD','LIVE'];m.lots={_:m.lots._,OLD:{...old,id:'OLD',qty:0,ordinal:0},LIVE:{...old,id:'LIVE',qty:10000,ordinal:1}};m.lotQty={_:0,OLD:0,LIVE:10000};m.stock=10000;m.activeLotId='LIVE';m.zeroActiveIds=['OLD'];m.allocationIds=['LIVE'];m.slotIds=['LIVE','_','_','_']})
  expect(model.stockAdjust(data.materials[0].id,101,'ตรวจนับ','',true).ok).toBe(true)
  expect(model.matMap[data.materials[0].id].lots.map(l=>[l.id,l.qty])).toEqual([['OLD',0],['LIVE',101]]);model.close()
+})
+
+
+it('removes only an eligible archived material from the original view after its deletion receipt',async()=>{
+ const {model,execute}=setup(f=>{
+  const m=structuredClone(f.materials[0]);m.id='UNUSED';m.costRank=f.materials.length;m.deleted=true;m.stock=0
+  for(const key of Object.keys(m.lotQty))m.lotQty[key]=0
+  m.allocationIds=[];m.slotIds=['_','_','_','_'];m.activeLotId='';m.zeroActiveIds=[]
+  m.recipeIndex={catalogRevision:f.shop.catalogRevision,quantities:Array(15).fill(0),menus:{_:0},addons:{_:0}}
+  f.materials.push(m)
+ })
+ expect((await model.deleteMaterialPermanently('UNUSED')).ok).toBe(true)
+ expect(execute.mock.calls[0][0].kind).toBe('material_delete');expect(model.matMap.UNUSED).toBeUndefined();model.close()
+})
+it('blocks permanent deletion before archiving or while stock remains without sending a request',async()=>{
+ const {model,data,execute}=setup();expect((await model.deleteMaterialPermanently(data.materials[0].id)).ok).toBe(false)
+ expect(execute).not.toHaveBeenCalled();model.close()
+})
+it('does not resurrect stale history when a different device clears during an outstanding read',async()=>{
+ let oldRead;const history=vi.fn().mockImplementationOnce(()=>new Promise(r=>{oldRead=r})).mockResolvedValue({logs:[]})
+ const {model,data,setData}=setup(()=>{},history)
+ const pending=model.openActivityLog();const next=structuredClone(data);next.shop.revision++;next.shop.inventoryHistoryCutoff=next.shop.revision
+ setData(next);await Promise.resolve();oldRead({logs:[{id:'OLD'}]});await pending;await Promise.resolve()
+ expect(model.activityLogs).toEqual([]);expect(history).toHaveBeenCalledTimes(2);expect(model.historyLoading).toBe(false);model.close()
+})
+it('sends a shared history clear through the same immutable command service',async()=>{
+ const {model,execute}=setup();expect((await model.clearActivityLogs()).ok).toBe(true)
+ expect(execute.mock.calls[0][0]).toMatchObject({kind:'history_clear',payload:{expectedRevision:1}})
+ expect(model.activityLogs).toEqual([]);model.close()
+})
+
+
+it('uses the confirmed clear cutoff even when the parent source reload has not caught up',async()=>{
+ const reader=vi.fn(async options=>({logs:options?.clearedThroughRevision?[{id:'NEW'}]:[{id:'OLD'}]}))
+ const {model,data,setData}=setup(()=>{},reader)
+ expect((await model.clearActivityLogs()).ok).toBe(true)
+ expect(reader).toHaveBeenLastCalledWith({clearedThroughRevision:2})
+ expect(model.activityLogs.map(l=>l.id)).toEqual(['NEW'])
+ setData(data);await model.openActivityLog()
+ expect(reader).toHaveBeenLastCalledWith({clearedThroughRevision:2});model.close()
+})
+
+
+it('invalidates an older in-flight history read when a retried clear receipt is acknowledged',async()=>{
+ let resolve;const {model,execute}=setup(()=>{},()=>new Promise(r=>{resolve=r}))
+ execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT'})
+ expect((await model.clearActivityLogs()).ok).toBe(false)
+ const read=model.openActivityLog(),command=execute.mock.calls[0][0]
+ model.acknowledge({opId:command.opId,kind:'history_clear'})
+ resolve({logs:[{id:'BEFORE-CLEAR'}]});await read
+ expect(model.activityLogs).toEqual([]);expect(model.historyLoading).toBe(false);model.close()
 })

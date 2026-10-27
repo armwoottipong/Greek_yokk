@@ -95,3 +95,17 @@ it('refuses a stale original physical count after a different account updates th
   expect(model.discardStockDrafts().ok).toBe(true)
  } finally {model.close()}
 })
+
+
+it('runs original-model deletion and history clearing through server receipts read by the second account',async()=>{
+ await seed();const a=transport('device-a'),b=transport('device-b'),{model}=await inventory(a)
+ try {
+  expect((await model.saveMaterial({id:'EMPTY',name:'Empty',emoji:'',unit:'g',inventoryType:'ingredient',packSize:100,packCost:0,unitCost:0,stock:0,minAlert:0,packUnit:'bag',hasSubRecipe:false})).ok).toBe(true)
+  expect((await model.softDeleteMaterial('EMPTY')).ok).toBe(true)
+  expect((await model.deleteMaterialPermanently('EMPTY')).ok).toBe(true)
+  expect(model.matMap.EMPTY).toBeUndefined();expect((await b.snapshot()).materials.some(m=>m.id==='EMPTY')).toBe(false)
+  const before=(await b.snapshot()).materials
+  expect((await model.clearActivityLogs()).ok).toBe(true)
+  const after=await b.snapshot();expect(after.shop.inventoryHistoryCutoff).toBe(after.shop.revision);expect(after.materials).toEqual(before)
+ } finally {model.close()}
+})

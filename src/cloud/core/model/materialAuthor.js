@@ -12,12 +12,15 @@ export function summaryMaterialCreate(shop,input,{opId='MATERIAL-CREATE',uid='ca
     !['ingredient','packaging'].includes(input.inventoryType)||typeof input.unit!=='string'||!input.unit.trim()||input.unit.length>32||
     !Number.isInteger(input.packSize)||input.packSize<1||input.packSize>10000000)throw new Error('Invalid material creation')
   validateMaterialMetadata({name:input.name,emoji:input.emoji,minAlertQ:input.minAlertQ})
-  const next={...structuredClone(input),revision:1,costRank:shop.materialIds.length,deleted:false,unitCost:0,packCostCents:0,stock:0,
+  const costRank=shop.nextMaterialCostRank??shop.materialIds.length
+  if(!Number.isSafeInteger(costRank)||costRank<shop.materialIds.length||costRank>=Number.MAX_SAFE_INTEGER)throw new Error('Invalid material rank registry')
+  const next={...structuredClone(input),revision:1,costRank,deleted:false,unitCost:0,packCostCents:0,stock:0,
     lots:{_:{id:'_',qty:0,isInUse:false,expiryDay:999999,receiveDay:999999,ordinal:999999,sortKey:999999*1e9+999999*1000+999999}},
     lotIds:[],lotQty:{_:0},zeroActiveIds:[],allocationIds:[],slotIds:['_','_','_','_'],activeLotId:'',lastStockInDay:999999,expiryDay:999999,
     recipeIndex:{catalogRevision:shop.catalogRevision,quantities:Array(15).fill(0),menus:{_:0,...Object.fromEntries(shop.catalog.menuIds.map(id=>[id,0]))},addons:{_:0,...Object.fromEntries(shop.catalog.addonIds.map(id=>[id,0]))}},
     lastOpId:opId,lastOpKind:'material_create',lastOpIndex:0}
   const nextShop=nextRoot(shop,opId,'material_create')
+  if(shop.nextMaterialCostRank!==undefined)nextShop.nextMaterialCostRank=costRank+1
   nextShop.materialIds.push(input.id);nextShop.productionUsers[input.id]=[]
   return {next,nextShop,operation:{...operation(shop,input.id,0,'material_create',opId,uid),materialSnapshot:structuredClone(next)}}
 }

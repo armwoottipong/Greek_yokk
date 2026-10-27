@@ -37,11 +37,14 @@ four-distinct-line profile, and all size/precision guards remain active.
 A new material without any lot needs its first receipt before a positive physical
 count; initial stock through the editor uses receiving/production commands.
 History reads up to500 latest operations and500 latest orders plus archived logs;
-a toast identifies this bound when reached. Audit receipts are immutable:
-permanent material deletion and clearing server history are not enabled. Original
-buttons report the limitation and do not mutate the local database; archival is
-available where references permit it. No billing upgrade, generation switch or
-stock re-import is part of this release.
+a toast identifies this bound when reached. Recent cancellation records additionally
+resolve missing source orders outside the visible500-order window in groups of20.
+Audit receipts remain immutable. Permanent deletion is supported only after
+archival, with zero stock and no live formula/protected-sale references or outgoing
+production recipe. Deletion removes the live material document and registry entry
+atomically with an immutable identity snapshot. Recreating material IDs never
+reuses their assigned cost rank. No billing upgrade, generation switch or stock
+re-import is part of this release.
 
 ## Verification and deployment
 
@@ -91,9 +94,9 @@ second-device/operator acceptance remains separate from emulator race proofs.
 For normal receiving/production/count/waste/lot changes, use the original form,
 review the original draft bar, and choose Save; wait for Firebase confirmation.
 Material edits and archive/restore wait for server confirmation directly. Reload
-never discards or automatically sends uncommitted session drafts. Permanent
-erasure and history clearing remain unavailable; supported archive/restore keeps
-audit evidence. See the bounds above before bulk operations.
+never discards or automatically sends uncommitted session drafts. Original permanent
+deletion and shared history-view clearing were completed on27 October under the
+constraints below. See the bounds above before bulk operations.
 
 
 ## Loading feedback and repeated-action protection (26 October 2026)
@@ -114,3 +117,47 @@ uses the same immutable command ID; uncertain commands are not discarded.
 Manual reload shows its spinner through both inventory and order reads, sharing
 in-flight requests. A successful mutation waits for any older read, then starts a
 fresh reload before unlocking. No artificial sleep or fixed delay is introduced.
+
+
+## Completed inventory controls (27 October 2026)
+
+The original permanent-delete control now runs material_delete. It requires an
+archived, empty, unreferenced material, with no outgoing production recipe or
+protected sale guard membership. It removes the live document and root registry
+entry in one transaction and retains an immutable snapshot receipt for audit.
+Direct deletion, missing receipt/root/material changes, forged snapshot/rank,
+stale intent and same-ID/different-payload replays are refused. Protected sale
+ranks stay unchanged; nextMaterialCostRank allocates monotonically after deletion.
+
+The user explicitly chose clearing the shared history view while keeping system
+evidence. Original Clear now runs history_clear, advancing inventoryHistoryCutoff
+to the newly committed root revision with a receipt. Older/legacy rows disappear
+from the view on all devices, but order/operation documents are retained. New
+operations and cancellation of older bills still appear. Clear does not reset
+inventory, sales or imported business data. Confirmation explains the distinction;
+loading and duplicate-action guards use the original button/layout. A late old
+history response cannot restore cleared rows, even after uncertain-result retry
+or a failed post-write reload. The confirmed cutoff wins over stale source state.
+
+Native tests exercise original model-to-Firestore runtime workflows across equal
+accounts, deletion + recreation + earlier-bill cancellation, history clearing +
+missing-source bill lookup, and security allow/deny cases. Separate ordinary
+component tests cover the original clear button, confirmation, spinner, failure
+retention and duplicate taps. CSS/style blocks remain unchanged.
+
+Live read-only acceptance on27 October: user reported6000ml of Meji Ray on the
+second physical device; an authenticated server read of yoggie-db/greek-yogg,
+generation g_trial_20261026_latest, revision4 confirmed6000ml and20materials.
+This is a live cross-device read check. New destructive controls and concurrent
+writes were tested in the isolated demo emulator, not executed against live stock
+or history. Before Rules deployment the exact active Rules source was saved and
+confirmed equal to the preceding Git release. Release commands/results and exact
+published SHA/assets are recorded in the delivery ledger/report.
+
+
+Final27 October validation:154 ordinary test files,1237passed and one conditional
+skip;94 native Firestore cases with both private source backups; lint and production
+build pass. Review findings for stale history responses and old source bills were
+fixed with regression coverage. Final source/Rules/Pages deployment checks and
+exact live revision are reported in the delivery ledger; no stock/history test
+mutation is required or performed on the live shop.

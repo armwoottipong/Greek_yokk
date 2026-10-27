@@ -1,9 +1,11 @@
 import {readFileSync} from 'node:fs'
+import {inventoryHistoryPolicy} from './inventory-history-policy.mjs'
+import {inventoryDeletePolicy} from './inventory-delete-policy.mjs'
 // Derive a narrower release from the reviewed policy. Validator bodies stay
 // identical; only the command allowlist and immutable display/history reads change.
 export function buildCorePolicy({shopId='greek-yogg'}={}){
  if(!/^[A-Za-z0-9_-]{1,120}$/.test(shopId))throw new Error('Invalid shop')
- const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8')
+ const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8')+'\n'+inventoryDeletePolicy+'\n'+inventoryHistoryPolicy
  const mask=source.replace(/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g,s=>' '.repeat(s.length))
  const functions=new Map()
  for(const m of mask.matchAll(/function\s+(\w+)\s*\([^)]*\)\s*\{/g)){
@@ -11,7 +13,7 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
   while(depth&&end<mask.length){if(mask[end]==='{')depth++;if(mask[end]==='}')depth--;end++}
   functions.set(m[1],source.slice(m.index,end))
  }
- const inventoryKinds={stock_count:'count',switch_lot:'switch',material_create:'materialCreate',material_archive:'materialArchive',material_metadata:'materialMetadata',material_measure:'materialMeasure',material_details:'materialDetails',material_type:'materialType',production_recipe:'productionRecipe'}
+ const inventoryKinds={history_clear:'historyClear',stock_count:'count',switch_lot:'switch',material_create:'materialCreate',material_archive:'materialArchive',material_metadata:'materialMetadata',material_measure:'materialMeasure',material_details:'materialDetails',material_type:'materialType',production_recipe:'productionRecipe'}
  const matches=`
  match /shops/{s} {
   allow get: if signedIn();
@@ -21,6 +23,7 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
   allow update: if request.resource.data.lastOpKind=='produce' && produceRoot(s);
   allow update: if request.resource.data.lastOpKind=='cancel' && cancelRoot(s);
   ${Object.entries(inventoryKinds).map(([kind,name])=>`allow update: if request.resource.data.lastOpKind=='${kind}' && ${name}Root(s);`).join('\n')}
+  allow update: if request.resource.data.lastOpKind=='material_delete' && materialDeleteRoot(s);
   match /generations/{g}/operations/{id} {
    allow read: if active(s,g);
    ${Object.entries(inventoryKinds).map(([kind,name])=>`allow create: if request.resource.data.kind=='${kind}' && ${name}Operation(s,g,id,request.resource.data);`).join('\n')}
@@ -28,6 +31,7 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
    allow create: if request.resource.data.kind=='package_stock_in' && packageStockOperation(s,g,id,request.resource.data);
    allow create: if request.resource.data.kind=='produce' && produceOperation(s,g,id,request.resource.data);
    allow create: if request.resource.data.kind=='cancel' && cancelOperation(s,g,id,request.resource.data);
+   allow create: if request.resource.data.kind=='material_delete' && materialDeleteOperation(s,g,id,request.resource.data);
   }
   match /generations/{g}/preparations/{id} {
    allow read: if active(s,g);
@@ -53,7 +57,8 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
    allow update: if request.resource.data.lastOpKind=='cancel' && cancelMaterial(s,g,id);
    allow update: if request.resource.data.lastOpKind=='produce' && request.resource.data.lastOpIndex<2 && produceInput(s,g,id);
    allow update: if request.resource.data.lastOpKind=='produce' && request.resource.data.lastOpIndex==2 && produceOutput(s,g,id);
-   ${Object.entries(inventoryKinds).map(([kind,name])=>`allow ${kind==='material_create'?'create':'update'}: if request.resource.data.lastOpKind=='${kind}' && ${name}Material(s,g,id);`).join('\n')}
+   ${Object.entries(inventoryKinds).filter(([kind])=>kind!=='history_clear').map(([kind,name])=>`allow ${kind==='material_create'?'create':'update'}: if request.resource.data.lastOpKind=='${kind}' && ${name}Material(s,g,id);`).join('\n')}
+   allow delete: if materialDeleteMaterial(s,g,id);
   }
   match /generations/{g}/display/{id} { allow read: if active(s,g); }
   match /generations/{g}/legacyRecords/{id} { allow read: if active(s,g); }
@@ -64,6 +69,11 @@ export function buildCorePolicy({shopId='greek-yogg'}={}){
  collect(matches)
  const replace=(body,before,after)=>{if(!body.includes(before))throw new Error('Core validator source changed');return body.replace(before,after)}
  function extend(name,body){
+  if(name==='materialCreateMaterial')body=replace(body,'root.catalogRevision,id,root.materialIds.size())',"root.catalogRevision,id,root.get('nextMaterialCostRank',root.materialIds.size()))")
+  if(name==='materialCreateRoot'){
+   body=replace(body,"['materialIds','productionUsers','revision','lastOpId','lastOpKind']","['materialIds','productionUsers','nextMaterialCostRank','revision','lastOpId','lastOpKind']")
+   body=replace(body,"n.materialIds==b.materialIds.concat([o.materialId])", "(!b.keys().hasAny(['nextMaterialCostRank']) ? !n.keys().hasAny(['nextMaterialCostRank']) : integer(b.nextMaterialCostRank,b.materialIds.size(),9007199254740990) && n.nextMaterialCostRank==b.nextMaterialCostRank+1) && n.materialIds==b.materialIds.concat([o.materialId])")
+  }
   if(name==='touchedAt')body=replace(body,'getAfter(materialPath(s,g,o.materialIds[i]))','getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/materials/$(o.materialIds[i]))')
   if(name==='rootAfter')body=replace(body,'getAfter(rootPath(s))','getAfter(/databases/$(database)/documents/shops/$(s))')
   if(name==='preparedMatch')body=replace(body,'getAfter(preparedPath(s,g,id,string(i)))','getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/preparedSales/$(id)/lineProofs/$(string(i)))')

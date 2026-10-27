@@ -732,7 +732,7 @@ function materialCreateMaterial(s,g,id) {
       let root=get(rootPath(s)).data;
       let o=getAfter(operationPath(s,g,n.lastOpId)).data;
       return writable(s,g) && o.kind=='material_create' && o.uid==request.auth.uid && o.materialId==id && n.lastOpIndex==0 &&
-        n==o.materialSnapshot && materialCreateData(n,root.catalogRevision,id,root.materialIds.size()) &&
+        n==o.materialSnapshot && materialCreateData(n,root.catalogRevision,id,root.get('nextMaterialCostRank',root.materialIds.size())) &&
         n.recipeIndex.menus.keys().toSet()==root.catalog.menuIds.concat(['_']).toSet() &&
         n.recipeIndex.addons.keys().toSet()==root.catalog.addonIds.concat(['_']).toSet();
     }
@@ -748,9 +748,9 @@ function materialCreateRoot(s) {
       let n=request.resource.data;
       let o=getAfter(operationPath(s,b.generation,n.lastOpId)).data;
       let m=getAfter(materialPath(s,b.generation,o.materialId)).data;
-      return signedIn() && b.status=='active' && n.diff(b).affectedKeys().hasOnly(['materialIds','productionUsers','revision','lastOpId','lastOpKind']) &&
+      return signedIn() && b.status=='active' && n.diff(b).affectedKeys().hasOnly(['materialIds','productionUsers','nextMaterialCostRank','revision','lastOpId','lastOpKind']) &&
         n.revision==b.revision+1 && o.kind=='material_create' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision &&
-        n.materialIds==b.materialIds.concat([o.materialId]) && n.materialIds.size()<=64 && n.materialIds.toSet().size()==n.materialIds.size() &&
+        (!b.keys().hasAny(['nextMaterialCostRank']) ? !n.keys().hasAny(['nextMaterialCostRank']) : integer(b.nextMaterialCostRank,b.materialIds.size(),9007199254740990) && n.nextMaterialCostRank==b.nextMaterialCostRank+1) && n.materialIds==b.materialIds.concat([o.materialId]) && n.materialIds.size()<=64 && n.materialIds.toSet().size()==n.materialIds.size() &&
         n.productionUsers.diff(b.productionUsers).affectedKeys().hasOnly([o.materialId]) && n.productionUsers.keys().toSet()==n.materialIds.toSet() && n.productionUsers[o.materialId]==[] &&
         !exists(materialPath(s,b.generation,o.materialId)) && m.lastOpId==n.lastOpId && m.lastOpKind=='material_create' && m.revision==1;
     }
@@ -1029,6 +1029,66 @@ function preparationCleanupProof(s,g,id,kind,index,step) {
       return preparationCleanup(s,g,id,kind,false) && string(i)==index && integer(i,0,m.proofCount-1) &&
         (kind!='inventory_batch' || integer(int(step),0,m.stepCount-1) && string(int(step))==step);
     }
+function materialDeleteEligible(root,m,id) {
+  return id in root.materialIds && !(id in root.catalog.summaryMaterials) && m.id==id && m.deleted==true &&
+   m.stock==0 && m.lotQty.values().hasOnly([0]) && root.productionUsers[id]==[] &&
+   m.get('productionRecipe',{}).size()==0 && m.recipeIndex.catalogRevision==root.catalogRevision &&
+   m.recipeIndex.quantities.hasOnly([0]) && m.recipeIndex.menus.values().hasOnly([0]) && m.recipeIndex.addons.values().hasOnly([0]);
+ }
+function materialDeleteCommit(s,g,id,o,b,n,m) {
+  return signedIn() && b.status=='active' && b.generation==g &&
+   o.keys().hasAll(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','materialSnapshot']) &&
+   o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','materialSnapshot']) &&
+   o.schemaVersion==2 && o.kind=='material_delete' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time &&
+   o.materialRevision==m.revision && o.materialSnapshot==m && materialDeleteEligible(b,m,o.materialId) &&
+   n.diff(b).affectedKeys().hasOnly(['materialIds','productionUsers','nextMaterialCostRank','revision','lastOpId','lastOpKind']) &&
+   n.revision==b.revision+1 && n.revision==o.shopRevision && n.lastOpId==id && n.lastOpKind=='material_delete' &&
+   n.materialIds==b.materialIds.removeAll([o.materialId]) &&
+   n.productionUsers.diff(b.productionUsers).affectedKeys().hasOnly([o.materialId]) && n.productionUsers.keys().toSet()==n.materialIds.toSet() &&
+   n.nextMaterialCostRank==b.get('nextMaterialCostRank',b.materialIds.size()) &&
+   integer(n.nextMaterialCostRank,b.materialIds.size(),9007199254740991) && n.nextMaterialCostRank>m.costRank &&
+   !existsAfter(materialPath(s,g,o.materialId)) && !exists(operationPath(s,g,id));
+ }
+function materialDeleteRoot(s) {
+  let b=resource.data;
+  let n=request.resource.data;
+  let o=getAfter(operationPath(s,b.generation,n.lastOpId)).data;
+  let m=get(materialPath(s,b.generation,o.materialId)).data;
+  return materialDeleteCommit(s,b.generation,n.lastOpId,o,b,n,m);
+ }
+function materialDeleteOperation(s,g,id,o) {
+  let b=get(rootPath(s)).data;
+  let n=rootAfter(s);
+  let m=get(materialPath(s,g,o.materialId)).data;
+  return materialDeleteCommit(s,g,id,o,b,n,m);
+ }
+function materialDeleteMaterial(s,g,id) {
+  let b=get(rootPath(s)).data;
+  let n=rootAfter(s);
+  let o=getAfter(operationPath(s,g,n.lastOpId)).data;
+  return o.materialId==id && materialDeleteCommit(s,g,n.lastOpId,o,b,n,resource.data);
+ }
+function historyClearRoot(s) {
+ let b=resource.data;
+ let n=request.resource.data;
+ let o=getAfter(operationPath(s,b.generation,n.lastOpId)).data;
+ return signedIn() && b.status=='active' &&
+  n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind','inventoryHistoryCutoff']) &&
+  n.revision==b.revision+1 && n.inventoryHistoryCutoff==n.revision &&
+  o.kind=='history_clear' && o.opId==n.lastOpId && o.uid==request.auth.uid &&
+  o.shopRevision==n.revision && o.clearedThroughRevision==n.revision;
+}
+function historyClearOperation(s,g,id,o) {
+ let b=get(rootPath(s)).data;
+ let n=rootAfter(s);
+ return writable(s,g) &&
+  o.keys().hasAll(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','clearedThroughRevision']) &&
+  o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','clearedThroughRevision']) &&
+  o.schemaVersion==2 && o.kind=='history_clear' && o.status=='committed' && o.opId==id &&
+  o.uid==request.auth.uid && o.createdAt==request.time &&
+  n.lastOpId==id && n.lastOpKind=='history_clear' && n.revision==b.revision+1 &&
+  o.shopRevision==n.revision && o.clearedThroughRevision==n.revision && n.inventoryHistoryCutoff==n.revision;
+}
 
  match /shops/greek-yogg {
   allow get: if signedIn();
@@ -1037,7 +1097,8 @@ function preparationCleanupProof(s,g,id,kind,index,step) {
   allow update: if request.resource.data.lastOpKind=='package_stock_in' && packageStockRoot('greek-yogg');
   allow update: if request.resource.data.lastOpKind=='produce' && produceRoot('greek-yogg');
   allow update: if request.resource.data.lastOpKind=='cancel' && cancelRoot('greek-yogg');
-  allow update: if request.resource.data.lastOpKind=='stock_count' && countRoot('greek-yogg');
+  allow update: if request.resource.data.lastOpKind=='history_clear' && historyClearRoot('greek-yogg');
+allow update: if request.resource.data.lastOpKind=='stock_count' && countRoot('greek-yogg');
 allow update: if request.resource.data.lastOpKind=='switch_lot' && switchRoot('greek-yogg');
 allow update: if request.resource.data.lastOpKind=='material_create' && materialCreateRoot('greek-yogg');
 allow update: if request.resource.data.lastOpKind=='material_archive' && materialArchiveRoot('greek-yogg');
@@ -1046,9 +1107,11 @@ allow update: if request.resource.data.lastOpKind=='material_measure' && materia
 allow update: if request.resource.data.lastOpKind=='material_details' && materialDetailsRoot('greek-yogg');
 allow update: if request.resource.data.lastOpKind=='material_type' && materialTypeRoot('greek-yogg');
 allow update: if request.resource.data.lastOpKind=='production_recipe' && productionRecipeRoot('greek-yogg');
+  allow update: if request.resource.data.lastOpKind=='material_delete' && materialDeleteRoot('greek-yogg');
   match /generations/{g}/operations/{id} {
    allow read: if active('greek-yogg',g);
-   allow create: if request.resource.data.kind=='stock_count' && countOperation('greek-yogg',g,id,request.resource.data);
+   allow create: if request.resource.data.kind=='history_clear' && historyClearOperation('greek-yogg',g,id,request.resource.data);
+allow create: if request.resource.data.kind=='stock_count' && countOperation('greek-yogg',g,id,request.resource.data);
 allow create: if request.resource.data.kind=='switch_lot' && switchOperation('greek-yogg',g,id,request.resource.data);
 allow create: if request.resource.data.kind=='material_create' && materialCreateOperation('greek-yogg',g,id,request.resource.data);
 allow create: if request.resource.data.kind=='material_archive' && materialArchiveOperation('greek-yogg',g,id,request.resource.data);
@@ -1061,6 +1124,7 @@ allow create: if request.resource.data.kind=='production_recipe' && productionRe
    allow create: if request.resource.data.kind=='package_stock_in' && packageStockOperation('greek-yogg',g,id,request.resource.data);
    allow create: if request.resource.data.kind=='produce' && produceOperation('greek-yogg',g,id,request.resource.data);
    allow create: if request.resource.data.kind=='cancel' && cancelOperation('greek-yogg',g,id,request.resource.data);
+   allow create: if request.resource.data.kind=='material_delete' && materialDeleteOperation('greek-yogg',g,id,request.resource.data);
   }
   match /generations/{g}/preparations/{id} {
    allow read: if active('greek-yogg',g);
@@ -1095,6 +1159,7 @@ allow update: if request.resource.data.lastOpKind=='material_measure' && materia
 allow update: if request.resource.data.lastOpKind=='material_details' && materialDetailsMaterial('greek-yogg',g,id);
 allow update: if request.resource.data.lastOpKind=='material_type' && materialTypeMaterial('greek-yogg',g,id);
 allow update: if request.resource.data.lastOpKind=='production_recipe' && productionRecipeMaterial('greek-yogg',g,id);
+   allow delete: if materialDeleteMaterial('greek-yogg',g,id);
   }
   match /generations/{g}/display/{id} { allow read: if active('greek-yogg',g); }
   match /generations/{g}/legacyRecords/{id} { allow read: if active('greek-yogg',g); }

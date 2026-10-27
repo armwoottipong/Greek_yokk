@@ -9,12 +9,12 @@ const scaled=v=>{const q=toScaledExact(Number(v),100);if(!q.ok||q.value<0)throw 
 const day=value=>value?Math.floor(Date.parse(`${value}T00:00:00Z`)/86400000):999999
 const view=m=>{const p=projectMaterial(m);return {...p,yieldQty:m.productionRecipe?.yieldQ/100||0,subRecipe:m.productionRecipe?.inputIds?.map((materialId,i)=>({materialId,qty:m.productionRecipe.quantities[i]/100}))||[]}}
 const snapshot=data=>clone({shop:data.shop,materials:data.materials,display:data.display})
-const apply=(before,plan)=>({...before,shop:plan.nextShop,materials:[...before.materials.map(m=>plan.nextMaterials.find(n=>n.id===m.id)||m),...plan.nextMaterials.filter(m=>!before.materials.some(b=>b.id===m.id))]})
-const names={inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ปรับยอดนับจริง',switch_lot:'สลับล็อตใช้งาน',material_create:'เพิ่มวัตถุดิบ',material_archive:'จัดเก็บวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ',material_measure:'แก้หน่วยและต้นทุน',material_details:'แก้รายละเอียดวัตถุดิบ',material_type:'แก้ประเภทวัตถุดิบ',production_recipe:'แก้สูตรผลิต'}
+const apply=(before,plan)=>({...before,shop:plan.nextShop,materials:[...before.materials.filter(m=>!(plan.removedMaterialIds||[]).includes(m.id)).map(m=>plan.nextMaterials.find(n=>n.id===m.id)||m),...plan.nextMaterials.filter(m=>!before.materials.some(b=>b.id===m.id))]})
+const names={inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ปรับยอดนับจริง',switch_lot:'สลับล็อตใช้งาน',material_create:'เพิ่มวัตถุดิบ',material_archive:'จัดเก็บวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ',material_measure:'แก้หน่วยและต้นทุน',material_details:'แก้รายละเอียดวัตถุดิบ',material_type:'แก้ประเภทวัตถุดิบ',production_recipe:'แก้สูตรผลิต',material_delete:'ลบวัตถุดิบถาวร',history_clear:'ล้างหน้าประวัติ'}
 export function createInventoryModel({getData,execute,loadServer,isReady,isBlocked,storageKey,readHistory=async()=>({logs:[]})}){
- let alive=true
+ let alive=true,historyRequest=0
  const latest=shallowRef(snapshot(getData())),virtual=shallowRef(latest.value)
- const state=reactive({base:null,commands:[],uncertain:false,conflict:false,saving:false,logs:[],toasts:[],modals:Object.fromEntries(['stockIn','stockAdjust','stocktake','waste','materialEdit','activityLog','confirm','lotDepletion','emojiPicker'].map(id=>[id,{isOpen:false}]))})
+ const state=reactive({base:null,commands:[],uncertain:false,conflict:false,saving:false,historyLoading:false,logs:[],toasts:[],modals:Object.fromEntries(['stockIn','stockAdjust','stocktake','waste','materialEdit','activityLog','confirm','lotDepletion','emojiPicker'].map(id=>[id,{isOpen:false}]))})
  const error=message=>{model.showToast(message,'error');return {ok:false,message}}
  function persist(){try{sessionStorage.setItem(storageKey,JSON.stringify({base:state.base,commands:state.commands,uncertain:state.uncertain,conflict:state.conflict}));return true}catch{return false}}
  function rebuild(){virtual.value=state.base?clone(state.base):latest.value;for(const c of state.commands)virtual.value=apply(virtual.value,planInventoryCommand(virtual.value.shop,virtual.value.materials,clone(c)))}
@@ -74,6 +74,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   state.commands.shift();state.base=state.commands.length?confirmed:null;state.uncertain=false
   if(latest.value.shop.revision<=confirmed.shop.revision)latest.value=confirmed
   if(!state.commands.length)state.conflict=false
+  if(command.kind==='history_clear'){historyRequest++;state.historyLoading=false;state.logs=[]}
   rebuild();persist()
  }
  const recipes=(kind)=>Object.values(virtual.value.shop.catalog[kind]||{}).map(row=>({id:row.id,name:virtual.value.display[kind]?.[row.id]?.name||row.id,recipe:Object.entries(row.recipe||{}).filter(([,q])=>q>0).map(([materialId,q])=>({materialId,qty:q/100}))}))
@@ -103,8 +104,13 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   switchActiveLot(materialId,lotId){return stageMany([{kind:'switch_lot',payload:{materialId,lotId}}])},switchActiveLotSilently(materialId,lotId){return this.switchActiveLot(materialId,lotId)},
   recordLotWaste({materialId,lotId,wasteQty,reason,note=''}){try{const m=virtual.value.materials.find(m=>m.id===materialId),qty=scaled(wasteQty),from=m?.lotQty[lotId];return stageMany([{kind:'stock_count',payload:{requests:[{materialId,mode:'waste',reason,note,requestedQ:qty,counts:[{id:lotId,to:Math.max(0,from-qty)}]}]}}])}catch(e){return error(e.message)}},
   openStocktakeModal(){state.modals.stocktake={isOpen:true}},openWasteModal(materialId,lotId){state.modals.waste={isOpen:true,materialId,lotId}},closeWasteModal(){state.modals.waste.isOpen=false},
-  async openActivityLog(module='stock',targetMaterialId=null){state.modals.activityLog={isOpen:true,module,targetMaterialId};try{const result=await readHistory();if(alive){state.logs=result.logs;if(result.truncated)this.showToast('แสดงประวัติ Firebase 500 รายการล่าสุดต่อประเภท','info')}}catch{this.showToast('โหลดประวัติไม่ได้ กรุณาเชื่อมต่อแล้วลองใหม่','error')}},closeActivityLog(){state.modals.activityLog.isOpen=false},clearActivityLogs(){return error('ประวัติ Firebase เก็บไว้ตรวจสอบและคืนบิล จึงไม่ลบหลักฐานการบันทึก')},undoOrder(){return error('กรุณาคืนบิลที่หน้า บิลขาย & คืนบิล')},
-  async softDeleteMaterial(id){return mutate([{kind:'material_archive',payload:{materialId:id,deleted:true}}])},async restoreMaterial(id){return mutate([{kind:'material_archive',payload:{materialId:id,deleted:false}}])},deleteMaterialPermanently(){return error('เก็บข้อมูลอ้างอิง Firebase ไว้ตรวจย้อนหลัง กรุณาใช้จัดเก็บวัตถุดิบแทนการลบถาวร')},
+  cloud:true,get historyLoading(){return state.historyLoading},
+  async openActivityLog(module='stock',targetMaterialId=null){state.modals.activityLog={isOpen:true,module,targetMaterialId};await refreshHistory()},
+  closeActivityLog(){historyRequest++;state.historyLoading=false;state.modals.activityLog.isOpen=false},
+  async clearActivityLogs(){const result=await mutate([{kind:'history_clear',payload:{}}]);if(result.ok){state.logs=[];await refreshHistory()}return result},
+  undoOrder(){return error('กรุณาคืนบิลจากปุ่มประวัติด้านบน')},
+
+  async softDeleteMaterial(id){return mutate([{kind:'material_archive',payload:{materialId:id,deleted:true}}])},async restoreMaterial(id){return mutate([{kind:'material_archive',payload:{materialId:id,deleted:false}}])},async deleteMaterialPermanently(id){const m=this.matMap[id];if(!m?.isDeleted)return error('กรุณาจัดเก็บวัตถุดิบก่อนลบถาวร');if(m.stock!==0)return error('ยังลบไม่ได้: มีสต็อกคงเหลือ กรุณาตรวจนับหรือบันทึกของเสียให้ถูกต้องก่อน');if(m.hasSubRecipe||this.getMaterialUsage(id).isInUse)return error('ยังลบไม่ได้: มีสูตรอ้างอิง กรุณานำรายการออกจากสูตรก่อน');return mutate([{kind:'material_delete',payload:{materialId:id}}])},
   async saveMaterial(input){
    if(state.commands.length)return error('กรุณาบันทึกหรือยกเลิกแบบร่างคลังก่อนแก้ข้อมูลวัตถุดิบ')
    try{
@@ -124,10 +130,14 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
     return mutate(entries)
    }catch(e){return error(e.message)}
   },
-  update(data){latest.value=snapshot(data);if(!state.commands.length)virtual.value=latest.value;else if(latest.value.shop.revision!==state.base.shop.revision&&!state.saving&&!state.uncertain)state.conflict=true},
+  update(data){if(data.shop.revision<latest.value.shop.revision)return;const oldCutoff=latest.value.shop.inventoryHistoryCutoff||0;latest.value=snapshot(data);if((data.shop.inventoryHistoryCutoff||0)!==oldCutoff){state.logs=[];if(state.modals.activityLog.isOpen)void refreshHistory()}if(!state.commands.length)virtual.value=latest.value;else if(latest.value.shop.revision!==state.base.shop.revision&&!state.saving&&!state.uncertain)state.conflict=true},
   acknowledge,
   close(){alive=false;for(const modal of Object.values(state.modals)){modal.onCancel?.();modal.isOpen=false}}
  })
+ async function refreshHistory(){
+  const request=++historyRequest;state.historyLoading=true
+  try{const result=await readHistory({clearedThroughRevision:latest.value.shop.inventoryHistoryCutoff||0});if(alive&&request===historyRequest){state.logs=result.logs;if(result.truncated)model.showToast('แสดงประวัติ Firebase 500 รายการล่าสุดต่อประเภท','info')}}catch{if(alive&&request===historyRequest)model.showToast('โหลดประวัติไม่ได้ กรุณาเชื่อมต่อแล้วลองใหม่','error')}finally{if(request===historyRequest)state.historyLoading=false}
+ }
  async function mutate(entries){if(state.commands.length)return error('กรุณาบันทึกแบบร่างคลังก่อนแก้ข้อมูล');const staged=stageMany(entries);return staged.ok?commit():staged}
  for(const method of ['stockIn','batchProduce','recordLotWaste','switchActiveLot','switchActiveLotSilently']){const action=model[method];model[method]=(...args)=>{try{return action.apply(model,args)}catch(e){return error(e.message)}}}
  return model

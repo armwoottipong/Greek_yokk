@@ -48,7 +48,7 @@ const model = createInventoryModel({
   isReady: () => props.ready,
   isBlocked: () => props.blocked,
   storageKey: props.storageKey,
-  readHistory: () => props.readHistory?.() ?? Promise.resolve({ logs: [], truncated: false }),
+  readHistory: options => props.readHistory?.(options) ?? Promise.resolve({ logs: [], truncated: false }),
 })
 
 provide('cloud-inventory-model', model)

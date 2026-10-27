@@ -46,7 +46,7 @@
           <details v-if="!isItemMode" class="relative">
             <summary tabindex="0" class="history-button cursor-pointer list-none" aria-label="จัดการประวัติ"><MoreHorizontal class="h-4 w-4" />เพิ่มเติม</summary>
             <div class="absolute right-0 bottom-full mb-2 p-1 bg-white rounded-lg border border-stone-200 shadow-lg whitespace-nowrap">
-              <button type="button" @click="confirmClearLogs" :disabled="!(store.activityLogs || []).length" class="px-3 py-2 text-xs text-rose-700 hover:bg-rose-50 rounded-md disabled:opacity-40">ล้างประวัติทั้งหมด</button>
+              <button type="button" @click="confirmClearLogs" :aria-busy="!!actionPending||undefined" :disabled="!!actionPending||store.historyLoading||!(store.activityLogs || []).length" class="px-3 py-2 text-xs text-rose-700 hover:bg-rose-50 rounded-md disabled:opacity-40"><span v-if="actionPending" class="ui-button-spinner" aria-hidden="true"></span>ล้างประวัติทั้งหมด</button>
             </div>
           </details>
           <button type="button" @click="close" class="history-button !bg-brand-600 !border-brand-600 !text-white hover:!bg-stone-800 px-5">ปิด</button>
@@ -73,6 +73,8 @@ import {
   SlidersHorizontal, MoreHorizontal, ChevronDown
 } from 'lucide-vue-next'
 
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
 const ordersById = computed(() => new Map((store.orders || []).map(order => [order.orderId, order])))
 async function confirmUndoOrder(orderId) {
@@ -189,6 +191,7 @@ watch(() => store.modals.activityLog?.isOpen, (open) => {
 })
 
 function close() {
+  if(actionPending.value)return
   showFilterPopover.value = false
   store.closeActivityLog()
 }
@@ -385,16 +388,17 @@ function exportCsv() {
   store.showToast('ส่งออกไฟล์ CSV สำเร็จ', 'success')
 }
 
-async function confirmClearLogs() {
+const confirmClearLogs=()=>runAction('clear',performClearLogs)
+async function performClearLogs() {
   const ok = await store.confirmDialog({
     title: 'ล้างประวัติกิจกรรมทั้งหมด?',
-    message: 'ประวัติการรับเข้า ปรับยอดนับจริง และกิจกรรมทั้งหมดจะถูกล้างอย่างถาวร ยืนยันหรือไม่?',
+    message: store.cloud?'ล้างรายการที่แสดงในหน้าประวัติของทุกเครื่อง โดยเก็บหลักฐานระบบสำหรับตรวจสอบ กันรายการซ้ำ และคืนบิลไว้ ยืนยันหรือไม่?':'ประวัติการรับเข้า ปรับยอดนับจริง และกิจกรรมทั้งหมดจะถูกล้างอย่างถาวร ยืนยันหรือไม่?',
     confirmText: 'ล้างประวัติ',
     cancelText: 'ยกเลิก',
     type: 'danger'
   })
   if (ok) {
-    store.clearActivityLogs()
+    await store.clearActivityLogs()
   }
 }
 </script>
