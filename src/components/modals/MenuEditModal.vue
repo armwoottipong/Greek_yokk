@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :open="store.modals.menuEdit.isOpen" id="MenuEditModal" :title="isEditing?'แก้ไขเมนู':'เพิ่มเมนูใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 เสิร์ฟ" width="720px" :teleport="false" :initial-focus="initialFocus" @request-close="requestClose(close)">
+ <DialogFrame :busy="!!actionPending" :open="store.modals.menuEdit.isOpen" id="MenuEditModal" :title="isEditing?'แก้ไขเมนู':'เพิ่มเมนูใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 เสิร์ฟ" width="720px" :teleport="false" :initial-focus="initialFocus" @request-close="requestClose(close)">
   <div class="menu-editor">
    <section class="menu-editor-basics" aria-label="ข้อมูลเมนู">
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอนเมนู" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="menu-name" label="ชื่อเมนู" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น Greek Yogurt Bowl (M)"/></FormField></div>
@@ -46,7 +46,7 @@
     </template>
    </div></details>
   </div>
-  <template #footer><div class="menu-editor-footer"><Button variant="quiet" @click="requestClose(close)">ยกเลิก</Button><Button @click="submit"><Check :size="18" aria-hidden="true"/>บันทึกข้อมูลเมนู</Button></div></template>
+  <template #footer><div class="menu-editor-footer"><Button variant="quiet" :disabled="!!actionPending" @click="requestClose(close)">ยกเลิก</Button><Button :loading="!!actionPending" @click="submit"><Check :size="18" aria-hidden="true"/>บันทึกข้อมูลเมนู</Button></div></template>
  </DialogFrame>
 </template>
 <script setup>
@@ -62,13 +62,16 @@ import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
-import { usePosStore } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 
 import { Plus, Check } from 'lucide-vue-next'
 
-const store = usePosStore()
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
+const store = useInventoryStore()
 const nameError=ref('')
+const editCatalogRevision=ref(null)
 const openPriceInfo=ref(null)
 watch(() => store.modals.menuEdit.isOpen, () => { openPriceInfo.value = null })
 
@@ -123,6 +126,7 @@ function getUnit(matId) {
 // Watch modal open and populate
 watch(() => store.modals.menuEdit.isOpen, (open) => {
   if (open) {
+    editCatalogRevision.value=store.catalogRevision
     nameError.value=''
     const menuId = store.modals.menuEdit.menuId
     const menu = menuId ? store.menus.find(m => m.id === menuId) : null
@@ -245,7 +249,8 @@ function close() {
   store.modals.menuEdit.menuId = null
 }
 
-async function submit() {
+const submit=()=>runAction('save',performSave)
+async function performSave() {
   nameError.value=''
   if (!form.value.name.trim()) {
     nameError.value='กรุณากรอกชื่อเมนูก่อนบันทึก'
@@ -274,7 +279,8 @@ async function submit() {
   }
 
   const previousIds=new Set(store.menus.map(menu=>menu.id))
-  const result = store.saveMenu({
+  const result = await store.saveMenu({
+    ...(store.cloud?{expectedCatalogRevision:editCatalogRevision.value}:{}),
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     emoji: form.value.emoji || '🥣',
@@ -286,10 +292,10 @@ async function submit() {
     hasPackage: form.value.hasPackage
   })
 
-  if (result?.ok || result?.success) {
+  if (result?.ok || result?.success || (!store.cloud&&result===undefined)) {
     store.modals.menuEdit.savedMenuId=form.value.id || store.menus.find(menu=>!previousIds.has(menu.id))?.id || null
     close()
-  }
+  } else nameError.value=result?.message||'บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลและลองอีกครั้ง'
 }
 </script>
 

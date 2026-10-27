@@ -35,7 +35,7 @@ function scopeKey(scope) {
 function commandJson(envelope) {
   if (!envelope || Object.keys(envelope).sort().join(',') !== 'kind,opId,payload' ||
     typeof envelope.opId !== 'string' || !/^[A-Za-z0-9_-]{1,120}$/.test(envelope.opId) ||
-    !['sale', 'cancel', 'produce', 'inventory', 'catalog', 'receive', 'history_clear', 'stock_count', 'switch_lot', 'material_create', 'material_archive', 'material_delete', 'material_metadata', 'material_measure', 'material_details', 'material_type', 'production_recipe'].includes(envelope.kind)) throw fail('INVALID_COMMAND')
+    !['sale', 'cancel', 'produce', 'inventory', 'catalog', 'menu', 'addon', 'group', 'receive', 'history_clear', 'stock_count', 'switch_lot', 'material_create', 'material_archive', 'material_delete', 'material_metadata', 'material_measure', 'material_details', 'material_type', 'production_recipe'].includes(envelope.kind)) throw fail('INVALID_COMMAND')
   return canonical(envelope)
 }
 

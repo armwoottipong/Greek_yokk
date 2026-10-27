@@ -1,5 +1,7 @@
 import {reactive,shallowRef} from 'vue'
 import {planInventoryCommand} from './inventoryPlan.js'
+import {createCatalogBindings} from './catalogBindings.js'
+import {catalogMenus,catalogAddons,catalogGroups,catalogPlatforms} from './catalogPresentation.js'
 import {projectMaterial} from './productPresentation.js'
 import {buildMaterialUsage,getMaterialKind,MATERIAL_KIND_OPTIONS} from '@/domain/materialClassification'
 import {EMOJI_CATALOG} from '@/data/initialData'
@@ -9,12 +11,12 @@ const scaled=v=>{const q=toScaledExact(Number(v),100);if(!q.ok||q.value<0)throw 
 const day=value=>value?Math.floor(Date.parse(`${value}T00:00:00Z`)/86400000):999999
 const view=m=>{const p=projectMaterial(m);return {...p,yieldQty:m.productionRecipe?.yieldQ/100||0,subRecipe:m.productionRecipe?.inputIds?.map((materialId,i)=>({materialId,qty:m.productionRecipe.quantities[i]/100}))||[]}}
 const snapshot=data=>clone({shop:data.shop,materials:data.materials,display:data.display})
-const apply=(before,plan)=>({...before,shop:plan.nextShop,materials:[...before.materials.filter(m=>!(plan.removedMaterialIds||[]).includes(m.id)).map(m=>plan.nextMaterials.find(n=>n.id===m.id)||m),...plan.nextMaterials.filter(m=>!before.materials.some(b=>b.id===m.id))]})
-const names={inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ปรับยอดนับจริง',switch_lot:'สลับล็อตใช้งาน',material_create:'เพิ่มวัตถุดิบ',material_archive:'จัดเก็บวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ',material_measure:'แก้หน่วยและต้นทุน',material_details:'แก้รายละเอียดวัตถุดิบ',material_type:'แก้ประเภทวัตถุดิบ',production_recipe:'แก้สูตรผลิต',material_delete:'ลบวัตถุดิบถาวร',history_clear:'ล้างหน้าประวัติ'}
+const apply=(before,plan)=>({...before,shop:plan.nextShop,display:plan.displayChange?{...before.display,[plan.displayChange.collection]:{...before.display[plan.displayChange.collection],[plan.displayChange.entityId]:plan.displayChange.value}}:before.display,materials:[...before.materials.filter(m=>!(plan.removedMaterialIds||[]).includes(m.id)).map(m=>plan.nextMaterials.find(n=>n.id===m.id)||m),...plan.nextMaterials.filter(m=>!before.materials.some(b=>b.id===m.id))]})
+const names={inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ปรับยอดนับจริง',switch_lot:'สลับล็อตใช้งาน',material_create:'เพิ่มวัตถุดิบ',material_archive:'จัดเก็บวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ',material_measure:'แก้หน่วยและต้นทุน',material_details:'แก้รายละเอียดวัตถุดิบ',material_type:'แก้ประเภทวัตถุดิบ',production_recipe:'แก้สูตรผลิต',material_delete:'ลบวัตถุดิบถาวร',history_clear:'ล้างหน้าประวัติ',menu:'บันทึกเมนู',addon:'บันทึก Add-on',group:'บันทึกกลุ่มตัวเลือก'}
 export function createInventoryModel({getData,execute,loadServer,isReady,isBlocked,storageKey,readHistory=async()=>({logs:[]})}){
  let alive=true,historyRequest=0
  const latest=shallowRef(snapshot(getData())),virtual=shallowRef(latest.value)
- const state=reactive({base:null,commands:[],uncertain:false,conflict:false,saving:false,historyLoading:false,logs:[],toasts:[],modals:Object.fromEntries(['stockIn','stockAdjust','stocktake','waste','materialEdit','activityLog','confirm','lotDepletion','emojiPicker'].map(id=>[id,{isOpen:false}]))})
+ const state=reactive({base:null,commands:[],uncertain:false,conflict:false,saving:false,historyLoading:false,logs:[],toasts:[],modals:Object.fromEntries(['stockIn','stockAdjust','stocktake','waste','materialEdit','activityLog','confirm','lotDepletion','emojiPicker','menuEdit','addonEdit'].map(id=>[id,{isOpen:false}]))})
  const error=message=>{model.showToast(message,'error');return {ok:false,message}}
  function persist(){try{sessionStorage.setItem(storageKey,JSON.stringify({base:state.base,commands:state.commands,uncertain:state.uncertain,conflict:state.conflict}));return true}catch{return false}}
  function rebuild(){virtual.value=state.base?clone(state.base):latest.value;for(const c of state.commands)virtual.value=apply(virtual.value,planInventoryCommand(virtual.value.shop,virtual.value.materials,clone(c)))}
@@ -52,6 +54,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   if(state.conflict&&!state.uncertain)return error('ยอดร้านเปลี่ยน กรุณายกเลิกแบบร่างที่ยังไม่บันทึกแล้วตรวจยอดใหม่')
   state.saving=true
   let completed=0
+  const firstKind=state.commands[0]?.kind
   try{
    const fresh=await loadServer()
    if(!state.uncertain&&fresh.shop.revision!==state.base.shop.revision){state.conflict=true;persist();return error('ยอดร้านเปลี่ยนจากเครื่องอื่น ยังไม่บันทึกแบบร่าง กรุณาตรวจยอดใหม่')}
@@ -64,7 +67,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
     // The parent also calls acknowledge; this makes the model usable by a direct service adapter.
     acknowledge(result.value||{opId:command.opId,kind:command.kind});completed++
    }
-   model.showToast('บันทึกข้อมูลคลังสำเร็จ · ยืนยันจาก Firebase แล้ว','success');return {ok:true,success:true}
+   model.showToast(['menu','addon','group'].includes(firstKind)?`${names[firstKind]}สำเร็จ · ยืนยันจาก Firebase แล้ว`:'บันทึกข้อมูลคลังสำเร็จ · ยืนยันจาก Firebase แล้ว','success');return {ok:true,success:true}
   }catch(e){return error(e.message||'บันทึกไม่สำเร็จ แบบร่างยังอยู่')}finally{state.saving=false}
  }
  function acknowledge(value){
@@ -77,9 +80,12 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   if(command.kind==='history_clear'){historyRequest++;state.historyLoading=false;state.logs=[]}
   rebuild();persist()
  }
- const recipes=(kind)=>Object.values(virtual.value.shop.catalog[kind]||{}).map(row=>({id:row.id,name:virtual.value.display[kind]?.[row.id]?.name||row.id,recipe:Object.entries(row.recipe||{}).filter(([,q])=>q>0).map(([materialId,q])=>({materialId,qty:q/100}))}))
+ const recipes=(kind)=>Object.entries(virtual.value.shop.catalog[kind]||{}).map(([id,row])=>({id,isDeleted:!!virtual.value.display[kind]?.[id]?.deleted,name:virtual.value.display[kind]?.[id]?.name||row.name||id,recipe:Object.entries(row.recipe||{}).filter(([,q])=>q>0).map(([materialId,q])=>({materialId,qty:q/100}))}))
  const valuation=rows=>rows.filter(m=>!m.isDeleted).reduce((n,m)=>n+Math.max(0,m.stock)*(m.unitCost||0),0)
  const model=reactive({
+  ...createCatalogBindings({snapshot:()=>virtual.value,mutate,error}),
+  get catalogRevision(){return virtual.value.shop.catalogRevision},
+  get menus(){return catalogMenus(virtual.value)},get addons(){return catalogAddons(virtual.value)},get addonGroups(){return catalogGroups(virtual.value)},get platforms(){return catalogPlatforms(virtual.value)},
   get inventorySaving(){return state.saving},modals:state.modals,emojiCatalog:EMOJI_CATALOG,get toasts(){return state.toasts},get activityLogs(){return state.logs},get orders(){return []},
   get materials(){return virtual.value.materials.map(view)},get activeMaterials(){return this.materials.filter(m=>!m.isDeleted)},get matMap(){return Object.fromEntries(this.materials.map(m=>[m.id,m]))},
   get materialKindOptions(){return MATERIAL_KIND_OPTIONS},getMaterialKind,get materialUsageById(){return buildMaterialUsage({materials:this.materials,menus:recipes('menus'),addons:recipes('addons')})},

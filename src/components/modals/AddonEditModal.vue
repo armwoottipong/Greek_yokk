@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไข Add-on':'เพิ่ม Add-on ใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่" width="720px" :teleport="false" :initial-focus="store.modals.addonEdit.initialSection==='recipe'?'[data-addon-recipe] button:not(:disabled)':'#addon-name'" @request-close="requestClose(close)">
+ <DialogFrame :busy="!!actionPending" :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไข Add-on':'เพิ่ม Add-on ใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่" width="720px" :teleport="false" :initial-focus="store.modals.addonEdit.initialSection==='recipe'?'[data-addon-recipe] button:not(:disabled)':'#addon-name'" @request-close="requestClose(close)">
   <div class="menu-editor">
    <section class="menu-editor-basics" aria-label="ข้อมูล Add-on">
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอน Add-on" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="addon-name" label="ชื่อ Add-on" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น สตรอว์เบอร์รีสด (30g)"/></FormField></div>
@@ -21,7 +21,7 @@
     <Button variant="secondary" size="compact" @click="addRecipeRow"><Plus :size="16" aria-hidden="true"/>เพิ่มรายการในสูตร</Button>
    </div></details>
   </div>
-  <template #footer><div class="menu-editor-footer"><Button variant="quiet" @click="requestClose(close)">ยกเลิก</Button><Button @click="submit"><Check :size="18" aria-hidden="true"/>บันทึก Add-on</Button></div></template>
+  <template #footer><div class="menu-editor-footer"><Button variant="quiet" :disabled="!!actionPending" @click="requestClose(close)">ยกเลิก</Button><Button :loading="!!actionPending" @click="submit"><Check :size="18" aria-hidden="true"/>บันทึก Add-on</Button></div></template>
  </DialogFrame>
 </template>
 <script setup>
@@ -35,12 +35,15 @@ import Button from '@/components/ui/Button.vue'
 import {vSmoothDisclosure, revealDisclosure} from '@/directives/smoothDisclosure'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
-import { usePosStore } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { Check, Plus } from 'lucide-vue-next'
 
-const store = usePosStore()
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
+const store = useInventoryStore()
 const nameError=ref('')
+const editCatalogRevision=ref(null)
 const recipeErrors = ref([])
 
 const form = ref({
@@ -78,6 +81,7 @@ function addRecipeRow() {
 
 watch(() => store.modals.addonEdit.isOpen, (open) => {
   if (open) {
+    editCatalogRevision.value=store.catalogRevision
     nameError.value=''
     recipeErrors.value = []
     const id = store.modals.addonEdit.addonId
@@ -118,7 +122,8 @@ function close() {
   store.modals.addonEdit.addonId = null
 }
 
-async function submit() {
+const submit=()=>runAction('save',performSave)
+async function performSave() {
   nameError.value=''
   if (!form.value.name.trim()) {
     nameError.value='กรุณากรอกชื่อ Add-on ก่อนบันทึก'
@@ -150,7 +155,8 @@ async function submit() {
   if (!ok) return
 
   const previousIds=new Set(store.addons.map(addon=>addon.id))
-  const result = store.saveAddon({
+  const result = await store.saveAddon({
+    ...(store.cloud?{expectedCatalogRevision:editCatalogRevision.value}:{}),
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     emoji: form.value.emoji || '🍓',
@@ -158,10 +164,10 @@ async function submit() {
     recipe: form.value.recipe.map(row => ({ materialId: row.materialId, qty: Number(row.qty) }))
   })
 
-  if (result?.ok || result?.success){
+  if (result?.ok || result?.success || (!store.cloud&&result===undefined)){
     store.modals.addonEdit.savedAddonId=form.value.id || store.addons.find(addon=>!previousIds.has(addon.id))?.id || null
     close()
-  }
+  } else nameError.value=result?.message||'บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลและลองอีกครั้ง'
 }
 </script>
 

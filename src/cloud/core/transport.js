@@ -1,3 +1,4 @@
+import {applyCatalogDisplay} from './catalogPlan.js'
 import {doc,collection,getDocFromServer,getDocsFromServer,runTransaction,serverTimestamp} from 'firebase/firestore'
 import {summaryMultiGroupSale} from './model/saleGroups.js'
 import {summaryCancel} from './model/cancel.js'
@@ -41,10 +42,11 @@ export function createCoreTransport({db,getContext}){
  }
  const collectionFor=kind=>kind==='sale'?'orders':'operations'
  function checkReceipt(s,command,r){
-  const kinds={sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
+  const kinds={menu:['menu'],addon:['addon','catalog'],group:['group'],sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
   if(r.opId!==command.opId||r.uid!==s.uid||!kinds[command.kind]?.includes(r.kind))throw fail('COMMAND_ID_COLLISION')
   const p=command.payload
   if(p){
+   if(['menu','addon','group'].includes(command.kind)&&(!equal(r.input,p.input)||!equal(r.display,p.display)||r.entityId!==(command.kind==='addon'?p.entityId:p.input.id)))throw fail('COMMAND_ID_COLLISION')
    if(command.kind==='cancel'&&r.orderId!==p.orderId)throw fail('COMMAND_ID_COLLISION')
    if(['inventory','receive','produce'].includes(command.kind)){
     if((r.materialId||r.outputId)!==p.materialId)throw fail('COMMAND_ID_COLLISION')
@@ -121,8 +123,14 @@ export function createCoreTransport({db,getContext}){
    for(const id of ids){const m=await t.get(doc(db,`${gen(s)}/materials/${id}`));if(!m.exists())throw fail('INCOMPLETE_INVENTORY');materials.push(m.data())}
    let oldOrder
    if(command.kind==='cancel'){const o=await t.get(doc(db,`${gen(s)}/orders/${command.payload.orderId}`));if(!o.exists())throw fail('ORDER_NOT_FOUND');oldOrder=o.data()}
+   let display
+   if(['menu','addon','group'].includes(command.kind)){const d=await t.get(doc(db,`${gen(s)}/display/catalog`));if(!d.exists())throw fail('INCOMPLETE_CATALOG_DISPLAY');display=d.data()}
    guard(s);const p=plan(s,command,shop,materials,oldOrder)
    const writes=[{path:root(s),data:p.f.nextShop},{path:receiptRef.path,data:p.receipt},...p.materials.map(m=>({path:`${gen(s)}/materials/${m.id}`,data:m}))]
+   if(p.f.displayChange)writes.push({path:`${gen(s)}/display/catalog`,data:applyCatalogDisplay(display,p.f.displayChange)})
+   if(p.f.inputProof)writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/input`,data:p.f.inputProof})
+   if(p.f.shapeProof)writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/shape`,data:p.f.shapeProof})
+   if(p.f.referenceProof)writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/0`,data:p.f.referenceProof})
    if(command.kind==='cancel')writes.push({path:`${gen(s)}/orders/${command.payload.orderId}`,data:p.order})
    // An empty set is a conservative admission bound for the smaller delete wire.
    for(const id of p.f.removedMaterialIds||[])writes.push({path:`${gen(s)}/materials/${id}`,data:{},remove:true})
@@ -143,7 +151,7 @@ export function createCoreTransport({db,getContext}){
  }
  async function rejectStaleInventory(command){
   const s=scope(),expected=command.payload?.expectedRevision
-  const kinds=['inventory','receive','produce','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe']
+  const kinds=['menu','addon','group','inventory','receive','produce','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe']
   if(!kinds.includes(command.kind)||!Number.isSafeInteger(expected)||expected<0)throw fail('STALE_NOT_PROVEN')
   // Read the advanced root first. Once observed it fences this immutable draft;
   // a subsequent server receipt read also catches commits completed before it.

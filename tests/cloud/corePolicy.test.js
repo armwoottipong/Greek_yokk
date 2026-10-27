@@ -7,9 +7,21 @@ it('builds a shop-scoped policy containing only the first operational commands',
  expect(text).toContain('match /shops/greek-yogg {')
  expect(text).toContain('function validRoot(')
  expect(text).toContain('function preparationCreate(')
- expect(text).not.toContain('function catalogRoot(')
+ expect(text).toContain('function catalogRoot(')
+ expect(text).toContain('function catalogDisplayWrite(')
  expect(text).not.toContain('function materialEnrolRoot(')
  expect(text).toContain('legacyRecords')
  expect(()=>buildCorePolicy({shopId:'../wrong'})).toThrow()
  expect(readFileSync(new URL('../../firestore.rules',import.meta.url),'utf8').replaceAll('\r\n','\n')).toBe(text.replaceAll('\r\n','\n'))
+})
+
+it('keeps the last legacy retirement checks in the generated reference proof',()=>{
+ const text=buildCorePolicy({shopId:'greek-yogg'})
+ const body=text.split('function catalogReferenceProof(')[1].split('function ')[0]
+ for(const index of [60,61,62,63])expect(body).toContain(`addonRetirementGroup(root.catalog,o.entityId,${index})`)
+ expect(body).toContain('touched(s,g,o,15)')
+ for(const name of ['menuOperation','addonOperation','groupOperation','catalogOperation']){
+  const operation=text.split(`function ${name}(`)[1].split('function ')[0]
+  expect(operation).toContain('getAfter(catalogInputPath(s,g,id)).data.opId==id')
+ }
 })

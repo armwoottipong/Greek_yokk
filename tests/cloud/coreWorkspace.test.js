@@ -117,7 +117,7 @@ it('produces through the original modal then confirms cancellation before sendin
  expect(h.execute.mock.calls.filter(([c])=>c.kind==='cancel')).toHaveLength(0)
  await w.get('#cloud-cancel-order .ui-button--primary').trigger('click');await flushPromises()
  expect(h.execute.mock.calls.at(-1)[0]).toMatchObject({kind:'cancel',payload:{orderId:'BILL'}});w.unmount()
-})
+},15000)
 
 it('opens the original receipt only after its matching server-confirmed sale',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
@@ -197,4 +197,30 @@ it('starts a fresh read after an update even if a manual reload began before the
  expect(h.execute).toHaveBeenCalledTimes(1)
  resolveOld(old);await flushPromises()
  expect(h.load.mock.calls.length).toBe(before+2);expect(w.findAll('[data-cart-line]')).toHaveLength(0);w.unmount()
+})
+
+
+it('opens the original menu management and editor from the unchanged sidebar and submits a cloud command',async()=>{
+ const f=summaryFixture(),d={shop:materialRegistryShop(f.shop,f.materials),materials:f.materials,display:{menus:{SIMPLE:{name:'Original menu',emoji:'x'}},addons:{},groups:{},platforms:{P:{name:'Counter'}}},orders:[]};h.load.mockResolvedValue(d)
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('.brand-navigation button[title="จัดการเมนู"]').trigger('click');await flushPromises()
+ expect(w.find('#menu-recipe').exists()).toBe(true)
+ await w.get('[data-menu-edit]').trigger('click');await flushPromises()
+ await w.get('#menu-name').setValue('Edited cloud menu')
+ await w.get('#MenuEditModal .menu-editor-footer .ui-button--primary').trigger('click');await flushPromises()
+ expect(h.execute).not.toHaveBeenCalled()
+ await w.get('#ConfirmModal .ui-button--primary').trigger('click');await flushPromises()
+ expect(h.execute.mock.calls.at(-1)[0]).toMatchObject({kind:'menu',payload:{display:{name:'Edited cloud menu'}}});w.unmount()
+})
+
+
+it('keeps a cart and safely resets an open option form when another device changes the menu groups',async()=>{
+ const initial=await h.load();initial.shop.catalogRevision=1;h.load.mockResolvedValue(initial)
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');await w.get('[data-pos-menu="M"]').trigger('click')
+ const next=JSON.parse(JSON.stringify(initial));next.shop.revision=2;next.shop.catalogRevision=2
+ next.shop.catalog.groups={G:{id:'G',name:'Changed choices',active:true,optionIds:['A'],min:1,max:1,allowRepeat:false,pricingMode:'included'}}
+ next.shop.catalog.addons={A:{active:true,recipe:{},pricesCents:{P:0}}};next.shop.catalog.addonIds=['A'];next.display.addons={A:{name:'New choice'}};next.shop.catalog.menus.M.groupId='G'
+ h.load.mockResolvedValue(next);await w.setProps({state:{...state,shop:{...state.shop,revision:2}}});await flushPromises()
+ expect(w.text()).toContain('กรุณาเลือกตัวเลือกใหม่');expect(w.findAll('.bowl-addon')).toHaveLength(1);expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
 })

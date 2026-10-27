@@ -5,6 +5,8 @@ function rootPath(s) { return /databases/$(database)/documents/shops/$(s); }
 function orderPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/orders/$(id); }
 function materialPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/materials/$(id); }
 function operationPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id); }
+function referencePath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)/referenceProofs/0; }
+function shapePath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)/referenceProofs/shape; }
 function preparedPath(s,g,id,i) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/preparedSales/$(id)/lineProofs/$(i); }
 function groupSelection(g,q) {
       let count=smallSelectionCount(q);
@@ -380,6 +382,292 @@ function stockRoot(s) {
       return signedIn() && resource.data.status == 'active' && next.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
         next.revision == resource.data.revision + 1 && o.kind == 'stock_in' && o.opId == next.lastOpId && o.uid == request.auth.uid && o.shopRevision == next.revision && validIndex(getAfter(materialPath(s,resource.data.generation,o.materialId)).data);
     }
+function platformAt(c,i) {
+      let p=i<c.platformIds.size() ? c.platforms[c.platformIds[i]] : {};
+      return i>=c.platformIds.size() || (p.keys().hasOnly(['revision','active','gpBasisPoints','name','emoji']) &&
+        p.active is bool && integer(p.revision,1,1000000000) && integer(p.gpBasisPoints,0,9999) &&
+        (!p.keys().hasAny(['name','emoji']) || platformSnapshot(p)) &&
+        (hasActivePlatform(c,0) || hasActivePlatform(c,1) || hasActivePlatform(c,2) || hasActivePlatform(c,3)));
+    }
+function basePriceAt(c,m,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      let prices=m.optionPrices.get(p,{});
+      return i>=c.platformIds.size() || integer(m.pricesCents[c.platformIds[i]],0,1000000000) &&
+        prices.keys().toSet()==m.optionIds.concat(['_']).toSet() && prices._==0;
+    }
+function assignedGroups(m) { return m.get('groupIds',[]).size()>0 ? m.groupIds : m.get('groupId','')=='' ? [] : [m.groupId]; }
+function menuGroupData(c,m) {
+      let ids=assignedGroups(m);
+      return ids is list && ids.size()<=2 && ids.toSet().size()==ids.size() && ids.hasOnly(c.groupIds) &&
+        (ids.size()==0 || m.optionIds==[] && m.min==0 && m.max==0 && m.priceMode=='addon' && c.groups[ids[0]].active) &&
+        (ids.size()<2 || m.get('groupId','')=='' && c.groups[ids[1]].active && c.groups[ids[0]].max<=3 && c.groups[ids[1]].max<=3);
+    }
+function menuData(c,key) {
+      let m=c.menus[key];
+      return m.keys().hasOnly(['id','name','revision','active','pricesCents','recipe','rawRecipe','hasPackage','optionIds','min','max','optionPrices','choiceMaterials','materialIds','priceMode','groupId','groupIds']) &&
+        (!m.keys().hasAny(['rawRecipe','hasPackage']) || m.keys().hasAll(['rawRecipe','hasPackage']) && m.rawRecipe is map && m.hasPackage is bool && m.rawRecipe.keys().hasOnly(c.summaryMaterials) && m.rawRecipe.keys().hasOnly(m.materialIds)) &&
+        m.id==key && m.priceMode in ['addon','override'] && m.active is bool && integer(m.revision,1,1000000000) && m.recipe.keys().hasOnly(c.summaryMaterials) &&
+        (!m.keys().hasAny(['name']) || m.name is string && m.name.size()>0 && m.name.size()<=120) &&
+        m.materialIds is list && m.materialIds.toSet().size()==m.materialIds.size() && m.materialIds.hasOnly(c.summaryMaterials) && m.recipe.keys().hasOnly(m.materialIds) &&
+        m.optionIds is list && m.optionIds.toSet().size()==m.optionIds.size() && m.optionIds.hasOnly(c.addonIds) && m.choiceMaterials.keys().toSet()==m.optionIds.toSet() &&
+        m.optionIds.size()<=45 && integer(m.min,0,11) && integer(m.max,m.min,11) && m.max<=m.optionIds.size() &&
+        m.pricesCents.keys().toSet()==c.platformIds.toSet() && m.optionPrices.keys().toSet()==c.platformIds.toSet() &&
+        menuGroupData(c,m);
+    }
+function declaredMenuQuantity(m,id,type) {
+      return m.keys().hasAny(['rawRecipe']) ? integer(m.rawRecipe.get(id,0),0,1000000000) &&
+        m.recipe.get(id,0)==(!m.hasPackage && type=='packaging' ? 0 : m.rawRecipe.get(id,0)) : integer(m.recipe.get(id,0),0,1000000000);
+    }
+function addonPriceAt(c,key,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      return i>=c.platformIds.size() || integer(c.addons[key].pricesCents[p],0,1000000000) && c.addonPrices[p][key]==c.addons[key].pricesCents[p];
+    }
+function addonData(c,key) {
+      let a=c.addons.get(key,{});
+      return a.keys().hasOnly(['recipe','pricesCents','name','active']) && a.recipe.keys().hasOnly(c.summaryMaterials) &&
+        (!a.keys().hasAny(['name']) || a.name is string && a.name.size()>0 && a.name.size()<=120) &&
+        (!a.keys().hasAny(['active']) || a.active is bool) &&
+        a.pricesCents.keys().toSet()==c.platformIds.toSet() && addonPriceAt(c,key,0) && addonPriceAt(c,key,1) && addonPriceAt(c,key,2) && addonPriceAt(c,key,3);
+    }
+function addonPriceEdit(c,old,key,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      return i>=c.platformIds.size() || c.addonPrices[p].keys().toSet()==old.addonPrices[p].keys().toSet() && c.addonPrices[p].diff(old.addonPrices[p]).affectedKeys().hasOnly([key]);
+    }
+function catalogEdit(c,old,o) {
+      let collection=o.collection;
+      let ids=c.get('counterIds',[]).concat(c.platformIds);
+      return c.keys().toSet()==old.keys().toSet() && o.entityId!='_' &&
+        (collection=='addons' ? o.entityId in c.addonIds && (o.counterIndex==-1 ? !(o.entityId in c.get('counterIds',[])) : integer(o.counterIndex,4,14) && c.get('counterIds',[])[o.counterIndex]==o.entityId) : integer(o.counterIndex,0,18) && o.entityId==ids[o.counterIndex]) &&
+        o.entitySnapshot==c[collection][o.entityId] &&
+        (collection!='menus' || assignedGroups(c.menus[o.entityId])==assignedGroups(old.menus[o.entityId]) &&
+          (!old.menus[o.entityId].keys().hasAny(['rawRecipe']) || c.menus[o.entityId].keys().hasAll(['rawRecipe','hasPackage']))) &&
+        c.diff(old).affectedKeys().hasOnly(collection=='addons' ? ['addons','addonPrices','menus'] : [collection]) &&
+        c[collection].keys().toSet()==old[collection].keys().toSet() && c[collection].diff(old[collection]).affectedKeys().hasOnly([o.entityId]) &&
+        (collection!='addons' || c.menus.keys().toSet()==old.menus.keys().toSet() && c.addonPrices.keys().toSet()==old.addonPrices.keys().toSet() &&
+          addonPriceEdit(c,old,o.entityId,0) && addonPriceEdit(c,old,o.entityId,1) && addonPriceEdit(c,old,o.entityId,2) && addonPriceEdit(c,old,o.entityId,3));
+    }
+function addonMenuReference(c,old,key,i) {
+      let id=i<c.menuIds.size() ? c.menuIds[i] : '_';
+      let m=c.menus.get(id,{});
+      let before=old.menus.get(id,{});
+      let choices=m.get('choiceMaterials',{});
+      let oldChoices=before.get('choiceMaterials',{});
+      let refs=choices.get(key,[]);
+      let materials=m.get('materialIds',[]);
+      let ingredients=c.addons[key].recipe.keys();
+      return i>=c.menuIds.size() || (c.addons[key].get('active',true) || !before.active || !(key in before.optionIds)) && (!(key in before.optionIds) ? m==before :
+        m.diff(before).affectedKeys().hasOnly(['choiceMaterials','materialIds']) &&
+        choices.keys().toSet()==oldChoices.keys().toSet() && choices.diff(oldChoices).affectedKeys().hasOnly([key]) &&
+        refs is list && refs.size()==ingredients.size() && refs.toSet()==ingredients.toSet() &&
+        materials is list && materials.toSet().size()==materials.size() && materials.toSet()==before.materialIds.concat(ingredients).toSet());
+    }
+function addonMenuReferences(s,c,key,i) {
+      let old=get(rootPath(s)).data.catalog;
+      return addonMenuReference(c,old,key,i) && addonMenuReference(c,old,key,i+15) &&
+        addonMenuReference(c,old,key,i+30) && addonMenuReference(c,old,key,i+45);
+    }
+function catalogMaterial(s,g,id) {
+      let after=request.resource.data;
+      let before=resource.data;
+      let root=rootAfter(s);
+      let c=root.catalog;
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(after.lastOpId)).data;
+      let k=o.collection=='addons' ? 4 : o.collection=='platforms' ? 15 : o.counterIndex;
+      let index=after.recipeIndex;
+      let oldIndex=before.recipeIndex;
+      let addons=index.addons;
+      let oldAddons=oldIndex.addons;
+      return writable(s,g) && after.lastOpKind=='catalog' && o.uid==request.auth.uid && o.kind=='catalog' &&
+        (o.collection!='addons' || addonRetirementGroup(c,o.entityId,after.lastOpIndex*4) && addonRetirementGroup(c,o.entityId,after.lastOpIndex*4+1) && addonRetirementGroup(c,o.entityId,after.lastOpIndex*4+2) && addonRetirementGroup(c,o.entityId,after.lastOpIndex*4+3)) && oldIndex.catalogRevision==o.sourceCatalogRevision &&
+        integer(after.lastOpIndex,0,15) && c.summaryMaterials[after.lastOpIndex]==id &&
+        after.diff(before).affectedKeys().hasOnly(['recipeIndex','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        after.revision==before.revision+1 && index.keys().hasOnly(['catalogRevision','quantities','menus','addons']) &&
+        index.catalogRevision==root.catalogRevision && index.get('quantities',[])==oldIndex.get('quantities',[]) &&
+        (k<4 ? index.menus.diff(oldIndex.menus).affectedKeys().hasOnly([o.entityId]) &&
+          index.menus[o.entityId]==c.menus[o.entityId].recipe.get(id,0) && declaredMenuQuantity(c.menus[o.entityId],id,before.inventoryType) : index.menus==oldIndex.menus) &&
+        (k!=4 ? addons==oldAddons : addons.keys().toSet()==oldAddons.keys().toSet() && addons.diff(oldAddons).affectedKeys().hasOnly([o.entityId]) &&
+          addons[o.entityId]==c.addons[o.entityId].recipe.get(id,0) && integer(addons[o.entityId],0,1000000000)) &&
+        (k<4 ? menuChoices(c,c.menus[o.entityId],after.lastOpIndex) && (after.lastOpIndex>=4 || basePriceAt(c,c.menus[o.entityId],after.lastOpIndex)) : k!=4 || addonMenuReferences(s,c,o.entityId,after.lastOpIndex));
+    }
+function catalogRoot(s) {
+      let n=request.resource.data;
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(resource.data.generation)/operations/$(n.lastOpId)).data;
+      return signedIn() && resource.data.status=='active' &&
+        n.diff(resource.data).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+        n.revision==resource.data.revision+1 && n.catalogRevision==resource.data.catalogRevision+1 &&
+        o.kind=='catalog' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision && o.materialIds==n.catalog.summaryMaterials &&
+        catalogEdit(n.catalog,resource.data.catalog,o) &&
+         touchedAt(s,resource.data.generation,o,3) && touchedAt(s,resource.data.generation,o,4) && touchedAt(s,resource.data.generation,o,5) && touchedAt(s,resource.data.generation,o,6) && touchedAt(s,resource.data.generation,o,7) && touchedAt(s,resource.data.generation,o,8);
+    }
+function catalogOperation(s,g,id,o) {
+      let root=rootAfter(s);
+      return writable(s,g) && getAfter(catalogInputPath(s,g,id)).data.opId==id && catalogDisplayReceipt(s,g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','counterIndex','collection','entityId','input','display','entitySnapshot']) &&
+        o.schemaVersion==2 && o.kind=='catalog' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time &&
+        o.sourceCatalogRevision==get(rootPath(s)).data.catalogRevision && root.catalogRevision==o.sourceCatalogRevision+1 &&
+        o.collection=='addons' && integer(o.counterIndex,-1,18) && (o.collection!='menus' || integer(o.counterIndex,0,3)) && (o.collection!='platforms' || integer(o.counterIndex,15,18) && platformAt(root.catalog,o.counterIndex-15)) && root.lastOpId==id && root.lastOpKind=='catalog' && root.revision==o.shopRevision && o.materialIds==root.catalog.summaryMaterials &&
+        (o.collection=='platforms' || (o.collection=='addons' ? addonData(root.catalog,o.entityId) && getAfter(referencePath(s,g,id)).data.opId==id : getAfter(shapePath(s,g,id)).data.opId==id)) &&
+        touchedAt(s,g,o,9) && touchedAt(s,g,o,10) && touchedAt(s,g,o,11) && touchedAt(s,g,o,12) && touchedAt(s,g,o,13) && touchedAt(s,g,o,14);
+    }
+function catalogReferenceProof(s,g,id,index,d) {
+      let root=rootAfter(s);
+      let old=get(rootPath(s)).data;
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)).data;
+      return writable(s,g) && index=='0' && d.keys().hasOnly(['opId']) && d.opId==id && o.kind=='catalog' && o.uid==request.auth.uid &&
+        o.collection=='addons' && root.lastOpId==id && root.lastOpKind=='catalog' && root.revision==old.revision+1 && root.revision==o.shopRevision &&
+        addonMenuReference(root.catalog,old.catalog,o.entityId,60) && addonMenuReference(root.catalog,old.catalog,o.entityId,61) &&
+        addonMenuReference(root.catalog,old.catalog,o.entityId,62) && addonMenuReference(root.catalog,old.catalog,o.entityId,63) && (o.materialIds.size()==16 || addonRetirementGroup(root.catalog,o.entityId,60) && addonRetirementGroup(root.catalog,o.entityId,61) && addonRetirementGroup(root.catalog,o.entityId,62) && addonRetirementGroup(root.catalog,o.entityId,63)) && touched(s,g,o,15) && touchedAt(s,g,o,0) && touchedAt(s,g,o,1) && touchedAt(s,g,o,2);
+    }
+function menuChoice(c,m,key) {
+      let refs=m.choiceMaterials[key];
+      let ingredients=c.addons[key].recipe.keys();
+      let platforms=c.platformIds;
+      let count=platforms.size();
+      let prices=m.optionPrices;
+      let a=count>0 ? prices[platforms[0]][key] : 0;
+      let b=count>1 ? prices[platforms[1]][key] : 0;
+      let d=count>2 ? prices[platforms[2]][key] : 0;
+      let e=count>3 ? prices[platforms[3]][key] : 0;
+      return (!m.active || c.addons[key].get('active',true)) && refs is list && refs.toSet()==ingredients.toSet() && refs.size()==ingredients.size() && m.materialIds.hasAll(refs) &&
+        a is int && a>=0 && a<=1000000000 && b is int && b>=0 && b<=1000000000 &&
+        d is int && d>=0 && d<=1000000000 && e is int && e>=0 && e<=1000000000;
+    }
+function menuChoices(c,m,i) {
+      let ids=m.optionIds;
+      let count=ids.size();
+      let a=i+15;
+      let b=i+30;
+      return (i>=count || menuChoice(c,m,ids[i])) && (a>=count || menuChoice(c,m,ids[a])) && (b>=count || menuChoice(c,m,ids[b]));
+    }
+function menuShapeProof(s,g,id,index,d) {
+      let root=rootAfter(s);
+      let old=get(rootPath(s)).data;
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)).data;
+      return writable(s,g) && index=='shape' && d.keys().hasOnly(['opId']) && d.opId==id && o.uid==request.auth.uid &&
+        (o.kind=='menu' || o.kind=='catalog' && o.collection=='menus') && root.lastOpId==id && root.lastOpKind==o.kind && root.revision==old.revision+1 && root.revision==o.shopRevision &&
+        menuData(root.catalog,o.entityId) && menuBindings(root.catalog,old.catalog,o.entityId,o.get('create',false)) && touched(s,g,o,15);
+    }
+function menuMaterial(s,g,id) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let root=rootAfter(s);
+      let c=root.catalog;
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(n.lastOpId)).data;
+      let i=n.lastOpIndex;
+      let menu=c.menus[o.entityId];
+      let index=n.recipeIndex;
+      let oldIndex=before.recipeIndex;
+      let menus=index.menus;
+      return writable(s,g) && o.kind=='menu' && o.uid==request.auth.uid && before.id==id && integer(i,0,15) && o.materialIds[i]==id &&
+        oldIndex.catalogRevision==o.sourceCatalogRevision && n.revision==before.revision+1 &&
+        n.diff(before).affectedKeys().hasOnly(['recipeIndex','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        index.diff(oldIndex).affectedKeys().hasOnly(['catalogRevision','menus']) && index.catalogRevision==root.catalogRevision &&
+        menus.diff(oldIndex.menus).affectedKeys().hasOnly([o.entityId]) &&
+        menus.keys().toSet()==(o.create ? oldIndex.menus.keys().concat([o.entityId]).toSet() : oldIndex.menus.keys().toSet()) &&
+        menus[o.entityId]==menu.recipe.get(id,0) &&
+        declaredMenuQuantity(menu,id,before.inventoryType) && menuChoices(c,menu,i) && (i>=4 || basePriceAt(c,menu,i));
+    }
+function groupBinding(c,old,id,gid,previous,next) {
+      let a=old.groups[gid];
+      let n=c.groups[gid];
+      let was=gid in previous;
+      let now=gid in next;
+      let wasMulti=was && previous.size()==2;
+      let nowMulti=now && next.size()==2;
+      let multi=a.get('multiMenuIds',[]);
+      return was==(id in a.menuIds) && wasMulti==(id in multi) && n.diff(a).affectedKeys().hasOnly(['menuIds','multiMenuIds']) &&
+        n.menuIds==(was==now ? a.menuIds : now ? a.menuIds.concat([id]) : a.menuIds.removeAll([id])) &&
+        n.get('multiMenuIds',[])==(wasMulti==nowMulti ? multi : nowMulti ? multi.concat([id]) : multi.removeAll([id]));
+    }
+function menuBindings(c,old,id,create) {
+      let a=create ? [] : assignedGroups(old.menus[id]);
+      let b=assignedGroups(c.menus[id]);
+      return c.groups.keys().toSet()==old.groups.keys().toSet() && c.groups.diff(old.groups).affectedKeys().hasOnly(a.concat(b)) &&
+        (a.size()==0 || groupBinding(c,old,id,a[0],a,b)) && (a.size()<2 || groupBinding(c,old,id,a[1],a,b));
+    }
+function newBindings(c,old,id,create) {
+      let a=create ? [] : assignedGroups(old.menus[id]);
+      let b=assignedGroups(c.menus[id]);
+      return (b.size()==0 || b[0] in a || groupBinding(c,old,id,b[0],a,b)) &&
+        (b.size()<2 || b[1] in a || groupBinding(c,old,id,b[1],a,b));
+    }
+function menuRoot(s) {
+      let n=request.resource.data;
+      let before=resource.data;
+      let c=n.catalog;
+      let old=before.catalog;
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(before.generation)/operations/$(n.lastOpId)).data;
+      let id=o.entityId;
+      return signedIn() && before.status=='active' && n.diff(before).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+        n.revision==before.revision+1 && n.catalogRevision==before.catalogRevision+1 && o.sourceCatalogRevision==before.catalogRevision &&
+        o.opId==n.lastOpId && o.kind=='menu' && o.uid==request.auth.uid && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
+        c.diff(old).affectedKeys().hasOnly(['menus','menuIds','groups']) && c.menus.diff(old.menus).affectedKeys().hasOnly([id]) && newBindings(c,old,id,o.create) &&
+        o.create==!(id in old.menus) && c.menuIds.size()<=64 &&
+        (o.create || !old.menus[id].keys().hasAny(['rawRecipe']) || c.menus[id].keys().hasAll(['rawRecipe','hasPackage'])) &&
+        c.menuIds==(o.create ? old.menuIds.concat([id]) : old.menuIds) &&
+        c.menus.keys().toSet()==(o.create ? old.menus.keys().concat([id]).toSet() : old.menus.keys().toSet()) &&
+        o.entitySnapshot==c.menus[id] && c.menus[id].revision==(o.create ? 1 : old.menus[id].revision+1) &&
+        touchedAt(s,before.generation,o,0) && touchedAt(s,before.generation,o,1) && touchedAt(s,before.generation,o,2) && touchedAt(s,before.generation,o,3) && touchedAt(s,before.generation,o,4) &&
+        touchedAt(s,before.generation,o,5) && touchedAt(s,before.generation,o,6) && touchedAt(s,before.generation,o,7) && touchedAt(s,before.generation,o,8);
+    }
+function menuOperation(s,g,id,o) {
+      let root=rootAfter(s);
+      return writable(s,g) && getAfter(catalogInputPath(s,g,id)).data.opId==id && catalogDisplayReceipt(s,g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','input','display','entitySnapshot','create']) &&
+        o.schemaVersion==2 && o.kind=='menu' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time && o.create is bool &&
+        o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==root.catalog.summaryMaterials &&
+        root.lastOpId==id && root.lastOpKind=='menu' && root.revision==o.shopRevision && root.catalogRevision==o.sourceCatalogRevision+1 &&
+        getAfter(shapePath(s,g,id)).data.opId==id &&
+        touchedAt(s,g,o,9) && touchedAt(s,g,o,10) && touchedAt(s,g,o,11) && touchedAt(s,g,o,12) && touchedAt(s,g,o,13) && touchedAt(s,g,o,14);
+    }
+function addonEnrolPrice(c,old,key,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      return i>=c.platformIds.size() || c.addonPrices[p].keys().toSet()==old.addonPrices[p].keys().concat([key]).toSet() &&
+        c.addonPrices[p].diff(old.addonPrices[p]).affectedKeys().hasOnly([key]);
+    }
+function addonMaterial(s,g,id) {
+      let n=request.resource.data;
+      let before=resource.data;
+      let root=rootAfter(s);
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(n.lastOpId)).data;
+      let q=n.recipeIndex.get('quantities',[]);
+      let k=o.counterIndex;
+      let value=root.catalog.addons[o.entityId].recipe.get(id,0);
+      return writable(s,g) && o.kind=='addon' && o.uid==request.auth.uid && before.id==id && integer(n.lastOpIndex,0,15) && o.materialIds[n.lastOpIndex]==id &&
+        before.recipeIndex.catalogRevision==o.sourceCatalogRevision && n.revision==before.revision+1 &&
+        n.diff(before).affectedKeys().hasOnly(['recipeIndex','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        n.recipeIndex.diff(before.recipeIndex).affectedKeys().hasOnly(['catalogRevision','quantities','addons']) && n.recipeIndex.catalogRevision==root.catalogRevision &&
+        n.recipeIndex.addons.keys().toSet()==before.recipeIndex.addons.keys().concat([o.entityId]).toSet() && n.recipeIndex.addons.diff(before.recipeIndex.addons).affectedKeys().hasOnly([o.entityId]) &&
+        integer(value,0,1000000000) && n.recipeIndex.addons[o.entityId]==value && q is list && (!before.recipeIndex.keys().hasAny(['quantities']) ? q.size()==0 : q.size()==15) &&
+        (!before.recipeIndex.keys().hasAny(['quantities']) ? !n.recipeIndex.keys().hasAny(['quantities']) : k>=15 ? q==before.recipeIndex.quantities : q[k]==value && q==before.recipeIndex.quantities[0:k].concat([value]).concat(k==14 ? [] : before.recipeIndex.quantities[(k+1):15])) &&
+        (n.lastOpIndex!=0 || addonData(root.catalog,o.entityId));
+    }
+function addonRoot(s) {
+      let n=request.resource.data;
+      let before=resource.data;
+      let c=n.catalog;
+      let old=before.catalog;
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(before.generation)/operations/$(n.lastOpId)).data;
+      let id=o.entityId;
+      let k=o.counterIndex;
+      return signedIn() && before.status=='active' && n.diff(before).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+        n.revision==before.revision+1 && n.catalogRevision==before.catalogRevision+1 && o.sourceCatalogRevision==before.catalogRevision &&
+        o.kind=='addon' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
+        c.diff(old).affectedKeys().hasOnly(['addons','addonIds','counterIds','addonPrices']) && !(id in old.addons) &&
+        c.addonIds==old.addonIds.concat([id]) && c.addonIds.size()<=64 && k==old.addonIds.size()+4 &&
+        (!old.keys().hasAny(['counterIds']) ? !c.keys().hasAny(['counterIds']) : k>=15 ? c.counterIds==old.counterIds : old.counterIds[k]=='_' && c.counterIds==old.counterIds[0:k].concat([id]).concat(k==14 ? [] : old.counterIds[(k+1):15])) &&
+        c.addons.keys().toSet()==old.addons.keys().concat([id]).toSet() && c.addons.diff(old.addons).affectedKeys().hasOnly([id]) && o.entitySnapshot==c.addons[id] &&
+        c.addonPrices.keys().toSet()==old.addonPrices.keys().toSet() &&
+        addonEnrolPrice(c,old,id,0) && addonEnrolPrice(c,old,id,1) && addonEnrolPrice(c,old,id,2) && addonEnrolPrice(c,old,id,3) &&
+         touched(s,before.generation,o,3) && touched(s,before.generation,o,4) &&
+        touched(s,before.generation,o,5) && touched(s,before.generation,o,6) && touched(s,before.generation,o,7) && touched(s,before.generation,o,8);
+    }
+function addonOperation(s,g,id,o) {
+      let root=rootAfter(s);
+      return writable(s,g) && getAfter(catalogInputPath(s,g,id)).data.opId==id && catalogDisplayReceipt(s,g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','input','display','entitySnapshot','counterIndex']) &&
+        o.schemaVersion==2 && o.kind=='addon' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time && integer(o.counterIndex,4,67) &&
+        o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==root.catalog.summaryMaterials &&
+        getAfter(shapePath(s,g,id)).data.opId==id && root.lastOpId==id && root.lastOpKind=='addon' && root.revision==o.shopRevision && root.catalogRevision==o.sourceCatalogRevision+1 &&
+        touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14);
+    }
 function originalFlag(before,id) { return before.activeLotId==id || id in before.zeroActiveIds; }
 function returnedFlag(before,next,id,kept) {
       return next.lotQty[id]==0 || (kept ? !originalFlag(before,id) || id==next.activeLotId : !originalFlag(before,id) && next.lots[next.activeLotId].ordinal<=next.lots[id].ordinal);
@@ -666,6 +954,84 @@ function countRoot(s) {
         touched(s,resource.data.generation,o,0) && touched(s,resource.data.generation,o,1) && touched(s,resource.data.generation,o,2) && touched(s,resource.data.generation,o,3) && touched(s,resource.data.generation,o,4) &&
         touched(s,resource.data.generation,o,5) && touched(s,resource.data.generation,o,6) && touched(s,resource.data.generation,o,7) && touched(s,resource.data.generation,o,8);
     }
+function groupData(c,g) {
+      return g.keys().hasOnly(['id','name','revision','active','min','max','allowRepeat','pricingMode','optionIds','optionPrices','menuIds','multiMenuIds']) &&
+        g.name is string && g.name.size()>0 && g.name.size()<=120 && g.name.matches('.*\\S.*') && integer(g.revision,1,1000000000) &&
+        g.active is bool && g.allowRepeat is bool && g.pricingMode in ['included','extra'] &&
+        g.optionIds is list && integer(g.optionIds.size(),1,45) && g.optionIds.toSet().size()==g.optionIds.size() && g.optionIds.hasOnly(c.addonIds) &&
+        integer(g.min,0,11) && integer(g.max,1,11) && g.min<=g.max && (g.allowRepeat || g.min<=g.optionIds.size()) &&
+        g.optionPrices.keys().toSet()==c.platformIds.toSet() &&
+        g.menuIds is list && g.menuIds.toSet().size()==g.menuIds.size() && g.menuIds.hasOnly(c.menuIds) &&
+        g.get('multiMenuIds',[]).toSet().size()==g.get('multiMenuIds',[]).size() && g.get('multiMenuIds',[]).hasOnly(g.menuIds) && (g.get('multiMenuIds',[]).size()==0 || g.max<=3);
+    }
+function groupPriceKeys(c,g,i) {
+      let p=c.platformIds.concat(['_','_','_','_'])[i];
+      let prices=g.optionPrices.get(p,{});
+      return i>=c.platformIds.size() || prices.keys().hasOnly(g.optionIds.concat(['_'])) && prices._==0;
+    }
+function groupChoice(c,g,key) {
+      let platforms=c.platformIds;
+      let count=platforms.size();
+      let prices=g.optionPrices;
+      let a=count>0 ? prices[platforms[0]].get(key,0) : 0;
+      let b=count>1 ? prices[platforms[1]].get(key,0) : 0;
+      let d=count>2 ? prices[platforms[2]].get(key,0) : 0;
+      let e=count>3 ? prices[platforms[3]].get(key,0) : 0;
+      return (!g.active || c.addons[key].get('active',true)) && a is int && a>=0 && a<=1000000000 && b is int && b>=0 && b<=1000000000 &&
+        d is int && d>=0 && d<=1000000000 && e is int && e>=0 && e<=1000000000;
+    }
+function groupChoices(c,g,i) {
+      let ids=g.optionIds;
+      let count=ids.size();
+      return (i>=count || groupChoice(c,g,ids[i])) && (i+15>=count || groupChoice(c,g,ids[i+15])) && (i+30>=count || groupChoice(c,g,ids[i+30]));
+    }
+function groupShapeProof(s,g,id,index,d) {
+      let root=rootAfter(s);
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)).data;
+      return writable(s,g) && index=='shape' && d.keys().hasOnly(['opId']) && d.opId==id && o.kind=='group' && o.uid==request.auth.uid &&
+        root.lastOpId==id && root.lastOpKind=='group' && root.revision==get(rootPath(s)).data.revision+1 && root.revision==o.shopRevision &&
+        groupData(root.catalog,root.catalog.groups[o.entityId]) && touched(s,g,o,15);
+    }
+function groupMaterial(s,g,id) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let root=rootAfter(s);
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(n.lastOpId)).data;
+      let i=n.lastOpIndex;
+      let group=root.catalog.groups[o.entityId];
+      return writable(s,g) && o.kind=='group' && o.uid==request.auth.uid && integer(i,0,15) && o.materialIds[i]==id && before.id==id &&
+        before.recipeIndex.catalogRevision==o.sourceCatalogRevision && n.revision==before.revision+1 &&
+        n.diff(before).affectedKeys().hasOnly(['recipeIndex','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+        n.recipeIndex.diff(before.recipeIndex).affectedKeys().hasOnly(['catalogRevision']) && n.recipeIndex.catalogRevision==root.catalogRevision &&
+        groupChoices(root.catalog,group,i) && (i>=4 || groupPriceKeys(root.catalog,group,i));
+    }
+function groupRoot(s) {
+      let before=resource.data;
+      let n=request.resource.data;
+      let c=n.catalog;
+      let old=before.catalog;
+      let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(before.generation)/operations/$(n.lastOpId)).data;
+      let id=o.entityId;
+      let group=c.groups[id];
+      return signedIn() && before.status=='active' && n.diff(before).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+        n.revision==before.revision+1 && n.catalogRevision==before.catalogRevision+1 && o.sourceCatalogRevision==before.catalogRevision &&
+        o.kind=='group' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
+        c.diff(old).affectedKeys().hasOnly(['groups','groupIds']) && c.groups.diff(old.groups).affectedKeys().hasOnly([id]) &&
+        o.create==!(id in old.groups) && c.groupIds.size()<=64 && c.groupIds==(o.create ? old.groupIds.concat([id]) : old.groupIds) &&
+        c.groups.keys().toSet()==(o.create ? old.groups.keys().concat([id]).toSet() : old.groups.keys().toSet()) &&
+        o.entitySnapshot==group && group.id==id && group.revision==(o.create ? 1 : old.groups[id].revision+1) &&
+        group.menuIds==(o.create ? [] : old.groups[id].menuIds) && group.get('multiMenuIds',[])==(o.create ? [] : old.groups[id].get('multiMenuIds',[])) && (group.active || group.menuIds.size()==0) &&
+        touched(s,before.generation,o,0) && touched(s,before.generation,o,1) && touched(s,before.generation,o,2) && touched(s,before.generation,o,3) && touched(s,before.generation,o,4) &&
+        touched(s,before.generation,o,5) && touched(s,before.generation,o,6) && touched(s,before.generation,o,7) && touched(s,before.generation,o,8);
+    }
+function groupOperation(s,g,id,o) {
+      let root=rootAfter(s);
+      return writable(s,g) && getAfter(catalogInputPath(s,g,id)).data.opId==id && catalogDisplayReceipt(s,g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','input','display','entitySnapshot','create']) &&
+        o.schemaVersion==2 && o.kind=='group' && o.status=='committed' && o.opId==id && o.uid==request.auth.uid && o.createdAt==request.time && o.create is bool &&
+        o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==root.catalog.summaryMaterials &&
+        root.lastOpId==id && root.lastOpKind=='group' && root.revision==o.shopRevision && root.catalogRevision==o.sourceCatalogRevision+1 &&
+        getAfter(shapePath(s,g,id)).data.opId==id && touched(s,g,o,9) && touched(s,g,o,10) && touched(s,g,o,11) && touched(s,g,o,12) && touched(s,g,o,13) && touched(s,g,o,14);
+    }
 function productionRecipeData(r,id,registry) {
       return r=={} || r.keys().hasAll(['inputIds','quantities','yieldQ']) && r.keys().hasOnly(['inputIds','quantities','yieldQ']) &&
         r.inputIds is list && integer(r.inputIds.size(),1,2) && r.inputIds.toSet().size()==r.inputIds.size() && r.inputIds.hasOnly(registry) && !(id in r.inputIds) &&
@@ -947,6 +1313,14 @@ function packageStockRoot(s) {
         n.revision==b.revision+1 && o.kind=='package_stock_in' && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision &&
         validIndex(getAfter(materialPath(s,b.generation,o.materialId)).data);
     }
+function platformSnapshot(p) {
+      return p.keys().hasOnly(['revision','active','gpBasisPoints','name','emoji']) &&
+        integer(p.revision,1,1000000000) && p.active is bool && integer(p.gpBasisPoints,0,9999) &&
+        p.name is string && p.name.size()>0 && p.name.size()<=200 && p.name.matches('[\\s\\S]*\\S[\\s\\S]*') && p.emoji is string && p.emoji.size()<=32;
+    }
+function hasActivePlatform(c,i) {
+      return i<c.platformIds.size() && c.platforms[c.platformIds[i]].active;
+    }
 function platformProofPath(s,g,id,i) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/preparedPlatforms/$(id)/columnProofs/$(string(i)); }
 function materialDetailsData(d) {
       return d is map && d.size()>0 && d.keys().hasOnly(['category','packUnit','shelfLifeDays','isSubIngredient']) &&
@@ -1089,6 +1463,78 @@ function historyClearOperation(s,g,id,o) {
   n.lastOpId==id && n.lastOpKind=='history_clear' && n.revision==b.revision+1 &&
   o.shopRevision==n.revision && o.clearedThroughRevision==n.revision && n.inventoryHistoryCutoff==n.revision;
 }
+function catalogInputPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)/referenceProofs/input; }
+function catalogInputProof(s,g,id,index,d) {
+  let root=rootAfter(s);
+  let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)).data;
+  return writable(s,g) && index=='input' && d.keys().hasOnly(['opId']) && d.opId==id &&
+   o.kind in ['menu','addon','group','catalog'] && (o.kind!='catalog' || o.collection=='addons') &&
+   o.uid==request.auth.uid && root.lastOpId==id && root.lastOpKind==o.kind && root.revision==o.shopRevision && catalogInputReceipt(o);
+ }
+function catalogDisplayPath(s,g) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/display/catalog; }
+function catalogDisplayCollection(o) { return o.kind=='menu' ? 'menus' : o.kind=='group' ? 'groups' : 'addons'; }
+function catalogDisplayData(d) {
+  return d is map && d.keys().hasAll(['name','emoji']) && d.keys().hasOnly(['name','emoji','category','description','deleted']) &&
+   d.name is string && d.name.size()>0 && d.name.size()<=120 && d.name.matches('.*\\S.*') && d.emoji is string && d.emoji.size()<=64 &&
+   (!d.keys().hasAny(['category']) || d.category is string && d.category.size()<=1000) &&
+   (!d.keys().hasAny(['description']) || d.description is string && d.description.size()<=1000) &&
+   (!d.keys().hasAny(['deleted']) || d.deleted is bool);
+ }
+function catalogInputReceipt(o) {
+  let a=o.input;
+  let n=o.entitySnapshot;
+  let groups=o.kind=='menu' ? assignedGroups(n) : [];
+  return catalogDisplayData(o.display) && (!o.display.get('deleted',false) || n.active==false) && (!n.keys().hasAny(['name']) || n.name==o.display.name) && a is map && (o.kind in ['addon','catalog'] ? a==n : o.kind=='group' ?
+   a.keys().hasOnly(['id','name','active','min','max','allowRepeat','pricingMode','optionIds','optionPrices']) &&
+   n.diff(a).affectedKeys().hasOnly(['revision','menuIds','multiMenuIds']) :
+   a.keys().hasOnly(['id','name','active','pricesCents','recipe','rawRecipe','hasPackage','optionIds','min','max','optionPrices','priceMode','groupId','groupIds']) &&
+   a.keys().hasAll(['id','active','pricesCents','recipe','optionIds','min','max','priceMode','optionPrices']) &&
+   n.diff(a).affectedKeys().hasOnly(['revision','choiceMaterials','materialIds','recipe','groupId','groupIds','optionIds','min','max','priceMode','optionPrices']) &&
+   (a.keys().hasAny(['rawRecipe']) ? a.recipe==a.rawRecipe : a.recipe==n.recipe) && assignedGroups(a)==groups &&
+   (groups.size()>0 || a.optionIds==n.optionIds && a.min==n.min && a.max==n.max && a.priceMode==n.priceMode && a.optionPrices==n.optionPrices));
+ }
+function catalogDisplayReceipt(s,g,o) {
+  let collection=catalogDisplayCollection(o);
+  return getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/display/catalog).data[collection][o.entityId]==o.display;
+ }
+function catalogDisplayWrite(s,g,id) {
+  let root=rootAfter(s);
+  let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(root.lastOpId)).data;
+  let collection=catalogDisplayCollection(o);
+  let b=resource.data;
+  let n=request.resource.data;
+  let rows=b.get(collection,{});
+  return writable(s,g) && id=='catalog' && o.kind in ['menu','addon','group','catalog'] &&
+   (o.kind!='catalog' || o.collection=='addons') && o.uid==request.auth.uid && root.lastOpKind==o.kind && root.revision==o.shopRevision &&
+   n.diff(b).affectedKeys().hasOnly([collection]) && n[collection].keys().toSet()==rows.keys().concat([o.entityId]).toSet() &&
+   n[collection].diff(rows).affectedKeys().hasOnly([o.entityId]) && n[collection][o.entityId]==o.display && catalogDisplayData(o.display);
+ }
+function catalogIdleMaterial(s,g,id) {
+  let b=resource.data;
+  let n=request.resource.data;
+  let root=rootAfter(s);
+  let c=root.catalog;
+  let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(n.lastOpId)).data;
+  let index=n.recipeIndex;
+  return writable(s,g) && o.kind in ['menu','addon','group','catalog'] && (o.kind!='catalog' || o.collection=='addons') && o.uid==request.auth.uid &&
+   root.lastOpId==o.opId && root.lastOpKind==o.kind && root.revision==o.shopRevision && root.catalogRevision==o.sourceCatalogRevision+1 &&
+   id in root.materialIds && !(id in c.summaryMaterials) && b.id==id && n.lastOpKind==o.kind && n.lastOpIndex==-1 && n.revision==b.revision+1 &&
+   n.diff(b).affectedKeys().hasOnly(['recipeIndex','revision','lastOpId','lastOpKind','lastOpIndex']) &&
+   index.keys().hasOnly(['catalogRevision','quantities','menus','addons']) && index.catalogRevision==root.catalogRevision &&
+   index.get('quantities',[])==b.recipeIndex.get('quantities',[]) && index.get('quantities',[]).hasOnly([0]) && index.menus.values().hasOnly([0]) && index.addons.values().hasOnly([0]) &&
+   index.menus.keys().toSet()==c.menuIds.concat(['_']).toSet() && index.addons.keys().toSet()==c.addonIds.concat(['_']).toSet();
+ }
+function addonShapeProof(s,g,id,index,d) {
+  let root=rootAfter(s);
+  let o=getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)).data;
+  return writable(s,g) && index=='shape' && d.keys().hasOnly(['opId']) && d.opId==id && o.kind=='addon' && o.uid==request.auth.uid &&
+   root.lastOpId==id && root.lastOpKind=='addon' && root.revision==o.shopRevision &&
+   touched(s,g,o,0) && touched(s,g,o,1) && touched(s,g,o,2) && touched(s,g,o,15);
+ }
+function addonRetirementGroup(c,key,i) {
+  let groupId=i<c.groupIds.size() ? c.groupIds[i] : '_';
+  return c.addons[key].get('active',true) || i>=c.groupIds.size() || !c.groups[groupId].active || !(key in c.groups[groupId].optionIds);
+ }
 
  match /shops/greek-yogg {
   allow get: if signedIn();
@@ -1107,9 +1553,21 @@ allow update: if request.resource.data.lastOpKind=='material_measure' && materia
 allow update: if request.resource.data.lastOpKind=='material_details' && materialDetailsRoot('greek-yogg');
 allow update: if request.resource.data.lastOpKind=='material_type' && materialTypeRoot('greek-yogg');
 allow update: if request.resource.data.lastOpKind=='production_recipe' && productionRecipeRoot('greek-yogg');
+  allow update: if request.resource.data.lastOpKind=='menu' && menuRoot('greek-yogg');
+allow update: if request.resource.data.lastOpKind=='addon' && addonRoot('greek-yogg');
+allow update: if request.resource.data.lastOpKind=='group' && groupRoot('greek-yogg');
+allow update: if request.resource.data.lastOpKind=='catalog' && catalogRoot('greek-yogg');
   allow update: if request.resource.data.lastOpKind=='material_delete' && materialDeleteRoot('greek-yogg');
   match /generations/{g}/operations/{id} {
    allow read: if active('greek-yogg',g);
+   allow create: if request.resource.data.kind=='menu' && menuOperation('greek-yogg',g,id,request.resource.data);
+allow create: if request.resource.data.kind=='addon' && addonOperation('greek-yogg',g,id,request.resource.data);
+allow create: if request.resource.data.kind=='group' && groupOperation('greek-yogg',g,id,request.resource.data);
+allow create: if request.resource.data.kind=='catalog' && catalogOperation('greek-yogg',g,id,request.resource.data);
+   match /referenceProofs/{index} {
+    allow create: if index=='input' && catalogInputProof('greek-yogg',g,id,index,request.resource.data);
+    allow create: if addonShapeProof('greek-yogg',g,id,index,request.resource.data) || menuShapeProof('greek-yogg',g,id,index,request.resource.data) || groupShapeProof('greek-yogg',g,id,index,request.resource.data) || catalogReferenceProof('greek-yogg',g,id,index,request.resource.data);
+   }
    allow create: if request.resource.data.kind=='history_clear' && historyClearOperation('greek-yogg',g,id,request.resource.data);
 allow create: if request.resource.data.kind=='stock_count' && countOperation('greek-yogg',g,id,request.resource.data);
 allow create: if request.resource.data.kind=='switch_lot' && switchOperation('greek-yogg',g,id,request.resource.data);
@@ -1159,9 +1617,13 @@ allow update: if request.resource.data.lastOpKind=='material_measure' && materia
 allow update: if request.resource.data.lastOpKind=='material_details' && materialDetailsMaterial('greek-yogg',g,id);
 allow update: if request.resource.data.lastOpKind=='material_type' && materialTypeMaterial('greek-yogg',g,id);
 allow update: if request.resource.data.lastOpKind=='production_recipe' && productionRecipeMaterial('greek-yogg',g,id);
+   allow update: if request.resource.data.lastOpKind=='menu' && (request.resource.data.lastOpIndex==-1 ? catalogIdleMaterial('greek-yogg',g,id) : menuMaterial('greek-yogg',g,id));
+allow update: if request.resource.data.lastOpKind=='addon' && (request.resource.data.lastOpIndex==-1 ? catalogIdleMaterial('greek-yogg',g,id) : addonMaterial('greek-yogg',g,id));
+allow update: if request.resource.data.lastOpKind=='group' && (request.resource.data.lastOpIndex==-1 ? catalogIdleMaterial('greek-yogg',g,id) : groupMaterial('greek-yogg',g,id));
+allow update: if request.resource.data.lastOpKind=='catalog' && (request.resource.data.lastOpIndex==-1 ? catalogIdleMaterial('greek-yogg',g,id) : catalogMaterial('greek-yogg',g,id));
    allow delete: if materialDeleteMaterial('greek-yogg',g,id);
   }
-  match /generations/{g}/display/{id} { allow read: if active('greek-yogg',g); }
+  match /generations/{g}/display/{id} { allow read: if active('greek-yogg',g); allow update: if catalogDisplayWrite('greek-yogg',g,id); }
   match /generations/{g}/legacyRecords/{id} { allow read: if active('greek-yogg',g); }
  }
  match /{document=**} { allow read,write: if false; }

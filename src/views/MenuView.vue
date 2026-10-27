@@ -1,6 +1,6 @@
 <template>
  <CatalogWorkspace ref="workbench" entity="menu" :mobile-detail="mobileDetail">
-  <template #header><CatalogHeader entity="menu" :selected="selectedMenu" :platform-count="pricedPlatformCount" @back="requestAction({type:'back'})" @add="requestAction({type:'new'})" @edit="requestAction({type:'edit',id:$event})" @delete="deleteMenu"/></template>
+  <template #header><CatalogHeader :busy="!!actionPending||store.inventorySaving" :removing="!!actionPending" entity="menu" :selected="selectedMenu" :platform-count="pricedPlatformCount" @back="requestAction({type:'back'})" @add="requestAction({type:'new'})" @edit="requestAction({type:'edit',id:$event})" @delete="deleteMenu"/></template>
   <template #browser><CatalogBrowser v-model="searchQuery" entity="menu" :items="filteredMenus" :selected-id="selectedId" @select="requestAction({type:'select',id:$event})" @add="requestAction({type:'new'})"/></template>
   <template v-if="selectedMenu"><MenuRecipeDetails :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :cost-estimate="selectedMenuCostEstimate" :platforms="store.platforms" :addon-groups="selectedGroups" @edit="requestAction({type:'edit',id:selectedMenu.id,section:$event?.section})"/></template>
   <CatalogEmptyState v-else entity="menu" @add="requestAction({type:'new'})"/>
@@ -16,9 +16,11 @@ import {estimateMenuCosts} from '@/domain/menuCosts'
 import {overlayStack} from '@/composables/overlayState'
 import {menuGroups} from '@/domain/addonGroups'
 import {parsePlatformPrice} from '@/domain/pricing'
-import {usePosStore} from '@/stores/posStore'
+import {useInventoryStore} from '@/composables/useInventoryStore'
 import MenuRecipeDetails from '@/components/catalog/MenuRecipeDetails.vue'
-const store=usePosStore()
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
+const store=useInventoryStore()
 const searchQuery=ref(''),selectedId=ref(store.menus[0]?.id||null),mobileDetail=ref(false)
 const workbench=ref(null),pendingHeadingFocus=ref(false)
 let pendingNewMenuIds=null
@@ -64,10 +66,11 @@ function requestAction(action){
  if(action.type==='edit'||action.type==='new'){pendingNewMenuIds=action.type==='new'?new Set(store.menus.map(menu=>menu.id)):null;store.modals.menuEdit={isOpen:true,menuId:action.type==='new'?null:action.id,savedMenuId:null,initialSection:action.section==='recipe'?'recipe':'identity'}}
  if(action.type==='back'){mobileDetail.value=false;nextTick(()=>[...document.querySelectorAll('[data-menu-select]')].find(element=>element.dataset.menuSelect===selectedId.value)?.focus())}
 }
-async function deleteMenu(menu){
- if(await store.confirmDialog({title:'ลบเมนู?',message:menu.name+' · การลบนี้ไม่สามารถย้อนกลับได้',confirmText:'ลบเมนู',cancelText:'ยกเลิก',type:'danger'})){
-  store.deleteMenu(menu.id)
-  pendingHeadingFocus.value=true
+const deleteMenu=menu=>runAction('delete',()=>performDelete(menu))
+async function performDelete(menu){
+ if(await store.confirmDialog({title:'ลบเมนู?',message:store.cloud?menu.name+' · นำออกจากรายการใช้งาน โดยเก็บบิลและหลักฐานเดิมไว้':menu.name+' · การลบนี้ไม่สามารถย้อนกลับได้',confirmText:'ลบเมนู',cancelText:'ยกเลิก',type:'danger'})){
+  const result=await store.deleteMenu(menu.id)
+  if(result!==false&&result?.ok!==false&&result?.success!==false)pendingHeadingFocus.value=true
  }
 }
 </script>

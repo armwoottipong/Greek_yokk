@@ -1,3 +1,4 @@
+import {planCatalogCommand} from './catalogPlan.js'
 import {summaryStock} from './model/stock.js'
 import {summaryPackageStock} from './model/packageStock.js'
 import {summaryProduce} from './model/produce.js'
@@ -18,6 +19,7 @@ export function planInventoryCommand(shop,materials,command,uid='preview'){
  const material=()=>{const m=materials.find(m=>m.id===p.materialId);if(!m)throw fail('MATERIAL_NOT_FOUND');return m}
  let f
  switch(command.kind){
+  case 'menu':case 'addon':case 'group':f=planCatalogCommand(shop,materials,command,uid);break
   case 'history_clear':f=planHistoryClear(shop,options);break
   case 'inventory':case 'receive':{const m=material();if(m.deleted)throw fail('MATERIAL_NOT_FOUND');f=(m.inventoryType==='packaging'?summaryPackageStock:summaryStock)(shop,m,{...p.input,...options});break}
   case 'produce':f=summaryProduce(shop,materials,p.materialId,{...p.input,...options});break
@@ -33,5 +35,5 @@ export function planInventoryCommand(shop,materials,command,uid='preview'){
   case 'production_recipe':f=summaryProductionRecipe(shop,materials,p.materialId,p.recipe,options);break
   default:throw fail('UNKNOWN_COMMAND')
  }
- return {nextShop:f.nextShop,nextMaterials:f.nextMaterials|| (f.nextInputs?[...f.nextInputs,f.nextOutput]:[f.next]),removedMaterialIds:f.removedMaterialIds||[],operation:f.operation}
+ return {inputProof:f.inputProof,shapeProof:f.shapeProof,referenceProof:f.referenceProof,displayChange:f.displayChange,nextShop:f.nextShop,nextMaterials:f.nextMaterials|| (f.nextInputs?[...f.nextInputs,f.nextOutput]:[f.next]),removedMaterialIds:f.removedMaterialIds||[],operation:f.operation}
 }

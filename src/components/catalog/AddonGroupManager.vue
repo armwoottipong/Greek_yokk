@@ -1,12 +1,12 @@
 <template>
  <section class="option-groups" aria-label="กลุ่มตัวเลือก">
-  <header class="group-heading"><div><h3>กลุ่มตัวเลือก</h3><p>สร้างชุดผลไม้หรือของเสริม แล้วนำไปใช้กับหลายเมนูได้</p></div><Button @click="edit()"><Plus :size="16" aria-hidden="true"/>เพิ่มกลุ่มตัวเลือก</Button></header>
+  <header class="group-heading"><div><h3>กลุ่มตัวเลือก</h3><p>สร้างชุดผลไม้หรือของเสริม แล้วนำไปใช้กับหลายเมนูได้</p></div><Button :disabled="!!actionPending||store.inventorySaving" @click="edit()"><Plus :size="16" aria-hidden="true"/>เพิ่มกลุ่มตัวเลือก</Button></header>
   <div v-if="!store.addonGroups.length" class="group-empty"><strong>จัด Add-on เป็นชุดให้เลือก</strong><p>เช่น ผลไม้ฟรี 3 ชนิด หรือเพิ่มพิเศษ สร้างกลุ่มแล้วนำไปใช้กับหลายเมนูได้</p></div>
   <article v-for="group in store.addonGroups" :key="group.id" class="group-row">
    <div><strong>{{ group.name }}</strong><p>{{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่ · เลือกซ้ำได้' : 'ชนิด' }}</p><small>{{ group.options.map(o => store.addons.find(a => a.id === o.addonId)?.name || 'ไม่พบรายการ').join(' · ') }}</small><div class="group-usage"><span>{{ group.options.length }} Add-on</span><span>ใช้ใน {{ store.menus.filter(m => m.addonGroupIds?.includes(group.id)).length }} เมนู</span></div></div>
-   <div class="group-actions"><Button variant="quiet" :aria-label="`แก้ไขกลุ่ม ${group.name}`" @click="edit(group)">แก้ไข</Button><Button variant="quiet" :aria-label="`ลบกลุ่ม ${group.name}`" @click="remove(group)">ลบ</Button></div>
+   <div class="group-actions"><Button variant="quiet" :aria-label="`แก้ไขกลุ่ม ${group.name}`" :disabled="!!actionPending||store.inventorySaving" @click="edit(group)">แก้ไข</Button><Button variant="quiet" :aria-label="`ลบกลุ่ม ${group.name}`" :loading="actionPending==='delete-'+group.id" :disabled="!!actionPending||store.inventorySaving" @click="remove(group)">ลบ</Button></div>
   </article>
-  <DialogFrame id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="กำหนดรายการ จำนวนที่เลือก และราคาที่ใช้ในกลุ่มนี้" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
+  <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="กำหนดรายการ จำนวนที่เลือก และราคาที่ใช้ในกลุ่มนี้" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
    <div class="group-form">
     <FormField id="addon-group-name" label="ชื่อกลุ่มตัวเลือก" required :error="fieldErrors.name" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="draft.name" :aria-invalid="invalid" :aria-describedby="describedBy" aria-required="true" placeholder="เช่น ผลไม้ฟรี 3 ชนิด"/></FormField>
     <div class="group-fields"><FormField id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
@@ -26,14 +26,14 @@
     </section>
     <p v-if="error" role="alert" class="group-error">{{ error }}</p>
    </div>
-   <template #footer><Button variant="quiet" @click="requestEditorClose">ยกเลิก</Button><Button @click="save"><Check :size="18" aria-hidden="true"/>บันทึกกลุ่มตัวเลือก</Button></template>
+   <template #footer><Button variant="quiet" :disabled="!!actionPending" @click="requestEditorClose">ยกเลิก</Button><Button :loading="actionPending==='save'" @click="save"><Check :size="18" aria-hidden="true"/>บันทึกกลุ่มตัวเลือก</Button></template>
   </DialogFrame>
  </section>
 </template>
 <script setup>
 import { ref, computed, nextTick } from 'vue'
 import { Plus, Check } from 'lucide-vue-next'
-import { usePosStore } from '@/stores/posStore'
+import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
 import Button from '@/components/ui/Button.vue'
@@ -44,20 +44,23 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppSearch from '@/components/ui/AppSearch.vue'
 
-const store = usePosStore(), open = ref(false), error = ref(''), search = ref('')
-const draft = ref({})
+import {useActionPending} from '@/composables/useActionPending'
+const {pending:actionPending,run:runAction}=useActionPending()
+const store = useInventoryStore(), open = ref(false), error = ref(''), search = ref('')
+const draft = ref({}),editCatalogRevision=ref(null)
 const fieldErrors = ref({})
 const optionsSection = ref(null)
 const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const filteredAddons = computed(() => store.addons.filter(a => a.name.toLowerCase().includes(search.value.trim().toLowerCase())))
 const optionFor = id => draft.value.options?.find(o => o.addonId === id)
 async function edit(group) {
+  editCatalogRevision.value=store.catalogRevision
   draft.value = group ? clone(group) : { name: '', minSelections: 0, maxSelections: 3, allowRepeat: false, pricingMode: 'included', options: [] }
   error.value = ''; fieldErrors.value = {}; search.value = ''; open.value = true
   await nextTick(); saveSnapshot()
 }
 function close() { open.value = false }
-function requestEditorClose() { if (open.value) return requestClose(close) }
+function requestEditorClose() { if(actionPending.value)return; if (open.value) return requestClose(close) }
 function toggleOption(id, checked) {
   if (checked) draft.value.options.push({ addonId: id })
   else draft.value.options = draft.value.options.filter(o => o.addonId !== id)
@@ -67,7 +70,8 @@ function setCustomPrices(addon, checked) {
   if (checked) option.prices = Object.fromEntries(store.platforms.map(p => [p.id, addon.prices?.[p.id] ?? 0]))
   else delete option.prices
 }
-async function save() {
+const save=()=>runAction('save',performSave)
+async function performSave() {
   fieldErrors.value = {}; error.value = ''
   const data = clone(draft.value)
   data.minSelections = data.minSelections === '' ? NaN : Number(data.minSelections)
@@ -88,7 +92,7 @@ async function save() {
     else optionsSection.value?.focus()
     return
   }
-  const result = store.saveAddonGroup(data)
+  const result = await store.saveAddonGroup({...data,...(store.cloud?{expectedCatalogRevision:editCatalogRevision.value}:{})})
   if (result.ok) { saveSnapshot(); close() }
   else {
     error.value = result.message || 'บันทึกไม่สำเร็จ กรุณาลองใหม่'
@@ -96,8 +100,9 @@ async function save() {
     optionsSection.value?.focus()
   }
 }
-async function remove(group) {
-  if (await store.confirmDialog({ title: 'ลบกลุ่มตัวเลือก?', message: group.name, confirmText: 'ลบกลุ่ม', cancelText: 'ยกเลิก', type: 'danger' })) store.deleteAddonGroup(group.id)
+const remove=group=>runAction('delete-'+group.id,()=>performRemove(group))
+async function performRemove(group) {
+  if (await store.confirmDialog({ title: 'ลบกลุ่มตัวเลือก?', message: group.name, confirmText: 'ลบกลุ่ม', cancelText: 'ยกเลิก', type: 'danger' })) await store.deleteAddonGroup(group.id)
 }
 </script>
 <style scoped>

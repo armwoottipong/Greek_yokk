@@ -11,14 +11,21 @@ export function createCoreWorkspace({connection,getContext}){
  let current
  const base=()=>{const c=getContext();return `shops/${c.shopId}/generations/${c.generation}`}
  async function load(){
-  const identity={...getContext()},snapshot=await transport.snapshot(),path=base()
-  const display=await getDocFromServer(doc(db,`${path}/display/catalog`))
-  const c=getContext()
-  if(['uid','generation','shopId','projectId'].some(k=>identity[k]!==c[k])||!c.ready||!c.online)throw new Error('NOT_READY')
-  const ids=snapshot.materials.map(m=>m.id)
-  if(!display.exists()||snapshot.shop.materialIds.length!==ids.length||snapshot.shop.materialIds.some(id=>!ids.includes(id))||snapshot.materials.some(m=>m.stock!==m.lotIds.reduce((n,id)=>n+m.lotQty[id],0)))throw new Error('INCOMPLETE_INVENTORY')
-  current={...snapshot,display:display.data(),orders:current?.orders||[]};return current
+  const identity={...getContext()}
+  for(let attempt=0;attempt<3;attempt++){
+   const snapshot=await transport.snapshot(),path=`shops/${identity.shopId}/generations/${identity.generation}`
+   const display=await getDocFromServer(doc(db,`${path}/display/catalog`))
+   const root=await getDocFromServer(doc(db,`shops/${identity.shopId}`)),c=getContext()
+   if(['uid','generation','shopId','projectId'].some(k=>identity[k]!==c[k])||!c.ready||!c.online)throw new Error('NOT_READY')
+   if(!root.exists()||root.data().status!=='active'||root.data().generation!==identity.generation)throw new Error('SHOP_NOT_READY')
+   if(root.data().revision!==snapshot.shop.revision)continue
+   const ids=snapshot.materials.map(m=>m.id)
+   if(!display.exists()||snapshot.shop.materialIds.length!==ids.length||snapshot.shop.materialIds.some(id=>!ids.includes(id))||snapshot.materials.some(m=>m.stock!==m.lotIds.reduce((n,id)=>n+m.lotQty[id],0)))throw new Error('INCOMPLETE_INVENTORY')
+   current={...snapshot,display:display.data(),orders:current?.orders||[]};return current
+  }
+  throw new Error('SHOP_BUSY')
  }
+
  function previewSale(payload){if(!current)throw new Error('NOT_READY');return summaryMultiGroupSale(current.shop,current.materials,payload.lines,{platformId:payload.platformId}).order}
  function previewCommand(command,snapshot=current){if(!snapshot)throw new Error('NOT_READY');return planInventoryCommand(snapshot.shop,snapshot.materials,command)}
  function previewInventory(kind,payload){return previewCommand({kind,payload})}
