@@ -11,7 +11,7 @@ import {createCoreTransport} from '../../src/cloud/core/transport.js'
 import {planInventoryCommand} from '../../src/cloud/core/inventoryPlan.js'
 import {projectInventoryHistory} from '../../src/cloud/core/inventoryHistory.js'
 let env
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
+beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{await env.clearFirestore()})
 afterAll(async()=>{await env.cleanup()})
 function setup(uid='cashier'){

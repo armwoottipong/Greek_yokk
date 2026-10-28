@@ -10,7 +10,7 @@ let env
 const storage=new Map()
 beforeAll(async()=>{
  vi.stubGlobal('sessionStorage',{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)})
- env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})
+ env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})
 })
 beforeEach(async()=>{storage.clear();await env.clearFirestore()})
 afterAll(async()=>{await env.cleanup();vi.unstubAllGlobals()})

@@ -1,7 +1,7 @@
 import {onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signOut} from 'firebase/auth'
 import {doc,onSnapshot} from 'firebase/firestore'
 const sdkDefault={onAuthStateChanged,GoogleAuthProvider,signInWithPopup,signOut,doc,onSnapshot}
-const userInfo=user=>user?{uid:user.uid,email:user.email||null,displayName:user.displayName||null}:null
+const userInfo=user=>user?{uid:user.uid,email:user.email||null,displayName:user.displayName||null,photoURL:user.photoURL||null}:null
 const messages={
  'auth/popup-closed-by-user':'ยกเลิกการเข้าสู่ระบบแล้ว',
  'auth/popup-blocked':'เบราว์เซอร์บล็อกหน้าต่างเข้าสู่ระบบ กรุณาอนุญาตหน้าต่างป๊อปอัป',
@@ -23,8 +23,8 @@ export function createShopSession({auth,db,shopId,onState},sdk=sdkDefault) {
  const clear=(user=null)=>{epoch++;stopShop();publish({phase:user?'loading':'signed_out',user:userInfo(user),shop:null,serverReady:false,code:null,message:''})}
  const failure=(error,token)=>{
   if(disposed||token!==epoch)return
-  publish({phase:'error',shop:null,serverReady:false,code:error?.code||'UNKNOWN',message:error?.code==='permission-denied'&&state.user?
-   'เข้าสู่ระบบสำเร็จ แต่ฐานข้อมูลยังไม่อนุญาตให้อ่านข้อมูลร้าน ต้องตั้งค่ากฎและข้อมูลร้านก่อนเริ่มขาย':
+  publish({phase:error?.code==='permission-denied'?'access_denied':'error',shop:null,serverReady:false,code:error?.code||'UNKNOWN',message:error?.code==='permission-denied'&&state.user?
+   'อีเมลนี้ไม่ได้รับอนุญาตให้เข้าร้าน กรุณาใช้บัญชี Google ที่อยู่ในรายชื่ออีเมลที่อนุญาต':
    'โหลดข้อมูลร้านไม่ได้ กรุณาลองเชื่อมต่อใหม่'})
  }
  const acceptUser=user=>{

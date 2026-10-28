@@ -57,7 +57,7 @@ it('disposes all listeners and prevents future callbacks or login calls',async()
 })
 it('clears stale data on listener failure and does not mark cached stock writable',()=>{
  const h=setup();h.session.start();h.auth({uid:'a'});h.shop(h.snapshots[0]);h.snapshots[0].error({code:'permission-denied'})
- expect(h.last()).toMatchObject({phase:'error',serverReady:false,shop:null,code:'permission-denied'})
+ expect(h.last()).toMatchObject({phase:'access_denied',serverReady:false,shop:null,code:'permission-denied'})
 })
 it.each([
  ['auth/unauthorized-domain','โดเมน'],
@@ -68,9 +68,8 @@ it.each([
  expect(await h.session.signIn()).toMatchObject({ok:false,code})
  expect(h.last().message).toContain(word)
 })
-it('distinguishes successful login from denied database access',()=>{
+it('explains denied email access without claiming the shop is ready',()=>{
  const h=setup();h.session.start();h.auth({uid:'a'});h.snapshots[0].error({code:'permission-denied'})
- expect(h.last()).toMatchObject({user:{uid:'a'},serverReady:false,phase:'error'})
- expect(h.last().message).toContain('เข้าสู่ระบบสำเร็จ')
- expect(h.last().message).toContain('ฐานข้อมูล')
+ expect(h.last()).toMatchObject({user:{uid:'a'},serverReady:false,phase:'access_denied'})
+ expect(h.last().message).toContain('อีเมลนี้ไม่ได้รับอนุญาต')
 })

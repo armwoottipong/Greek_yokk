@@ -14,10 +14,11 @@ beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'pr
 beforeEach(async()=>{await env.clearFirestore()})
 afterAll(async()=>{await env.cleanup()})
 const root='shops/proof-shop',gen=`${root}/generations/g1`
-function setup(uid='cashier'){const context={projectId:'demo-greek-yogg',shopId:'proof-shop',generation:'g1',uid,deviceId:'device',online:true,ready:true};const db=env.authenticatedContext(uid).firestore();return {db,api:createCoreTransport({db,getContext:()=>context})}}
+function setup(uid='cashier'){const context={projectId:'demo-greek-yogg',shopId:'proof-shop',generation:'g1',uid,deviceId:'device',online:true,ready:true};const db=env.authenticatedContext(uid,{email:uid+'@example.com',email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();return {db,api:createCoreTransport({db,getContext:()=>context})}}
 async function seed(source=coreSource()){
  const p=compileCoreImport(source,{shopId:'proof-shop',generation:'g_trial_catalog',sourceSha256:'a'.repeat(64)})
  p.shop.generation='g1';p.documents=p.documents.map(d=>({...d,path:d.path.replace('/g_trial_catalog/','/g1/')}))
+ p.shop.allowedEmails={'cashier@example.com':true,'other@example.com':true}
  await env.withSecurityRulesDisabled(async c=>{const b=writeBatch(c.firestore());b.set(doc(c.firestore(),root),p.shop);for(const d of p.documents)b.set(doc(c.firestore(),d.path),d.data);await b.commit()})
  return {shop:p.shop,materials:p.documents.filter(d=>d.path.includes('/materials/')).map(d=>d.data),display:p.documents.find(d=>d.path.endsWith('/display/catalog')).data}
 }

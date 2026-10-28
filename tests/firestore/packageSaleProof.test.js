@@ -8,7 +8,7 @@ import {materialRegistryShop} from './summaryMaterialAuthor.js'
 import {createCoreTransport} from '../../src/cloud/core/transport.js'
 let env,f,api,context
 setLogLevel('silent')
-beforeAll(async()=>env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})}))
+beforeAll(async()=>env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})}))
 beforeEach(async()=>{
  await env.clearFirestore();f=summaryFixture();f.shop=materialRegistryShop(f.shop,f.materials)
  await env.withSecurityRulesDisabled(async c=>{const db=c.firestore(),b=writeBatch(db);b.set(doc(db,'shops/proof-shop'),f.shop);for(const m of f.materials)b.set(doc(db,`shops/proof-shop/generations/${f.shop.generation}/materials/${m.id}`),m);await b.commit()})

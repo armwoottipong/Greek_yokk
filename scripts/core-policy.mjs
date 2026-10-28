@@ -12,10 +12,15 @@ import {catalogPolicy} from './catalog-policy.mjs'
 import {readFileSync} from 'node:fs'
 import {inventoryHistoryPolicy} from './inventory-history-policy.mjs'
 import {inventoryDeletePolicy} from './inventory-delete-policy.mjs'
+import {accessPolicy} from './access-policy.mjs'
+import {cacheOrderFields} from './order-field-cache.mjs'
+import {factorRuleFields} from './rule-field-cache.mjs'
+import {factorRequestUid} from './request-uid.mjs'
 // Derive the release from reviewed validators with explicit profile extensions,
 // mandatory catalog witnesses and shop-scoped command/read surfaces.
-export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
+export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth=false,cacheReceiptFields=true}={}){
  if(!/^[A-Za-z0-9_-]{1,120}$/.test(shopId))throw new Error('Invalid shop')
+ if(legacyTestAuth&&shopId==='greek-yogg')throw new Error('Legacy authentication is test-only')
  const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8')+'\n'+inventoryDeletePolicy+'\n'+inventoryHistoryPolicy+'\n'+catalogPolicy+'\n'+dynamicRecipePolicy+'\n'+recipeAdmissionPolicy+'\n'+materialReferencePolicy+'\n'+materialTypePolicy+'\n'+platformSettingsPolicy+'\n'+smallShopPolicy+'\n'+packageSalePolicy
  const mask=source.replace(/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g,s=>' '.repeat(s.length))
  const functions=new Map()
@@ -25,12 +30,18 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
   functions.set(m[1],source.slice(m.index,end))
  }
  functions.set('addonMenuReferenceData',functions.get('addonMenuReference').replace('function addonMenuReference(', 'function addonMenuReferenceData('))
- functions.set('addonMenuReference',`function addonMenuReference(c,old,key,i) { return i>=c.menuIds.size() || addonMenuReferenceData(c,old,key,i); }`)
+ if(!legacyTestAuth){
+  for(const m of accessPolicy(shopId).matchAll(/function\s+(\w+)\s*\([^)]*\)\s*\{([\s\S]*?)\n \}/g))functions.set(m[1],m[0])
+ }
+ // Unused Add-ons only require an unchanged menu. Avoid eagerly reading the
+ // eight recipe/choice bindings for every unrelated menu in a retirement check.
+ functions.set('addonMenuReference',`function addonMenuReference(c,old,key,i) { return i>=c.menuIds.size() || (key in old.menus[c.menuIds[i]].optionIds ? addonMenuReferenceData(c,old,key,i) : c.menus[c.menuIds[i]]==old.menus[c.menuIds[i]]); }`)
  const catalogKinds={menu:'menu',addon:'addon',group:'group',catalog:'catalog'}
  const inventoryKinds={history_clear:'historyClear',stock_count:'count',switch_lot:'switch',material_create:'materialCreate',material_archive:'materialArchive',material_metadata:'materialMetadata',material_measure:'materialMeasure',material_details:'materialDetails',material_type:'materialType',production_recipe:'productionRecipe'}
  const matches=`
  match /shops/{s} {
   allow get: if signedIn();
+  ${legacyTestAuth?'':"allow update: if request.resource.data.lastOpKind=='access' && accessRoot();"}
   allow update: if request.resource.data.lastOpKind=='sale_set' && validRoot(s);
   allow update: if request.resource.data.lastOpKind=='stock_in' && stockRoot(s);
   allow update: if request.resource.data.lastOpKind=='package_stock_in' && packageStockRoot(s);
@@ -40,6 +51,11 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
   ${Object.entries(catalogKinds).map(([kind,name])=>`allow update: if request.resource.data.lastOpKind=='${kind}' && ${name}Root(s);`).join('\n')}
   allow update: if request.resource.data.lastOpKind=='material_delete' && materialDeleteRoot(s);
   allow update: if request.resource.data.lastOpKind=='platform_gp' && gpRoot(s);
+  ${legacyTestAuth?'':`match /presence/{uid} {
+   allow read: if signedIn();
+   allow create,update: if presenceWrite(uid);
+   allow delete: if signedIn() && uid==request.auth.uid;
+  }`}
   match /generations/{g}/operations/{id} {
    allow read: if active(s,g);
    allow create: if request.resource.data.kind=='platform_gp' && gpOperation(s,g,id,request.resource.data);
@@ -111,6 +127,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
  const selected=new Set()
  function collect(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g)){const name=m[1];if(functions.has(name)&&!selected.has(name)){selected.add(name);collect(functions.get(name))}}}
  collect(matches)
+ if(!legacyTestAuth)collect('signedInAfter(')
  collect('packageBillShape( packageBillRow( packageBillNeed( packageCertifiedNeed( smallTouches( smallCertificate(')
  collect('catalogInputPath(')
  collect('catalogDisplayReceipt(')
@@ -133,6 +150,9 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
  collect('smallCost(')
  const replace=(body,before,after)=>{if(!body.includes(before))throw new Error('Core validator source changed');return body.replace(before,after)}
  function extend(name,body){
+  // The cache validator already reads this exact root. Reuse it instead of
+  // evaluating active()->get(rootPath()) a second time for every material.
+  if(name==='billCacheWrite')body=replace(body,'return active(s,g) && id==b.id',"return root.status=='active' && root.generation==g && id==b.id")
   if(name==='validMaterial')body=replace(body,'before.recipeIndex.catalogRevision == root.catalogRevision &&','').replace('materialNeed(before,o)','billCachedNeed(before,o,root.catalogRevision)').replace("['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']","['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex','billPreparations']").replace('summaryStock(before,after,row,day)', 'billOperandField(o,i) && billCacheConsumed(before,after,o.opId) && summaryStock(before,after,row,day)').replace('(i!=3 || preparedMatch(s,g,o.opId,o,root.catalogRevision,0))','true')
   if(name==='validOrder')body=body.replace("'proofMode'","'proofMode','billOperands'")
   if(name==='validOrder'){
@@ -194,6 +214,9 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
   if(name==='preparedMatch')body=replace(body,'getAfter(preparedPath(s,g,id,string(i)))','getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/preparedSales/$(id)/lineProofs/$(string(i)))')
   if(['validMaterial','cancelMaterial'].includes(name))body=replace(body,'integer(i,0,14)','integer(i,0,15)')
   if(name==='validMaterial'){
+   // Certified cache creation already proves the needed integer range. Equality
+   // to that immutable certified value preserves the same constraint here.
+   body=replace(body,'integer(row.needed,0,1000000000) && row.needed == billCachedNeed(before,o,root.catalogRevision)','row.needed == billCachedNeed(before,o,root.catalogRevision)')
    body=replace(body,'(i<4 || counter(o,i,root.catalog))','(i<4 || i>=15 || counter(o,i,root.catalog))')
   }
   if(name==='validRoot'){
@@ -234,9 +257,13 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
    m.recipeIndex.quantities.hasOnly([0]) && m.recipeIndex.menus.values().hasOnly([0]) && m.recipeIndex.addons.values().hasOnly([0])`,"m.get('productionRecipe',{}).size()==0 && !root.get('returnMaterials',{}).get(id,false)")
   }
   if(name==='materialDeleteCommit')body=replace(body,'materialDeleteEligible(b,m,o.materialId)', 'materialDeleteEligible(b,m,o.materialId) && materialReferenceReady(s,g,o)')
-  return extendPackageSaleRule(name,extendSmallShopRule(name,body))
+  const extended=extendPackageSaleRule(name,extendSmallShopRule(name,body))
+  return name==='validOrder'&&cacheReceiptFields?cacheOrderFields(extended):extended
  }
- const bodies=new Map([...functions].filter(([name])=>selected.has(name)).map(([name,body])=>[name,extend(name,body)]))
+ // Every public allow is gated once below. Hoisting this common predicate keeps
+ // repeated inner validators from re-evaluating verified-email access, without
+ // changing any financial or inventory predicate.
+ const bodies=new Map([...functions].filter(([name])=>selected.has(name)).map(([name,body])=>[name,name==='signedIn'?body:extend(name,body).replace(/\bsignedIn\(\)\s*&&\s*/g,'').replace(/&&\s*true\s*&&/g,'&&')]))
  // Flatten collection matches and keep single-surface helpers local. Inheriting
  // every validator into every nested match exhausts the production compiler's
  // scope traversal stack even when the emulator accepts the same source.
@@ -261,14 +288,21 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
  for(const scope of scopes){
   function need(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g))if(bodies.has(m[1])&&!scope.needed.has(m[1])){scope.needed.add(m[1]);need(bodies.get(m[1]))}}
   need(scope.body)
+  if(/allow /.test(scope.body)&&scope.body.trim()!=='allow read,write: if false;')need('signedIn()')
+  if(!legacyTestAuth&&!scope.path.includes('presence')&&scope.path!=='/shops/{s}'&&/allow (create|update|delete)/.test(scope.body))need('signedInAfter()')
  }
  const owners=new Map([...bodies.keys()].map(name=>[name,scopes.filter(scope=>scope.needed.has(name))]))
  const shared=[...bodies].filter(([name])=>owners.get(name).length>1).map(([,body])=>body)
  const scoped=scopes.map((scope,scopeIndex)=>{
   const local=[...bodies].filter(([name])=>owners.get(name).length===1&&scope.needed.has(name)).map(([,body])=>body)
   const path=scope.path.replace('/shops/{s}',`/shops/${shopId}`),body=scope.body.trim().replace(/[ \t]+$/gm,'').replace(/\bs\b/g,`'${shopId}'`)
-  return `match ${path} {\n${local.join('\n')}\n${compact?factorRuleDispatch(body,scopeIndex):body}\n}`
+  const dispatch=compact?factorRuleDispatch(body,scopeIndex):body
+  const gated=dispatch.replace(/allow ([\w,]+): if ([\s\S]*?);/g,(_all,action,expression)=>{
+   const gate=!legacyTestAuth&&scope.path==='/shops/{s}'?'allowedIdentity(resource.data)':!legacyTestAuth&&!scope.path.includes('presence')&&/create|update|delete/.test(action)?'signedInAfter()':'signedIn()'
+   return `allow ${action}: if ${expression==='false'?expression:expression==='signedIn()'?gate:`${gate} && (${expression})`};`
+  })
+  return `match ${path} {\n${local.join('\n')}\n${gated}\n}`
  }).join('\n')
  const result=`rules_version = '2';\nservice cloud.firestore {\nmatch /databases/{database}/documents {\n${shared.join('\n')}\n${scoped}\n}\n}\n`.replace(/[ \t]+$/gm,'')
- return compact ? compactRules(specializeShopRules(result,shopId)) : result
+ return compact ? compactRules(specializeShopRules(factorRequestUid(factorRuleFields(result)),shopId)) : result
 }

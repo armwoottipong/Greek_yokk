@@ -10,7 +10,7 @@ import {coreSource} from '../fixtures/coreSource.js'
 import {createCoreTransport} from '../../src/cloud/core/transport.js'
 import {createInventoryModel} from '../../src/cloud/core/inventoryModel.js'
 let env;const memory=new Map(),root='shops/proof-shop',gen=root+'/generations/g1'
-beforeAll(async()=>{vi.stubGlobal('sessionStorage',{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)});env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
+beforeAll(async()=>{vi.stubGlobal('sessionStorage',{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)});env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{memory.clear();await env.clearFirestore()})
 afterAll(async()=>{await env.cleanup();vi.unstubAllGlobals()})
 async function setup(count=20){

@@ -10,7 +10,7 @@ import {seedSetCatalog} from './setCatalogFixture.js'
 import {ROOT,GENERATION} from './proofFixture.js'
 import {createCoreTransport} from '../../src/cloud/core/transport.js'
 let env
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
+beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{await env.clearFirestore()})
 afterAll(async()=>{await env.cleanup()})
 function setup(uid='cashier'){

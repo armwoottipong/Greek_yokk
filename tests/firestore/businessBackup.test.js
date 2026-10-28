@@ -7,7 +7,7 @@ import {materialRegistryShop} from './summaryMaterialAuthor.js'
 import {createBackupReader} from '../../src/cloud/core/backupReader.js'
 import {verifyBusinessBackup} from '../../src/cloud/core/businessBackup.js'
 let env
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})});await env.clearFirestore()})
+beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})});await env.clearFirestore()})
 afterAll(async()=>env.cleanup())
 it('downloads a complete typed snapshot across pages for equal accounts without writing to the shop',async()=>{
  const f=summaryFixture(),base=`shops/proof-shop/generations/${f.shop.generation}`

@@ -8,7 +8,7 @@ import {createCoreTransport} from '../../src/cloud/core/transport.js'
 import {summaryMultiGroupSale} from '../../src/cloud/core/model/saleGroups.js'
 let env
 const ROOT='shops/proof-shop',GEN=`${ROOT}/generations/g1`
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
+beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{await env.clearFirestore()})
 afterAll(async()=>{await env?.cleanup()})
 function setup(){const context={projectId:'demo-greek-yogg',shopId:'proof-shop',generation:'g1',uid:'cashier',deviceId:'device',online:true,ready:true},db=env.authenticatedContext(context.uid).firestore();return {db,api:createCoreTransport({db,getContext:()=>context})}}

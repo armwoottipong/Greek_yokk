@@ -22,6 +22,7 @@
       </button>
     </nav>
     <div class="settings-content">
+    <CloudAccessPanel v-if="store.cloud && activeSettingsSection==='access'" :emails="store.allowedEmails||{}" :account="store.account" :blocked="store.settingsBlocked" :save-emails="store.saveAllowedEmails"/>
     <CloudRecoveryPanel v-if="store.cloud && activeSettingsSection==='recovery'" :project-id="store.projectId" :shop-id="store.shopId" :blocked="store.settingsBlocked"/>
     <div v-if="store.cloud" id="settings-backup" v-show="activeSettingsSection==='backup'" class="editorial-card p-4 sm:p-6 space-y-4">
       <h3>สำรองข้อมูล Firebase</h3>
@@ -261,6 +262,7 @@
 <script setup>
 import '@/assets/settings.css'
 import CloudRecoveryPanel from '@/cloud/core/CloudRecoveryPanel.vue'
+import CloudAccessPanel from '@/cloud/core/CloudAccessPanel.vue'
 import { businessDateKey } from '@/domain/businessDate'
 import { ref, computed, watch } from 'vue'
 import FormField from '@/components/ui/FormField.vue'
@@ -288,6 +290,7 @@ const props=defineProps({model:{type:Object,default:null}})
 const store = props.model || usePosStore()
 const activeSettingsSection = ref(store.cloud ? 'platforms' : 'backup')
 const settingsSections = store.cloud ? [
+  {id:'access',label:'ผู้ใช้งาน',description:'อีเมลที่อนุญาตให้เข้าร้าน',icon:Check},
   {id:'platforms',label:'ช่องทางขาย',description:'ตั้งค่า GP แต่ละช่องทาง',icon:Store},
   {id:'backup',label:'สำรองข้อมูล',description:'ดาวน์โหลดข้อมูลจาก Firebase',icon:Database},
   {id:'recovery',label:'กู้คืน / เริ่มร้านใหม่',description:'ตรวจไฟล์และใช้เครื่องเจ้าของ',icon:RotateCcw},

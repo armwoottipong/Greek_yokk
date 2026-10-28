@@ -10,7 +10,7 @@ import {createCoreTransport} from '../../src/cloud/core/transport.js'
 const projectId='demo-owner-recovery',shopId='proof-shop',rootPath=`shops/${shopId}`,host='127.0.0.1:8088',base=`projects/${projectId}/databases/(default)`,names=['materials','display','orders','operations','legacyRecords']
 let env,api,demo
 beforeAll(async()=>{
- assertEmulatorTarget(projectId,host);env=await createRulesTest({projectId,rules:buildCorePolicy({shopId})});demo=await compileOwnerDemo()
+ assertEmulatorTarget(projectId,host);env=await createRulesTest({projectId,rules:buildCorePolicy({legacyTestAuth:true,shopId})});demo=await compileOwnerDemo()
  async function request(path,body){const r=await fetch(`http://${host}/v1/${base}/${path}`,{method:body?'POST':'GET',headers:{Authorization:'Bearer owner','Content-Type':'application/json'},...body?{body:JSON.stringify(body)}:{}});if(r.status===404)return null;const x=await r.json();if(!r.ok)throw Object.assign(new Error(x.error?.message||'EMULATOR_REQUEST_FAILED'),{code:x.error?.status});return x}
  api={async get(path){return decodeRestDocument(await request('documents/'+path))},async listGeneration(path){const rows=[];for(const name of names){let token;do{const page=await request(`documents/${path}/${name}?pageSize=100${token?'&pageToken='+encodeURIComponent(token):''}`);for(const d of page?.documents||[])rows.push({path:d.name.split('/documents/')[1],...decodeRestDocument(d)});token=page?.nextPageToken}while(token)}return rows},async commit(writes){return request('documents:commit',{writes:writes.map(w=>({...w.verify?{verify:base+'/documents/'+w.path}:{update:{name:base+'/documents/'+w.path,fields:encodeRestValue(w.data).mapValue.fields}},currentDocument:w.updateTime?{updateTime:w.updateTime}:{exists:w.exists}}))})}}
 })

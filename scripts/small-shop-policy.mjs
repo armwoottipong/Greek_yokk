@@ -30,7 +30,15 @@ export function extendSmallShopRule(name,body){
  if(name==='billCertificateMatch')body=body.replace('d.lines==o.lines;', 'd.lines==o.lines && (o.materialIds.size()>=3 || d.lineOptionQuantities==o.lineOptionQuantities);')
  if(name==='billCertificateCreate')body=body.replace("'billOperands','lines']","'billOperands','lines','lineOptionQuantities']").replace('billCertificatePart(s,g,d,0) && billCertificatePart(s,g,d,1) && billCertificatePart(s,g,d,2)', 'smallCertificate(s,g,d)')
  if(name==='validMaterial')return body
- if(['validOrder','validRoot','cancelRoot'].includes(name))body=body.replace(/touchedAt\(s,[^,]+,o,\d+\)(?:\s*&&\s*touchedAt\(s,[^,]+,o,\d+\))*/g,group=>`(o.materialIds.size()>=${Math.max(...[...group.matchAll(/,o,(\d+)\)/g)].map(m=>Number(m[1])))+1} ? (${group}) : (${group.replace(/touchedAt\((s,[^,]+,o,)(\d+)\)/g,(_,args,i)=>`(${i}>=o.materialIds.size() || touchedAt(${args}${i}))`)}))`)
+ if(['validOrder','validRoot','cancelRoot'].includes(name))body=body.replace(/touchedAt\(s,[^,]+,o,\d+\)(?:\s*&&\s*touchedAt\(s,[^,]+,o,\d+\))*/g,group=>{
+  const max=Math.max(...[...group.matchAll(/,o,(\d+)\)/g)].map(m=>Number(m[1])))
+  const guarded=group.replace(/touchedAt\((s,[^,]+,o,)(\d+)\)/g,(_,args,i)=>`(${i}>=o.materialIds.size() || touchedAt(${args}${i}))`)
+  // Fourteen real rows need only the final optional row guard. Avoid repeating
+  // seven known-in-range guards on the largest small-shop receipt.
+  const fast=name==='validOrder'&&max===14
+  const full=fast?group.replace(/touchedAt\((s,[^,]+,o,)14\)/g,(_,args)=>`(o.materialIds.size()==14 || touchedAt(${args}14))`):group
+  return `(o.materialIds.size()>=${fast?14:max+1} ? (${full}) : (${guarded}))`
+ })
  if(name==='validRoot')body=replace(body,'o.materialIds.size()==15 ||','o.materialIds.size()<=15 ||')
  if(name==='validOrder'){
   body=replace(body,'o.inventory.size() in [15,16]','integer(o.inventory.size(),0,16)')

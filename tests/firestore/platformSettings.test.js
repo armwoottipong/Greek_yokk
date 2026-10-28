@@ -11,7 +11,7 @@ setLogLevel('silent')
 const root='shops/proof-shop',path=()=>`${root}/generations/${f.shop.generation}`
 const command=(opId='GP',expectedRevision=f.shop.revision)=>({kind:'platform_gp',opId,payload:{expectedRevision,rates:Object.fromEntries(f.shop.catalog.platformIds.map(id=>[id,2550]))}})
 const client=uid=>{const db=env.authenticatedContext(uid).firestore();return {db,api:createCoreTransport({db,getContext:()=>({projectId:'demo-greek-yogg',shopId:'proof-shop',generation:f.shop.generation,uid,deviceId:uid,ready:true,online:true})})}}
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
+beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{
  await env.clearFirestore();f=summaryFixture()
  // Exercise all four deployed channel slots, including the last Rules branch.

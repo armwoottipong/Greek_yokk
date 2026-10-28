@@ -10,7 +10,7 @@ import {ROOT,GENERATION} from './proofFixture.js'
 import {planInventoryCommand} from '../../src/cloud/core/inventoryPlan.js'
 import {createCoreTransport} from '../../src/cloud/core/transport.js'
 let env
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
+beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{await env.clearFirestore()})
 afterAll(async()=>{await env.cleanup()})
 const input=id=>({id,name:id,emoji:'',unit:'g',inventoryType:'ingredient',packSize:1,minAlertQ:0})

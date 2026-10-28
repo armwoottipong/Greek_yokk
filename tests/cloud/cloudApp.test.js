@@ -28,7 +28,7 @@ it('disables duplicate login while the popup is pending and displays a recoverab
  await publish({message:'เบราว์เซอร์บล็อกหน้าต่างเข้าสู่ระบบ'})
  expect(w.get('[role="alert"]').text()).toContain('บล็อก');expect(w.get('[data-sign-in]').attributes('disabled')).toBeUndefined()
 })
-it.each(['loading','ready','maintenance','importing','setup_required','error'])('does not expose checkout from %s authentication readiness alone',async phase=>{
+it.each(['loading','ready','maintenance','importing','setup_required','error','access_denied'])('does not expose checkout from %s authentication readiness alone',async phase=>{
  w=mount(CloudApp,{props:{connection}})
  await publish({phase,user:{uid:'a',email:'cashier@example.test'},serverReady:phase==='ready',shop:phase==='ready'?{generation:'g1'}:null})
  expect(w.text()).toContain('cashier@example.test')
@@ -61,4 +61,12 @@ it('keeps an active cart workspace during cache loss, and removes it immediately
  expect(w.find('[data-workspace]').exists()).toBe(false)
  await publish({phase:'ready',user:{uid:'b'},serverReady:true,shop:{generation:'g2',revision:1,catalog:{},materialIds:[]}})
  expect(w.get('[data-workspace]').text()).toBe('b:g2:true')
+})
+it('removes the mounted workspace immediately when email access is revoked',async()=>{
+ w=mount(CloudApp,{props:{connection},global:{stubs:{CoreWorkspace:{template:'<div data-workspace />'}}}})
+ await publish({phase:'ready',user:{uid:'a'},serverReady:true,shop:{generation:'g1',revision:1,catalog:{},materialIds:[]}})
+ expect(w.find('[data-workspace]').exists()).toBe(true)
+ await publish({phase:'access_denied',user:{uid:'a',email:'removed@example.test'}})
+ expect(w.find('[data-workspace]').exists()).toBe(false)
+ expect(w.text()).toContain('บัญชีนี้ยังเข้าร้านไม่ได้');expect(w.find('[data-sign-out]').exists()).toBe(true)
 })

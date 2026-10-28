@@ -15,8 +15,8 @@ const target={host:'127.0.0.1:8088',projectId:'demo-greek-yogg-restore',shopId:'
 const sourceProject='demo-greek-yogg-recovery-source',sourceShop='source-shop'
 let sourceEnv,restoreEnv
 beforeAll(async()=>{
- sourceEnv=await createRulesTest({projectId:sourceProject,rules:buildCorePolicy({shopId:sourceShop})})
- restoreEnv=await createRulesTest({projectId:target.projectId,rules:buildCorePolicy({shopId:target.shopId})})
+ sourceEnv=await createRulesTest({projectId:sourceProject,rules:buildCorePolicy({legacyTestAuth:true,shopId:sourceShop})})
+ restoreEnv=await createRulesTest({projectId:target.projectId,rules:buildCorePolicy({legacyTestAuth:true,shopId:target.shopId})})
 })
 beforeEach(async()=>{await sourceEnv.clearFirestore();await restoreEnv.clearFirestore()})
 afterAll(async()=>{await sourceEnv.cleanup();await restoreEnv.cleanup()})

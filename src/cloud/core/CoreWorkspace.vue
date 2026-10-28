@@ -61,6 +61,7 @@ import {projectCloudPackages,cloudPackageOperands} from './packagePresentation.j
 import {PACKAGE_ADJUSTMENT_REASONS} from '@/domain/packageReasons.js'
 import {loadInventoryHistory} from './inventoryHistory.js'
 import {getFirebaseClient} from '../firebaseClient.js'
+import {createShopAccess} from '../shopAccess.js'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import ReceiptModal from '@/components/modals/ReceiptModal.vue'
 import {Check,Plus} from 'lucide-vue-next'
@@ -69,6 +70,13 @@ import {projectMenus,projectCart,optionCents,projectReceipt} from './productPres
 import {createCoreWorkspace} from './workspace.js'
 import {maxSaleLines} from './model/limits.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
+const presentUsers=ref([]),presenceClock=ref(Date.now())
+let shopAccess=null,presenceTimer=null
+const activeUsers=computed(()=>{
+ const self=props.state.user,others=props.state.serverReady?presentUsers.value.filter(user=>user.uid!==self?.uid&&user.email&&user.lastSeen?.toMillis?.()>presenceClock.value-120000&&props.state.shop?.allowedEmails?.[user.email]):[]
+ return [...(self?.email?[self]:[]),...others.sort((a,b)=>a.email.localeCompare(b.email))]
+})
+function updatePresence(){presenceClock.value=Date.now();if(online.value&&props.state.serverReady&&document.visibilityState==='visible')void shopAccess?.heartbeat()}
 defineEmits(['sign-out'])
 const activeAction=ref(''),reloading=ref(false)
 const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),message=ref(''),tab=ref('sale'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
@@ -109,7 +117,10 @@ const filteredMenus=computed(()=>productMenus.value.filter(m=>m.name.toLowerCase
 const cartQuantity=computed(()=>cart.value.reduce((n,l)=>n+l.qty,0)),cartQuantities=computed(()=>cart.value.reduce((r,l)=>({...r,[l.menuId]:(r[l.menuId]||0)+l.qty}),{}))
 const pageTitle=computed(()=>({dashboard:'ภาพรวม & งบต้นทุน',sale:'แคชเชียร์ (POS)',stock:'คลังวัตถุดิบ & Package',menu:'จัดการเมนู',addon:'จัดการ Add-on',orders:'บิลขาย & คืนบิล'})[tab.value]||'Greek Yogg.')
 const productModel=reactive({cloud:true,modals:{receipt:receiptState,packageReview:packageReviewState},availableTabs:['dashboard','pos','stock','menu','addon','settings'],get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab(id){if(id==='pos')tab.value='sale';else if(['dashboard','stock','menu','addon','settings'].includes(id))tab.value=id},get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get materials(){return data.value?.materials.map(m=>({...m,isDeleted:m.deleted}))||[]},get packageLocked(){return locked.value||!ready.value},get packageAdjustments(){return packageAdjustments.value},get cartPackagePlan(){return projectCloudPackages(data.value,cart.value,packageAdjustments.value)},savePackageAdjustment,resetPackageAdjustment(id){if(!locked.value)packageAdjustments.value=packageAdjustments.value.filter(a=>a.materialId!==id)},resetPackageAdjustments(){if(!locked.value)packageAdjustments.value=[]},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value){cart.value=[];packageAdjustments.value=[]}},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
+Object.defineProperty(productModel,'activeUsers',{get:()=>activeUsers.value})
 const settingsModel=reactive({cloud:true,
+ get allowedEmails(){return props.state.shop?.allowedEmails||{}},
+ saveAllowedEmails(emails,expected){if(!ready.value||locked.value||!shopAccess)throw new Error('NOT_READY');return shopAccess.save(emails,expected)},
  exportCloudBackup:()=>service.backup(),
  get platforms(){const c=data.value?.shop.catalog;return c?c.platformIds.map(id=>({id,name:name('platforms',id),gpPercent:c.platforms[id].gpBasisPoints/100})):[]},
  get revision(){return data.value?.shop.revision},get connected(){return ready.value},get settingsBlocked(){return !ready.value||locked.value},
@@ -227,7 +238,7 @@ async function reloadAfterWrite(){
  await reloadEverything()
 }
 
-const connectivity=()=>{online.value=navigator.onLine;if(online.value&&props.state.serverReady)void refresh()}
+const connectivity=()=>{online.value=navigator.onLine;updatePresence();if(online.value&&props.state.serverReady)void refresh()}
 watch([cart,platformId,packageAdjustments],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
 watch(()=>JSON.stringify(shortages.value),()=>{approveShortage.value=false})
 watch(tab,value=>{if(value==='orders')void loadOrders();if(value==='dashboard')reportVisited.value=true;if(value==='settings')settingsVisited.value=true})
@@ -242,12 +253,17 @@ watch(()=>data.value?.shop.catalogRevision,(revision,previous)=>{
  }
 },{flush:'sync'})
 watch(()=>props.state.shop?.revision,()=>{if(props.state.serverReady)void refresh()})
-watch(()=>props.state.serverReady,value=>{if(value)void refresh()})
+watch(()=>props.state.serverReady,value=>{if(value){updatePresence();void refresh()}})
 onMounted(async()=>{
  window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity)
+ if(props.state.user?.email){
+  const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config})
+  shopAccess=createShopAccess({db,shopId:props.connection.shopId,getUser:()=>props.state.user,onPresence:users=>{presentUsers.value=users}})
+  shopAccess.watch();updatePresence();presenceTimer=setInterval(updatePresence,60000);document.addEventListener('visibilitychange',updatePresence)
+ }
  try{service=createCoreWorkspace({connection:props.connection,getContext:context});await refresh();if(disposed)return;await updatePending();initialized.value=true;if(pendingCommand.value&&ready.value){const r=await service.reconcile();if(!disposed&&r.ok&&r.value)finish(r.value)}}catch(e){error.value=explain(e)}
 })
-onUnmounted(()=>{disposed=true;answerClear(false);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity);void service?.close()})
+onUnmounted(()=>{disposed=true;answerClear(false);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity);document.removeEventListener('visibilitychange',updatePresence);clearInterval(presenceTimer);shopAccess?.close();void service?.close()})
 </script>
 
 

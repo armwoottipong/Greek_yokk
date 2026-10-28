@@ -44,6 +44,7 @@ const descriptions={
  importing:{title:'กำลังเตรียมข้อมูลร้าน',description:'รอการย้ายข้อมูลเสร็จก่อนเริ่มใช้งาน'},
  maintenance:{title:'พักใช้งานชั่วคราว',description:'ร้านกำลังปรับปรุงข้อมูล กรุณากลับมาเชื่อมต่อใหม่'},
  setup_required:{title:'ยังไม่มีข้อมูลร้าน',description:'ต้องเตรียมข้อมูลร้านก่อนเริ่มขาย'},
+ access_denied:{title:'บัญชีนี้ยังเข้าร้านไม่ได้',description:'ออกจากระบบแล้วเลือกบัญชี Google ที่ได้รับอนุญาต'},
  error:{title:'เชื่อมต่อร้านไม่ได้',description:'ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง หากยังเข้าไม่ได้ให้ตรวจการตั้งค่าการเชื่อมต่อร้าน'}
 }
 const copy=computed(()=>descriptions[state.value.phase]||descriptions.error)
@@ -55,6 +56,7 @@ function connect(){
   session=createShopSession({auth,db,shopId:props.connection.shopId,onState:value=>{
    if(token!==epoch)return
    if(value.user?.uid!==lastUid.value){lastShop.value=null;lastUid.value=value.user?.uid||null}
+   if(value.phase==='access_denied')lastShop.value=null
    if(value.serverReady&&value.shop?.catalog&&value.shop?.materialIds)lastShop.value=value.shop
    // Keep an existing workspace/cart mounted during transient cache/offline states.
    // Maintenance/import/generation changes still block all command writes.

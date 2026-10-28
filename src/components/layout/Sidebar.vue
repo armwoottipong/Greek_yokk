@@ -46,8 +46,8 @@
     </nav>
 
     <!-- Bottom Store Info & Sync -->
-    <div class="hidden md:block p-4 border-t border-stone-100 bg-[#FBF5EA] text-xs">
-      <div class="flex items-center justify-between mb-2">
+    <div :class="{'has-users':!!model}" class="hidden md:block p-4 border-t border-stone-100 bg-[#FBF5EA] text-xs">
+      <div class="sidebar-valuation flex items-center justify-between mb-2">
         <span class="text-[11px] font-medium text-stone-500">สถานะคลัง & ต้นทุน</span>
         <div class="flex items-center gap-1.5 font-number">
           <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100/80 text-amber-900 font-medium">
@@ -63,7 +63,8 @@
           </span>
         </div>
       </div>
-      <div class="flex items-center justify-between text-[12px] text-stone-500">
+      <UserAvatars v-if="model" :users="model.activeUsers||[]"/>
+      <div v-else class="flex items-center justify-between text-[12px] text-stone-500">
         <span class="flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full" :class="(model ? model.connected : store.gasApiUrl) ? 'bg-emerald-500' : 'bg-stone-300'"></span>
           {{ model ? (model.connected ? 'Firebase (เชื่อมต่อแล้ว)' : 'Firebase (ขาดการเชื่อมต่อ)') : store.gasApiUrl ? 'Google Sheets (ตั้งค่าแล้ว)' : 'Offline / Local' }}
@@ -85,6 +86,7 @@ import { computed,ref,watch,nextTick,onMounted,onUnmounted } from 'vue'
 import {useMediaQuery} from '@/composables/useMediaQuery'
 import {useOverlayScrollLock} from '@/composables/useOverlayScrollLock'
 import { usePosStore } from '@/stores/posStore'
+import UserAvatars from './UserAvatars.vue'
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -151,6 +153,7 @@ const navItems = computed(() => props.items || [
  .brand-sidebar{width:72px}.brand-sidebar.is-tablet-rail .brand-navigation{padding:12px 8px}
  .brand-sidebar.is-tablet-rail .brand-nav-item{justify-content:center;padding:12px;width:56px}
  .brand-sidebar.is-tablet-rail .brand-nav-item>div>span,.brand-sidebar.is-tablet-rail .brand-nav-item>span,.brand-sidebar.is-tablet-rail>div:last-child{display:none}
+ .brand-sidebar.is-tablet-rail>div.has-users:last-child{display:block;padding:12px 16px}.brand-sidebar.is-tablet-rail .sidebar-valuation{display:none}
  .brand-sidebar.is-mobile-open{position:fixed;inset:0 auto 0 0;width:min(300px,85vw);height:100dvh;z-index:60;box-shadow:12px 0 40px #58040618}
  .brand-sidebar.is-mobile-open .brand-navigation{display:block;flex:1;overflow-y:auto}.brand-sidebar.is-mobile-open .brand-nav-item{width:100%}
  .mobile-menu-backdrop{display:block;position:fixed;inset:0;background:#35252255;z-index:50}

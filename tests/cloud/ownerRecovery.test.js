@@ -2,7 +2,7 @@
 import {decodeRehearsalValue} from '../../scripts/backup-rehearsal.js'
 import {it,expect} from 'vitest'
 import {createBusinessBackup,encodeBackupValue} from '../../src/cloud/core/businessBackup.js'
-import {inspectOwnerBackup,prepareOwnerRecovery} from '../../scripts/recovery-plan.js'
+import {inspectOwnerBackup,prepareOwnerRecovery,verifyOwnerRecoveryPlan,recoveryHash} from '../../scripts/recovery-plan.js'
 import {executeOwnerRecovery,rollbackOwnerRecovery,parseOwnerRecoveryArgs} from '../../scripts/owner-recovery.mjs'
 const encoded=encodeBackupValue
 const baseline={root:encoded({status:'active',generation:'g_restore_live',revision:12,materialIds:['OLD']}),updateTime:'2026-10-27T10:00:00.123456Z'}
@@ -11,6 +11,20 @@ async function backup(change=()=>{}){
  const payload={scope:'business-snapshot',projectId:'source-project',shopId:'source-shop',generation:'g_source',revision:4,exportedAt:'2026-10-26T00:00:00Z',root:encoded({status:'active',generation:'g_source',revision:4,materialIds:['M'],productionUsers:{M:[]},catalog:{summaryMaterials:['M'],counterIds:Array(15).fill('_'),platformIds:['P'],platforms:{P:{revision:1,active:true,gpBasisPoints:0}},menus:{},menuIds:[],addons:{},addonIds:[],groups:{},groupIds:[]}}),counts:Object.fromEntries(Object.entries(collections).map(([k,v])=>[k,v.length])),collections};change(payload);return JSON.stringify(await createBusinessBackup(payload))
 }
 const prepare=async()=>prepareOwnerRecovery({backup:await backup(),projectId:'target-project',shopId:'greek-yogg',generationId:'g_restore_candidate',baseline})
+it('keeps the live email policy instead of an outdated backup and rejects rehashed access changes',async()=>{
+ const allowedEmails={'owner@example.com':true,'cashier@example.com':true},live={...baseline,root:encoded({...decodeRehearsalValue(baseline.root),allowedEmails})}
+ const file=await backup(p=>{p.root=encoded({...decodeRehearsalValue(p.root),allowedEmails:{'old@example.com':true}})})
+ const plan=await prepareOwnerRecovery({backup:file,projectId:'target-project',shopId:'greek-yogg',generationId:'g_restore_access',baseline:live})
+ expect(decodeRehearsalValue(plan.root).allowedEmails).toEqual(allowedEmails);await expect(verifyOwnerRecoveryPlan(plan)).resolves.toBe(true)
+ for(const change of ['remove','replace']){
+  const {hash:_hash,...tampered}=structuredClone(plan),root=decodeRehearsalValue(tampered.root)
+  if(change==='remove')delete root.allowedEmails;else root.allowedEmails={'old@example.com':true}
+  tampered.root=encoded(root)
+  await expect(verifyOwnerRecoveryPlan({...tampered,hash:await recoveryHash(tampered)})).rejects.toThrow('RECOVERY_ACCESS_POLICY_CHANGED')
+ }
+ const noPolicy=await prepareOwnerRecovery({backup:file,projectId:'target-project',shopId:'greek-yogg',generationId:'g_restore_no_access',baseline})
+ expect(Object.hasOwn(decodeRehearsalValue(noPolicy.root),'allowedEmails')).toBe(false)
+})
 function memory(plan){
  const docs=new Map([[plan.rootPath,{data:baseline.root,updateTime:baseline.updateTime}]]),writes=[];let version=0
  return {docs,writes,async get(path){return structuredClone(docs.get(path)||null)},async listGeneration(){return [...docs].filter(([p])=>p.startsWith(plan.generationPath+'/')).map(([path,d])=>({path,...structuredClone(d)}))},async commit(batch){for(const w of batch){const old=docs.get(w.path);if(w.exists===false&&old||w.updateTime&&old?.updateTime!==w.updateTime)throw new Error('CAS_FAILED')}

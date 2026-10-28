@@ -36,6 +36,11 @@
 
 ## Original UI requirement (26 October 2026)
 
+- User instruction (28 October 2026): Google login now requires an explicitly
+  allowed email. Allowed accounts remain equal; no roles. Settings manages the
+  allowlist and Firebase status; sidebar footer shows active-user avatars with
+  email tooltips. This overrides the earlier unrestricted-account requirement.
+
 - Preserve original product UI layouts, templates and styles; settings is the
   only design exception explicitly allowed by the user. Connect Firebase through
   data/command bindings. In particular use StockView and its original stock

@@ -9,6 +9,7 @@ it.each([-1,17,undefined])('rejects invalid profile %s',count=>{expect(()=>maxSa
 it('emits optional material touches and guarded small-shop operand/cost checks',()=>{
  const policy=buildCorePolicy({shopId:'proof-shop',compact:false})
  expect(policy).toContain('function smallOrder(');expect(policy).toContain('function smallOperands(');expect(policy).toContain('function smallOperandWrite(')
- expect(policy).toMatch(/integer\(o.inventory.size\(\),0,16\)/)
+ expect(policy).toContain('let orderRowCount=o.inventory.size();')
+ expect(policy).toMatch(/integer\(orderRowCount,0,16\)/)
  expect(policy).toMatch(/integer\(ids.size\(\),0,16\)/)
 })

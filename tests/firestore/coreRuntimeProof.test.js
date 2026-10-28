@@ -13,7 +13,7 @@ import {groupFixture} from './summaryGroupFixture.js'
 import {multiGroupFixture} from './summaryMultiGroupFixture.js'
 import {coreSource} from '../fixtures/coreSource.js'
 let env
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
+beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{await env.clearFirestore()})
 afterAll(async()=>{await env.cleanup()})
 function setup(db,uid='cashier'){

@@ -7,7 +7,7 @@ import {createReportReader} from '../../src/cloud/core/reportReader.js'
 import {projectReportOrders} from '../../src/cloud/core/reportProjection.js'
 import {buildDashboard} from '../../src/domain/dashboard.js'
 let env
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
+beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{await env.clearFirestore()})
 afterAll(async()=>{await env.cleanup()})
 const root='shops/proof-shop',base=root+'/generations/g1'

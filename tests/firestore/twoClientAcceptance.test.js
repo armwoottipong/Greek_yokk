@@ -9,7 +9,7 @@ import {materialRegistryShop} from './summaryMaterialAuthor.js'
 
 let env
 const root='shops/proof-shop'
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
+beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{await env.clearFirestore()})
 afterAll(async()=>{await env.cleanup()})
 function decode(v){
