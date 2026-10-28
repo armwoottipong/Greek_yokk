@@ -50,7 +50,7 @@ Lease ยาว 10 นาที งาน `processing` ที่หมดเว�
 8. รัน **`installYoggieInvitationTrigger`** เพื่อสร้าง trigger ทุก 5 นาที ฟังก์ชันจะลบ trigger handler เดียวกันของบัญชีนี้ก่อนสร้างใหม่ แต่ละ trigger รันด้วยบัญชีผู้สร้างตาม [Installable triggers](https://developers.google.com/apps-script/guides/triggers/installable) ไม่ต้องกด Deploy และห้ามสร้าง public web app
 9. เมื่อพร้อมทดสอบจริง ให้เพิ่มอีเมลทดสอบที่เจ้าของควบคุมผ่าน Settings ของเว็บ ตรวจ outbox, Apps Script Executions, ผู้ส่ง **Yoggie**, โลโก้, สิทธิ์ที่ระบุ และลิงก์เปิดเว็บ จากนั้นตรวจว่า trigger รอบต่อไปไม่ส่งคำขอเดิมซ้ำ ตรวจอีกกรณีโดยถอนสิทธิ์ก่อนรอบส่ง ต้องได้ `cancelled` และบัญชีนั้นเข้าเว็บไม่ได้
 
-อีเมลมาจากบัญชี Gmail ของเจ้าของโดยใช้ display name `Yoggie` ไม่สามารถปลอมที่อยู่ผู้ส่งอื่นได้ Worker ดาวน์โหลดโลโก้จาก URL คงที่ `https://armwoottipong.github.io/Greek_yokk/brand/mascot.png` ครั้งเดียวต่อรอบที่มีการส่ง ตรวจ HTTP 200, MIME `image/png`, PNG signature และขนาด 32 bytes–2 MiB ก่อนแนบเป็น `inlineImages` ผ่าน `cid:yoggieLogo` ตาม [MailApp inline images](https://developers.google.com/apps-script/reference/mail/mail-app#sendEmail(Object)) ผู้รับจึงไม่ต้องโหลดภาพจากเซิร์ฟเวอร์ภายนอกเมื่อเปิดเมล ไม่มีภาพติดตามการเปิดอ่าน หากโหลดหรือตรวจโลโก้ไม่ผ่านจะไม่เรียกส่งอีเมลและงานจะเข้าสู่การตรวจสอบตามสถานะ `unknown` ใช้ลิงก์เปิดเว็บ `https://armwoottipong.github.io/Greek_yokk/` เท่านั้น ไม่อ่าน URL/หัวเรื่อง/HTML จาก outbox
+อีเมลมาจากบัญชี Gmail ของเจ้าของโดยใช้ display name `Yoggie` แสดงโลโก้ด้วย `<img>` ที่ URL สาธารณะคงที่ `https://armwoottipong.github.io/Greek_yokk/brand/mascot.png` ในเนื้อหา HTML โดยไม่แนบไฟล์หรือใช้ CID ตามคำขอผู้ใช้ ตัวส่งไม่ดาวน์โหลดภาพและไม่เพิ่ม `attachments`/`inlineImages` โปรแกรมอ่านเมลเป็นผู้โหลดภาพและอาจให้ผู้รับอนุญาตแสดงรูปภายนอก ไม่มีตัวติดตามเฉพาะผู้รับ ใช้ลิงก์เปิดเว็บ `https://armwoottipong.github.io/Greek_yokk/` เท่านั้น ไม่อ่าน URL/หัวเรื่อง/HTML จาก outbox
 
 ## โควตาและการดูแล
 
@@ -72,4 +72,4 @@ npx vitest run tests/cloud/invitationMailer.test.js
 
 ## Session preparation (28 October 2026)
 
-A private Apps Script draft named Yoggie Invitations was created and linked to yoggie-db (411310411447). Gmail authorization and trigger activation are pending. Before activation, replace its code with the latest Core.js + Code.gs in this repository (including CID logo adapter), verify manifest, then run checkYoggieMailer and installYoggieInvitationTrigger after owner authorization. Browser access was disabled during preparation, so no email was sent and no trigger was created.
+The private Apps Script is active with one five-minute trigger. When updating email presentation, save the latest Core.js + Code.gs in its editor; do not reinstall the trigger or resend completed notifications. Previously received messages retain their original HTML.

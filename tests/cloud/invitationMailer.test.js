@@ -153,50 +153,21 @@ describe('Apps Script Firestore adapter', () => {
     }) } })
     expect(() => scope.yoggieApi_('test')).toThrow('Firestore HTTP 403 [ACCESS_TOKEN_SCOPE_INSUFFICIENT]')
   })
-  it('embeds one validated PNG per invocation with CID and no recipient remote-image request', () => {
-    const sent = [], fetched = []
-    const bytes = [137, 80, 78, 71, 13, 10, 26, 10, ...Array(40).fill(0)]
-    const blob = { getContentType: () => 'image/png', getBytes: () => bytes, setName() { return this } }
-    const { scope } = loadAdapter({
-      UrlFetchApp: { fetch: (url, options) => {
-        fetched.push({ url, options })
-        return { getResponseCode: () => 200, getBlob: () => blob }
-      } },
-      MailApp: { sendEmail: message => sent.push(message) },
+  it('keeps the public logo in HTML and sends no attachment or CID image', () => {
+    const sent = []
+    const { scope } = loadAdapter({ MailApp: { sendEmail: message => sent.push(message) },
+      UrlFetchApp: { fetch: () => { throw new Error('Logo must not be downloaded by sender') } },
     })
-    const sender = scope.yoggieSender_()
-    const message = { to: 'friend@gmail.com', name: 'Yoggie', body: 'Open Yoggie', htmlBody: '<img src="https://armwoottipong.github.io/Greek_yokk/brand/mascot.png">' }
-    sender(message)
-    sender({ ...message, to: 'second@gmail.com' })
-    expect(fetched).toHaveLength(1)
-    expect(fetched[0].url).toBe('https://armwoottipong.github.io/Greek_yokk/brand/mascot.png')
-    expect(fetched[0].options.headers).toBeUndefined()
-    expect(sent).toHaveLength(2)
-    expect(sent[0].htmlBody).toBe('<img src="cid:yoggieLogo">')
-    expect(sent[0].inlineImages.yoggieLogo).toBe(blob)
-    expect(sent[1].inlineImages.yoggieLogo).toBe(blob)
-    expect(message.htmlBody).toContain('https://')
-  })
-
-  it.each([
-    [404, 'image/png', [137, 80, 78, 71, 13, 10, 26, 10, ...Array(40).fill(0)]],
-    [200, 'text/html', Array(48).fill(0)],
-    [200, 'image/png', Array(48).fill(0)],
-    [200, 'image/png', Array(2 * 1024 * 1024 + 1).fill(0)],
-  ])('refuses to send when logo response is unsafe (%s, %s)', (status, type, bytes) => {
-    const sent = [], fetched = []
-    const { scope } = loadAdapter({
-      UrlFetchApp: { fetch: url => {
-        fetched.push(url)
-        return { getResponseCode: () => status, getBlob: () => ({ getContentType: () => type, getBytes: () => bytes }) }
-      } },
-      MailApp: { sendEmail: message => sent.push(message) },
-    })
-    const sender = scope.yoggieSender_()
-    expect(() => sender({ htmlBody: '' })).toThrow(/logo/i)
-    expect(() => sender({ htmlBody: '' })).toThrow(/logo/i)
-    expect(fetched).toHaveLength(1)
-    expect(sent).toHaveLength(0)
+    const f = fixture()
+    loadCore().process(f.document, f.deps)
+    const message = f.sent[0]
+    scope.yoggieSender_()({ ...message, attachments: ['ignored'], inlineImages: { ignored: 'ignored' } })
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toEqual(message)
+    expect(sent[0].htmlBody).toContain('src="https://armwoottipong.github.io/Greek_yokk/brand/mascot.png"')
+    expect(sent[0].htmlBody).not.toContain('cid:')
+    expect(sent[0]).not.toHaveProperty('attachments')
+    expect(sent[0]).not.toHaveProperty('inlineImages')
   })
 
   it('uses a bearer token and update-time precondition while preserving request fields', () => {

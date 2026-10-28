@@ -79,30 +79,12 @@ function yoggieList_(config, status) {
 }
 
 function yoggieSender_() {
-  // Invocation-local cache; recipient mail clients never fetch a remote logo.
-  var logo;
-  var attempted = false;
-  var logoUrl = 'https://armwoottipong.github.io/Greek_yokk/brand/mascot.png';
+  // The HTML uses a fixed public logo URL; no image or file is attached.
   return function (message) {
-    if (!logo) {
-      if (attempted) throw new Error('Yoggie logo unavailable in this invocation');
-      attempted = true;
-      var response = UrlFetchApp.fetch(logoUrl, { muteHttpExceptions: true, followRedirects: false });
-      if (response.getResponseCode() !== 200) throw new Error('Yoggie logo HTTP failure');
-      var candidate = response.getBlob();
-      if (candidate.getContentType().split(';')[0].toLowerCase() !== 'image/png') throw new Error('Yoggie logo must be PNG');
-      var bytes = candidate.getBytes();
-      var signature = [137, 80, 78, 71, 13, 10, 26, 10];
-      if (bytes.length < 32 || bytes.length > 2 * 1024 * 1024 || signature.some(function (value, index) {
-        return (bytes[index] & 255) !== value;
-      })) throw new Error('Yoggie logo content invalid');
-      logo = candidate.setName('Yoggie.png');
-    }
-    var embedded = Object.assign({}, message, {
-      htmlBody: message.htmlBody.split(logoUrl).join('cid:yoggieLogo'),
-      inlineImages: { yoggieLogo: logo },
+    MailApp.sendEmail({
+      to: message.to, name: message.name, subject: message.subject,
+      body: message.body, htmlBody: message.htmlBody,
     });
-    MailApp.sendEmail(embedded);
   };
 }
 
