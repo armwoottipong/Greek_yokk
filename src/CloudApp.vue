@@ -1,35 +1,16 @@
 <template>
  <CoreWorkspace v-if="workspaceState" :key="`${workspaceState.user.uid}:${workspaceState.shop.generation}`" :connection="connection" :state="workspaceState" @sign-out="leave" />
- <main v-else class="cloud-entry" aria-labelledby="cloud-title">
-  <section class="cloud-entry-panel">
-   <img :src="mascot" width="112" height="112" alt="" class="cloud-entry-mascot" />
-   <p v-if="connection.mode==='emulator'" class="cloud-entry-environment">ทดสอบบนเครื่องนี้</p>
-   <h1 id="cloud-title">{{ copy.title }}</h1>
-   <p class="cloud-entry-description" role="status" aria-live="polite">{{ copy.description }}</p>
-   <p v-if="state.user" class="cloud-entry-account">{{ state.user.email || state.user.displayName || 'เข้าสู่ระบบแล้ว' }}</p>
-   <p v-if="state.message" role="alert" class="cloud-entry-error">{{ state.message }}</p>
-   <div class="cloud-entry-actions">
-    <Button v-if="!state.user && ['signed_out','signing_in'].includes(state.phase)" data-sign-in :loading="state.phase==='signing_in'" @click="session?.signIn()">เข้าสู่ระบบด้วย Google</Button>
-    <Button v-if="['loading','error','setup_required','maintenance','importing'].includes(state.phase)" data-reconnect variant="secondary" @click="connect">ลองเชื่อมต่อใหม่</Button>
-    <Button v-if="state.user" data-sign-out variant="secondary" :loading="signingOut" @click="leave">ออกจากระบบ</Button>
-   </div>
-   <p v-if="state.phase==='ready'" class="cloud-entry-note">ยังไม่เปิดขายระหว่างเตรียมข้อมูลและระบบบันทึกของร้าน</p>
-   <p class="cloud-entry-note">ข้อมูลระบบเดิมแยกจาก Firebase และยังเก็บอยู่บนเครื่องนี้</p>
-   <a :href="localUrl" data-local-link class="cloud-local-link">เปิดระบบเดิมบนเครื่องนี้</a>
-  </section>
- </main>
+ <CloudEntry v-else :state="state" :copy="copy" :emulator="connection.mode==='emulator'" :signing-out="signingOut" @sign-in="session?.signIn()" @reconnect="connect" @sign-out="leave"/>
 </template>
 
 <script setup>
 import {computed,onMounted,onUnmounted,ref} from 'vue'
-import Button from '@/components/ui/Button.vue'
+import CloudEntry from '@/cloud/CloudEntry.vue'
 import CoreWorkspace from '@/cloud/core/CoreWorkspace.vue'
 import {getFirebaseClient} from '@/cloud/firebaseClient.js'
 import {createShopSession} from '@/cloud/session.js'
 import {finishAppStartup} from '@/composables/appStartup.js'
 const props=defineProps({connection:{type:Object,required:true}})
-const mascot=`${import.meta.env.BASE_URL}brand/content-mascot.svg`
-const localUrl=`${import.meta.env.BASE_URL}local.html`
 const empty=()=>({phase:'connecting',user:null,shop:null,serverReady:false,message:''})
 const state=ref(empty()),signingOut=ref(false)
 const lastShop=ref(null),lastUid=ref(null)
@@ -37,7 +18,7 @@ const workspaceState=computed(()=>state.value.user&&lastShop.value&&state.value.
 let session=null,epoch=0
 const descriptions={
  connecting:{title:'กำลังเปิดร้าน',description:'กำลังตรวจสอบการเข้าสู่ระบบ'},
- signed_out:{title:'เข้าร้าน Greek Yogg',description:'เข้าสู่ระบบเพื่อใช้ข้อมูลร้านร่วมกันทุกเครื่อง'},
+ signed_out:{title:'Greek Yogg.',description:'เข้าสู่ระบบเพื่อจัดการร้านของคุณ'},
  signing_in:{title:'เข้าสู่ระบบ',description:'ดำเนินการต่อในหน้าต่าง Google'},
  loading:{title:'กำลังเชื่อมต่อร้าน',description:'รอยืนยันข้อมูลล่าสุดจากเซิร์ฟเวอร์ หากอินเทอร์เน็ตหลุดให้เชื่อมต่อแล้วลองใหม่'},
  ready:{title:'เชื่อมต่อร้านแล้ว',description:'เข้าสู่ระบบสำเร็จและตรวจพบข้อมูลร้านบนเซิร์ฟเวอร์'},
@@ -76,18 +57,3 @@ async function leave(){
 onMounted(()=>{connect();finishAppStartup()})
 onUnmounted(()=>{epoch++;session?.dispose();session=null})
 </script>
-
-<style scoped>
-.cloud-entry{width:100%;min-width:0;height:100%;overflow:auto;display:grid;place-items:safe center;padding:32px 20px;background:var(--bg-primary);color:var(--text-main)}
-.cloud-entry-panel{width:min(100%,440px);text-align:center}
-.cloud-entry-mascot{display:block;object-fit:contain;margin:0 auto 24px}
-h1{font-size:clamp(1.5rem,5vw,2rem);font-weight:600;line-height:1.4;overflow-wrap:anywhere}
-.cloud-entry-description{margin:12px auto 0;max-width:35ch;color:var(--text-muted);font-size:1rem;line-height:1.8}
-.cloud-entry-account{margin-top:16px;font-size:.875rem;overflow-wrap:anywhere}
-.cloud-entry-actions{display:grid;gap:12px;margin-top:28px}
-.cloud-entry-actions :deep(button){min-height:48px;width:100%}
-.cloud-entry-error{margin-top:20px;padding:14px;border:1px solid var(--accent-red);border-radius:12px;color:var(--accent-red);line-height:1.7}
-.cloud-entry-note{margin-top:20px;font-size:.875rem;line-height:1.7;color:var(--text-muted)}
-.cloud-entry-environment{margin-bottom:12px;font-size:.875rem;color:var(--text-muted)}
-.cloud-local-link{display:inline-flex;align-items:center;min-height:44px;margin-top:4px;font-size:.875rem;color:var(--accent-brand);text-decoration:underline;text-underline-offset:3px}
-</style>
