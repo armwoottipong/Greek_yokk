@@ -23,7 +23,13 @@ function yoggieApi_(path, method, payload) {
   var result = JSON.parse(response.getContentText() || '{}');
   // CAS precondition lost: neither a successful claim nor permission to send.
   if (code === 409 || code === 412 || (result.error && result.error.status === 'FAILED_PRECONDITION')) return null;
-  if (code < 200 || code >= 300) throw new Error('Firestore HTTP ' + code);
+  if (code < 200 || code >= 300) {
+    // Only expose diagnostic enums, never response bodies, addresses or tokens.
+    var reasons = ((result.error && result.error.details) || []).map(function (detail) {
+      return detail.reason;
+    }).filter(function (reason) { return typeof reason === 'string' && /^[A-Z_]{1,80}$/.test(reason); });
+    throw new Error('Firestore HTTP ' + code + (reasons.length ? ' [' + reasons.join(', ') + ']' : ''));
+  }
   return result;
 }
 

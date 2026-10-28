@@ -36,6 +36,10 @@ describe('trusted invitation worker', () => {
     expect(core.process(initial, f.deps)).toBe('contended')
     expect(f.sent).toHaveLength(1)
     expect(f.sent[0]).toMatchObject({ to: 'friend@gmail.com', name: 'Yoggie' })
+    expect(f.sent[0].subject).toBe('แจ้งสิทธิ์เข้าใช้งาน Yoggie')
+    expect(f.sent[0].body).toContain('ไม่ต้องกดยอมรับหรือยืนยันสิทธิ์ผ่านอีเมล')
+    expect(f.sent[0].htmlBody).toContain('ไม่ต้องกดยอมรับหรือยืนยันสิทธิ์ผ่านอีเมล')
+    expect(f.sent[0].body + f.sent[0].htmlBody).not.toContain('คำเชิญ')
     expect(f.sent[0].body).toContain('https://armwoottipong.github.io/Greek_yokk/')
     expect(f.sent[0].htmlBody).toContain('https://armwoottipong.github.io/Greek_yokk/brand/mascot.png')
     expect(f.sent[0].htmlBody).not.toContain(['Greek', 'Yogg'].join(' '))
@@ -140,6 +144,15 @@ function loadAdapter(overrides = {}) {
 }
 
 describe('Apps Script Firestore adapter', () => {
+  it('reports permission diagnostic enums without leaking response data', () => {
+    const { scope } = loadAdapter({ UrlFetchApp: { fetch: () => ({
+      getResponseCode: () => 403,
+      getContentText: () => JSON.stringify({ error: {
+        message: 'private-response', details: [{ reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' }, { reason: 'private@example.com' }],
+      } }),
+    }) } })
+    expect(() => scope.yoggieApi_('test')).toThrow('Firestore HTTP 403 [ACCESS_TOKEN_SCOPE_INSUFFICIENT]')
+  })
   it('embeds one validated PNG per invocation with CID and no recipient remote-image request', () => {
     const sent = [], fetched = []
     const bytes = [137, 80, 78, 71, 13, 10, 26, 10, ...Array(40).fill(0)]

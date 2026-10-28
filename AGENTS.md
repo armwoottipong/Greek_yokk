@@ -54,5 +54,7 @@
 
 - Use Yoggie for all visible branding, including email sender display name.
   Preserve Firebase project/shop IDs, URLs and backup protocol identifiers.
-- Invitation email uses free Gmail with display name Yoggie, logo and shop link.
+- Admin saves the allowed email and role; access is immediate, independent of mail.
+  Email only notifies access with Yoggie branding, logo and shop link. There is no
+  recipient acceptance/activation step. Uses free Gmail.
   Owner authorizes the private Apps Script once. Pending mail is not sent mail.

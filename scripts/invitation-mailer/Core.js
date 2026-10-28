@@ -17,17 +17,18 @@ var InvitationMailer = (function () {
     return {
       to: request.email,
       name: 'Yoggie',
-      subject: 'คำเชิญเข้าใช้งาน Yoggie',
-      body: 'คุณได้รับเชิญเข้าใช้งาน Yoggie ในสิทธิ์' + role + '\n' +
-        'เปิด ' + appUrl + ' และเข้าสู่ระบบ Google ด้วยอีเมลที่ได้รับคำเชิญนี้\n' +
-        'หากไม่ทราบที่มาของคำเชิญ สามารถข้ามอีเมลนี้ได้',
+      subject: 'แจ้งสิทธิ์เข้าใช้งาน Yoggie',
+      body: 'ผู้ดูแลระบบเพิ่มสิทธิ์ให้คุณเข้าใช้งาน Yoggie เป็น' + role + 'แล้ว\n' +
+        'เปิด ' + appUrl + ' และเข้าสู่ระบบ Google ด้วยอีเมลที่ได้รับข้อความนี้ได้ทันที\n' +
+        'ไม่ต้องกดยอมรับหรือยืนยันสิทธิ์ผ่านอีเมล\n' +
+        'หากไม่รู้จักระบบนี้ สามารถข้ามอีเมลนี้ได้',
       htmlBody: '<div style="font-family:Arial,sans-serif;color:#30271f;max-width:520px;margin:auto;padding:24px">' +
         '<img src="' + logoUrl + '" alt="Yoggie" width="100" height="100">' +
         '<h1 style="font-size:24px">ยินดีต้อนรับสู่ Yoggie</h1>' +
-        '<p>คุณได้รับเชิญเข้าใช้งานในสิทธิ์' + role + '</p>' +
-        '<p>เข้าสู่ระบบ Google ด้วยอีเมลที่ได้รับคำเชิญนี้</p>' +
+        '<p>ผู้ดูแลระบบเพิ่มสิทธิ์ให้คุณเข้าใช้งานเป็น' + role + 'แล้ว</p>' +
+        '<p>เข้าสู่ระบบ Google ด้วยอีเมลที่ได้รับข้อความนี้ได้ทันที ไม่ต้องกดยอมรับหรือยืนยันสิทธิ์ผ่านอีเมล</p>' +
         '<p><a href="' + appUrl + '" style="display:inline-block;padding:12px 20px;background:#61412b;color:white;border-radius:12px;text-decoration:none">เปิด Yoggie</a></p>' +
-        '<p style="font-size:12px">หากไม่ทราบที่มาของคำเชิญ สามารถข้ามอีเมลนี้ได้</p></div>',
+        '<p style="font-size:12px">หากไม่รู้จักระบบนี้ สามารถข้ามอีเมลนี้ได้</p></div>',
     };
   }
 

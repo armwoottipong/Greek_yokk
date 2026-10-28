@@ -1,8 +1,8 @@
-# Yoggie invitation mailer (owner setup required)
+# Yoggie access notification mailer (owner setup required)
 
-ตัวเว็บสร้างคำขอส่งคำเชิญเมื่อผู้ดูแลเพิ่มอีเมลที่อนุญาต ส่วนตัวส่งเป็น Google Apps Script ส่วนตัวของ `armwoottipong@gmail.com` ใช้ MailApp ส่งในชื่อ **Yoggie** ทุกประมาณ 5 นาที ไม่มี Cloud Functions, service-account key, webhook หรือข้อมูลรับรองในเว็บ จึงไม่ต้องเปิด Firebase billing เพื่อใช้ตัวส่งนี้
+เมื่อ Admin บันทึกอีเมลที่อนุญาตและสิทธิ์ ผู้ใช้เข้าได้ทันทีด้วย Google บัญชีนั้น ไม่ต้องรออีเมลหรือกดยอมรับ เว็บสร้างคำขอส่งอีเมลแจ้งสิทธิ์พร้อมโลโก้และทางเข้าเท่านั้น การส่งล้มเหลวไม่เปลี่ยนสิทธิ์ ส่วนตัวส่งเป็น Google Apps Script ส่วนตัวของ `armwoottipong@gmail.com` ใช้ MailApp ส่งในชื่อ **Yoggie** ทุกประมาณ 5 นาที ไม่มี Cloud Functions, service-account key, webhook หรือข้อมูลรับรองในเว็บ จึงไม่ต้องเปิด Firebase billing เพื่อใช้ตัวส่งนี้
 
-**สถานะ:** เตรียมโค้ดและทดสอบแบบจำลองแล้ว ยังไม่ได้ติดตั้ง trigger, อนุมัติ OAuth หรือส่งอีเมลจริง การ deploy หน้าเว็บเพียงอย่างเดียวยังไม่เปิดการส่งอีเมล เจ้าของต้องทำขั้นตอนด้านล่าง
+**สถานะ 28 ต.ค. 2026:** สร้าง Apps Script และเชื่อม project `yoggie-db` แล้ว ตรวจพบ HTTP 403 `ACCESS_TOKEN_SCOPE_INSUFFICIENT`: manifest จริงไม่มี `oauthScopes` จึงใส่ manifest ฉบับ repository ให้แล้ว พร้อมข้อความอีเมลแจ้งสิทธิ์ฉบับล่าสุด รอเจ้าของอนุญาต scope และตรวจ `checkYoggieMailer` ให้ผ่านก่อนติดตั้ง trigger ยังไม่มีอีเมลถูกส่ง การ deploy หน้าเว็บเพียงอย่างเดียวยังไม่เปิดการส่งอีเมล
 
 ## สัญญาข้อมูล
 
