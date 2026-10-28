@@ -22,6 +22,18 @@
       </button>
     </nav>
     <div class="settings-content">
+    <div v-if="store.cloud" id="settings-backup" v-show="activeSettingsSection==='backup'" class="editorial-card p-4 sm:p-6 space-y-4">
+      <h3>สำรองข้อมูล Firebase</h3>
+      <div class="settings-backup-actions"><div class="settings-backup-card is-export">
+        <strong>เก็บข้อมูลร้านไว้ให้อุ่นใจ</strong>
+        <p>ดาวน์โหลดไฟล์ JSON รวมเมนู วัตถุดิบ ล็อต บิล และประวัติจากเซิร์ฟเวอร์ ณ revision เดียวกัน</p>
+        <Button :loading="backupSaving" :disabled="store.settingsBlocked" @click="exportBackup">ดาวน์โหลดไฟล์สำรอง</Button>
+      </div></div>
+      <p class="text-sm text-stone-500">อ่านข้อมูล Firebase ตามจำนวนรายการ สูงสุด 10,000 เอกสาร / 20 MB ต่อไฟล์ หากร้านกำลังบันทึกต่อเนื่องให้พักการบันทึกชั่วคราวแล้วลองใหม่</p>
+      <p class="text-sm text-stone-500">ไฟล์นี้สำรองข้อมูลธุรกิจ ไม่รวมข้อมูลเตรียมคำสั่งชั่วคราว ตะกร้า หรือข้อมูลล็อกอิน ขณะนี้ยังไม่เปิดให้กู้คืนไฟล์ลงร้าน</p>
+      <p v-if="backupError" role="alert">{{ backupError }}</p>
+      <p v-if="backupSaved" role="status">เตรียมไฟล์ revision {{ backupSaved.revision }} สำเร็จ · ตรวจ SHA-256 แล้ว และส่งไฟล์ให้เบราว์เซอร์ดาวน์โหลด</p>
+    </div>
     <div v-if="store.cloud" id="settings-firebase" v-show="activeSettingsSection==='firebase'" class="editorial-card p-4 sm:p-6 space-y-4">
       <h3>การเชื่อมต่อ Firebase</h3>
       <p role="status">{{ store.connected ? 'เชื่อมต่อเซิร์ฟเวอร์แล้ว' : 'ยังยืนยันการเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ · พักการบันทึก' }}</p>
@@ -275,6 +287,7 @@ const store = props.model || usePosStore()
 const activeSettingsSection = ref(store.cloud ? 'platforms' : 'backup')
 const settingsSections = store.cloud ? [
   {id:'platforms',label:'ช่องทางขาย',description:'ตั้งค่า GP แต่ละช่องทาง',icon:Store},
+  {id:'backup',label:'สำรองข้อมูล',description:'ดาวน์โหลดข้อมูลจาก Firebase',icon:Database},
   {id:'firebase',label:'Firebase',description:'สถานะการเชื่อมต่อร้าน',icon:Cloud}
 ] : [
   { id: 'backup', label: 'สำรองและกู้คืน', description: 'เก็บข้อมูลร้านให้อุ่นใจ', icon: Database },
@@ -326,19 +339,36 @@ function testSync() {
   store.syncWithGas()
 }
 
-function exportBackup() {
+const backupSaving=ref(false),backupError=ref(''),backupSaved=ref(null)
+async function exportBackup() {
+  if(store.cloud){
+    if(backupSaving.value||store.settingsBlocked)return
+    backupSaving.value=true;backupError.value='';backupSaved.value=null
+    try{
+      const result=await store.exportCloudBackup()
+      if(store.settingsBlocked)throw Object.assign(new Error('NOT_READY'),{code:'NOT_READY'})
+      downloadBackup(result.text,result.filename);backupSaved.value={revision:result.revision,counts:result.counts}
+    }catch(error){
+      const code=error?.code||error?.message
+      backupError.value=code==='BACKUP_BUSY'?'ข้อมูลร้านเปลี่ยนระหว่างสำรอง กรุณาพักการบันทึกแล้วลองใหม่':code==='BACKUP_TOO_LARGE'?'ข้อมูลเกินขนาดสำรองผ่านเว็บ กรุณาติดต่อผู้ดูแลเพื่อส่งออกให้ครบ':code==='BACKUP_INCOMPLETE'?'ข้อมูลร้านไม่ครบ จึงยังไม่สร้างไฟล์สำรอง กรุณาตรวจข้อมูลก่อนลองใหม่':'สำรองไม่สำเร็จ ยังไม่ได้ดาวน์โหลดไฟล์ กรุณาตรวจการเชื่อมต่อแล้วลองใหม่'
+    }finally{backupSaving.value=false}
+    return
+  }
   const data = { ...store.exportDatabase(), exportDate: new Date().toISOString(), system: 'Greek Yogurt POS v3' }
 
   const jsonStr = JSON.stringify(data, null, 2)
-  const blob = new Blob([jsonStr], { type: 'application/json' })
+  const dateStr = businessDateKey(new Date())
+  downloadBackup(jsonStr,`greek-yogurt-pos-backup-${dateStr}.json`)
+  store.showToast('ดาวน์โหลดไฟล์ข้อมูลสำรองสำเร็จ', 'success')
+}
+function downloadBackup(text,filename){
+  const blob = new Blob([text], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  const dateStr = businessDateKey(new Date())
   a.href = url
-  a.download = `greek-yogurt-pos-backup-${dateStr}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-  store.showToast('ดาวน์โหลดไฟล์ข้อมูลสำรองสำเร็จ', 'success')
+  a.download = filename
+  document.body.appendChild(a)
+  try{a.click()}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 }
 
 function handleImportFile(event) {
