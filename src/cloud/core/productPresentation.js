@@ -1,3 +1,4 @@
+import {receiptPackagePlan,receiptExpectedPackageShortage} from './packageReceipt.js'
 // Read-only views of canonical cloud quantities and prices for the original UI.
 export function projectMenus(data){
  const c=data?.shop.catalog
@@ -23,8 +24,9 @@ export function projectMaterial(m){
 }
 
 export function projectReceipt(receipt,data){
+ if(receipt.origin==='legacy'&&receipt.sourceLegacyJson){const original=JSON.parse(receipt.sourceLegacyJson);return {...original,orderId:receipt.opId,status:receipt.status,sourceLegacyId:receipt.sourceLegacyId}}
  const p=receipt.platformId,lines=receipt.lines||[]
  const projected=projectCart(lines.map(l=>({menuId:l.menuId,qty:l.qty,note:l.note,...(l.groupSelections?{selections:Object.entries(l.groupSelections).flatMap(([groupId,options])=>Object.entries(options).filter(([id,q])=>id!=='_'&&q>0).map(([id,selectionQty])=>({id,groupId,selectionQty})))}:{optionIds:l.optionIds?.flatMap(id=>Array(l.optionQuantities?.[id]||1).fill(id))||[]})})),data)
  const timestamp=receipt.createdAt
- return {orderId:receipt.opId,createdAt:timestamp?.seconds?new Date(timestamp.seconds*1000).toISOString():typeof timestamp==='string'?timestamp:'',platformName:data.display.platforms?.[p]?.name||p,subtotal:(receipt.subtotalCents||0)/100,gpAmount:(receipt.gpCents||0)/100,netRevenue:(receipt.netCents??receipt.subtotalCents??0)/100,ingredientCost:(receipt.ingredientCostCents||0)/100,packagingCost:(receipt.packagingCostCents||0)/100,foodCost:((receipt.ingredientCostCents||0)+(receipt.packagingCostCents||0))/100,items:projected.map((item,i)=>({menuName:item.menu.name,qty:item.qty,note:item.note,totalPrice:lines[i].totalCents/100,selectedAddons:item.selectedAddons.map(a=>({...a,price:a.prices[p]}))})),stockShortages:(receipt.inventory||[]).filter(row=>row.shortage>0).map(row=>{const m=data.materials.find(m=>m.id===row.materialId);return {materialId:row.materialId,materialName:m?.name||row.materialId,unit:m?.unit||'',inventoryType:m?.inventoryType,qty:row.shortage/100}})}
+ return {packagePlan:receiptPackagePlan(receipt),expectedPackagingShortageCost:receiptExpectedPackageShortage(receipt),orderId:receipt.opId,createdAt:timestamp?.seconds?new Date(timestamp.seconds*1000).toISOString():typeof timestamp==='string'?timestamp:'',platformName:data.display.platforms?.[p]?.name||p,subtotal:(receipt.subtotalCents||0)/100,gpAmount:(receipt.gpCents||0)/100,netRevenue:(receipt.netCents??receipt.subtotalCents??0)/100,ingredientCost:(receipt.ingredientCostCents||0)/100,packagingCost:(receipt.packagingCostCents||0)/100,foodCost:((receipt.ingredientCostCents||0)+(receipt.packagingCostCents||0))/100,items:projected.map((item,i)=>({menuName:item.menu.name,qty:item.qty,note:item.note,totalPrice:lines[i].totalCents/100,selectedAddons:item.selectedAddons.map(a=>({...a,price:a.prices[p]}))})),stockShortages:(receipt.inventory||[]).filter(row=>row.shortage>0).map(row=>{const m=data.materials.find(m=>m.id===row.materialId);return {materialId:row.materialId,materialName:m?.name||row.materialId,unit:m?.unit||'',inventoryType:m?.inventoryType,qty:row.shortage/100}})}
 }

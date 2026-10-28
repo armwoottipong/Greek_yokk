@@ -1,10 +1,8 @@
-import { aggregateRequirements, expandItemRequirements } from './inventory'
+import { aggregateRequirements, expandItemRequirements } from './inventory.js'
 
 const round = n => Math.round(n * 100) / 100
-export const PACKAGE_ADJUSTMENT_REASONS = Object.freeze([
-  'separate_bag', 'customer_declined', 'combined_packaging',
-  'package_unavailable', 'repacked', 'other'
-])
+export {PACKAGE_ADJUSTMENT_REASONS} from './packageReasons.js'
+import {PACKAGE_ADJUSTMENT_REASONS} from './packageReasons.js'
 
 // Allocation fields remain zero until finalizePackagePlan is given a projection
 // or the authoritative checkout allocation. Planning never consumes inventory.

@@ -1,4 +1,8 @@
+import {packageSalePolicy,extendPackageSaleRule} from './package-sale-policy.mjs'
+import {factorRuleDispatch} from './rule-dispatch.mjs'
 import {compactRules} from './compact-rules.mjs'
+import {specializeShopRules} from './specialize-shop-rules.mjs'
+import {smallShopPolicy,extendSmallShopRule} from './small-shop-policy.mjs'
 import {platformSettingsPolicy} from './platform-settings-policy.mjs'
 import {materialTypePolicy} from './material-type-policy.mjs'
 import {materialReferencePolicy} from './material-reference-policy.mjs'
@@ -12,7 +16,7 @@ import {inventoryDeletePolicy} from './inventory-delete-policy.mjs'
 // mandatory catalog witnesses and shop-scoped command/read surfaces.
 export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
  if(!/^[A-Za-z0-9_-]{1,120}$/.test(shopId))throw new Error('Invalid shop')
- const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8')+'\n'+inventoryDeletePolicy+'\n'+inventoryHistoryPolicy+'\n'+catalogPolicy+'\n'+dynamicRecipePolicy+'\n'+recipeAdmissionPolicy+'\n'+materialReferencePolicy+'\n'+materialTypePolicy+'\n'+platformSettingsPolicy
+ const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8')+'\n'+inventoryDeletePolicy+'\n'+inventoryHistoryPolicy+'\n'+catalogPolicy+'\n'+dynamicRecipePolicy+'\n'+recipeAdmissionPolicy+'\n'+materialReferencePolicy+'\n'+materialTypePolicy+'\n'+platformSettingsPolicy+'\n'+smallShopPolicy+'\n'+packageSalePolicy
  const mask=source.replace(/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g,s=>' '.repeat(s.length))
  const functions=new Map()
  for(const m of mask.matchAll(/function\s+(\w+)\s*\([^)]*\)\s*\{/g)){
@@ -77,6 +81,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
    allow update: if preparedCoverage(s,g,id,index,request.resource.data);
    allow delete: if preparationCleanupProof(s,g,id,'sale_set',index,'0');
   }
+  match /generations/{g}/preparedSales/{id}/operandProofs/{index} {allow read: if active(s,g); allow create: if smallOperandWrite(s,g,id,index,request.resource.data); }
   match /generations/{g}/preparedSales/{id}/certificates/{index} {
    allow read: if active(s,g);
    allow create: if billCertificateCreate(s,g,id,index,request.resource.data);
@@ -106,6 +111,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
  const selected=new Set()
  function collect(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g)){const name=m[1];if(functions.has(name)&&!selected.has(name)){selected.add(name);collect(functions.get(name))}}}
  collect(matches)
+ collect('packageBillShape( packageBillRow( packageBillNeed( packageCertifiedNeed( smallTouches( smallCertificate(')
  collect('catalogInputPath(')
  collect('catalogDisplayReceipt(')
  collect('catalogInputReceipt(')
@@ -123,6 +129,8 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
  collect('catalogRootChecksPresent(')
  collect('catalogAdmissionPath(')
  collect('materialReferenceReady(')
+ collect('smallOrder(')
+ collect('smallCost(')
  const replace=(body,before,after)=>{if(!body.includes(before))throw new Error('Core validator source changed');return body.replace(before,after)}
  function extend(name,body){
   if(name==='validMaterial')body=replace(body,'before.recipeIndex.catalogRevision == root.catalogRevision &&','').replace('materialNeed(before,o)','billCachedNeed(before,o,root.catalogRevision)').replace("['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']","['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex','billPreparations']").replace('summaryStock(before,after,row,day)', 'billOperandField(o,i) && billCacheConsumed(before,after,o.opId) && summaryStock(before,after,row,day)').replace('(i!=3 || preparedMatch(s,g,o.opId,o,root.catalogRevision,0))','true')
@@ -226,7 +234,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
    m.recipeIndex.quantities.hasOnly([0]) && m.recipeIndex.menus.values().hasOnly([0]) && m.recipeIndex.addons.values().hasOnly([0])`,"m.get('productionRecipe',{}).size()==0 && !root.get('returnMaterials',{}).get(id,false)")
   }
   if(name==='materialDeleteCommit')body=replace(body,'materialDeleteEligible(b,m,o.materialId)', 'materialDeleteEligible(b,m,o.materialId) && materialReferenceReady(s,g,o)')
-  return body
+  return extendPackageSaleRule(name,extendSmallShopRule(name,body))
  }
  const bodies=new Map([...functions].filter(([name])=>selected.has(name)).map(([name,body])=>[name,extend(name,body)]))
  // Flatten collection matches and keep single-surface helpers local. Inheriting
@@ -256,11 +264,11 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true}={}){
  }
  const owners=new Map([...bodies.keys()].map(name=>[name,scopes.filter(scope=>scope.needed.has(name))]))
  const shared=[...bodies].filter(([name])=>owners.get(name).length>1).map(([,body])=>body)
- const scoped=scopes.map(scope=>{
+ const scoped=scopes.map((scope,scopeIndex)=>{
   const local=[...bodies].filter(([name])=>owners.get(name).length===1&&scope.needed.has(name)).map(([,body])=>body)
   const path=scope.path.replace('/shops/{s}',`/shops/${shopId}`),body=scope.body.trim().replace(/[ \t]+$/gm,'').replace(/\bs\b/g,`'${shopId}'`)
-  return `match ${path} {\n${local.join('\n')}\n${body}\n}`
+  return `match ${path} {\n${local.join('\n')}\n${compact?factorRuleDispatch(body,scopeIndex):body}\n}`
  }).join('\n')
  const result=`rules_version = '2';\nservice cloud.firestore {\nmatch /databases/{database}/documents {\n${shared.join('\n')}\n${scoped}\n}\n}\n`.replace(/[ \t]+$/gm,'')
- return compact ? compactRules(result) : result
+ return compact ? compactRules(specializeShopRules(result,shopId)) : result
 }

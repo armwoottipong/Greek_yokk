@@ -1,8 +1,8 @@
 import {
   DEFAULT_CATEGORIES,
   DEFAULT_PLATFORMS
-} from '../data/initialData'
-import { groupError } from './addonGroups'
+} from '../data/initialData.js'
+import { groupError } from './addonGroups.js'
 export const clone = value => JSON.parse(JSON.stringify(value))
 export const CURRENT_SCHEMA_VERSION = 4
 export function inferInventoryType(material) {

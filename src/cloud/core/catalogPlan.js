@@ -30,7 +30,7 @@ export function planCatalogCommand(shop,materials,command,uid='preview'){
  const p=command.payload||{},c=shop.catalog
  if(p.expectedRevision!==undefined&&p.expectedRevision!==shop.revision)throw fail('STALE_INVENTORY_DRAFT')
  if(!['menu','addon','group'].includes(command.kind))throw fail('UNKNOWN_COMMAND')
- if(!Array.isArray(c?.summaryMaterials)||![15,16].includes(c.summaryMaterials.length))throw fail('INVALID_CATALOG_STATE')
+ if(!Array.isArray(c?.summaryMaterials)||c.summaryMaterials.length>16)throw fail('INVALID_CATALOG_STATE')
  const registry=shop.materialIds||materials.map(m=>m.id)
  validate(command.kind,p.input,c,materials,registry)
  if(p.input.active&&['menu','group'].includes(command.kind)&&p.input.optionIds.some(id=>c.addons[id]?.active===false))throw fail('INACTIVE_ADDON')

@@ -27,7 +27,7 @@ export function createCoreTransport({db,getContext}){
  function plan(s,command,shop,materials,order){
   const p=command.payload||{},options={opId:command.opId,uid:s.uid}
   if(command.kind==='sale'){
-   const f=summaryMultiGroupSale(shop,materials,p.lines,{...options,platformId:p.platformId})
+   const f=summaryMultiGroupSale(shop,materials,p.lines,{...options,platformId:p.platformId,packages:p.packages})
    const shortages=Object.fromEntries(Object.entries(f.order.approvedShortages).filter(([,q])=>q>0))
    if(!equal(shortages,p.approvedShortages||{}))throw fail('SHORTAGE_REVIEW_REQUIRED')
    if(p.subtotalCents!==undefined&&p.subtotalCents!==f.order.subtotalCents)throw fail('PRICE_REVIEW_REQUIRED')
@@ -73,6 +73,7 @@ export function createCoreTransport({db,getContext}){
     if(!equal(r[key],p[key]))throw fail('COMMAND_ID_COLLISION')
    }
    if(command.kind==='sale'){
+    if(!equal(r.billOperands?.packages||{},p.packages||{}))throw fail('COMMAND_ID_COLLISION')
     if(r.platformId!==p.platformId||r.lines.length!==p.lines.length)throw fail('COMMAND_ID_COLLISION')
     p.lines.forEach((l,i)=>{const saved=r.lines[i];if(l.menuId!==saved.menuId||l.qty!==saved.qty||(l.note||'')!==saved.note)throw fail('COMMAND_ID_COLLISION')
      if(l.selections){const groups={};for(const choice of l.selections){groups[choice.groupId]??={_:0};groups[choice.groupId][choice.id]=choice.selectionQty??1}for(const id of Object.keys(saved.groupSelections))if(!equal(groups[id]||{_:0},saved.groupSelections[id]))throw fail('COMMAND_ID_COLLISION')}
@@ -115,6 +116,12 @@ export function createCoreTransport({db,getContext}){
   }
   const certificatePath=`${gen(s)}/preparedSales/${id}/certificates/bill`
   const certificate={opId:id,uid:s.uid,catalogRevision:f.shop.catalogRevision,platformId:f.order.platformId,addonKeys:f.order.addonKeys,materialIds:f.order.materialIds,billOperands:f.order.billOperands,lines:f.order.lines}
+  if(f.order.materialIds.length<15)certificate.lineOptionQuantities=f.order.lineOptionQuantities
+  if(f.order.materialIds.length<15)for(let i=0;i<3;i++)await runTransaction(db,async t=>{
+   guard(s);const proofRef=doc(db,`${gen(s)}/preparedSales/${id}/operandProofs/${i}`),saved=await t.get(proofRef)
+   if(saved.exists()){if(!equal(saved.data(),certificate))throw fail('COMMAND_ID_COLLISION');return}
+   guard(s);admit(s,[{path:proofRef.path,data:certificate}]);t.set(proofRef,certificate)
+  })
   await runTransaction(db,async t=>{
    guard(s);const rootDoc=await t.get(doc(db,root(s)));checkRoot(s,rootDoc.data())
    if(rootDoc.data().catalogRevision!==f.shop.catalogRevision)throw fail('PRICE_REVIEW_REQUIRED')

@@ -6,9 +6,10 @@ import { allocateInventory } from '../../../domain/inventory.js'
 import { decodeSummaryMaterial } from './material.js'
 import { summaryMenuQuantity,saleMaterials } from './recipe.js'
 import { maxSaleLines } from './limits.js'
+import {validateSalePackages} from './packageAdjustments.js'
 
 // Canonical core sale planner; the server independently validates its output.
-export function summarySale(shop,materials,lines,{platformId='P',opId='SUMMARY-SALE',uid='cashier'}={}) {
+export function summarySale(shop,materials,lines,{platformId='P',opId='SUMMARY-SALE',uid='cashier',packages:inputPackages}={}) {
   const c=shop.catalog,p=c.platforms[platformId]
   if(!p?.active||lines.length<1||lines.length>6)throw new Error('Unsupported sale')
   const orderLines=lines.map(line=>{
@@ -19,18 +20,18 @@ export function summarySale(shop,materials,lines,{platformId='P',opId='SUMMARY-S
     return {menuId:line.menuId,qty:line.qty,optionIds:[...new Set(ids)],optionQuantities:{_:0,...Object.fromEntries([...new Set(ids)].map(id=>[id,ids.filter(key=>key===id).length]))},catalog:structuredClone(menu),group:structuredClone(group||{}),note:line.note||'',
       totalCents:(menu.pricesCents[platformId]+extra)*line.qty}
   })
-  return summarySaleFromLines(shop,materials,orderLines,{platformId,opId,uid})
+  return summarySaleFromLines(shop,materials,orderLines,{platformId,opId,uid,packages:inputPackages})
 }
 
 // Shared allocation engine. Every canonical line is still proved by Rules.
-export function summarySaleFromLines(shop,materials,orderLines,{platformId='P',opId='SUMMARY-SALE',uid='cashier'}={}){
+export function summarySaleFromLines(shop,materials,orderLines,{platformId='P',opId='SUMMARY-SALE',uid='cashier',packages:inputPackages}={}){
   if(orderLines.length>maxSaleLines(shop))throw Object.assign(new Error('SALE_LINE_LIMIT'),{code:'SALE_LINE_LIMIT'})
   const c=shop.catalog,p=c.platforms[platformId]
   if(!p?.active||orderLines.length<1||orderLines.length>6)throw new Error('Unsupported sale')
-  const operands=addonOperands(orderLines,c)
-  const touched=saleMaterials(shop,materials,orderLines)
+  const operands=addonOperands(orderLines,c),packages=validateSalePackages(shop,materials,inputPackages)
+  const touched=saleMaterials(shop,materials,orderLines,packages)
   if(orderLines.length>2*(18-touched.length))throw new Error('SALE_LINE_LIMIT')
-  const needs=touched.map(m=>orderLines.reduce((sum,l)=>sum+(summaryMenuQuantity(c.menus[l.menuId],m)+l.optionIds.reduce((n,key)=>n+(c.addons[key].recipe[m.id]||0)*l.optionQuantities[key],0))*l.qty,0))
+  const needs=touched.map(m=>Object.hasOwn(packages,m.id)?packages[m.id].quantity:orderLines.reduce((sum,l)=>sum+(summaryMenuQuantity(c.menus[l.menuId],m)+l.optionIds.reduce((n,key)=>n+(c.addons[key].recipe[m.id]||0)*l.optionQuantities[key],0))*l.qty,0))
   if(needs.some(n=>!Number.isSafeInteger(n)||n<0||n>1e9))throw new Error('Unsupported required quantity')
   const dayDate=d=>d===999999?null:new Date(d*86400000).toISOString().slice(0,10)
   const domain=touched.map(m=>{
@@ -47,6 +48,9 @@ export function summarySaleFromLines(shop,materials,orderLines,{platformId='P',o
     materialIds:touched.map(m=>m.id),inventory:[],approvedShortages:{},platformId,platformRevision:p.revision,
     subtotalCents:orderLines.reduce((sum,l)=>sum+l.totalCents,0),shopRevision:shop.revision+1,lineWitnessCount:Math.ceil(orderLines.length/2),...operands}
   order.billOperands={lineMenuIds:order.lineMenuIds,lineQtys:order.lineQtys,addonKeys:order.addonKeys,addonCounts:order.addonCounts}
+  const packageSnapshots=Object.fromEntries(touched.filter(m=>m.inventoryType==='packaging').map(m=>[m.id,{name:m.name||m.id,unit:m.unit||'',unitCost:m.unitCost,baselineQuantity:orderLines.reduce((sum,l)=>sum+(summaryMenuQuantity(c.menus[l.menuId],m)+l.optionIds.reduce((n,key)=>n+(c.addons[key].recipe[m.id]||0)*l.optionQuantities[key],0))*l.qty,0)}]))
+  if(Object.keys(packageSnapshots).length)order.billOperands.packageSnapshots=packageSnapshots
+  if(Object.keys(packages).length)order.billOperands.packages=structuredClone(packages)
   let ingredientBalance=0,packagingBalance=0
   const nextMaterials=touched.map((m,i)=>{
     const next=allocation.materials.find(item=>item.id===m.id),needed=needs[i]

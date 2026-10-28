@@ -139,7 +139,7 @@ function operationEntries(operation, materials) {
 }
 
 function orderEntries(order, materials) {
-  if (order.kind !== 'sale_set') return []
+  if (order.kind !== 'sale_set'||order.origin==='legacy') return []
   const opId = order.opId || order.orderId || 'order'
   return (order.inventory || []).flatMap(row => {
     const delta = quantity(row.take)

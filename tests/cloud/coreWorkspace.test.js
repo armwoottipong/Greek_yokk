@@ -3,8 +3,8 @@ import {mount,flushPromises} from '@vue/test-utils'
 import CoreWorkspace from '../../src/cloud/core/CoreWorkspace.vue'
 import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
-const h=vi.hoisted(()=>({abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn()}))
-vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,report:h.report,close:()=>{}})}))
+const h=vi.hoisted(()=>({abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn()}))
+vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,close:()=>{}})}))
 const state={user:{uid:'u'},shop:{generation:'g1',revision:1},serverReady:true}
 beforeEach(()=>{
  sessionStorage.clear();h.report.mockReset();h.report.mockResolvedValue({receipts:[],legacyOrders:[]});h.abandon.mockReset();h.orders.mockResolvedValue([]);h.history.mockResolvedValue([]);h.execute.mockClear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))
@@ -235,4 +235,16 @@ it('opens the original Dashboard from the sidebar without a local fallback or th
   const calls=h.report.mock.calls.length;await w.get('button[aria-label="โหลดข้อมูลล่าสุด"]').trigger('click');await flushPromises();expect(h.report.mock.calls.length).toBeGreaterThan(calls)
   await w.get('.brand-navigation button[title="แคชเชียร์ (POS)"]').trigger('click');await flushPromises();expect(w.findAll('[data-cart-line]')).toHaveLength(1)
  }finally{w.unmount()}
+})
+
+it('looks up a historical receipt directly even when newer orders fill the latest100',async()=>{
+ h.orders.mockResolvedValue(Array.from({length:100},(_,i)=>({opId:'NEW-'+i,status:'committed',lines:[],subtotalCents:100})))
+ h.history.mockResolvedValue([{orderId:'OLD',status:'committed',subtotal:39,platformName:'Original'}])
+ h.legacyReceipt.mockResolvedValue({opId:'LEGACY-OLD',origin:'legacy',sourceLegacyId:'OLD',status:'committed',lines:[],subtotalCents:3900})
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('[aria-label="ประวัติบิลขายและคืนบิล"]').trigger('click');await flushPromises()
+ const details=w.get('details');details.element.open=true;await details.trigger('toggle');await flushPromises()
+ await w.get('[data-legacy-return="OLD"]').trigger('click');await flushPromises()
+ expect(h.legacyReceipt).toHaveBeenCalledWith('OLD');expect(w.text()).toContain('ยืนยันคืนเงินและคืนสต็อก');expect(h.execute).not.toHaveBeenCalled()
+ w.unmount()
 })

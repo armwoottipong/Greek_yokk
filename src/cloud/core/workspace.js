@@ -30,10 +30,20 @@ export function createCoreWorkspace({connection,getContext}){
   throw new Error('SHOP_BUSY')
  }
 
- function previewSale(payload){if(!current)throw new Error('NOT_READY');return summaryMultiGroupSale(current.shop,current.materials,payload.lines,{platformId:payload.platformId}).order}
+ function previewSale(payload){if(!current)throw new Error('NOT_READY');return summaryMultiGroupSale(current.shop,current.materials,payload.lines,{platformId:payload.platformId,packages:payload.packages}).order}
  function previewCommand(command,snapshot=current){if(!snapshot)throw new Error('NOT_READY');return planInventoryCommand(snapshot.shop,snapshot.materials,command)}
  function previewInventory(kind,payload){return previewCommand({kind,payload})}
  async function orders(){const rows=await getDocsFromServer(query(collection(db,`${base()}/orders`),orderBy('createdAt','desc'),limit(100))),orders=rows.docs.map(d=>d.data());if(current)current={...current,orders};return orders}
  async function history(){const path=base(),rows=await Promise.all(Array.from({length:current?.display.legacyOrderCount||0},(_,i)=>getDocFromServer(doc(db,`${path}/legacyRecords/orders_${i}`))));return rows.map(d=>JSON.parse(d.data().json))}
- return {...commands,load,orders,previewSale,previewInventory,previewCommand,history,backup:()=>backups.read(),report:range=>{if(!current)throw new Error('NOT_READY');return reports.read(range,{legacyOrderCount:current.display.legacyOrderCount??0})},close:()=>{reports.close();backups.close();return journal.close()}}
+ async function legacyReceipt(orderId){
+  const identity={...getContext()}
+  if(!identity.ready||!identity.online||typeof orderId!=='string'||!orderId)throw new Error('NOT_READY')
+  const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(orderId)))].map(n=>n.toString(16).padStart(2,'0')).join('')
+  const row=await getDocFromServer(doc(db,`shops/${identity.shopId}/generations/${identity.generation}/orders/LEGACY-${hash}`)),now=getContext()
+  if(!now.ready||!now.online||['uid','generation','shopId','projectId'].some(k=>now[k]!==identity[k]))throw new Error('CONTEXT_CHANGED')
+  const receipt=row.exists()?row.data():null
+  if(!receipt||receipt.origin!=='legacy'||receipt.sourceLegacyId!==orderId)throw new Error('LEGACY_MIGRATION_REQUIRED')
+  return receipt
+ }
+ return {...commands,load,orders,previewSale,previewInventory,previewCommand,history,legacyReceipt,backup:()=>backups.read(),report:range=>{if(!current)throw new Error('NOT_READY');return reports.read(range,{legacyOrderCount:current.display.legacyOrderCount??0})},close:()=>{reports.close();backups.close();return journal.close()}}
 }

@@ -7,7 +7,7 @@ export function summaryMultiGroupSale(shop,materials,lines,options={}){
   const c=shop.catalog,platform=options.platformId||'P'
   const canonical=lines.map(line=>{
     const menu=c.menus[line.menuId],ids=menu?.groupIds
-    if(!ids?.length)return summarySale(shop,materials,[line],options).order.lines[0]
+    if(!ids?.length)return summarySale(shop,materials,[line],{...options,packages:undefined}).order.lines[0]
     if(!menu?.active||!Array.isArray(ids)||ids.length!==2||new Set(ids).size!==2||!Array.isArray(line.selections)||!Number.isSafeInteger(line.qty)||line.qty<1||line.qty>1000000)throw new Error('Invalid multi-group line')
     const groups=Object.fromEntries(ids.map(id=>[id,c.groups[id]]))
     if(Object.values(groups).some(g=>!g?.active||g.max>3))throw new Error('Unsupported multi-group profile')

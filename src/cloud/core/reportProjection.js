@@ -1,4 +1,5 @@
 import {encodeLegacyId} from '../paths.js'
+import {receiptPackagePlan,receiptExpectedPackageShortage} from './packageReceipt.js'
 const fail=code=>{throw Object.assign(new Error(code),{code})}
 const dateKey=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value
 export function reportRangeBounds(range){
@@ -17,6 +18,11 @@ function iso(value){
 }
 const financial=['subtotalCents','gpCents','netCents','ingredientCostCents','packagingCostCents','grossProfitCents']
 function nativeOrder(o,data){
+ if(o.origin==='legacy'&&o.sourceLegacyId&&typeof o.sourceLegacyJson==='string'){
+  let original;try{original=JSON.parse(o.sourceLegacyJson)}catch{fail('REPORT_INVALID_DATA')}
+  if(original.orderId!==o.sourceLegacyId)fail('REPORT_INVALID_DATA')
+  return {...original,reportKey:`firebase:${o.opId}`,orderId:o.opId,sourceLegacyId:o.sourceLegacyId,status:o.status,createdAt:iso(o.createdAt),platformId:o.platformId,items:(original.items||[]).map(i=>({...i,menuId:normalizedId(i.menuId,'menus',data)}))}
+ }
  if(!['committed','cancelled'].includes(o.status)||!o.opId||financial.some(k=>!Number.isSafeInteger(o[k]))||['subtotalCents','gpCents','ingredientCostCents','packagingCostCents'].some(k=>o[k]<0)||o.netCents!==o.subtotalCents-o.gpCents||o.grossProfitCents!==o.netCents-o.ingredientCostCents-o.packagingCostCents||!Array.isArray(o.lines)||!o.lines.length||o.lines.some(l=>!Number.isSafeInteger(l.qty)||l.qty<1||!Number.isSafeInteger(l.totalCents))||o.lines.reduce((n,l)=>n+l.totalCents,0)!==o.subtotalCents)fail('REPORT_INVALID_DATA')
  const items=o.lines.map(l=>{
   const choices=l.groupSelections?Object.entries(l.groupSelections).flatMap(([groupId,q])=>Object.entries(q).filter(([id,v])=>id!=='_'&&v>0).map(([id,selectionQty])=>({id,groupId,selectionQty}))):(l.optionIds||[]).map(id=>({id,selectionQty:l.optionQuantities?.[id]||1}))
@@ -26,9 +32,9 @@ function nativeOrder(o,data){
    return {...s,name:data.display.addons?.[s.id]?.name||s.id,groupName:group?.name,price:Number.isSafeInteger(cents)?cents/100:null}
   })}
  })
- return {reportKey:`firebase:${o.opId}`,orderId:o.opId,status:o.status,createdAt:iso(o.createdAt),platformId:o.platformId,platformName:data.display.platforms?.[o.platformId]?.name||o.platformId,
+ return {packagePlan:receiptPackagePlan(o),expectedPackagingShortageCost:receiptExpectedPackageShortage(o),reportKey:`firebase:${o.opId}`,orderId:o.opId,status:o.status,createdAt:iso(o.createdAt),platformId:o.platformId,platformName:data.display.platforms?.[o.platformId]?.name||o.platformId,
   subtotal:o.subtotalCents/100,gpAmount:o.gpCents/100,netRevenue:o.netCents/100,ingredientCost:o.ingredientCostCents/100,packagingCost:o.packagingCostCents/100,foodCost:(o.ingredientCostCents+o.packagingCostCents)/100,grossProfit:o.grossProfitCents/100,items,
-  shortageCostRecorded:!(o.inventory||[]).some(r=>r.shortage>0),stockShortages:(o.inventory||[]).filter(r=>r.shortage>0).map(r=>{const m=data.materials.find(m=>m.id===r.materialId);return {materialId:r.materialId,materialName:m?.name||r.materialId,unit:m?.unit||'',qty:r.shortage/100,inventoryType:'unknown'}})}
+  shortageCostRecorded:!(o.inventory||[]).some(r=>r.shortage>0&&!o.billOperands?.packageSnapshots?.[r.materialId]),stockShortages:(o.inventory||[]).filter(r=>r.shortage>0).map(r=>{const m=data.materials.find(m=>m.id===r.materialId);return {materialId:r.materialId,materialName:m?.name||r.materialId,unit:m?.unit||'',qty:r.shortage/100,inventoryType:o.billOperands?.packageSnapshots?.[r.materialId]?'packaging':'unknown'}})}
 }
 function normalizedId(id,kind,data){
  if(typeof id!=='string'||!id)return id
@@ -38,7 +44,8 @@ function normalizedId(id,kind,data){
  return known[encoded]||catalog[encoded]?encoded:id
 }
 export function projectReportOrders({receipts=[],legacyOrders=[]},data){
- return [...receipts.map(o=>nativeOrder(o,data)),...legacyOrders.map((o,index)=>{
+ const migrated=new Set(receipts.filter(o=>o.origin==='legacy').map(o=>o.sourceLegacyId))
+ return [...receipts.map(o=>nativeOrder(o,data)),...legacyOrders.filter(o=>!migrated.has(o.orderId)).map((o,index)=>{
   if(!o||typeof o!=='object'||Array.isArray(o))fail('REPORT_INVALID_DATA')
   if(o.status!=='cancelled'&&['subtotal','gpAmount','netRevenue','foodCost','grossProfit'].some(k=>o[k]===null||o[k]===undefined||!Number.isFinite(Number(o[k]))))fail('REPORT_INVALID_DATA')
   return {...o,reportKey:`legacy:${index}`,createdAt:iso(o.createdAt),platformId:normalizedId(o.platformId,'platforms',data),items:(o.items||[]).map(i=>({...i,menuId:normalizedId(i.menuId,'menus',data)}))}

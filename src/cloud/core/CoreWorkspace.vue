@@ -25,10 +25,11 @@
    <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
    <CloudStockWorkspace ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory"/>
    <SettingsView v-if="settingsVisited" v-show="tab==='settings'" :model="settingsModel"/>
-   <section v-if="tab==='orders'" aria-label="ประวัติบิล"><div class="section-heading"><div><h3>บิลขายและคืนบิล</h3><p>100 บิลล่าสุดจาก Firebase · คืนสต็อกตามล็อตเดิมเมื่อคืนบิล</p></div></div><p v-if="!data.orders.length" class="empty-orders">ยังไม่มีบิลจาก Firebase</p><ol class="order-list"><li v-for="o in data.orders" :key="o.opId"><div><StatusBadge :label="o.status==='cancelled'?'คืนบิลแล้ว':'ขายสำเร็จ'" :tone="o.status==='cancelled'?'neutral':'success'"/><strong>{{ money(o.subtotalCents) }}</strong><p>{{ orderDate(o) }} · {{ name('platforms',o.platformId) }}</p><p>{{ o.lines.map(l=>`${name('menus',l.menuId)} × ${l.qty}`).join(', ') }}</p><small>{{ o.opId }}</small></div><Button v-if="o.status==='committed'" variant="secondary" :disabled="locked||!ready" @click="cancelId=o.opId">คืนบิล</Button></li></ol><details @toggle="loadHistory"><summary>ประวัติบิลจากระบบเดิม (อ่านอย่างเดียว)</summary><p class="muted">ใช้ตรวจย้อนหลัง การคืนบิลรองรับเฉพาะบิลที่ขายผ่าน Firebase</p><p v-for="(o,i) in legacyOrders" :key="i">{{ o.createdAt }} · {{ o.platformName }} · {{ money(Math.round((o.subtotal||0)*100)) }} · {{ o.status||'ประวัติเดิม' }}</p></details></section>
+   <section v-if="tab==='orders'" aria-label="ประวัติบิล"><div class="section-heading"><div><h3>บิลขายและคืนบิล</h3><p>100 บิลล่าสุดจาก Firebase · คืนสต็อกตามล็อตเดิมเมื่อคืนบิล</p></div></div><p v-if="!data.orders.length" class="empty-orders">ยังไม่มีบิลจาก Firebase</p><ol class="order-list"><li v-for="o in data.orders" :key="o.opId"><div><StatusBadge :label="o.status==='cancelled'?'คืนบิลแล้ว':'ขายสำเร็จ'" :tone="o.status==='cancelled'?'neutral':'success'"/><strong>{{ money(o.subtotalCents) }}</strong><p>{{ orderDate(o) }} · {{ name('platforms',o.platformId) }}</p><p>{{ o.lines.map(l=>`${name('menus',l.menuId)} × ${l.qty}`).join(', ') }}</p><small>{{ o.opId }}</small></div><Button v-if="o.status==='committed'" variant="secondary" :disabled="locked||!ready" @click="cancelId=o.opId">คืนบิล</Button></li></ol><details @toggle="loadHistory"><summary>ประวัติบิลจากระบบเดิม</summary><p class="muted">คืนบิลเก่าได้หลังแปลงหลักฐานล็อตด้วยเครื่องมือเจ้าของร้านแล้ว · ตรวจบิลจากเซิร์ฟเวอร์ก่อนยืนยันทุกครั้ง</p><p v-for="(o,i) in legacyOrders" :key="i">{{ o.createdAt }} · {{ o.platformName }} · {{ money(Math.round((o.subtotal||0)*100)) }} · {{ o.status||'ประวัติเดิม' }} <Button v-if="o.status!=='cancelled'" :data-legacy-return="o.orderId" size="compact" variant="secondary" :loading="legacyLookup===o.orderId" :disabled="locked||!ready||!!legacyLookup" @click="reviewLegacy(o)">ตรวจบิลเพื่อคืน</Button></p></details></section>
   </template>
  </CloudProductShell>
  <ReceiptModal :model="productModel" teleport/>
+ <PackageReviewModal :model="productModel"/>
  <DialogFrame :open="!!menu" id="cloud-custom-order" title="รายละเอียดสินค้า" presentation="drawer" width="520px" :busy="busy" @request-close="selectedMenu=''">
   <form v-if="menu" id="cloud-line-form" class="line-form" @submit.prevent="addLine">
    <div class="product-detail"><div class="product-visual" aria-hidden="true">{{ data.display.menus?.[menu.id]?.emoji }}</div><div class="bowl-heading"><h3>{{ name('menus',menu.id) }}</h3><strong class="product-base-price">{{ money(menu.pricesCents[platformId]) }}</strong></div></div>
@@ -55,6 +56,9 @@ import AppInput from '@/components/ui/AppInput.vue'
 import CloudStockWorkspace from './CloudStockWorkspace.vue'
 import CloudDashboardWorkspace from './CloudDashboardWorkspace.vue'
 import SettingsView from '@/views/SettingsView.vue'
+import PackageReviewModal from '@/components/modals/PackageReviewModal.vue'
+import {projectCloudPackages,cloudPackageOperands} from './packagePresentation.js'
+import {PACKAGE_ADJUSTMENT_REASONS} from '@/domain/packageReasons.js'
 import {loadInventoryHistory} from './inventoryHistory.js'
 import {getFirebaseClient} from '../firebaseClient.js'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -68,14 +72,16 @@ const props=defineProps({connection:{type:Object,required:true},state:{type:Obje
 defineEmits(['sign-out'])
 const activeAction=ref(''),reloading=ref(false)
 const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),message=ref(''),tab=ref('sale'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
+const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
+const legacyLookup=ref(''),legacySources=new Map()
 const localUrl=`${import.meta.env.BASE_URL}local.html`
 let service,storageKey,deviceId,disposed=false,refreshAgain=false,storedCommand=null,cartCommandId=null
 try{
  deviceId=localStorage.getItem('gy-cloud-device-v1')||crypto.randomUUID();localStorage.setItem('gy-cloud-device-v1',deviceId)
  storageKey=JSON.stringify(['gy-core-cart-v1',props.connection.config.projectId,props.connection.shopId,props.state.shop.generation,props.state.user.uid])
  const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null')
- if(saved){cart.value=saved.cart||[];platformId.value=saved.platformId||'';storedCommand=saved.command||null;pendingCommand.value=storedCommand;cartCommandId=saved.cartCommandId||null}
+ if(saved){cart.value=saved.cart||[];packageAdjustments.value=saved.packageAdjustments||[];platformId.value=saved.platformId||'';storedCommand=saved.command||null;pendingCommand.value=storedCommand;cartCommandId=saved.cartCommandId||null}
 }catch{storageReady.value=false;error.value='เก็บตะกร้าบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วเปิดหน้านี้ใหม่'}
 const context=()=>({projectId:props.connection.config.projectId,shopId:props.connection.shopId,generation:props.state.shop?.generation,uid:props.state.user?.uid,deviceId,online:online.value,ready:props.state.serverReady===true,protocolCertified:true})
 const ready=computed(()=>initialized.value&&storageReady.value&&online.value&&props.state.serverReady===true&&!!data.value)
@@ -86,7 +92,7 @@ const platformIds=computed(()=>data.value?.shop.catalog.platformIds.filter(id=>d
 const menu=computed(()=>data.value?.shop.catalog.menus[selectedMenu.value])
 const menuGroups=computed(()=>{const m=menu.value,c=data.value?.shop.catalog;if(!m)return [];if(m.groupIds?.length)return m.groupIds.map(id=>c.groups[id]);if(m.groupId)return [c.groups[m.groupId]];return m.optionIds?.length?[{...m,id:'legacy',name:'ท็อปปิ้ง',allowRepeat:false}]:[]})
 const sourceDate=computed(()=>String(data.value?.display.sourceDate||'ไม่ระบุวันที่').slice(0,10))
-const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return {};return {order:service.previewSale({platformId:platformId.value,lines:plain(cart.value)})}}catch(e){return {error:explain(e)}}})
+const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return {};return {order:service.previewSale({platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value)})}}catch(e){return {error:explain(e)}}})
 const preview=computed(()=>previewResult.value.order),previewError=computed(()=>previewResult.value.error)
 const shortages=computed(()=>Object.entries(preview.value?.approvedShortages||{}).filter(([,q])=>q>0))
 const canCheckout=computed(()=>ready.value&&!locked.value&&!!preview.value&&(!shortages.value.length||approveShortage.value))
@@ -102,7 +108,7 @@ const productPlatforms=computed(()=>platformIds.value.map(id=>({id,name:name('pl
 const filteredMenus=computed(()=>productMenus.value.filter(m=>m.name.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
 const cartQuantity=computed(()=>cart.value.reduce((n,l)=>n+l.qty,0)),cartQuantities=computed(()=>cart.value.reduce((r,l)=>({...r,[l.menuId]:(r[l.menuId]||0)+l.qty}),{}))
 const pageTitle=computed(()=>({dashboard:'ภาพรวม & งบต้นทุน',sale:'แคชเชียร์ (POS)',stock:'คลังวัตถุดิบ & Package',menu:'จัดการเมนู',addon:'จัดการ Add-on',orders:'บิลขาย & คืนบิล'})[tab.value]||'Greek Yogg.')
-const productModel=reactive({cloud:true,modals:{receipt:receiptState},availableTabs:['dashboard','pos','stock','menu','addon','settings'],get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab(id){if(id==='pos')tab.value='sale';else if(['dashboard','stock','menu','addon','settings'].includes(id))tab.value=id},get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get cartPackagePlan(){return {items:[]}},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value)cart.value=[]},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
+const productModel=reactive({cloud:true,modals:{receipt:receiptState,packageReview:packageReviewState},availableTabs:['dashboard','pos','stock','menu','addon','settings'],get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab(id){if(id==='pos')tab.value='sale';else if(['dashboard','stock','menu','addon','settings'].includes(id))tab.value=id},get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get materials(){return data.value?.materials.map(m=>({...m,isDeleted:m.deleted}))||[]},get packageLocked(){return locked.value||!ready.value},get packageAdjustments(){return packageAdjustments.value},get cartPackagePlan(){return projectCloudPackages(data.value,cart.value,packageAdjustments.value)},savePackageAdjustment,resetPackageAdjustment(id){if(!locked.value)packageAdjustments.value=packageAdjustments.value.filter(a=>a.materialId!==id)},resetPackageAdjustments(){if(!locked.value)packageAdjustments.value=[]},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value){cart.value=[];packageAdjustments.value=[]}},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
 const settingsModel=reactive({cloud:true,
  exportCloudBackup:()=>service.backup(),
  get platforms(){const c=data.value?.shop.catalog;return c?c.platformIds.map(id=>({id,name:name('platforms',id),gpPercent:c.platforms[id].gpBasisPoints/100})):[]},
@@ -121,6 +127,14 @@ const settingsModel=reactive({cloud:true,
   return result.value?.rejected?{ok:false,message:'ข้อมูลร้านเปลี่ยนแล้ว กรุณาโหลดค่าปัจจุบันและตรวจ GP ใหม่'}:result
  }
 })
+function savePackageAdjustment(input){
+ if(locked.value||!ready.value)return {ok:false,message:'กรุณารอการเชื่อมต่อหรือคำสั่งค้างก่อนปรับ Package'}
+ const m=data.value.materials.find(m=>m.id===input.materialId),qty=Number(input.requestedQty),note=String(input.note||'').trim()
+ if(!m||m.deleted||m.inventoryType!=='packaging'||!Number.isFinite(qty)||qty<0||Math.abs(qty*100-Math.round(qty*100))>0.000001||!PACKAGE_ADJUSTMENT_REASONS.includes(input.reason)||input.reason==='other'&&!note||note.length>1000)return {ok:false,message:'ตรวจจำนวน Package เหตุผล และหมายเหตุให้ถูกต้อง'}
+ const baseline=projectCloudPackages(data.value,cart.value).items.find(r=>r.materialId===m.id)?.baselineQty||0
+ const next=packageAdjustments.value.filter(a=>a.materialId!==m.id).concat({materialId:m.id,deltaQty:Math.round((qty-baseline)*100)/100,reason:input.reason,note})
+ try{service.previewSale({platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,next)});packageAdjustments.value=next;return {ok:true}}catch(e){return {ok:false,message:explain(e)}}
+}
 function answerClear(value){clearConfirm.value=false;clearAnswer?.(value);clearAnswer=null}
 function updateCartQty(index,qty){if(locked.value)return;try{const next=plain(cart.value);next[index].qty=qty;service.previewSale({platformId:platformId.value,lines:next});cart.value=next}catch(e){error.value=explain(e)}}
 function setPlatform(id){if(!locked.value)platformId.value=id}
@@ -138,7 +152,7 @@ function orderDate(o){return o.createdAt?.toDate?o.createdAt.toDate().toLocaleSt
 function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g.id==='legacy'?null:g,id,platformId.value);return cents===0?'รวมในราคา':`+${money(cents)}`}
 function selectMenu(id){if(locked.value)return;selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
-function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,platformId:platformId.value,command:pendingCommand.value,cartCommandId}));return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
+function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,cartCommandId}));return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
 function addLine(){
  if(locked.value||!menu.value||cart.value.length>=saleLimit.value)return
  try{
@@ -172,11 +186,12 @@ async function send(command,action=command.kind){
 }
 function finish(value){
  inventoryWorkspace.value?.acknowledge(value)
+ if(value.kind==='cancel'){const orderId=value.result?.orderId;const old=data.value?.orders.find(o=>o.opId===orderId),sourceId=old?.sourceLegacyId||legacySources.get(orderId);if(sourceId){const row=legacyOrders.value.find(o=>o.orderId===sourceId);if(row)row.status='cancelled';legacySources.delete(orderId)}}
  if(value.rejected){pendingCommand.value=null;storedCommand=null;save();message.value='';error.value='ยอดคลังเปลี่ยน คำสั่งที่ยังไม่สำเร็จถูกหยุดแล้ว กรุณาตรวจแบบร่างที่เหลือใหม่';return}
-  if(value.kind==='sale'&&!value.abandoned&&value.opId===cartCommandId){cart.value=[];cartOpen.value=false;receiptState.order=projectReceipt({...value.result,opId:value.opId},data.value);receiptState.isOpen=true}
+  if(value.kind==='sale'&&!value.abandoned&&value.opId===cartCommandId){cart.value=[];packageAdjustments.value=[];packageReviewState.isOpen=false;cartOpen.value=false;receiptState.order=projectReceipt({...value.result,opId:value.opId},data.value);receiptState.isOpen=true}
  cancelId.value='';pendingCommand.value=null;storedCommand=null;cartCommandId=null;approveShortage.value=false;save();message.value=value.abandoned?'หยุดบิลแล้ว ตะกร้ายังอยู่':'บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว'
 }
-function checkout(){if(!canCheckout.value)return;cartCommandId=crypto.randomUUID();void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),subtotalCents:preview.value.subtotalCents,approvedShortages:Object.fromEntries(shortages.value)}})}
+function checkout(){if(!canCheckout.value)return;cartCommandId=crypto.randomUUID();void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value),subtotalCents:preview.value.subtotalCents,approvedShortages:Object.fromEntries(shortages.value)}})}
 async function retry(){if(!pendingCommand.value)return;await send(plain(pendingCommand.value),'retry')}
 async function abandon(){
  if(busy.value||!ready.value)return
@@ -185,7 +200,13 @@ async function abandon(){
 }
 
 function cancelOrder(orderId){if(!locked.value&&ready.value)void send({opId:crypto.randomUUID(),kind:'cancel',payload:{orderId}})}
-async function loadHistory(e){if(e.target.open&&!legacyOrders.value.length)try{legacyOrders.value=await service.history()}catch{error.value='โหลดประวัติเดิมไม่ได้ กรุณาเชื่อมต่อแล้วลองใหม่'}}
+async function reviewLegacy(order){
+ if(locked.value||!ready.value||legacyLookup.value)return
+ legacyLookup.value=order.orderId
+ try{const receipt=await service.legacyReceipt(order.orderId);if(disposed)return;if(receipt.status==='cancelled'){order.status='cancelled';message.value='บิลนี้คืนแล้ว';return}legacySources.set(receipt.opId,receipt.sourceLegacyId);data.value={...data.value,orders:[receipt,...data.value.orders.filter(o=>o.opId!==receipt.opId)]};cancelId.value=receipt.opId}
+ catch(e){error.value=e.message==='LEGACY_MIGRATION_REQUIRED'?'บิลนี้ยังไม่ผ่านการแปลงหลักฐานล็อต กรุณาใช้เครื่องมือเจ้าของก่อนคืนบิล':explain(e)}finally{legacyLookup.value=''}
+}
+async function loadHistory(e){if(e.target.open&&!legacyOrders.value.length)try{legacyOrders.value=(await service.history()).filter(o=>!data.value.orders.some(n=>n.sourceLegacyId===o.orderId))}catch{error.value='โหลดประวัติเดิมไม่ได้ กรุณาเชื่อมต่อแล้วลองใหม่'}}
 let ordersTask=null,reloadTask=null
 function loadOrders(){
  if(ordersTask)return ordersTask
@@ -207,7 +228,7 @@ async function reloadAfterWrite(){
 }
 
 const connectivity=()=>{online.value=navigator.onLine;if(online.value&&props.state.serverReady)void refresh()}
-watch([cart,platformId],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
+watch([cart,platformId,packageAdjustments],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
 watch(()=>JSON.stringify(shortages.value),()=>{approveShortage.value=false})
 watch(tab,value=>{if(value==='orders')void loadOrders();if(value==='dashboard')reportVisited.value=true;if(value==='settings')settingsVisited.value=true})
 watch(()=>data.value?.shop.catalogRevision,(revision,previous)=>{

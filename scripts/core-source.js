@@ -67,7 +67,7 @@ export function projectCoreSource(raw){
   return row
  })
  const materialIds=materials.map(m=>m.id),summaryMaterials=materialIds.filter(id=>protectedRefs.has(id))
- if(summaryMaterials.length!==protectedRefs.size||![15,16].includes(summaryMaterials.length))throw new Error('Unsupported protected material profile')
+ if(summaryMaterials.length!==protectedRefs.size||(summaryMaterials.length<0||summaryMaterials.length>16))throw new Error('Unsupported protected material profile')
  const productionUsers=Object.fromEntries(materialIds.map(id=>[id,[]]))
  for(const m of materials)for(const id of m.productionRecipe?.inputIds||[]){if(!productionUsers[id])throw new Error('Missing production input');productionUsers[id].push(m.id)}
  const shop={status:'active',generation:'g1',revision:1,lastOpId:'',catalogRevision:1,materialIds,productionUsers,
