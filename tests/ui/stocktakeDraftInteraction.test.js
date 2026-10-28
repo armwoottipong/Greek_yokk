@@ -13,7 +13,7 @@ it('reviews before and after quantities without committing or discarding on clos
   await w.get('[data-review-stock-drafts]').trigger('click');await flushPromises()
   expect(w.get('[data-review-stock-drafts]').attributes('aria-expanded')).toBe('true')
   expect(document.getElementById('stock-draft-review').textContent).toContain('100 → 75 g')
-  expect(document.getElementById('stock-draft-review').textContent).toContain('ยังไม่บันทึก')
+  expect(document.getElementById('stock-draft-review').textContent).toContain('กดบันทึกทั้งหมดที่แถบ')
   w.vm.showDraftDetails=false;await flushPromises()
   expect(commit).not.toHaveBeenCalled();expect(discard).not.toHaveBeenCalled();expect(store.hasStockDrafts).toBe(true)
  }finally{w.unmount()}
