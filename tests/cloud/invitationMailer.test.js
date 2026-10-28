@@ -29,6 +29,12 @@ function fixture(overrides = {}) {
 }
 
 describe('trusted invitation worker', () => {
+  it('ships the round brand mascot as a square PNG for email clients', () => {
+    const png = readFileSync('public/brand/email-logo.png')
+    expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
+    expect(png.readUInt32BE(16)).toBe(512)
+    expect(png.readUInt32BE(20)).toBe(512)
+  })
   it('sends one branded invitation, then skips the completed request', () => {
     const core = loadCore(), f = fixture(), initial = f.document
     expect(core.process(initial, f.deps)).toBe('sent')
@@ -41,7 +47,7 @@ describe('trusted invitation worker', () => {
     expect(f.sent[0].htmlBody).toContain('ไม่ต้องกดยอมรับหรือยืนยันสิทธิ์ผ่านอีเมล')
     expect(f.sent[0].body + f.sent[0].htmlBody).not.toContain('คำเชิญ')
     expect(f.sent[0].body).toContain('https://armwoottipong.github.io/Greek_yokk/')
-    expect(f.sent[0].htmlBody).toContain('https://armwoottipong.github.io/Greek_yokk/brand/mascot.png')
+    expect(f.sent[0].htmlBody).toContain('https://armwoottipong.github.io/Greek_yokk/brand/email-logo.png')
     expect(f.sent[0].htmlBody).not.toContain(['Greek', 'Yogg'].join(' '))
     expect(f.document.data.status).toBe('sent')
   })
@@ -164,7 +170,7 @@ describe('Apps Script Firestore adapter', () => {
     scope.yoggieSender_()({ ...message, attachments: ['ignored'], inlineImages: { ignored: 'ignored' } })
     expect(sent).toHaveLength(1)
     expect(sent[0]).toEqual(message)
-    expect(sent[0].htmlBody).toContain('src="https://armwoottipong.github.io/Greek_yokk/brand/mascot.png"')
+    expect(sent[0].htmlBody).toContain('src="https://armwoottipong.github.io/Greek_yokk/brand/email-logo.png"')
     expect(sent[0].htmlBody).not.toContain('cid:')
     expect(sent[0]).not.toHaveProperty('attachments')
     expect(sent[0]).not.toHaveProperty('inlineImages')

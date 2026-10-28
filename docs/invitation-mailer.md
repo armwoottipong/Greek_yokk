@@ -50,7 +50,7 @@ Lease ยาว 10 นาที งาน `processing` ที่หมดเว�
 8. รัน **`installYoggieInvitationTrigger`** เพื่อสร้าง trigger ทุก 5 นาที ฟังก์ชันจะลบ trigger handler เดียวกันของบัญชีนี้ก่อนสร้างใหม่ แต่ละ trigger รันด้วยบัญชีผู้สร้างตาม [Installable triggers](https://developers.google.com/apps-script/guides/triggers/installable) ไม่ต้องกด Deploy และห้ามสร้าง public web app
 9. เมื่อพร้อมทดสอบจริง ให้เพิ่มอีเมลทดสอบที่เจ้าของควบคุมผ่าน Settings ของเว็บ ตรวจ outbox, Apps Script Executions, ผู้ส่ง **Yoggie**, โลโก้, สิทธิ์ที่ระบุ และลิงก์เปิดเว็บ จากนั้นตรวจว่า trigger รอบต่อไปไม่ส่งคำขอเดิมซ้ำ ตรวจอีกกรณีโดยถอนสิทธิ์ก่อนรอบส่ง ต้องได้ `cancelled` และบัญชีนั้นเข้าเว็บไม่ได้
 
-อีเมลมาจากบัญชี Gmail ของเจ้าของโดยใช้ display name `Yoggie` แสดงโลโก้ด้วย `<img>` ที่ URL สาธารณะคงที่ `https://armwoottipong.github.io/Greek_yokk/brand/mascot.png` ในเนื้อหา HTML โดยไม่แนบไฟล์หรือใช้ CID ตามคำขอผู้ใช้ ตัวส่งไม่ดาวน์โหลดภาพและไม่เพิ่ม `attachments`/`inlineImages` โปรแกรมอ่านเมลเป็นผู้โหลดภาพและอาจให้ผู้รับอนุญาตแสดงรูปภายนอก ไม่มีตัวติดตามเฉพาะผู้รับ ใช้ลิงก์เปิดเว็บ `https://armwoottipong.github.io/Greek_yokk/` เท่านั้น ไม่อ่าน URL/หัวเรื่อง/HTML จาก outbox
+อีเมลมาจากบัญชี Gmail ของเจ้าของโดยใช้ display name `Yoggie` แสดงโลโก้ด้วย `<img>` ที่ URL สาธารณะคงที่ `https://armwoottipong.github.io/Greek_yokk/brand/email-logo.png` ในเนื้อหา HTML โดยไม่แนบไฟล์หรือใช้ CID ตามคำขอผู้ใช้ ตัวส่งไม่ดาวน์โหลดภาพและไม่เพิ่ม `attachments`/`inlineImages` โปรแกรมอ่านเมลเป็นผู้โหลดภาพและอาจให้ผู้รับอนุญาตแสดงรูปภายนอก ไม่มีตัวติดตามเฉพาะผู้รับ ใช้ลิงก์เปิดเว็บ `https://armwoottipong.github.io/Greek_yokk/` เท่านั้น ไม่อ่าน URL/หัวเรื่อง/HTML จาก outbox
 
 ## โควตาและการดูแล
 

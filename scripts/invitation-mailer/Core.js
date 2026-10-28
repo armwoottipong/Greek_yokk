@@ -1,7 +1,7 @@
 /* Shared plain JavaScript: paste into Apps Script as Core.gs. No credentials. */
 var InvitationMailer = (function () {
   var appUrl = 'https://armwoottipong.github.io/Greek_yokk/';
-  var logoUrl = appUrl + 'brand/mascot.png';
+  var logoUrl = appUrl + 'brand/email-logo.png';
   var roles = { viewer: 'ผู้ดูข้อมูล', manager: 'ผู้จัดการ', admin: 'ผู้ดูแลระบบ' };
 
   function valid(request) {
@@ -23,7 +23,7 @@ var InvitationMailer = (function () {
         'ไม่ต้องกดยอมรับหรือยืนยันสิทธิ์ผ่านอีเมล\n' +
         'หากไม่รู้จักระบบนี้ สามารถข้ามอีเมลนี้ได้',
       htmlBody: '<div style="font-family:Arial,sans-serif;color:#30271f;max-width:520px;margin:auto;padding:24px">' +
-        '<img src="' + logoUrl + '" alt="Yoggie" width="100" height="100">' +
+        '<img src="' + logoUrl + '" alt="Yoggie" width="100" height="100" style="display:block;width:100px;height:100px;border:0;">' +
         '<h1 style="font-size:24px">ยินดีต้อนรับสู่ Yoggie</h1>' +
         '<p>ผู้ดูแลระบบเพิ่มสิทธิ์ให้คุณเข้าใช้งานเป็น' + role + 'แล้ว</p>' +
         '<p>เข้าสู่ระบบ Google ด้วยอีเมลที่ได้รับข้อความนี้ได้ทันที ไม่ต้องกดยอมรับหรือยืนยันสิทธิ์ผ่านอีเมล</p>' +
