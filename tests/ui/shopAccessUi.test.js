@@ -26,3 +26,11 @@ it('retains a draft when another device changes permissions and requires reload 
  expect(wrapper.get('textarea').element.value).toContain('draft@example.com');await wrapper.get('form').trigger('submit');expect(saveEmails).not.toHaveBeenCalled()
  await wrapper.findAll('button').find(b=>b.text()==='โหลดรายชื่อปัจจุบัน').trigger('click');expect(wrapper.get('textarea').element.value).toContain('remote@example.com')
 })
+
+it('provides a named keyboard focus target for scrolling a full allowlist',async()=>{
+ const emails=Object.fromEntries(Array.from({length:50},(_,i)=>[`account${i}@example.com`,true]))
+ wrapper=mount(AccessPanel,{attachTo:document.body,props:{emails,account:'account0@example.com',saveEmails:vi.fn()}})
+ const list=wrapper.get('[role="region"][aria-label="รายชื่ออีเมลที่บันทึกแล้ว"]')
+ expect(list.attributes('tabindex')).toBe('0');list.element.focus()
+ expect(document.activeElement).toBe(list.element);expect(list.findAll('li')).toHaveLength(50)
+})

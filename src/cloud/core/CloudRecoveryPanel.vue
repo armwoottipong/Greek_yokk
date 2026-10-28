@@ -12,10 +12,12 @@
    <p>{{ Object.entries(preview.counts||{}).map(([k,v])=>`${k}: ${v}`).join(' · ') }}</p>
    <p v-if="preview.checksum">SHA-256: <span class="break-all">{{ preview.checksum }}</span></p>
   </div>
+  <details class="settings-disclosure"><summary>ขั้นตอนและคำสั่งสำหรับเครื่องเจ้าของร้าน</summary>
   <p>เครื่องเจ้าของต้องอัปเดตโค้ดล่าสุดและล็อกอิน Firebase CLI ด้วยบัญชีเจ้าของโปรเจกต์ก่อน คำสั่งแรกตรวจและสร้างแผนเท่านั้น จากนั้นตรวจยอดและพักทุกเครื่องก่อน stage/activate</p>
   <pre class="overflow-x-auto text-xs">{{ command }}</pre>
   <p>ล้างร้านใช้ <code>--reset</code> แทนไฟล์ · โหลดตัวอย่างใช้ <code>--demo</code> · การแปลงบิลเก่าต้องมีหลักฐานล็อตครบ ใช้ <code>--migrate-legacy</code> กับไฟล์ Firebase หรือ <code>--legacy</code> กับไฟล์เดิม</p>
   <p>เครื่องมือเก็บ generation เดิมไว้ และปฏิเสธการสลับหากร้านเปลี่ยนหลังเตรียมแผน ย้อนกลับอัตโนมัติได้เฉพาะก่อนเริ่มบันทึกธุรกิจใน generation ใหม่ รายละเอียดอยู่ใน <code>docs/owner-recovery.md</code></p>
+  </details>
  </section>
 </template>
 <script setup>

@@ -3,18 +3,25 @@
     <!-- Header -->
     <div class="settings-intro">
       <div>
-      <h2>ตั้งค่าร้านให้ลงตัว</h2>
+      <h2>ตั้งค่าร้าน</h2>
       <p class="text-xs text-stone-400 mt-0.5">
-        {{ store.cloud ? 'ข้อมูลร้านใช้ร่วมกันผ่าน Firebase · ตั้งค่า GP และตรวจการเชื่อมต่อ' : 'ข้อมูลหลักเก็บในเครื่องนี้ จัดหมวดหมู่ สำรองข้อมูล และดูการเชื่อมต่อได้ในที่เดียว' }}
+        {{ store.cloud ? 'จัดการผู้ใช้งาน ช่องทางขาย และข้อมูลร้านในที่เดียว' : 'ข้อมูลหลักเก็บในเครื่องนี้ จัดหมวดหมู่ สำรองข้อมูล และดูการเชื่อมต่อได้ในที่เดียว' }}
       </p>
       </div>
       <span class="settings-local"><Database :size="15" /> {{ store.cloud ? 'ข้อมูลร้านบน Firebase' : 'ข้อมูลหลักเก็บในเครื่อง' }}</span>
     </div>
 
+    <div v-if="store.cloud" class="settings-shop-status" :class="{'is-disconnected':!store.connected}">
+      <div><Cloud :size="20"/><span><strong>{{ store.connected ? 'ร้านเชื่อมต่อแล้ว' : 'ยังยืนยันการเชื่อมต่อไม่ได้' }}</strong><small>{{ store.connected ? 'ใช้ข้อมูลเดียวกันทุกเครื่อง · บันทึกเมื่อเซิร์ฟเวอร์ยืนยัน' : 'พักการบันทึกไว้ก่อน กรุณาตรวจอินเทอร์เน็ต' }}</small></span></div>
+      <button type="button" @click="activeSettingsSection='firebase'">ดูสถานะร้าน</button>
+    </div>
+    <label class="settings-mobile-nav" for="settings-category">หมวดการตั้งค่า
+      <select id="settings-category" v-model="activeSettingsSection"><option v-for="section in settingsSections" :key="section.id" :value="section.id">{{ section.label }}</option></select>
+    </label>
     <div class="settings-layout">
     <nav aria-label="หมวดการตั้งค่า" class="settings-nav">
       <button v-for="section in settingsSections" :key="section.id" type="button"
-        :aria-controls="`settings-${section.id}`" :aria-pressed="activeSettingsSection === section.id"
+        :aria-controls="`settings-${section.id}`" :aria-current="activeSettingsSection === section.id ? 'page' : undefined"
         @click="activeSettingsSection = section.id"
         class="settings-nav-item">
         <component :is="section.icon" :size="18" />
@@ -22,24 +29,23 @@
       </button>
     </nav>
     <div class="settings-content">
-    <CloudAccessPanel v-if="store.cloud && activeSettingsSection==='access'" :emails="store.allowedEmails||{}" :account="store.account" :blocked="store.settingsBlocked" :save-emails="store.saveAllowedEmails"/>
-    <CloudRecoveryPanel v-if="store.cloud && activeSettingsSection==='recovery'" :project-id="store.projectId" :shop-id="store.shopId" :blocked="store.settingsBlocked"/>
+    <CloudAccessPanel v-if="store.cloud && visitedSections.has('access')" v-show="activeSettingsSection==='access'" :emails="store.allowedEmails||{}" :account="store.account" :blocked="store.settingsBlocked" :save-emails="store.saveAllowedEmails"/>
+    <CloudRecoveryPanel v-if="store.cloud && visitedSections.has('recovery')" v-show="activeSettingsSection==='recovery'" :project-id="store.projectId" :shop-id="store.shopId" :blocked="store.settingsBlocked"/>
     <div v-if="store.cloud" id="settings-backup" v-show="activeSettingsSection==='backup'" class="editorial-card p-4 sm:p-6 space-y-4">
       <h3>สำรองข้อมูล Firebase</h3>
-      <div class="settings-backup-actions"><div class="settings-backup-card is-export">
-        <strong>เก็บข้อมูลร้านไว้ให้อุ่นใจ</strong>
-        <p>ดาวน์โหลดไฟล์ JSON รวมเมนู วัตถุดิบ ล็อต บิล และประวัติจากเซิร์ฟเวอร์ ณ revision เดียวกัน</p>
-        <Button :loading="backupSaving" :disabled="store.settingsBlocked" @click="exportBackup">ดาวน์โหลดไฟล์สำรอง</Button>
-      </div></div>
-      <p class="text-sm text-stone-500">อ่านข้อมูล Firebase ตามจำนวนรายการ สูงสุด 10,000 เอกสาร / 20 MB ต่อไฟล์ หากร้านกำลังบันทึกต่อเนื่องให้พักการบันทึกชั่วคราวแล้วลองใหม่</p>
-      <p class="text-sm text-stone-500">ไฟล์นี้สำรองข้อมูลธุรกิจ ไม่รวมข้อมูลเตรียมคำสั่งชั่วคราว ตะกร้า หรือข้อมูลล็อกอิน ขณะนี้ยังไม่เปิดให้กู้คืนไฟล์ลงร้าน</p>
+      <p>เก็บเมนู วัตถุดิบ ล็อต บิล และประวัติจากเซิร์ฟเวอร์ไว้ในไฟล์เดียว ก่อนกู้คืนหรือย้ายข้อมูลร้าน</p>
+      <div class="settings-export-action"><Download :size="28"/><div><strong>ไฟล์สำรองข้อมูลร้าน (.json)</strong><p>ข้อมูลทั้งหมดจาก revision เดียวกัน ตรวจความครบด้วย SHA-256</p></div></div>
+      <Button :loading="backupSaving" :disabled="store.settingsBlocked" @click="exportBackup">ดาวน์โหลดไฟล์สำรอง</Button>
+      <details class="settings-disclosure"><summary>ข้อมูลที่สำรองและข้อจำกัด</summary><p>สำรองข้อมูลธุรกิจ สูงสุด 10,000 เอกสาร / 20 MB ต่อไฟล์ ไม่รวมตะกร้า ข้อมูลล็อกอิน และคำสั่งที่กำลังเตรียม หากร้านกำลังบันทึกต่อเนื่อง ให้พักการบันทึกชั่วคราวแล้วลองใหม่</p></details>
+      <p>มีไฟล์สำรองแล้ว? <button class="settings-text-link" type="button" @click="activeSettingsSection='recovery'">ตรวจไฟล์และเตรียมกู้คืน</button> ผ่านเครื่องเจ้าของร้าน</p>
       <p v-if="backupError" role="alert">{{ backupError }}</p>
       <p v-if="backupSaved" role="status">เตรียมไฟล์ revision {{ backupSaved.revision }} สำเร็จ · ตรวจ SHA-256 แล้ว และส่งไฟล์ให้เบราว์เซอร์ดาวน์โหลด</p>
     </div>
     <div v-if="store.cloud" id="settings-firebase" v-show="activeSettingsSection==='firebase'" class="editorial-card p-4 sm:p-6 space-y-4">
       <h3>การเชื่อมต่อ Firebase</h3>
       <p role="status">{{ store.connected ? 'เชื่อมต่อเซิร์ฟเวอร์แล้ว' : 'ยังยืนยันการเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ · พักการบันทึก' }}</p>
-      <dl><dt>โปรเจกต์</dt><dd>{{ store.projectId }}</dd><dt>ร้าน</dt><dd>{{ store.shopId }}</dd><dt>บัญชี Google</dt><dd>{{ store.account }}</dd></dl>
+      <dl class="settings-connection-details"><dt>บัญชีที่กำลังใช้งาน</dt><dd>{{ store.account }}</dd><dt>การบันทึก</dt><dd>{{ store.settingsBlocked ? 'พักการบันทึก · รอระบบพร้อม' : 'พร้อมบันทึกข้อมูลร้าน' }}</dd></dl>
+      <details class="settings-disclosure"><summary>รายละเอียด Firebase</summary><dl class="settings-connection-details"><dt>โปรเจกต์</dt><dd>{{ store.projectId }}</dd><dt>ร้าน</dt><dd>{{ store.shopId }}</dd></dl></details>
       <p class="text-sm text-stone-500">ใช้ข้อมูลร้านร่วมกันทุกเครื่อง บันทึกสำเร็จเมื่อได้รับการยืนยันจากเซิร์ฟเวอร์</p>
     </div>
 
@@ -288,13 +294,15 @@ import {
 
 const props=defineProps({model:{type:Object,default:null}})
 const store = props.model || usePosStore()
-const activeSettingsSection = ref(store.cloud ? 'platforms' : 'backup')
+const activeSettingsSection = ref(store.cloud ? 'access' : 'backup')
+const visitedSections=ref(new Set([activeSettingsSection.value]))
+watch(activeSettingsSection,section=>visitedSections.value.add(section))
 const settingsSections = store.cloud ? [
   {id:'access',label:'ผู้ใช้งาน',description:'อีเมลที่อนุญาตให้เข้าร้าน',icon:Check},
   {id:'platforms',label:'ช่องทางขาย',description:'ตั้งค่า GP แต่ละช่องทาง',icon:Store},
   {id:'backup',label:'สำรองข้อมูล',description:'ดาวน์โหลดข้อมูลจาก Firebase',icon:Database},
   {id:'recovery',label:'กู้คืน / เริ่มร้านใหม่',description:'ตรวจไฟล์และใช้เครื่องเจ้าของ',icon:RotateCcw},
-  {id:'firebase',label:'Firebase',description:'สถานะการเชื่อมต่อร้าน',icon:Cloud}
+  {id:'firebase',label:'สถานะร้าน',description:'บัญชีและการเชื่อมต่อ Firebase',icon:Cloud}
 ] : [
   { id: 'backup', label: 'สำรองและกู้คืน', description: 'เก็บข้อมูลร้านให้อุ่นใจ', icon: Database },
   { id: 'platforms', label: 'ช่องทางขาย', description: 'ตั้งค่า GP แต่ละช่องทาง', icon: Store },
