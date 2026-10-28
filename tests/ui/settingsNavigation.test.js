@@ -20,11 +20,11 @@ it('opens cloud users first, keeps access drafts across navigation and exposes s
  const cloud=mount(Settings,{props:{model},attachTo:document.body})
  expect(cloud.get('#settings-access').isVisible()).toBe(true)
  expect(cloud.get('[aria-controls="settings-access"]').attributes('aria-current')).toBe('page')
- await cloud.get('textarea').setValue('owner@example.com\nstaff@example.com')
+ await cloud.get('input[type="email"]').setValue('staff@example.com');await cloud.get('#settings-access form').trigger('submit')
  await cloud.get('[aria-controls="settings-firebase"]').trigger('click')
  expect(cloud.get('#settings-access').isVisible()).toBe(false)
  await cloud.get('[aria-controls="settings-access"]').trigger('click')
- expect(cloud.get('textarea').element.value).toContain('staff@example.com')
+ expect(cloud.get('#settings-access ul').text()).toContain('staff@example.com')
  model.connected=false
  await cloud.vm.$nextTick()
  expect(cloud.get('.settings-shop-status').text()).toContain('พักการบันทึก')

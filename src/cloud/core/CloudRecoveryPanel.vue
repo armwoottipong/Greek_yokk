@@ -1,12 +1,11 @@
 <template>
- <section id="settings-recovery" class="editorial-card p-4 sm:p-6 space-y-4" aria-label="ตรวจไฟล์และเตรียมกู้คืน">
-  <h3>กู้คืน / เริ่มร้านใหม่ผ่านเครื่องเจ้าของ</h3>
-  <p>เลือกไฟล์เพื่อตรวจข้อมูลก่อนสร้างแผน การตรวจในหน้านี้ยังไม่เปลี่ยนข้อมูลร้าน</p>
-  <label for="cloud-recovery-file">ไฟล์สำรอง JSON</label>
-  <input id="cloud-recovery-file" type="file" accept=".json,application/json" :disabled="checking||blocked" @change="inspect">
-  <p v-if="checking" role="status">กำลังตรวจไฟล์และ checksum…</p>
+ <section id="settings-recovery" class="editorial-card recovery-panel" aria-label="ตรวจไฟล์และเตรียมกู้คืน">
+  <header class="recovery-heading"><RotateCcw :size="24" aria-hidden="true"/><div><h3>กู้คืน / เริ่มร้านใหม่</h3><p>ตรวจไฟล์ที่นี่ แล้วดำเนินการผ่านเครื่องเจ้าของร้าน</p></div></header>
+  <ol class="recovery-flow"><li><strong>ตรวจไฟล์สำรอง</strong><p>เลือกไฟล์ JSON เพื่อตรวจรูปแบบและความครบถ้วน ข้อมูลร้านยังไม่เปลี่ยน</p></li><li><strong>ตรวจแผนก่อนนำกลับมาใช้</strong><p>ใช้เครื่องเจ้าของตรวจยอด พักการบันทึกทุกเครื่อง แล้วจึงกู้คืนข้อมูล</p></li></ol>
+  <div class="recovery-upload"><FileJson :size="32" aria-hidden="true"/><div><label for="cloud-recovery-file">เลือกไฟล์สำรองข้อมูลร้าน</label><p>ไฟล์ .json จาก Firebase หรือระบบเดิม · ขนาดไม่เกิน 20 MB</p><input id="cloud-recovery-file" type="file" accept=".json,application/json" :disabled="checking||blocked" @change="inspect"></div></div>
+  <p v-if="checking" class="recovery-checking" role="status"><LoaderCircle :size="18" class="animate-spin" aria-hidden="true"/>กำลังตรวจไฟล์และ checksum…</p>
   <p v-if="error" role="alert">{{ error }}</p>
-  <div v-if="preview" role="status">
+  <div v-if="preview" class="recovery-result" role="status">
    <strong>{{ preview.ready?'ไฟล์ผ่านการตรวจเบื้องต้น':'ไฟล์ระบบเดิม · ต้องตรวจสูตร ล็อต และหลักฐานบิลด้วยเครื่องมือเจ้าของ' }}</strong>
    <p v-if="preview.source">ร้าน {{ preview.source.shopId }} · revision {{ preview.source.revision }} · {{ preview.source.date||'ไม่ระบุวันที่' }}</p>
    <p>{{ Object.entries(preview.counts||{}).map(([k,v])=>`${k}: ${v}`).join(' · ') }}</p>
@@ -22,6 +21,7 @@
 </template>
 <script setup>
 import {computed,ref,onUnmounted} from 'vue'
+import {RotateCcw,FileJson,LoaderCircle} from 'lucide-vue-next'
 import {inspectOwnerBackup} from '../../../scripts/recovery-plan.js'
 import {MAX_BACKUP_BYTES} from './businessBackup.js'
 const props=defineProps({projectId:String,shopId:String,blocked:Boolean})
@@ -44,3 +44,8 @@ async function inspect(event){
 }
 onUnmounted(()=>{closed=true;epoch++})
 </script>
+
+<style scoped>
+.recovery-panel{display:grid;gap:24px}.recovery-heading{display:flex;align-items:flex-start;gap:14px}.recovery-heading>svg{color:var(--accent-brand);flex-shrink:0;margin-top:3px}.recovery-heading h3{font-size:20px;font-weight:600}.recovery-heading p,.recovery-panel p{font-size:14px;line-height:1.8;color:var(--text-muted)}.recovery-heading p{margin-top:6px}.recovery-flow{display:grid;grid-template-columns:1fr 1fr;list-style:decimal;padding:20px 0 20px 24px;gap:28px;border-block:1px solid var(--border-subtle)}.recovery-flow li{padding-left:6px}.recovery-flow li::marker{color:var(--accent-brand);font-weight:600}.recovery-flow strong{font-size:15px;font-weight:600}.recovery-flow p{margin-top:8px;max-width:65ch}.recovery-upload{display:flex;align-items:flex-start;gap:18px;padding:24px 0}.recovery-upload>svg{flex-shrink:0;color:var(--accent-brand);margin-top:4px}.recovery-upload>div{min-width:0}.recovery-upload label{font-size:16px;font-weight:600;display:block;margin-bottom:6px}.recovery-upload input{display:block;width:100%;max-width:100%;margin-top:16px;font-size:14px;color:var(--text-main)}.recovery-upload input::file-selector-button{padding:11px 16px;margin-right:12px;border:1px solid var(--control-border);border-radius:10px;background:var(--bg-card);color:var(--accent-brand);font:inherit;cursor:pointer}.recovery-upload input:disabled{opacity:.5}.recovery-upload input:focus-visible{outline:2px solid var(--accent-brand);outline-offset:4px;border-radius:8px}.recovery-checking{display:flex;gap:8px;align-items:center}.recovery-result{padding:20px;background:var(--bg-soft);border-radius:12px;display:grid;gap:8px;overflow-wrap:anywhere}.recovery-panel [role=alert]{color:var(--accent-red)}.recovery-panel .settings-disclosure{min-width:0}.recovery-panel pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}.recovery-panel code{overflow-wrap:anywhere}
+@media(max-width:760px){.recovery-flow{grid-template-columns:1fr;gap:20px}.recovery-upload{gap:12px;padding:8px 0}.recovery-upload>svg{display:none}.recovery-heading h3{font-size:18px}}
+</style>
