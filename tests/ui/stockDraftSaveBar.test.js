@@ -8,6 +8,8 @@ it('keeps save-all outside the detail popup and saves only on explicit action',a
  await flushPromises()
  const save=w.get('[data-save-stock-drafts]')
  expect(save.element.closest('#stock-draft-review')).toBeNull()
+ expect(w.get('[data-discard-stock-drafts]').element.closest('#stock-draft-review')).toBeNull()
+ expect(w.findAll('.draft-bar-actions button').map(b=>b.text())).toEqual(['รายละเอียด','ยกเลิกทั้งหมด','บันทึกทั้งหมด'])
  expect(document.querySelector('#stock-draft-review [data-save-stock-drafts]')).toBeNull()
  expect(document.getElementById('stock-draft-review').textContent).toContain('100 → 75 g')
  expect(w.emitted('commit')).toBeUndefined()
