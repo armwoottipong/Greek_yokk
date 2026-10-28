@@ -7,7 +7,11 @@ it('reviews before and after quantities without committing or discarding on clos
  const commit=vi.spyOn(store,'commitStockDrafts'),discard=vi.spyOn(store,'discardStockDrafts')
  const w=mount(Stock,{attachTo:document.body})
  try{
+  expect(w.get('.draft-bar').text()).toContain('1 รายการรอบันทึก')
+  expect(w.get('.draft-bar').text()).not.toContain('100 → 75 g')
+  expect(w.get('[data-review-stock-drafts]').attributes('aria-haspopup')).toBe('dialog')
   await w.get('[data-review-stock-drafts]').trigger('click');await flushPromises()
+  expect(w.get('[data-review-stock-drafts]').attributes('aria-expanded')).toBe('true')
   expect(document.getElementById('stock-draft-review').textContent).toContain('100 → 75 g')
   expect(document.getElementById('stock-draft-review').textContent).toContain('ยังไม่บันทึก')
   w.vm.showDraftDetails=false;await flushPromises()
