@@ -1,8 +1,10 @@
-# Yoggie access notification mailer (owner setup required)
+# Yoggie access notification mailer
 
 เมื่อ Admin บันทึกอีเมลที่อนุญาตและสิทธิ์ ผู้ใช้เข้าได้ทันทีด้วย Google บัญชีนั้น ไม่ต้องรออีเมลหรือกดยอมรับ เว็บสร้างคำขอส่งอีเมลแจ้งสิทธิ์พร้อมโลโก้และทางเข้าเท่านั้น การส่งล้มเหลวไม่เปลี่ยนสิทธิ์ ส่วนตัวส่งเป็น Google Apps Script ส่วนตัวของ `armwoottipong@gmail.com` ใช้ MailApp ส่งในชื่อ **Yoggie** ทุกประมาณ 5 นาที ไม่มี Cloud Functions, service-account key, webhook หรือข้อมูลรับรองในเว็บ จึงไม่ต้องเปิด Firebase billing เพื่อใช้ตัวส่งนี้
 
-**สถานะ 28 ต.ค. 2026:** สร้าง Apps Script และเชื่อม project `yoggie-db` แล้ว ตรวจพบ HTTP 403 `ACCESS_TOKEN_SCOPE_INSUFFICIENT`: manifest จริงไม่มี `oauthScopes` จึงใส่ manifest ฉบับ repository ให้แล้ว พร้อมข้อความอีเมลแจ้งสิทธิ์ฉบับล่าสุด รอเจ้าของอนุญาต scope และตรวจ `checkYoggieMailer` ให้ผ่านก่อนติดตั้ง trigger ยังไม่มีอีเมลถูกส่ง การ deploy หน้าเว็บเพียงอย่างเดียวยังไม่เปิดการส่งอีเมล
+**สถานะ 28 ต.ค. 2026 — เปิดใช้งานแล้ว:** เจ้าของอนุญาตสิทธิ์ Google แล้ว `checkYoggieMailer` อ่าน Firestore สำเร็จและรายงานโควตาเหลือ 100 ผู้รับก่อนเริ่มส่ง ติดตั้ง trigger `runYoggieInvitations` ทุก 5 นาที ตรวจหน้ารายการแล้วมีเพียง 1 trigger การเรียก worker จริงหนึ่งรอบเสร็จสำเร็จ และมีคำขอในคิว 1 รายการรายงาน `sent` (MailApp รับส่งแล้ว ยังไม่ใช่หลักฐานว่าเข้า Inbox ของผู้รับ)
+
+แก้ HTTP 403 `ACCESS_TOKEN_SCOPE_INSUFFICIENT` โดยใส่ `oauthScopes` ใน manifest จริงตาม repository และให้เจ้าของอนุญาตใหม่ ไม่ได้เปลี่ยน Firestore Rules, สิทธิ์ผู้ใช้ร้าน หรือเปิด billing เพื่อแก้ปัญหา
 
 ## สัญญาข้อมูล
 
