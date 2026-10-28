@@ -86,18 +86,18 @@ it('shows a spinner on archive and ignores a second click until Firebase complet
 })
 
 
-it('locks the draft confirmation button and dialog during an unresolved server commit',async()=>{
+it('locks save-all and draft details during an unresolved server commit',async()=>{
  const s=createTestStore();s.resetDemoData();const m=s.materials[0]
  s.stockAdjust(m.id,Math.max(0,m.stock-1),'count','',true)
  let resolve;const commit=vi.spyOn(s,'commitStockDrafts').mockImplementation(()=>new Promise(r=>{resolve=r}))
- const w=mount(StockView,{global:{stubs:{teleport:true}}});w.vm.showDraftDetails=true;await flushPromises()
- const button=()=>w.get('#stock-draft-review .draft-review-actions .ui-button--primary')
+ const w=mount(StockView,{global:{stubs:{teleport:true}}});await flushPromises()
+ const button=()=>w.get('[data-save-stock-drafts]')
  await button().trigger('click');await flushPromises()
  expect(button().attributes('aria-busy')).toBe('true');expect(button().find('.ui-button-spinner').exists()).toBe(true)
  await button().trigger('click');expect(commit).toHaveBeenCalledTimes(1)
- expect(w.get('#stock-draft-review .dialog-frame-header button').attributes('disabled')).toBeDefined()
+ expect(w.get('[data-review-stock-drafts]').attributes('disabled')).toBeDefined()
  resolve({ok:false,message:'uncertain'});await flushPromises()
- expect(w.vm.showDraftDetails).toBe(true);expect(button().attributes('aria-busy')).toBeUndefined();w.unmount()
+ expect(s.hasStockDrafts).toBe(true);expect(button().attributes('aria-busy')).toBeUndefined();w.unmount()
 })
 
 it('allows only one save confirmation and one cloud save while the original editor is pending',async()=>{
