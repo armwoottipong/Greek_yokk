@@ -1,13 +1,13 @@
 <template>
- <CloudProductShell :model="productModel" :title="pageTitle" :loading="loading||reloading" :busy="busy" :online="online" @history="tab='orders'" @reload="reloadEverything" @sign-out="$emit('sign-out')">
+ <CloudProductShell :model="productModel" :title="pageTitle" :loading="loading||reloading" :busy="busy" :online="online" @history="navigate('orders')" @reload="reloadEverything" @sign-out="$emit('sign-out')">
   <p v-if="data?.display.trial" class="trial-banner"><strong>ข้อมูลทดสอบ — ยังไม่ใช่ยอดร้านปัจจุบัน</strong><br>จากไฟล์สำรอง {{ sourceDate }} · <a :href="localUrl">เปิดระบบเดิม</a></p>
   <p v-if="!state.serverReady||!online" class="connection-warning" role="status">ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว กรุณาเชื่อมต่อก่อนบันทึก</p>
   <p v-if="message" class="notice" role="status" aria-live="polite">{{ message }}</p>
   <p v-if="error" class="error" role="alert">{{ error }}</p>
-  <section v-if="pendingCommand" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนเริ่มรายการใหม่ เพื่อไม่บันทึกรายการซ้ำ</p><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button></section>
+  <section v-if="pendingCommand&&operator" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนเริ่มรายการใหม่ เพื่อไม่บันทึกรายการซ้ำ</p><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button></section>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
-   <section v-show="tab==='sale'" ref="saleRoot" class="pos-workspace" :class="{'is-split':split}" aria-label="ขายสินค้า">
+   <section v-if="operator" v-show="tab==='sale'" ref="saleRoot" class="pos-workspace" :class="{'is-split':split}" aria-label="ขายสินค้า">
     <PosCatalog :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="locked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
     <CartPanel :model="productModel" :presentation="split?'panel':'sheet'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
      <template #review>
@@ -22,9 +22,9 @@
     </CartPanel>
     <CartReviewBar v-if="!split" :quantity="cartQuantity" :subtotal="(preview?.subtotalCents||0)/100" :open="cartOpen" @open="cartOpen=true"/>
    </section>
-   <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
-   <CloudStockWorkspace ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory"/>
-   <SettingsView v-if="settingsVisited" v-show="tab==='settings'" :model="settingsModel"/>
+   <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :read-only="!operator" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
+   <CloudStockWorkspace v-if="operator" ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory"/>
+   <SettingsView v-if="settingsVisited&&role==='admin'" v-show="tab==='settings'" :model="settingsModel"/>
    <section v-if="tab==='orders'" aria-label="ประวัติบิล"><div class="section-heading"><div><h3>บิลขายและคืนบิล</h3><p>100 บิลล่าสุดจาก Firebase · คืนสต็อกตามล็อตเดิมเมื่อคืนบิล</p></div></div><p v-if="!data.orders.length" class="empty-orders">ยังไม่มีบิลจาก Firebase</p><ol class="order-list"><li v-for="o in data.orders" :key="o.opId"><div><StatusBadge :label="o.status==='cancelled'?'คืนบิลแล้ว':'ขายสำเร็จ'" :tone="o.status==='cancelled'?'neutral':'success'"/><strong>{{ money(o.subtotalCents) }}</strong><p>{{ orderDate(o) }} · {{ name('platforms',o.platformId) }}</p><p>{{ o.lines.map(l=>`${name('menus',l.menuId)} × ${l.qty}`).join(', ') }}</p><small>{{ o.opId }}</small></div><Button v-if="o.status==='committed'" variant="secondary" :disabled="locked||!ready" @click="cancelId=o.opId">คืนบิล</Button></li></ol><details @toggle="loadHistory"><summary>ประวัติบิลจากระบบเดิม</summary><p class="muted">คืนบิลเก่าได้หลังแปลงหลักฐานล็อตด้วยเครื่องมือเจ้าของร้านแล้ว · ตรวจบิลจากเซิร์ฟเวอร์ก่อนยืนยันทุกครั้ง</p><p v-for="(o,i) in legacyOrders" :key="i">{{ o.createdAt }} · {{ o.platformName }} · {{ money(Math.round((o.subtotal||0)*100)) }} · {{ o.status||'ประวัติเดิม' }} <Button v-if="o.status!=='cancelled'" :data-legacy-return="o.orderId" size="compact" variant="secondary" :loading="legacyLookup===o.orderId" :disabled="locked||!ready||!!legacyLookup" @click="reviewLegacy(o)">ตรวจบิลเพื่อคืน</Button></p></details></section>
   </template>
  </CloudProductShell>
@@ -62,6 +62,7 @@ import {PACKAGE_ADJUSTMENT_REASONS} from '@/domain/packageReasons.js'
 import {loadInventoryHistory} from './inventoryHistory.js'
 import {getFirebaseClient} from '../firebaseClient.js'
 import {createShopAccess} from '../shopAccess.js'
+import {shopRole,roleTabs,canOperate} from '../roles.js'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import ReceiptModal from '@/components/modals/ReceiptModal.vue'
 import {Check,Plus} from 'lucide-vue-next'
@@ -70,16 +71,18 @@ import {projectMenus,projectCart,optionCents,projectReceipt} from './productPres
 import {createCoreWorkspace} from './workspace.js'
 import {maxSaleLines} from './model/limits.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
-const presentUsers=ref([]),presenceClock=ref(Date.now())
+const role=computed(()=>shopRole(props.state.shop,props.state.user?.email)),operator=computed(()=>canOperate(role.value))
+const invitations=ref([]),presentUsers=ref([]),presenceClock=ref(Date.now())
 let shopAccess=null,presenceTimer=null
 const activeUsers=computed(()=>{
+ if(!props.state.serverReady||!online.value)return []
  const self=props.state.user,others=props.state.serverReady?presentUsers.value.filter(user=>user.uid!==self?.uid&&user.email&&user.lastSeen?.toMillis?.()>presenceClock.value-120000&&props.state.shop?.allowedEmails?.[user.email]):[]
- return [...(self?.email?[self]:[]),...others.sort((a,b)=>a.email.localeCompare(b.email))]
+ return [...(self?.email?[self]:[]),...others.sort((a,b)=>a.email.localeCompare(b.email))].map(user=>({...user,role:shopRole(props.state.shop,user.email)}))
 })
 function updatePresence(){presenceClock.value=Date.now();if(online.value&&props.state.serverReady&&document.visibilityState==='visible')void shopAccess?.heartbeat()}
 defineEmits(['sign-out'])
 const activeAction=ref(''),reloading=ref(false)
-const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),message=ref(''),tab=ref('sale'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
+const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),message=ref(''),tab=ref(operator.value?'sale':'dashboard'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
 const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
 const legacyLookup=ref(''),legacySources=new Map()
@@ -91,9 +94,9 @@ try{
  const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null')
  if(saved){cart.value=saved.cart||[];packageAdjustments.value=saved.packageAdjustments||[];platformId.value=saved.platformId||'';storedCommand=saved.command||null;pendingCommand.value=storedCommand;cartCommandId=saved.cartCommandId||null}
 }catch{storageReady.value=false;error.value='เก็บตะกร้าบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วเปิดหน้านี้ใหม่'}
-const context=()=>({projectId:props.connection.config.projectId,shopId:props.connection.shopId,generation:props.state.shop?.generation,uid:props.state.user?.uid,deviceId,online:online.value,ready:props.state.serverReady===true,protocolCertified:true})
+const context=()=>({projectId:props.connection.config.projectId,shopId:props.connection.shopId,generation:props.state.shop?.generation,uid:props.state.user?.uid,deviceId,online:online.value,ready:props.state.serverReady===true,protocolCertified:true,role:role.value})
 const ready=computed(()=>initialized.value&&storageReady.value&&online.value&&props.state.serverReady===true&&!!data.value)
-const locked=computed(()=>busy.value||!!pendingCommand.value||!storageReady.value)
+const locked=computed(()=>!operator.value||busy.value||!!pendingCommand.value||!storageReady.value)
 const saleLimit=computed(()=>data.value?maxSaleLines(data.value.shop):0)
 const menus=computed(()=>Object.values(data.value?.shop.catalog.menus||{}).filter(m=>m.active))
 const platformIds=computed(()=>data.value?.shop.catalog.platformIds.filter(id=>data.value.shop.catalog.platforms[id].active)||[])
@@ -115,19 +118,21 @@ const productMenus=computed(()=>projectMenus(data.value))
 const productPlatforms=computed(()=>platformIds.value.map(id=>({id,name:name('platforms',id),isActive:true,gpPercent:(data.value.shop.catalog.platforms[id].gpBasisPoints||0)/100})))
 const filteredMenus=computed(()=>productMenus.value.filter(m=>m.name.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
 const cartQuantity=computed(()=>cart.value.reduce((n,l)=>n+l.qty,0)),cartQuantities=computed(()=>cart.value.reduce((r,l)=>({...r,[l.menuId]:(r[l.menuId]||0)+l.qty}),{}))
-const pageTitle=computed(()=>({dashboard:'ภาพรวม & งบต้นทุน',sale:'แคชเชียร์ (POS)',stock:'คลังวัตถุดิบ & Package',menu:'จัดการเมนู',addon:'จัดการ Add-on',orders:'บิลขาย & คืนบิล',settings:'ตั้งค่าร้าน'})[tab.value]||'Greek Yogg.')
-const productModel=reactive({cloud:true,modals:{receipt:receiptState,packageReview:packageReviewState},availableTabs:['dashboard','pos','stock','menu','addon','settings'],get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab(id){if(id==='pos')tab.value='sale';else if(['dashboard','stock','menu','addon','settings'].includes(id))tab.value=id},get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get materials(){return data.value?.materials.map(m=>({...m,isDeleted:m.deleted}))||[]},get packageLocked(){return locked.value||!ready.value},get packageAdjustments(){return packageAdjustments.value},get cartPackagePlan(){return projectCloudPackages(data.value,cart.value,packageAdjustments.value)},savePackageAdjustment,resetPackageAdjustment(id){if(!locked.value)packageAdjustments.value=packageAdjustments.value.filter(a=>a.materialId!==id)},resetPackageAdjustments(){if(!locked.value)packageAdjustments.value=[]},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value){cart.value=[];packageAdjustments.value=[]}},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
+const pageTitle=computed(()=>({dashboard:'ภาพรวม & งบต้นทุน',sale:'แคชเชียร์ (POS)',stock:'คลังวัตถุดิบ & Package',menu:'จัดการเมนู',addon:'จัดการ Add-on',orders:'บิลขาย & คืนบิล',settings:'ตั้งค่าร้าน'})[tab.value]||'Yoggie')
+const productModel=reactive({cloud:true,modals:{receipt:receiptState,packageReview:packageReviewState},get role(){return role.value},get availableTabs(){return roleTabs(role.value)},get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab:navigate,get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get materials(){return data.value?.materials.map(m=>({...m,isDeleted:m.deleted}))||[]},get packageLocked(){return locked.value||!ready.value},get packageAdjustments(){return packageAdjustments.value},get cartPackagePlan(){return projectCloudPackages(data.value,cart.value,packageAdjustments.value)},savePackageAdjustment,resetPackageAdjustment(id){if(!locked.value)packageAdjustments.value=packageAdjustments.value.filter(a=>a.materialId!==id)},resetPackageAdjustments(){if(!locked.value)packageAdjustments.value=[]},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value){cart.value=[];packageAdjustments.value=[]}},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
 Object.defineProperty(productModel,'activeUsers',{get:()=>activeUsers.value})
 const settingsModel=reactive({cloud:true,
  get allowedEmails(){return props.state.shop?.allowedEmails||{}},
- saveAllowedEmails(emails,expected){if(!ready.value||locked.value||!shopAccess)throw new Error('NOT_READY');return shopAccess.save(emails,expected)},
+ get invitations(){return invitations.value},
+ get userRoles(){return props.state.shop?.userRoles||{}},
+ saveAllowedEmails(emails,expected,roles,baselineRoles){if(role.value!=='admin'||!ready.value||locked.value||!shopAccess)throw new Error('NOT_READY');return shopAccess.save(emails,expected,roles,baselineRoles)},
  exportCloudBackup:()=>service.backup(),
  get platforms(){const c=data.value?.shop.catalog;return c?c.platformIds.map(id=>({id,name:name('platforms',id),gpPercent:c.platforms[id].gpBasisPoints/100})):[]},
- get revision(){return data.value?.shop.revision},get connected(){return ready.value},get settingsBlocked(){return !ready.value||locked.value},
+ get revision(){return data.value?.shop.revision},get connected(){return ready.value},get settingsBlocked(){return role.value!=='admin'||!ready.value||locked.value},
  get projectId(){return props.connection.config.projectId},get shopId(){return props.connection.shopId},get account(){return props.state.user?.email||''},
  get materials(){return data.value?.materials||[]},get menus(){return productMenus.value},get addons(){return inventoryWorkspace.value?.model.addons||[]},get orders(){return data.value?.orders||[]},
  async savePlatformGpRates(draft,expectedRevision){
-  if(!ready.value||locked.value)return {ok:false}
+  if(role.value!=='admin'||!ready.value||locked.value)return {ok:false}
   const rates={}
   for(const [id,value] of Object.entries(draft)){
    const n=Number(value)*100,rounded=Math.round(n)
@@ -152,7 +157,8 @@ function setPlatform(id){if(!locked.value)platformId.value=id}
 function groupCount(g){return Object.values(choices.value[g.id]||{}).reduce((n,q)=>n+Number(q),0)}
 function toggleChoice(g,id){if(!locked.value)choices.value[g.id][id]=choices.value[g.id][id]?0:1}
 function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(c.groupId||c.groupIds?.length)return false;return Object.values(service.previewSale({platformId:platformId.value,lines:[{menuId:m.id,qty:1,optionIds:[]}]}).approvedShortages||{}).some(q=>q>0)}catch{return false}}
-const inventoryWorkspace=ref(null),reportVisited=ref(false),settingsVisited=ref(false),reportRefreshKey=ref(0)
+function navigate(id){const target=id==='sale'?'pos':id;if(!roleTabs(role.value).includes(target)&&!(target==='orders'&&operator.value))return;tab.value=target==='pos'?'sale':target}
+const inventoryWorkspace=ref(null),reportVisited=ref(!operator.value),settingsVisited=ref(false),reportRefreshKey=ref(0)
 async function readStockHistory(options={}){const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config});return loadInventoryHistory({db,shopId:props.connection.shopId,generation:props.state.shop.generation,materials:data.value.materials,display:data.value.display,clearedThroughRevision:Math.max(data.value.shop.inventoryHistoryCutoff||0,options.clearedThroughRevision||0)})}
 watch(split,value=>{if(value)cartOpen.value=false})
 
@@ -189,6 +195,7 @@ function refresh(){
 
 async function updatePending(){const p=await service.pending();if(disposed)return;if(p.length)pendingCommand.value=p[0].envelope;else if(!storedCommand)pendingCommand.value=null;save()}
 async function send(command,action=command.kind){
+ if(!operator.value||command.kind==='platform_gp'&&role.value!=='admin')return {ok:false,code:'ACCESS_DENIED'}
  if(busy.value||!ready.value)return {ok:false,code:'NOT_READY'}
  let refreshed=false
  busy.value=true;activeAction.value=action;error.value='';pendingCommand.value=plain(command);storedCommand=pendingCommand.value
@@ -205,7 +212,7 @@ function finish(value){
 function checkout(){if(!canCheckout.value)return;cartCommandId=crypto.randomUUID();void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value),subtotalCents:preview.value.subtotalCents,approvedShortages:Object.fromEntries(shortages.value)}})}
 async function retry(){if(!pendingCommand.value)return;await send(plain(pendingCommand.value),'retry')}
 async function abandon(){
- if(busy.value||!ready.value)return
+ if(!operator.value||busy.value||!ready.value)return
  busy.value=true;activeAction.value='abandon'
  try{const r=await service.abandon();await reloadAfterWrite();if(!disposed){if(r.ok)finish(r.value);else error.value=explain(r)}}catch(e){if(!disposed)error.value=explain(e)}finally{busy.value=false;activeAction.value=''}
 }
@@ -241,6 +248,7 @@ async function reloadAfterWrite(){
 const connectivity=()=>{online.value=navigator.onLine;updatePresence();if(online.value&&props.state.serverReady)void refresh()}
 watch([cart,platformId,packageAdjustments],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
 watch(()=>JSON.stringify(shortages.value),()=>{approveShortage.value=false})
+watch(role,()=>{shopAccess?.watchInvitations();const current=tab.value==='sale'?'pos':tab.value;if(!roleTabs(role.value).includes(current)&&!(current==='orders'&&operator.value))tab.value='dashboard';if(!operator.value){selectedMenu.value='';cancelId.value='';cartOpen.value=false;packageReviewState.isOpen=false;reportVisited.value=true}})
 watch(tab,value=>{if(value==='orders')void loadOrders();if(value==='dashboard')reportVisited.value=true;if(value==='settings')settingsVisited.value=true})
 watch(()=>data.value?.shop.catalogRevision,(revision,previous)=>{
  if(previous===undefined||revision===previous)return
@@ -258,10 +266,10 @@ onMounted(async()=>{
  window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity)
  if(props.state.user?.email){
   const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config})
-  shopAccess=createShopAccess({db,shopId:props.connection.shopId,getUser:()=>props.state.user,onPresence:users=>{presentUsers.value=users}})
-  shopAccess.watch();updatePresence();presenceTimer=setInterval(updatePresence,60000);document.addEventListener('visibilitychange',updatePresence)
+  shopAccess=createShopAccess({db,shopId:props.connection.shopId,getUser:()=>props.state.user,getShop:()=>props.state.shop,onInvitations:rows=>{invitations.value=rows},onPresence:users=>{presentUsers.value=users}})
+  shopAccess.watch();shopAccess.watchInvitations();updatePresence();presenceTimer=setInterval(updatePresence,60000);document.addEventListener('visibilitychange',updatePresence)
  }
- try{service=createCoreWorkspace({connection:props.connection,getContext:context});await refresh();if(disposed)return;await updatePending();initialized.value=true;if(pendingCommand.value&&ready.value){const r=await service.reconcile();if(!disposed&&r.ok&&r.value)finish(r.value)}}catch(e){error.value=explain(e)}
+ try{service=createCoreWorkspace({connection:props.connection,getContext:context});await refresh();if(disposed)return;await updatePending();initialized.value=true;if(operator.value&&pendingCommand.value&&ready.value){const r=await service.reconcile();if(!disposed&&r.ok&&r.value)finish(r.value)}}catch(e){error.value=explain(e)}
 })
 onUnmounted(()=>{disposed=true;answerClear(false);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity);document.removeEventListener('visibilitychange',updatePresence);clearInterval(presenceTimer);shopAccess?.close();void service?.close()})
 </script>

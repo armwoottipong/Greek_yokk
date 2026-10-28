@@ -1,5 +1,5 @@
 ---
-name: Greek Yogg.
+name: Yoggie
 description: Calm, precise shop operations in the mascot's cream and burgundy identity.
 colors:
   brand: "#780608"

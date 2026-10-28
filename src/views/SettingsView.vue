@@ -29,7 +29,7 @@
       </button>
     </nav>
     <div class="settings-content">
-    <CloudAccessPanel v-if="store.cloud && visitedSections.has('access')" v-show="activeSettingsSection==='access'" :emails="store.allowedEmails||{}" :account="store.account" :blocked="store.settingsBlocked" :save-emails="store.saveAllowedEmails"/>
+    <CloudAccessPanel v-if="store.cloud && visitedSections.has('access')" v-show="activeSettingsSection==='access'" :emails="store.allowedEmails||{}" :roles="store.userRoles||{}" :invitations="store.invitations||[]" :account="store.account" :blocked="store.settingsBlocked" :save-emails="store.saveAllowedEmails"/>
     <CloudRecoveryPanel v-if="store.cloud && visitedSections.has('recovery')" v-show="activeSettingsSection==='recovery'" :project-id="store.projectId" :shop-id="store.shopId" :blocked="store.settingsBlocked"/>
     <div v-if="store.cloud" id="settings-backup" v-show="activeSettingsSection==='backup'" class="editorial-card p-4 sm:p-6 space-y-4">
       <h3>สำรองข้อมูล Firebase</h3>
@@ -254,7 +254,7 @@
     <div class="settings-footer">
       <div class="flex items-center gap-2">
         <Database :size="14" />
-        <span>Greek Yogg. · {{ store.cloud ? 'Firebase' : 'ข้อมูลในเครื่องนี้' }}</span>
+        <span>Yoggie · {{ store.cloud ? 'Firebase' : 'ข้อมูลในเครื่องนี้' }}</span>
       </div>
       <div>
         {{ (store.materials.length + store.menus.length + store.addons.length + store.orders.length) }} รายการ
@@ -368,11 +368,11 @@ async function exportBackup() {
     }finally{backupSaving.value=false}
     return
   }
-  const data = { ...store.exportDatabase(), exportDate: new Date().toISOString(), system: 'Greek Yogurt POS v3' }
+  const data = { ...store.exportDatabase(), exportDate: new Date().toISOString(), system: 'Yoggie POS v3' }
 
   const jsonStr = JSON.stringify(data, null, 2)
   const dateStr = businessDateKey(new Date())
-  downloadBackup(jsonStr,`greek-yogurt-pos-backup-${dateStr}.json`)
+  downloadBackup(jsonStr,`yoggie-backup-${dateStr}.json`)
   store.showToast('ดาวน์โหลดไฟล์ข้อมูลสำรองสำเร็จ', 'success')
 }
 function downloadBackup(text,filename){

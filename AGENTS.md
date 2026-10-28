@@ -19,8 +19,10 @@
 - First Firebase release: sale/stock deduction, cancellation, receiving and
   production. Settings mutations and extended reports may follow later, as the
   user explicitly chose on 25 October 2026.
-- Firebase Spark free; Google login only; every logged-in account is equal.
-  No roles or membership approval. Block shop writes when server connectivity
+- Firebase Spark free; Google login only; explicitly allowed emails.
+  User instruction (28 October 2026): Viewer reads Dashboard only; Manager may
+  operate all areas except Settings; Admin has all access. Protected owner Admin
+  is armwoottipong@gmail.com. Enforce authorization in Firebase Rules and UI. Block shop writes when server connectivity
   cannot be confirmed; retain carts/pending commands, with no offline sales queue.
 - Production root now opens Firebase login, explicitly requested 25 October.
   `local.html` keeps the existing POS available with a local-data label while
@@ -37,13 +39,20 @@
 ## Original UI requirement (26 October 2026)
 
 - User instruction (28 October 2026): Google login now requires an explicitly
-  allowed email. Allowed accounts remain equal; no roles. Settings manages the
+  allowed email. The newer role requirement above supersedes equal-account access. Settings manages the
   allowlist and Firebase status; sidebar footer shows active-user avatars with
   email tooltips. This overrides the earlier unrestricted-account requirement.
 
-- Preserve original product UI layouts, templates and styles; settings is the
-  only design exception explicitly allowed by the user. Connect Firebase through
+- Preserve original product UI layouts, templates and styles; settings, login and the online-user footer/drawer are
+  explicit design exceptions allowed by the user. Connect Firebase through
   data/command bindings. In particular use StockView and its original stock
   modals, filters, table, lot details and draft review/save flow; do not substitute
   a new inventory layout or a simplified test workspace.
 - Complete inventory integration before moving to menu settings or reports.
+
+## Brand (28 October 2026)
+
+- Use Yoggie for all visible branding, including email sender display name.
+  Preserve Firebase project/shop IDs, URLs and backup protocol identifiers.
+- Invitation email uses free Gmail with display name Yoggie, logo and shop link.
+  Owner authorizes the private Apps Script once. Pending mail is not sent mail.

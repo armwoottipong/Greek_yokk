@@ -4,7 +4,7 @@
   <div class="receipt-paper" id="printable-receipt">
         <div class="text-center pb-4 border-b border-dashed border-stone-300">
           <div class="text-2xl mb-1">🥣</div>
-          <div class="font-bold text-sm text-stone-900 font-sans tracking-wide">GREEK YOGG. CAFE</div>
+          <div class="font-bold text-sm text-stone-900 font-sans tracking-wide">Yoggie CAFE</div>
           <div class="text-[10px] text-stone-500">Artisanal Greek Yogurt & Fruit Bar</div>
           <div class="text-[10px] text-stone-400 mt-1">ใบเสร็จรับเงินอย่างย่อ</div>
         </div>

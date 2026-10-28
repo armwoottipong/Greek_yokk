@@ -50,15 +50,19 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   ${Object.entries(inventoryKinds).map(([kind,name])=>`allow update: if request.resource.data.lastOpKind=='${kind}' && ${name}Root(s);`).join('\n')}
   ${Object.entries(catalogKinds).map(([kind,name])=>`allow update: if request.resource.data.lastOpKind=='${kind}' && ${name}Root(s);`).join('\n')}
   allow update: if request.resource.data.lastOpKind=='material_delete' && materialDeleteRoot(s);
-  allow update: if request.resource.data.lastOpKind=='platform_gp' && gpRoot(s);
-  ${legacyTestAuth?'':`match /presence/{uid} {
+  allow update: if request.resource.data.lastOpKind=='platform_gp' && ${legacyTestAuth?'':'adminIdentity(resource.data) && '}gpRoot(s);
+  ${legacyTestAuth?'':`match /invitations/{id} {
+   allow read: if adminIdentity(get(/databases/$(database)/documents/shops/${shopId}).data);
+   allow create: if id.matches('^[A-Za-z0-9_-]{1,200}$') && invitationWrite();
+  }
+  match /presence/{uid} {
    allow read: if signedIn();
    allow create,update: if presenceWrite(uid);
    allow delete: if signedIn() && uid==request.auth.uid;
   }`}
   match /generations/{g}/operations/{id} {
    allow read: if active(s,g);
-   allow create: if request.resource.data.kind=='platform_gp' && gpOperation(s,g,id,request.resource.data);
+   allow create: if request.resource.data.kind=='platform_gp' && ${legacyTestAuth?'':'adminAfter() && '}gpOperation(s,g,id,request.resource.data);
    ${Object.entries(catalogKinds).map(([kind,name])=>`allow create: if request.resource.data.kind=='${kind}' && ${name}Operation(s,g,id,request.resource.data);`).join('\n')}
    match /referenceProofs/{index} {
     allow create: if index.matches('^type([0-9]|1[0-5])$') && materialTypeProof(s,g,id,index,request.resource.data);
@@ -127,7 +131,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
  const selected=new Set()
  function collect(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g)){const name=m[1];if(functions.has(name)&&!selected.has(name)){selected.add(name);collect(functions.get(name))}}}
  collect(matches)
- if(!legacyTestAuth)collect('signedInAfter(')
+ if(!legacyTestAuth)collect('signedInAfter( operatorIdentity( adminIdentity( adminAfter(')
  collect('packageBillShape( packageBillRow( packageBillNeed( packageCertifiedNeed( smallTouches( smallCertificate(')
  collect('catalogInputPath(')
  collect('catalogDisplayReceipt(')
@@ -212,8 +216,14 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   if(name==='touchedAt')body=replace(body,'getAfter(materialPath(s,g,o.materialIds[i]))','getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/materials/$(o.materialIds[i]))')
   if(name==='rootAfter')body=replace(body,'getAfter(rootPath(s))','getAfter(/databases/$(database)/documents/shops/$(s))')
   if(name==='preparedMatch')body=replace(body,'getAfter(preparedPath(s,g,id,string(i)))','getAfter(/databases/$(database)/documents/shops/$(s)/generations/$(g)/preparedSales/$(id)/lineProofs/$(string(i)))')
+  if(name==='summaryMultiStock'){
+   // Eligible quantities and certified FIFO takes are bounded integers; compare
+   // directly rather than subtracting before checking whether stock remains.
+   for(let index=0;index<4;index++)body=body.replace(`e[${index}]-t[${index}]>0`,`e[${index}]>t[${index}]`)
+  }
   if(['validMaterial','cancelMaterial'].includes(name))body=replace(body,'integer(i,0,14)','integer(i,0,15)')
   if(name==='validMaterial'){
+   body=body.replace('integer(i,0,15)','(i is int && i>=0 && i<=15)').replace('summaryStock(before,after,row,day)','(before.allocationIds.size()<2 ? summarySmallStock(before,after,row,day) : summaryMultiStock(before,after,row,day))')
    // Certified cache creation already proves the needed integer range. Equality
    // to that immutable certified value preserves the same constraint here.
    body=replace(body,'integer(row.needed,0,1000000000) && row.needed == billCachedNeed(before,o,root.catalogRevision)','row.needed == billCachedNeed(before,o,root.catalogRevision)')
@@ -258,7 +268,12 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   }
   if(name==='materialDeleteCommit')body=replace(body,'materialDeleteEligible(b,m,o.materialId)', 'materialDeleteEligible(b,m,o.materialId) && materialReferenceReady(s,g,o)')
   const extended=extendPackageSaleRule(name,extendSmallShopRule(name,body))
-  return name==='validOrder'&&cacheReceiptFields?cacheOrderFields(extended):extended
+  if(name==='validOrder'&&cacheReceiptFields){
+   // Cache the repeated material list instead of retaining a one-use values
+   // binding, leaving one of the ten Rules local slots for field factoring.
+   return cacheOrderFields(extended).replace('let orderAddonValues=o.addonKeys.values();\n','').replaceAll('orderAddonValues','o.addonKeys.values()')
+  }
+  return extended
  }
  // Every public allow is gated once below. Hoisting this common predicate keeps
  // repeated inner validators from re-evaluating verified-email access, without
@@ -289,7 +304,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   function need(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g))if(bodies.has(m[1])&&!scope.needed.has(m[1])){scope.needed.add(m[1]);need(bodies.get(m[1]))}}
   need(scope.body)
   if(/allow /.test(scope.body)&&scope.body.trim()!=='allow read,write: if false;')need('signedIn()')
-  if(!legacyTestAuth&&!scope.path.includes('presence')&&scope.path!=='/shops/{s}'&&/allow (create|update|delete)/.test(scope.body))need('signedInAfter()')
+  if(!legacyTestAuth){if(/allow (create|update|delete)/.test(scope.body)&&!scope.path.includes('presence'))need('operatorIdentity( adminIdentity( signedInAfter( adminAfter(')}
  }
  const owners=new Map([...bodies.keys()].map(name=>[name,scopes.filter(scope=>scope.needed.has(name))]))
  const shared=[...bodies].filter(([name])=>owners.get(name).length>1).map(([,body])=>body)
@@ -298,7 +313,11 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   const path=scope.path.replace('/shops/{s}',`/shops/${shopId}`),body=scope.body.trim().replace(/[ \t]+$/gm,'').replace(/\bs\b/g,`'${shopId}'`)
   const dispatch=compact?factorRuleDispatch(body,scopeIndex):body
   const gated=dispatch.replace(/allow ([\w,]+): if ([\s\S]*?);/g,(_all,action,expression)=>{
-   const gate=!legacyTestAuth&&scope.path==='/shops/{s}'?'allowedIdentity(resource.data)':!legacyTestAuth&&!scope.path.includes('presence')&&/create|update|delete/.test(action)?'signedInAfter()':'signedIn()'
+   let gate='signedIn()'
+   if(!legacyTestAuth){
+    if(scope.path==='/shops/{s}')gate=/update/.test(action)?'operatorIdentity(resource.data)':'allowedIdentity(resource.data)'
+    else if(!scope.path.includes('presence')&&/create|update|delete/.test(action))gate='signedInAfter()'
+   }
    return `allow ${action}: if ${expression==='false'?expression:expression==='signedIn()'?gate:`${gate} && (${expression})`};`
   })
   return `match ${path} {\n${local.join('\n')}\n${gated}\n}`

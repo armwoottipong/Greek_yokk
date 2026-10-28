@@ -14,11 +14,11 @@ import {dashboardRange} from '@/domain/dashboard.js'
 import {getMaterialKindLabel} from '@/domain/materialClassification.js'
 import {projectMaterial} from './productPresentation.js'
 import {projectReportOrders} from './reportProjection.js'
-const props=defineProps({active:Boolean,ready:Boolean,revision:Number,refreshKey:Number,data:{type:Object,required:true},service:{type:Object,required:true},modals:{type:Object,required:true},inventoryModel:Object})
+const props=defineProps({readOnly:Boolean,active:Boolean,ready:Boolean,revision:Number,refreshKey:Number,data:{type:Object,required:true},service:{type:Object,required:true},modals:{type:Object,required:true},inventoryModel:Object})
 const emit=defineEmits(['navigate'])
 const range=ref(dashboardRange('today')),loading=ref(false),loaded=ref(false),error=ref('')
 let epoch=0,disposed=false
-const model=reactive({dashboardPeriod:'today',orders:[],modals:props.modals,switchTab:id=>emit('navigate',id),
+const model=reactive({get readOnly(){return props.readOnly},dashboardPeriod:'today',orders:[],modals:props.modals,switchTab:id=>emit('navigate',id),
  get activeMaterials(){return props.inventoryModel?.activeMaterials||props.data.materials.map(projectMaterial).filter(m=>!m.isDeleted)},
  get totalInventoryValuation(){return props.inventoryModel?.totalInventoryValuation??this.activeMaterials.reduce((n,m)=>n+Math.max(0,m.stock)*(m.unitCost||0),0)},
  get projectedInventoryValuation(){return props.inventoryModel?.projectedInventoryValuation??this.totalInventoryValuation},

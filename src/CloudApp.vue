@@ -18,7 +18,7 @@ const workspaceState=computed(()=>state.value.user&&lastShop.value&&state.value.
 let session=null,epoch=0
 const descriptions={
  connecting:{title:'กำลังเปิดร้าน',description:'กำลังตรวจสอบการเข้าสู่ระบบ'},
- signed_out:{title:'Greek Yogg.',description:'เข้าสู่ระบบเพื่อจัดการร้านของคุณ'},
+ signed_out:{title:'Yoggie',description:'เข้าสู่ระบบเพื่อจัดการร้านของคุณ'},
  signing_in:{title:'เข้าสู่ระบบ',description:'ดำเนินการต่อในหน้าต่าง Google'},
  loading:{title:'กำลังเชื่อมต่อร้าน',description:'รอยืนยันข้อมูลล่าสุดจากเซิร์ฟเวอร์ หากอินเทอร์เน็ตหลุดให้เชื่อมต่อแล้วลองใหม่'},
  ready:{title:'เชื่อมต่อร้านแล้ว',description:'เข้าสู่ระบบสำเร็จและตรวจพบข้อมูลร้านบนเซิร์ฟเวอร์'},

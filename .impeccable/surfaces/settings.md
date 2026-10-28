@@ -1,6 +1,6 @@
 # Settings — people and shop status first
 
-Mode: Operate. Settings-only composition update within the existing Greek Yogg cream and burgundy system. Keep all current settings capabilities and their behavior.
+Mode: Operate. Settings-only composition update within the existing Yoggie cream and burgundy system. Keep all current settings capabilities and their behavior.
 
 ## Surface contract
 
@@ -10,7 +10,7 @@ Mode: Operate. Settings-only composition update within the existing Greek Yogg c
 - Save changes only on an explicit action. Disable writes when server readiness is not confirmed; report success only after server confirmation. Keep duplicate submissions, validation errors, remote conflicts, and failure recovery understandable in Thai.
 - Preserve GP constraints and semantics: a valid percentage is at least zero and below 100; changes apply to new bills and suggested prices, not existing bills or menu sale prices.
 - Keep backup and recovery available. Explain backup limits before download. The recovery panel presents a two-step process and a labeled JSON file picker. The in-page recovery inspection is non-mutating; progressive disclosure contains owner CLI commands and operational safeguards. Owner CLI remains the path for recovery/reset activation.
-- Use native focus behavior and at least 44px action targets. Retain the existing cream surfaces, warm text, burgundy selection/actions, and semantic status colors. Do not add brand assets or role distinctions.
+- Use native focus behavior and at least 44px action targets. Retain the existing cream surfaces, warm text, burgundy selection/actions, and semantic status colors. Retain existing brand assets. Admin alone manages access/settings. Show Viewer, Manager and Admin roles; owner admin is protected. New accounts enter the private email invitation outbox atomically with permission changes. Never display queued mail as sent.
 
 ## Evidence and incumbent comparison
 

@@ -1081,7 +1081,7 @@ const posDefinition = {
       } catch (e) {}
     },
 
-    // Promise-based Confirm Dialog (Greek Yogg Design System)
+    // Promise-based Confirm Dialog (Yoggie Design System)
     confirmDialog({
       title,
       message,

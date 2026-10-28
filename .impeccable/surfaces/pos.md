@@ -10,7 +10,7 @@ User clarification: product drawers open from the bottom on PC, iPad and phone. 
 
 THESIS: A clear selling counter: choose a bowl, review one order, pay. Avoid equal emphasis on transaction totals and accounting details.
 
-OWN-WORLD: Existing Greek Yogg cream and burgundy, Prompt Thai and tabular numeric prices. Rounded cream fields without resting outlines or input focus rings as requested. Mascot appears in the empty cart; actual menu emoji remain catalog content.
+OWN-WORLD: Existing Yoggie cream and burgundy, Prompt Thai and tabular numeric prices. Rounded cream fields without resting outlines or input focus rings as requested. Mascot appears in the empty cart; actual menu emoji remain catalog content.
 
 STORY: Channel sets the price context; menu cards expose price and customization. One shared cart keeps notes, packaging and payment through rotation. Warnings name the shortage and next action.
 

@@ -1,4 +1,4 @@
-# Greek Yogg. startup screen
+# Yoggie startup screen
 
 Mode: Operate. Scope: opening or refreshing the existing shop app.
 

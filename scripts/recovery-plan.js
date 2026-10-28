@@ -43,8 +43,7 @@ export async function prepareOwnerRecovery({backup,projectId,shopId,generationId
  auditRecoveryProtocol(restored,decodedRows)
  // Authentication is live shop policy, never business backup data. Restoring,
  // resetting or loading a demo must preserve the current list exactly.
- delete restored.allowedEmails
- if(Object.hasOwn(before,'allowedEmails'))restored.allowedEmails=structuredClone(before.allowedEmails)
+ for(const key of ['allowedEmails','userRoles']){delete restored[key];if(Object.hasOwn(before,key))restored[key]=structuredClone(before[key])}
  const plan={format:'greek-yogg.owner-recovery-plan',version:1,projectId,shopId,generationId,rootPath,generationPath,source:{projectId:p.projectId,shopId:p.shopId,generation:p.generation,revision:p.revision,checksum:source.integrity.sha256,purpose:p.ownerRecoveryPurpose||'restore'},counts:p.counts,baseline:{root:baseline.root,updateTime:baseline.updateTime},root:encodeBackupValue({...restored,generation:generationId,revision:Math.max(before.revision,p.revision)+1}),documents}
  for(const data of [plan.root,...documents.map(d=>d.data)])if(new TextEncoder().encode(canonicalRecovery(data)).length>800000)throw recoveryError('RECOVERY_DOCUMENT_TOO_LARGE')
  return {...plan,hash:await recoveryHash(plan)}
@@ -65,7 +64,7 @@ export async function verifyOwnerRecoveryPlan(plan){
  if(!/^[a-f0-9]{64}$/.test(hash||'')||await recoveryHash(body)!==hash)throw recoveryError('PLAN_HASH_MISMATCH')
  if(body.format!=='greek-yogg.owner-recovery-plan'||body.version!==1||!id(body.projectId)||!id(body.shopId)||!/^g_restore_[A-Za-z0-9_-]{1,100}$/.test(body.generationId)||body.rootPath!==`shops/${body.shopId}`||body.generationPath!==`${body.rootPath}/generations/${body.generationId}`||!Array.isArray(body.documents)||!body.documents.length||body.documents.length>450)throw recoveryError('INVALID_RECOVERY_PLAN')
  const baseline=decodeRehearsalValue(body.baseline?.root),root=decodeRehearsalValue(body.root)
- if(Object.hasOwn(baseline,'allowedEmails')!==Object.hasOwn(root,'allowedEmails')||canonicalRecovery(baseline.allowedEmails)!==canonicalRecovery(root.allowedEmails))throw recoveryError('RECOVERY_ACCESS_POLICY_CHANGED')
+ for(const key of ['allowedEmails','userRoles'])if(Object.hasOwn(baseline,key)!==Object.hasOwn(root,key)||canonicalRecovery(baseline[key])!==canonicalRecovery(root[key]))throw recoveryError('RECOVERY_ACCESS_POLICY_CHANGED')
  if(!validTime(body.baseline.updateTime)||baseline.status!=='active'||root.status!=='active'||root.generation!==body.generationId||baseline.generation===root.generation||!Number.isSafeInteger(baseline.revision)||!Number.isSafeInteger(body.source?.revision)||root.revision!==Math.max(baseline.revision,body.source.revision)+1||root.revision>=Number.MAX_SAFE_INTEGER)throw recoveryError('INVALID_RECOVERY_PLAN')
  if(new Set(body.documents.map(d=>d.path)).size!==body.documents.length)throw recoveryError('INVALID_RECOVERY_PLAN')
  for(const d of body.documents){const suffix=d.path?.slice(body.generationPath.length+1);if(!d.path?.startsWith(body.generationPath+'/')||! /^(materials|display|orders|operations|legacyRecords)\/[A-Za-z0-9_-]{1,200}$/.test(suffix))throw recoveryError('INVALID_RECOVERY_PLAN');decodeRehearsalValue(d.data)}

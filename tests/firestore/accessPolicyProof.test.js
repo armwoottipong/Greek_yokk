@@ -10,14 +10,14 @@ let env
 const ROOT='shops/proof-shop',GEN=ROOT+'/generations/g1',alice='alice@example.com',bob='bob@example.com'
 const claims=email=>({email,email_verified:true,firebase:{sign_in_provider:'google.com'}})
 const db=(uid='alice',extra={})=>env.authenticatedContext(uid,{...claims(uid+'@example.com'),...extra}).firestore()
-const shop=()=>({status:'active',generation:'g1',revision:1,allowedEmails:{[alice]:true,[bob]:true}})
-const acl=(emails={[alice]:true,[bob]:true},extra={})=>({allowedEmails:emails,revision:2,lastOpKind:'access',lastOpId:'ACCESS-1',...extra})
+const shop=()=>({status:'active',generation:'g1',revision:1,allowedEmails:{[alice]:true,[bob]:true},userRoles:{[alice]:'admin',[bob]:'admin'}})
+const acl=(emails={[alice]:true,[bob]:true},extra={})=>({allowedEmails:{...emails,'armwoottipong@gmail.com':true},userRoles:{...Object.fromEntries(Object.keys(emails).map(email=>[email,'admin'])),'armwoottipong@gmail.com':'admin'},revision:2,lastOpKind:'access',lastOpId:'ACCESS-1',...extra})
 const presence=()=>({email:alice,displayName:'Alice',photoURL:'https://lh3.googleusercontent.com/a/avatar',lastSeen:serverTimestamp()})
 async function seed(root=shop(),documents=[]){await env.withSecurityRulesDisabled(async ctx=>{const admin=ctx.firestore(),batch=writeBatch(admin);batch.set(doc(admin,ROOT),root);for(const row of documents)batch.set(doc(admin,row.path),row.data);await batch.commit()})}
 beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({shopId:'proof-shop'})})})
 beforeEach(async()=>{await env.clearFirestore();await seed()})
 afterAll(async()=>{await env?.cleanup()})
-it('allows verified Google emails in either token case and treats allowed accounts equally',async()=>{
+it('allows verified Google emails in either token case and grants equal rights to explicit administrators',async()=>{
  for(const client of [db(),db('bob'),db('mixed',{email:'ALICE@EXAMPLE.COM'})])expect((await assertSucceeds(getDoc(doc(client,ROOT)))).data().revision).toBe(1)
  await assertSucceeds(updateDoc(doc(db('bob'),ROOT),acl({[alice]:true,[bob]:true,'new@example.com':true})))
 })
@@ -63,7 +63,7 @@ function importedShop(count=16,fourLots=true){
  if(fourLots)for(const material of source.materials)material.lots=[1,1,1,997].map((qty,i)=>({id:material.id+'-L'+i,qty,isInUse:i===0}))
  for(const menu of source.menus)for(const row of menu.recipe)row.qty=2
  const plan=compileCoreImport(source,{shopId:'proof-shop',generation:'g_trial_access',sourceSha256:'a'.repeat(64)})
- return {root:{...plan.shop,generation:'g1',allowedEmails:{[alice]:true,[bob]:true}},documents:plan.documents.map(row=>({...row,path:row.path.replace('/g_trial_access/','/g1/')}))}
+ return {root:{...plan.shop,generation:'g1',allowedEmails:{[alice]:true,[bob]:true},userRoles:{[alice]:'admin',[bob]:'admin'}},documents:plan.documents.map(row=>({...row,path:row.path.replace('/g_trial_access/','/g1/')}))}
 }
 function runtime(uid='alice'){
  const context={projectId:'demo-greek-yogg',shopId:'proof-shop',generation:'g1',uid,deviceId:'one',online:true,ready:true}
@@ -90,4 +90,48 @@ it('receives, counts, creates a production recipe and produces under the same st
  const rates=Object.fromEntries(latest.shop.catalog.platformIds.map(id=>[id,1500]))
  await bob.commit({opId:'ACCESS-GP',kind:'platform_gp',payload:{expectedRevision:latest.shop.revision,rates}})
  expect((await api.snapshot()).shop.catalog.platforms[latest.shop.catalog.platformIds[0]].gpBasisPoints).toBe(1500)
+})
+
+it('viewer reads reports but cannot commit receiving, while manager can commit the same command',async()=>{
+ const {root,documents}=importedShop(16,false);root.userRoles={[alice]:'viewer',[bob]:'manager'};await seed(root,documents)
+ const viewer=runtime(),before=await viewer.snapshot(),materialId=before.materials[0].id
+ const command={opId:'ROLE-RECEIVE',kind:'receive',payload:{materialId,input:{qtyQ:100,unitCost:0.5,receiveDay:21000,expiryDay:999999,newLotId:'ROLELOT'}}}
+ await assertFails(viewer.commit(command));await runtime('bob').commit(command)
+ const client=db();await assertFails(updateDoc(doc(client,ROOT),acl()));await assertFails(setDoc(doc(client,ROOT+'/invitations/VIEWER'),{email:alice,role:'viewer',status:'pending',createdBy:'alice',createdAt:serverTimestamp()}))
+ await assertSucceeds(setDoc(doc(client,ROOT+'/presence/alice'),presence()))
+})
+it('manager cannot change roles or GP, while admin can save the same GP command',async()=>{
+ const {root,documents}=importedShop(16,false);root.userRoles={[alice]:'admin',[bob]:'manager'};await seed(root,documents)
+ await assertFails(updateDoc(doc(db('bob'),ROOT),acl()))
+ const manager=runtime('bob'),before=await manager.snapshot(),rates=Object.fromEntries(before.shop.catalog.platformIds.map(id=>[id,1500]))
+ await assertFails(manager.commit({opId:'ROLE-MANAGER-GP',kind:'platform_gp',payload:{expectedRevision:before.shop.revision,rates}}))
+ await runtime().commit({opId:'ROLE-ADMIN-GP',kind:'platform_gp',payload:{expectedRevision:before.shop.revision,rates}})
+})
+it('queues invitations atomically for allowed recipients and prevents forged status or recipient changes',async()=>{
+ const client=db(),batch=writeBatch(client),email='invited@example.com',invitation={email,role:'admin',createdBy:'alice',createdAt:serverTimestamp(),status:'pending'}
+ batch.update(doc(client,ROOT),acl({[alice]:true,[bob]:true,[email]:true}));batch.set(doc(client,ROOT+'/invitations/INVITE'),invitation);await assertSucceeds(batch.commit())
+ await assertFails(updateDoc(doc(client,ROOT+'/invitations/INVITE'),{status:'sent'}));await assertFails(deleteDoc(doc(client,ROOT+'/invitations/INVITE')))
+ await assertFails(setDoc(doc(client,ROOT+'/invitations/FORGED'),{...invitation,email:'not-allowed@example.com'}))
+ await assertFails(setDoc(doc(client,ROOT+'/invitations/FORGED-ROLE'),{...invitation,role:'manager'}))
+})
+it('blocks removing or demoting the owner and does not let a manager promote themselves',async()=>{
+ const root=shop();root.userRoles[bob]='manager';await seed(root)
+ const owner='armwoottipong@gmail.com',valid=acl()
+ await assertFails(updateDoc(doc(db(),ROOT),{...valid,userRoles:{...valid.userRoles,[owner]:'viewer'}}))
+ await assertFails(updateDoc(doc(db(),ROOT),{...valid,userRoles:{[alice]:'admin',[bob]:'manager'}}))
+ await assertFails(updateDoc(doc(db('bob'),ROOT),valid))
+ await assertSucceeds(updateDoc(doc(db(),ROOT),valid))
+})
+
+it('denies viewer and manager invitation get/list even for an existing request',async()=>{
+ const root=shop();root.userRoles={[alice]:'viewer',[bob]:'manager'};await seed(root,[{path:ROOT+'/invitations/PRIVATE',data:{email:alice,role:'viewer',status:'pending'}}])
+ for(const client of [db(),db('bob')]){await assertFails(getDoc(doc(client,ROOT+'/invitations/PRIVATE')));await assertFails(getDocs(collection(client,ROOT+'/invitations')))}
+})
+
+it.each(['alice','bob'])('allows %s 16-material dense sale and cancellation with manager/admin roles',async uid=>{
+ const {root,documents}=importedShop(16);root.userRoles[bob]='manager';await seed(root,documents)
+ const api=runtime(uid),before=await api.snapshot(),ids=root.catalog.menuIds,lines=[ids[0],ids[4],ids[0],ids[4]].map(menuId=>({menuId,qty:1,optionIds:[]}))
+ const receipt=await api.commit({opId:'DENSE-'+uid,kind:'sale',payload:{platformId:root.catalog.platformIds[0],lines}})
+ await api.commit({opId:'DENSE-RETURN-'+uid,kind:'cancel',payload:{orderId:receipt.opId}})
+ expect((await api.snapshot()).materials.map(m=>m.stock)).toEqual(before.materials.map(m=>m.stock))
 })

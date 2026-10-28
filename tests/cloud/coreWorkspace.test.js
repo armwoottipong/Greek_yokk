@@ -5,7 +5,9 @@ import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
 const h=vi.hoisted(()=>({abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn()}))
 vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,close:()=>{}})}))
-const state={user:{uid:'u'},shop:{generation:'g1',revision:1},serverReady:true}
+vi.mock('../../src/cloud/firebaseClient.js',()=>({getFirebaseClient:()=>({db:{}})}))
+vi.mock('../../src/cloud/shopAccess.js',async original=>({...await original(),createShopAccess:()=>({watch(){},watchInvitations(){},heartbeat:async()=>{},close(){}})}))
+const state={user:{uid:'u',email:'u@example.com'},shop:{generation:'g1',revision:1,allowedEmails:{'u@example.com':true},userRoles:{'u@example.com':'admin'}},serverReady:true}
 beforeEach(()=>{
  sessionStorage.clear();h.report.mockReset();h.report.mockResolvedValue({receipts:[],legacyOrders:[]});h.abandon.mockReset();h.orders.mockResolvedValue([]);h.history.mockResolvedValue([]);h.execute.mockClear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))
  h.preview.mockReturnValue({subtotalCents:6900,approvedShortages:{}})
@@ -250,4 +252,19 @@ it('looks up a historical receipt directly even when newer orders fill the lates
  await w.get('[data-legacy-return="OLD"]').trigger('click');await flushPromises()
  expect(h.legacyReceipt).toHaveBeenCalledWith('OLD');expect(w.text()).toContain('ยืนยันคืนเงินและคืนสต็อก');expect(h.execute).not.toHaveBeenCalled()
  w.unmount()
+})
+
+it('mounts only dashboard for viewer and cannot navigate to sales or settings',async()=>{
+ const viewer={...state,shop:{...state.shop,userRoles:{'u@example.com':'viewer'}}}
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:viewer},global:{stubs:{teleport:true}}});await flushPromises()
+ expect(w.find('[data-checkout]').exists()).toBe(false);expect(w.find('[aria-controls="settings-access"]').exists()).toBe(false)
+ expect(w.find('[aria-label="ประวัติบิลขายและคืนบิล"]').exists()).toBe(false)
+ expect(w.findComponent({name:'CloudStockWorkspace'}).exists()).toBe(false);expect(w.text()).not.toContain('จัดการคลัง');expect(w.text()).not.toContain('ไปหน้าแคชเชียร์')
+ w.unmount()
+})
+it('removes settings immediately after an admin becomes manager, retaining sales access',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('.brand-navigation button[title="ตั้งค่า & ระบบ API"]').trigger('click');expect(w.find('#settings-access').exists()).toBe(true)
+ await w.setProps({state:{...state,shop:{...state.shop,userRoles:{'u@example.com':'manager'}}}});await flushPromises()
+ expect(w.find('#settings-access').exists()).toBe(false);expect(w.find('[data-pos-menu="M"]').exists()).toBe(true);w.unmount()
 })

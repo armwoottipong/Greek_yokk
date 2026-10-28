@@ -127,7 +127,7 @@ const pageTitle = computed(() => {
         subtitle: 'จัดการข้อมูลร้าน หมวดหมู่ และการสำรองข้อมูล'
       }
     default:
-      return { title: 'Greek Yogg.', subtitle: 'ระบบจัดการร้านกรีกโยเกิร์ต' }
+      return { title: 'Yoggie', subtitle: 'ระบบจัดการร้านกรีกโยเกิร์ต' }
   }
 })
 </script>

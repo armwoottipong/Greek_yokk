@@ -7,7 +7,7 @@ export function assertEmulatorTarget(projectId, host = process.env.FIRESTORE_EMU
   if (host !== '127.0.0.1:8088') throw new Error('Tests require the local Firestore Emulator at 127.0.0.1:8088')
 }
 
-export async function createRulesTest({ projectId = PROJECT_ID, rules }) {
+export async function createRulesTest({ projectId = process.env.FIRESTORE_TEST_PROJECT_ID || PROJECT_ID, rules }) {
   assertEmulatorTarget(projectId)
   return initializeTestEnvironment({ projectId, firestore: { host: '127.0.0.1', port: 8088, rules } })
 }

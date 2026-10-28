@@ -1,4 +1,4 @@
-# Greek Yogg. — System interface audit
+# Yoggie — System interface audit
 
 วันที่: 11 ต.ค. 2026 · Baseline: `3e92fcc` · สถานะ: **Block / ต้องแก้ HIGH ก่อนรับรองคุณภาพ UI**
 

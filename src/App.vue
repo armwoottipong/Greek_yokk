@@ -150,7 +150,7 @@ function finishViewFocus(){
  if(!pendingViewFocus||overlayStack.length||document.getElementById('app')?.hasAttribute('inert'))return
  focusContent();pendingViewFocus=false
 }
-watch(()=>store.currentTab,async (tab,previous)=>{document.title=`${viewNames[tab]||viewNames.dashboard} · Greek Yogg.`;pendingViewFocus=true;if(previous!==undefined)loadContent(tab);await nextTick();finishViewFocus()},{immediate:true,flush:'post'})
+watch(()=>store.currentTab,async (tab,previous)=>{document.title=`${viewNames[tab]||viewNames.dashboard} · Yoggie`;pendingViewFocus=true;if(previous!==undefined)loadContent(tab);await nextTick();finishViewFocus()},{immediate:true,flush:'post'})
 watch(()=>overlayStack.length,async count=>{if(count===0&&pendingViewFocus){await nextTick();finishViewFocus()}})
 
 const currentViewComponent = computed(() => {

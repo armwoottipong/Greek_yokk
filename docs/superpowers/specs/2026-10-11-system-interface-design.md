@@ -1,4 +1,4 @@
-# Greek Yogg. — Whole-system interface design proposal
+# Yoggie — Whole-system interface design proposal
 
 สถานะ: **ข้อเสนอออกแบบเพื่อ review ก่อน implementation** · 11 ต.ค. 2026
 

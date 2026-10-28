@@ -9,6 +9,7 @@ it('preserves every generated receipt predicate and ordering after inlining loca
  let restored=body
  for(const [name,expression] of orderFieldCache){
   const declaration=`let ${name}=${expression};`
+  if(name==='orderAddonValues'){expect(body).not.toContain(declaration);continue}
   expect(body).toContain(declaration)
   restored=restored.replace(declaration,'').replaceAll(name,expression)
  }

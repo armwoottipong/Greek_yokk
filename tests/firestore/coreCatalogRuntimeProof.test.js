@@ -18,7 +18,7 @@ function setup(uid='cashier'){const context={projectId:'demo-greek-yogg',shopId:
 async function seed(source=coreSource()){
  const p=compileCoreImport(source,{shopId:'proof-shop',generation:'g_trial_catalog',sourceSha256:'a'.repeat(64)})
  p.shop.generation='g1';p.documents=p.documents.map(d=>({...d,path:d.path.replace('/g_trial_catalog/','/g1/')}))
- p.shop.allowedEmails={'cashier@example.com':true,'other@example.com':true}
+ p.shop.allowedEmails={'cashier@example.com':true,'other@example.com':true};p.shop.userRoles={'cashier@example.com':'manager','other@example.com':'manager'}
  await env.withSecurityRulesDisabled(async c=>{const b=writeBatch(c.firestore());b.set(doc(c.firestore(),root),p.shop);for(const d of p.documents)b.set(doc(c.firestore(),d.path),d.data);await b.commit()})
  return {shop:p.shop,materials:p.documents.filter(d=>d.path.includes('/materials/')).map(d=>d.data),display:p.documents.find(d=>d.path.endsWith('/display/catalog')).data}
 }

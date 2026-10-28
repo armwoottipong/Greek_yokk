@@ -6,7 +6,7 @@
 
 ## Intent
 
-Greek Yogg. needs packaging to follow the real preparation flow without slowing down normal checkout. An Add-on can require several stock items, including both edible ingredients and packaging. The POS must derive the expected package list from Menu and Add-on recipes, let staff adjust that list for one order with a reason, and never mutate the source recipes from an order adjustment.
+Yoggie needs packaging to follow the real preparation flow without slowing down normal checkout. An Add-on can require several stock items, including both edible ingredients and packaging. The POS must derive the expected package list from Menu and Add-on recipes, let staff adjust that list for one order with a reason, and never mutate the source recipes from an order adjustment.
 
 Success means a normal order uses its recipe defaults without an extra confirmation step, an exceptional order records what changed, package shortages never drive stock below zero, and revenue reporting separates ingredient cost, fulfilled packaging cost, and expected-but-unfulfilled packaging cost.
 

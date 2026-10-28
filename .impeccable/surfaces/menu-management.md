@@ -134,7 +134,7 @@ The following brief and verification record are retained as historical evidence.
 
 Mode: Operate. Primary target: src/views/MenuView.vue. Related targets: src/components/catalog/MenuCard.vue, MenuRecipeDetails.vue, CatalogToolbar.vue; src/components/modals/MenuEditModal.vue, EmojiPickerPopover.vue; src/components/ui/AppInput.vue, AppSearch.vue, RecipeEditorRow.vue.
 
-User direction, 14 October 2026: renovate the menu/recipe page and add/edit popups to match Greek Yogg branding, reduce clutter and make data easy to manage. Inputs, dropdowns and search use shared components. Confirmed answer: show the selected channel's price in the list, with all channel prices available in details/edit. Earlier popup border/outline and search focus preferences remain.
+User direction, 14 October 2026: renovate the menu/recipe page and add/edit popups to match Yoggie branding, reduce clutter and make data easy to manage. Inputs, dropdowns and search use shared components. Confirmed answer: show the selected channel's price in the list, with all channel prices available in details/edit. Earlier popup border/outline and search focus preferences remain.
 
 THESIS: Find one menu, review its selected-channel price and recipe, then edit only the relevant group.
 OWN-WORLD: Inherit PRODUCT.md and DESIGN.md cream/burgundy, Prompt Thai, real catalog emoji and the existing mascot. No new visual identity or generated imagery.
