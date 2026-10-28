@@ -72,4 +72,3 @@ export async function verifyOwnerRecoveryPlan(plan){
  auditRecoveryProtocol(root,Object.fromEntries(Object.entries(collections).map(([name,entries])=>[name,entries.map(r=>({id:r.id,data:decodeRehearsalValue(r.data)}))])))
  return true
 }
-
