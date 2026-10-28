@@ -45,6 +45,7 @@ export function createBackupReader({db,getContext},sdk=sdkDefault){
      if(kind!=='header'){if(!groups.has(kind))groups.set(kind,[]);groups.get(kind).push(index)}
     }
     for(const indices of groups.values())if(indices.sort((a,b)=>a-b).some((index,i)=>index!==i))throw fail('BACKUP_INCOMPLETE')
+    if((groups.get('orders')?.length??0)!==count)throw fail('BACKUP_INCOMPLETE')
     const payload={exportedAt:new Date().toISOString(),projectId:s.projectId,shopId:s.shopId,generation:s.generation,revision:after.revision,scope:'business-snapshot',legacyValidation:{declaredOrders:count,contiguousCollections:Object.fromEntries([...groups].map(([kind,indices])=>[kind,indices.length])),limitation:'Original archive has no count manifest for non-order collections; missing trailing records before this export cannot be detected.'},exclusions:{subcollections:['preparations','preparedSales','recipeAdmissions','materialReferences','operations/*/referenceProofs'],materialFields:['billPreparations','billPreparationId'],localOnly:['authentication','carts','pendingCommands']},counts,root,collections:data}
     const backup=await createBusinessBackup(payload),text=JSON.stringify(backup);if(new TextEncoder().encode(text).length>MAX_BACKUP_BYTES)throw fail('BACKUP_TOO_LARGE');await verifyBusinessBackup(text);guard(s)
     return {text,filename:`greek-yogg-firebase-${s.shopId}-r${after.revision}-${businessDateKey(new Date(payload.exportedAt))}.json`,counts,revision:after.revision}

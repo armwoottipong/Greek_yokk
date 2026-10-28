@@ -47,3 +47,7 @@ it('rejects missing archive header, interior gaps and damaged JSON',async()=>{
   const h=setup();damage(h);await expect(h.reader.read()).rejects.toThrow('BACKUP_INCOMPLETE')
  }
 })
+it('rejects an archive order count that contradicts its declared manifest',async()=>{
+ const h=setup();h.rows.display[0].legacyOrderCount=0
+ await expect(h.reader.read()).rejects.toThrow('BACKUP_INCOMPLETE')
+})
