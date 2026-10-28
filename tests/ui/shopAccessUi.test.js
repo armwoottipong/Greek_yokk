@@ -5,9 +5,9 @@ import AccessPanel from '../../src/cloud/core/CloudAccessPanel.vue'
 let wrapper;afterEach(()=>{wrapper?.unmount();document.body.innerHTML=''})
 it('shows real avatars, email tooltips on hover/focus and initials after image failure',async()=>{
  wrapper=mount(Avatars,{attachTo:document.body,props:{users:[{uid:'a',email:'owner@example.com',displayName:'Owner',photoURL:'https://lh3.googleusercontent.com/a/photo'},{uid:'b',email:'staff@example.com'}]}})
- await wrapper.findAll('button')[0].trigger('pointerenter');expect(document.querySelector('[role=tooltip]').textContent).toBe('owner@example.com')
- await wrapper.findAll('button')[0].trigger('pointerleave');expect(document.querySelector('[role=tooltip]')).toBeNull()
- await wrapper.findAll('button')[1].trigger('focus');expect(document.querySelector('[role=tooltip]').textContent).toBe('staff@example.com')
+ await wrapper.findAll('button')[0].trigger('pointerenter');expect(wrapper.findAll('button')[0].classes()).toContain('is-active');expect(document.querySelector('[role=tooltip]').textContent).toBe('owner@example.com')
+ await wrapper.findAll('button')[0].trigger('pointerleave');expect(wrapper.findAll('button')[0].classes()).not.toContain('is-active');expect(document.querySelector('[role=tooltip]')).toBeNull()
+ await wrapper.findAll('button')[1].trigger('focus');expect(wrapper.findAll('button')[1].classes()).toContain('is-active');expect(document.querySelector('[role=tooltip]').textContent).toBe('staff@example.com')
  await wrapper.findAll('button')[1].trigger('keydown',{key:'Escape'});expect(document.querySelector('[role=tooltip]')).toBeNull()
  await wrapper.get('img').trigger('error');expect(wrapper.find('img').exists()).toBe(false);expect(wrapper.text()).toContain('OW')
 })
