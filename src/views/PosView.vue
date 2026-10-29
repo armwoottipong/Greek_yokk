@@ -93,7 +93,7 @@ watch(()=>[store.modals.lowStockWarning?.isOpen,store.modals.lotDepletion?.isOpe
 </script>
 
 <style scoped>
-.pos-workspace{display:flex;flex-direction:column;gap:24px;min-width:0}
+.pos-workspace{position:relative;overflow-x:clip;display:flex;flex-direction:column;gap:24px;min-width:0}
 .pos-workspace.is-split{flex-direction:row;gap:16px;height:var(--pos-workspace-height,calc(100dvh - var(--sidebar-header-height,var(--panel-header-height)) - 48px));min-height:0;overflow:hidden}
 .pos-workspace:not(.is-split){padding-bottom:84px}.pos-workspace.is-cart-page{padding-bottom:0}
 .pos-workspace.is-split :deep(.pos-catalog-scroll){overflow-y:auto;padding-right:2px;overscroll-behavior:contain}
