@@ -66,7 +66,7 @@ it('exposes direct trash deletion with exact confirmation',async()=>{
  const s=createTestStore();s.resetDemoData();const confirm=vi.spyOn(s,'confirmDialog').mockResolvedValue(false),w=mount(Addon)
  try{
   expect(w.get('[data-addon-header] button[data-addon-delete]').attributes('aria-label')).toBe('ลบ Add-on')
-  expect(w.find('[data-addon-more]').exists()).toBe(false)
+  expect(w.get('[data-addon-more]').attributes('aria-haspopup')).toBe('dialog')
   await w.get('[data-addon-delete]').trigger('click');await flushPromises()
   expect(confirm).toHaveBeenCalledWith(expect.objectContaining({message:expect.stringContaining(s.addons[0].id),type:'danger'}))
   expect(s.addons).toHaveLength(6)
@@ -107,7 +107,7 @@ it('keeps the add action and empty state usable with no addons or platforms',asy
  const w=mount(Addon)
  try{
   expect(w.find('[data-addon-edit]').exists()).toBe(false)
-  expect(w.find('[data-addon-more]').exists()).toBe(false)
+  expect(w.get('[data-addon-more]').attributes('aria-haspopup')).toBe('dialog')
   expect(w.get('[data-addon-header]').text()).toContain('จัดการ Add-on')
   await w.get('[data-catalog-add]').trigger('click')
   expect(s.modals.addonEdit).toMatchObject({isOpen:true,addonId:null})

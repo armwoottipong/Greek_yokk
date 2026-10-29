@@ -6,6 +6,7 @@ it('uses the original clear control with shared-view wording, spinner and same-t
  let resolve
  const model=reactive({cloud:true,materials:[],matMap:{},orders:[],historyLoading:false,modals:{activityLog:{isOpen:true,module:'stock'}},activityLogs:[{id:'OLD',module:'stock',action:'adjust',timestamp:'2026-10-27T01:00:00Z',title:'Old'}],confirmDialog:vi.fn().mockResolvedValue(true),clearActivityLogs:vi.fn(()=>new Promise(r=>{resolve=r})),closeActivityLog:vi.fn()})
  const w=mount(ActivityLog,{global:{provide:{'cloud-inventory-model':model},stubs:{teleport:true}}});await flushPromises()
+ await w.get('[aria-controls="history-more-actions"]').trigger('click');await flushPromises()
  const first=w.vm.confirmClearLogs();w.vm.confirmClearLogs();await flushPromises()
  const button=()=>w.findAll('button').find(b=>b.text().includes('ล้างประวัติทั้งหมด'))
  expect(model.confirmDialog).toHaveBeenCalledTimes(1);expect(model.clearActivityLogs).toHaveBeenCalledTimes(1)

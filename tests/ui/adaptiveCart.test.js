@@ -3,8 +3,19 @@ import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore} from '../helpers/createStore'
 import Pos from '../../src/views/PosView.vue'
 import CartPanel from '../../src/components/pos/CartPanel.vue'
-import DialogFrame from '../../src/components/ui/DialogFrame.vue'
-import IconButton from '../../src/components/ui/IconButton.vue'
+import {overlayStack} from '../../src/composables/overlayState'
+
+it('waits for a closing product overlay before focusing the cart page',async()=>{
+ const store=createTestStore();store.resetDemoData()
+ const w=mount(Pos,{attachTo:document.body}),overlay={node:null}
+ try{
+  overlayStack.push(overlay)
+  await w.get('[data-cart-open]').trigger('click');await flushPromises()
+  expect(document.activeElement).not.toBe(w.get('[data-cart-page]').element)
+  overlayStack.splice(overlayStack.indexOf(overlay),1);await flushPromises()
+  expect(document.activeElement).toBe(w.get('[data-cart-page]').element)
+ }finally{if(overlayStack.includes(overlay))overlayStack.splice(overlayStack.indexOf(overlay),1);w.unmount()}
+})
 it('does not discard an order draft until clearing is confirmed',async()=>{
  const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],1,false,'แยกชาม')
  const w=mount(CartPanel,{props:{presentation:'panel'}})
@@ -23,7 +34,13 @@ it('retains one shared cart, note and payment when review closes or rotates to s
  try{
   await flushPromises();await w.get('[data-cart-open]').trigger('click');await flushPromises()
   expect(w.findAllComponents(CartPanel)).toHaveLength(1)
-  await w.getComponent(DialogFrame).findAllComponents(IconButton)[0].get('button').trigger('click');await flushPromises()
+  expect(w.get('[data-cart-page]').isVisible()).toBe(true)
+  expect(document.activeElement).toBe(w.get('[data-cart-page]').element)
+  expect(w.get('.pos-catalog').isVisible()).toBe(false)
+  expect(w.find('[role="dialog"]').exists()).toBe(false)
+  await w.get('[data-cart-back]').trigger('click');await flushPromises()
+  expect(w.get('.pos-catalog').isVisible()).toBe(true)
+  expect(document.activeElement).toBe(w.get('[data-cart-open]').element)
   expect(store.cart[0].qty).toBe(2);expect(store.cart[0].note).toBe('แยกท็อปปิ้ง');expect(store.paymentMethod).toBe('เงินสด')
   resize([{contentRect:{width:850}}]);await flushPromises()
   expect(w.findAllComponents(CartPanel)).toHaveLength(1)

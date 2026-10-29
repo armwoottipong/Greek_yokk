@@ -1,6 +1,6 @@
-<template><button type="button" data-cart-open class="cart-review-bar" aria-haspopup="dialog" aria-controls="pos-cart-review" :aria-expanded="open" @click="$emit('open')"><span><ShoppingBag :size="21" aria-hidden="true"/><strong>{{ quantity?quantity+' ชาม':'ตะกร้าว่าง' }}</strong></span><span><b class="font-number">฿{{ money(subtotal) }}</b><span>ดูตะกร้า</span><ChevronUp :size="17" aria-hidden="true"/></span></button></template>
+<template><button type="button" data-cart-open class="cart-review-bar" aria-controls="pos-cart-review" :aria-expanded="open" @click="$emit('open')"><span><ShoppingBag :size="21" aria-hidden="true"/><strong>{{ quantity?quantity+' ชาม':'ตะกร้าว่าง' }}</strong></span><span><b class="font-number">฿{{ money(subtotal) }}</b><span>ดูตะกร้า</span><ChevronRight :size="17" aria-hidden="true"/></span></button></template>
 <script setup>
-import {ShoppingBag,ChevronUp} from 'lucide-vue-next'
+import {ShoppingBag,ChevronRight} from 'lucide-vue-next'
 import {money} from '@/domain/dashboard'
 defineProps({quantity:{type:Number,default:0},subtotal:{type:Number,default:0},open:Boolean})
 defineEmits(['open'])

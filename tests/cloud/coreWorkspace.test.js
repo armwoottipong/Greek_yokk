@@ -25,6 +25,8 @@ it('opens the trial workspace, retains cart after uncertain results, and only cl
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  expect(w.text()).toContain('ข้อมูลทดสอบ');await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
  expect(w.findAll('[data-cart-line]')).toHaveLength(1)
+ expect(w.find('[data-cart-page]').exists()).toBe(true)
+ expect(w.get('.pos-catalog').isVisible()).toBe(false)
  h.execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT'})
  await w.get('[data-checkout]').trigger('click');await flushPromises()
  expect(w.findAll('[data-cart-line]')).toHaveLength(1);expect(w.text()).toContain('ยังไม่ทราบผล')
@@ -43,7 +45,7 @@ it('restores its own cart and immutable pending command after reload and clears 
  h.execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT'});await w.get('[data-checkout]').trigger('click');await flushPromises()
  const command=h.execute.mock.calls.at(-1)[0];w.unmount()
  w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
- await w.get('[data-cart-open]').trigger('click');await flushPromises()
+ if(w.find('[data-cart-open]').exists())await w.get('[data-cart-open]').trigger('click');await flushPromises()
  expect(w.findAll('[data-cart-line]')).toHaveLength(1)
  await w.get('[data-retry-command]').trigger('click');await flushPromises()
  expect(h.execute.mock.calls.at(-1)[0]).toEqual(command);expect(w.findAll('[data-cart-line]')).toHaveLength(0);w.unmount()
@@ -54,7 +56,7 @@ it('does not clear this tab’s cart when reconciling a sale started in another 
  h.pending.mockResolvedValue([{envelope:{kind:'sale',opId:'OTHER-TAB',payload:{}}}])
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  await w.get('[data-retry-command]').trigger('click');await flushPromises()
- await w.get('[data-cart-open]').trigger('click');await flushPromises()
+ if(w.find('[data-cart-open]').exists())await w.get('[data-cart-open]').trigger('click');await flushPromises()
  expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
 })
 
@@ -71,7 +73,7 @@ it('uses the original product navigation, catalogue and cart without creating a 
  expect(w.find('.pos-catalog').exists()).toBe(true)
  expect(w.find('.pos-menu-card').exists()).toBe(true)
  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');await flushPromises()
- await w.get('[data-cart-open]').trigger('click');await flushPromises()
+ if(w.find('[data-cart-open]').exists())await w.get('[data-cart-open]').trigger('click');await flushPromises()
  expect(w.find('.cart-body').exists()).toBe(true)
  expect(w.findAll('[data-cart-line]')).toHaveLength(1)
  expect(Object.keys(localStorage).filter(k=>!before.includes(k))).toEqual(['gy-cloud-device-v1'].filter(k=>!before.includes(k)))
@@ -79,7 +81,7 @@ it('uses the original product navigation, catalogue and cart without creating a 
 })
 it('locks original cart quantity and platform controls while a server result is uncertain',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
- await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');await w.get('[data-cart-open]').trigger('click');await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');if(w.find('[data-cart-open]').exists())await w.get('[data-cart-open]').trigger('click');await flushPromises()
  h.execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT'});await w.get('[data-checkout]').trigger('click');await flushPromises()
  expect(w.get('button[aria-label="เพิ่มจำนวน โยเกิร์ต"]').attributes('disabled')).toBeDefined()
  expect(w.get('[role="tab"]').attributes('disabled')).toBeDefined()
@@ -139,7 +141,7 @@ it('opens the original receipt only after its matching server-confirmed sale',as
 
 it('keeps checkout locked and spinning until the post-write server reload finishes',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
- await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');await w.get('[data-cart-open]').trigger('click');await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');if(w.find('[data-cart-open]').exists())await w.get('[data-cart-open]').trigger('click');await flushPromises()
  const snapshot=await h.load();let resolveLoad
  h.load.mockImplementationOnce(()=>new Promise(r=>{resolveLoad=r}))
  await w.get('[data-checkout]').trigger('click');await flushPromises()
@@ -193,7 +195,7 @@ it('keeps manual reload spinning through the orders read and shares an in-flight
 
 it('starts a fresh read after an update even if a manual reload began before the write',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
- await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');await w.get('[data-cart-open]').trigger('click');await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');if(w.find('[data-cart-open]').exists())await w.get('[data-cart-open]').trigger('click');await flushPromises()
  const old=await h.load(),fresh={...old,shop:{...old.shop,revision:old.shop.revision+1}};let resolveOld
  h.load.mockImplementationOnce(()=>new Promise(r=>{resolveOld=r})).mockResolvedValueOnce(fresh)
  const before=h.load.mock.calls.length

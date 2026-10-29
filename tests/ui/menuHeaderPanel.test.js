@@ -24,7 +24,7 @@ it('exposes an accessible trash button directly in the header',()=>{
   const header=w.get('[data-menu-header]'),button=header.get('button[data-menu-delete]')
   expect(button.attributes('aria-label')).toBe('ลบเมนู')
   expect(button.findComponent(Trash2).exists()).toBe(true)
-  expect(header.find('[data-menu-more]').exists()).toBe(false)
+  expect(header.get('[data-menu-more]').attributes('aria-haspopup')).toBe('dialog')
   expect(s.menus).toHaveLength(4)
  }finally{w.unmount()}
 })

@@ -43,18 +43,16 @@
       <footer class="px-4 py-3 sm:px-5 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <button type="button" @click="exportCsv" :disabled="!filteredLogs.length" class="history-button"><Download class="h-4 w-4" />ส่งออก CSV</button>
         <div class="flex items-center gap-3">
-          <details v-if="!isItemMode" class="relative">
-            <summary tabindex="0" class="history-button cursor-pointer list-none" aria-label="จัดการประวัติ"><MoreHorizontal class="h-4 w-4" />เพิ่มเติม</summary>
-            <div class="absolute right-0 bottom-full mb-2 p-1 bg-white rounded-lg border border-stone-200 shadow-lg whitespace-nowrap">
-              <button type="button" @click="confirmClearLogs" :aria-busy="!!actionPending||undefined" :disabled="!!actionPending||store.historyLoading||!(store.activityLogs || []).length" class="px-3 py-2 text-xs text-rose-700 hover:bg-rose-50 rounded-md disabled:opacity-40"><span v-if="actionPending" class="ui-button-spinner" aria-hidden="true"></span>ล้างประวัติทั้งหมด</button>
-            </div>
-          </details>
+          <button v-if="!isItemMode" type="button" class="history-button" aria-label="จัดการประวัติ" aria-haspopup="dialog" aria-controls="history-more-actions" :aria-expanded="moreOpen" @click="moreOpen=true"><MoreHorizontal class="h-4 w-4" aria-hidden="true"/>เพิ่มเติม</button>
           <button type="button" @click="close" class="history-button !bg-brand-600 !border-brand-600 !text-white hover:!bg-stone-800 px-5">ปิด</button>
         </div>
       </footer>
     </section>
   </ModalShell>
   <FilterDropdown id="history-filters" title="ตัวกรองประวัติ" :open="showFilterPopover && store.modals.activityLog?.isOpen" :anchor="filterButton" :values="filterValues" :fields="filterFields" @close="showFilterPopover = false" @apply="applyFilters" />
+  <DialogFrame id="history-more-actions" title="จัดการประวัติ" :open="moreOpen&&store.modals.activityLog?.isOpen" presentation="sheet" compact @request-close="moreOpen=false">
+   <Button variant="danger" :loading="!!actionPending" :disabled="!!actionPending||store.historyLoading||!(store.activityLogs||[]).length" @click="moreOpen=false;confirmClearLogs()">ล้างประวัติทั้งหมด</Button>
+  </DialogFrame>
 </template>
 
 <script setup>
@@ -66,6 +64,8 @@ import { formatThaiDate } from '@/stores/posStore'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import HistoryLogEntry from '@/components/ui/HistoryLogEntry.vue'
 import FilterDropdown from '@/components/ui/FilterDropdown.vue'
+import DialogFrame from '@/components/ui/DialogFrame.vue'
+import Button from '@/components/ui/Button.vue'
 import {
   X,
   Search,
@@ -90,6 +90,7 @@ async function confirmUndoOrder(orderId) {
 
 // Popover state
 const showFilterPopover = ref(false)
+const moreOpen=ref(false)
 const filterButton = ref(null)
 const filterValues = computed(() => ({action:selectedActionFilter.value,module:activeModule.value,material:selectedMaterialId.value,start:filterStartDate.value,end:filterEndDate.value}))
 const filterFields = computed(() => {
@@ -193,6 +194,7 @@ watch(() => store.modals.activityLog?.isOpen, (open) => {
 function close() {
   if(actionPending.value)return
   showFilterPopover.value = false
+  moreOpen.value=false
   store.closeActivityLog()
 }
 

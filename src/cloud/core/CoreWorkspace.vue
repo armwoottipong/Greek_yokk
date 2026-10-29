@@ -7,9 +7,9 @@
   <section v-if="pendingCommand&&operator" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนเริ่มรายการใหม่ เพื่อไม่บันทึกรายการซ้ำ</p><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button></section>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
-   <section v-if="operator" v-show="tab==='sale'" ref="saleRoot" class="pos-workspace" :class="{'is-split':split}" aria-label="ขายสินค้า">
-    <PosCatalog :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="locked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
-    <CartPanel :model="productModel" :presentation="split?'panel':'sheet'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
+   <section v-if="operator" v-show="tab==='sale'" ref="saleRoot" class="pos-workspace" :class="{'is-split':split,'is-cart-page':!split&&cartOpen}" aria-label="ขายสินค้า">
+    <PosCatalog v-show="split||!cartOpen" :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="locked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
+    <CartPanel :model="productModel" :presentation="split?'panel':'page'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
      <template #review>
       <div class="cart-cloud-review">
        <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ · จำนวนเมนูเดียวกันรวมเป็นรายการเดียวได้</p>
@@ -20,7 +20,7 @@
       </div>
      </template>
     </CartPanel>
-    <CartReviewBar v-if="!split" :quantity="cartQuantity" :subtotal="(preview?.subtotalCents||0)/100" :open="cartOpen" @open="cartOpen=true"/>
+    <CartReviewBar v-if="!split&&!cartOpen" :quantity="cartQuantity" :subtotal="(preview?.subtotalCents||0)/100" :open="cartOpen" @open="cartOpen=true"/>
    </section>
    <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :read-only="!operator" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
    <CloudStockWorkspace v-if="operator" ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory"/>
@@ -50,6 +50,7 @@ import CloudProductShell from './CloudProductShell.vue'
 import PosCatalog from '@/components/pos/PosCatalog.vue'
 import CartPanel from '@/components/pos/CartPanel.vue'
 import CartReviewBar from '@/components/pos/CartReviewBar.vue'
+import {useCartPageFocus} from '@/composables/useCartPageFocus'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import AppQuantityInput from '@/components/ui/AppQuantityInput.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -113,6 +114,7 @@ const plain=v=>JSON.parse(JSON.stringify(toRaw(v)))
 
 const saleRoot=ref(null),saleWidth=useElementWidth(saleRoot),split=computed(()=>saleWidth.value>=696)
 const cartOpen=ref(false),searchQuery=ref(''),lineError=ref(''),clearConfirm=ref(false),receiptState=reactive({isOpen:false,order:null})
+useCartPageFocus(saleRoot,split,cartOpen)
 let clearAnswer
 const productMenus=computed(()=>projectMenus(data.value))
 const productPlatforms=computed(()=>platformIds.value.map(id=>({id,name:name('platforms',id),isActive:true,gpPercent:(data.value.shop.catalog.platforms[id].gpBasisPoints||0)/100})))
