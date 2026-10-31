@@ -100,7 +100,7 @@
 
 .workbench-columns {
   display: grid;
-  grid-template-columns: 208px minmax(0,1fr);
+  grid-template-columns: 280px minmax(0,1fr);
   gap: 24px;
   align-items: start;
   min-width: 0;
@@ -181,8 +181,14 @@
   font-size: .8125rem;
   font-weight: 500;
   line-height: 1.7;
-  overflow-wrap: anywhere;
   display: block;
+}
+
+.menu-browser-item strong,
+.menu-browser-item small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-browser-item small {
@@ -260,13 +266,13 @@
 
 @media (min-width:1800px) {
   .workbench-columns {
-    grid-template-columns: 224px minmax(0,1fr);
+    grid-template-columns: 320px minmax(0,1fr);
   }
 }
 
 @media (max-width:1199px) {
   .workbench-columns {
-    grid-template-columns: 192px minmax(0,1fr);
+    grid-template-columns: 256px minmax(0,1fr);
     gap: 16px;
   }
   .menu-header-panel {
