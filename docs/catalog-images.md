@@ -49,3 +49,22 @@ revision conflict, offline/context fencing, สิทธิ์ใน Rules แ�
 ทดสอบเลือกไฟล์ ยกเลิก ครอป บันทึก และ reload พบผลลัพธ์ 512×512
 โดยไม่มี horizontal overflow ภาพใน POS เป็น 1:1
 การตรวจนี้ไม่อัปโหลดรูปหรือเปลี่ยนข้อมูลธุรกิจจริงใน production
+
+## Production compiler gate
+
+Rules ชุดแรกผ่าน emulator แต่เมื่อสร้าง preview บน Firebase พบ executable
+256,774 bytes เกินขีดจำกัด 256,000 bytes จึงไม่ได้เปิดใช้งาน Rules ชุดนั้น
+แก้โดยแชร์เฉพาะการอ่าน root snapshot ที่เหมือนกันทุกตัวอักษร
+(`scripts/rule-root-data.mjs`) มี inverse test ที่ inline helper กลับแล้วได้
+source เดิมแบบ byte-for-byte และใช้จำนวน keys เท่ากับ 6 ร่วมกับ hasOnly
+แทนการระบุรายการ required keys ซ้ำ เงื่อนไขชื่อฟิลด์/ข้อมูล/สิทธิ์เดิมยังครบ
+preview ใหม่คอมไพล์ได้ที่ **255,965 bytes** ต้องผ่าน native operational proof
+และตรวจ live executable/source ก่อนถือว่า deploy Rules สำเร็จ
+การเพิ่ม Rules ในอนาคตต้องผ่าน compiler preview นี้ก่อนเปิดใช้เสมอ
+
+เปิดใช้และอ่านกลับจาก **release ชื่อ `cloud.firestore` แบบตรงตัว** แล้ว:
+`projects/yoggie-db/rulesets/b5584595-58f5-4d65-8464-56e71f3f2a79`
+source ตรงกับไฟล์ Rules ที่ทดสอบ และ executable 255,965 bytes
+อย่าเลือก release ด้วย startsWith เพราะจะรวม preview release ด้วย
+ตรวจซ้ำหลังลดขนาด: ordinary tests 1,517 passed / 1 skipped,
+native Firebase proof 99 passed / 2 skipped, lint/build ผ่าน

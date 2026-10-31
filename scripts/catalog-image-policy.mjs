@@ -6,7 +6,7 @@ function catalogImageRead(s,g) {
 function catalogImageWrite(s,g,id) {
  let n=request.resource.data;
  let root=get(/databases/$(database)/documents/shops/$(s)).data;
- return catalogImageRead(s,g) && n.keys().hasAll(['kind','entityId','dataURL','revision','updatedAt','updatedBy']) &&
+ return catalogImageRead(s,g) && n.keys().size()==6 &&
   n.keys().hasOnly(['kind','entityId','dataURL','revision','updatedAt','updatedBy']) &&
   n.kind in ['menus','materials'] && n.entityId is string && n.entityId.size()>0 && n.entityId.size()<=160 &&
   id==n.kind+'_'+n.entityId && n.dataURL is string && n.dataURL.size()<=204823 &&

@@ -29,6 +29,7 @@ it('rejects Viewer, unknown email and non-Google writes and catalog-image reads'
 })
 it('rejects stale revisions, oversized/unsafe image data and forged authors',async()=>{
  const d=db();await assertSucceeds(setDoc(doc(d,imagePath),picture()))
+ for(const key of ['kind','entityId','dataURL','revision','updatedAt','updatedBy']){const incomplete=picture({revision:2});delete incomplete[key];await assertFails(setDoc(doc(d,imagePath),incomplete))}
  for(const changes of [{revision:1},{revision:3},{dataURL:'data:image/svg+xml;base64,AAAA'},{dataURL:'https://example.com/a.jpg'},{dataURL:'data:image/jpeg;base64,/9j/'+'A'.repeat(204800)},{updatedBy:'admin'},{extra:true}])await assertFails(setDoc(doc(d,imagePath),picture({revision:2,...changes})))
 })
 it('rejects mismatched entity keys, nonexistent targets and inactive generations',async()=>{

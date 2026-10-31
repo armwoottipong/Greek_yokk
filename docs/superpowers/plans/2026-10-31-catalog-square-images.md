@@ -48,8 +48,8 @@ Files: original MenuEditModal.vue, MaterialEditModal.vue, PosMenuCard.vue, Catal
 
 - [x] Run full tests, lint, production build, Rules proof, detector and desktop/tablet/mobile visual inspection.
 - [x] Review entire change; fix material findings with regression tests.
-- [ ] Commit package, inspect remote, fast-forward main, push and verify Pages Actions plus live version/entry.
-- [ ] Deploy additive tested Rules/index change only with existing project credentials; otherwise report the exact blocker and do not claim cloud image saving works live.
+- [x] Commit package, inspect remote, fast-forward main, push and verify Pages Actions plus live version/entry.
+- [x] Deploy additive tested Rules/index change only with existing project credentials; otherwise report the exact blocker and do not claim cloud image saving works live.
 
 ## Execution ledger
 
@@ -67,3 +67,5 @@ Files: original MenuEditModal.vue, MaterialEditModal.vue, PosMenuCard.vue, Catal
 - Firestore proof: 6 files, 99 passed / 2 skipped, including production image Rules, existing access policy, catalog/inventory runtime and backup/recovery.
 - Lint and production build passed. Existing large-chunk warning remains. Detector new-component advisories are intentional translucent crop guides and decorative emoji size; inherited off-ramp source classes were preserved as required.
 - Ruling: Business fields changed after a partial save are not replayed; the form reports that the user should reopen the saved entity. This avoids silent loss of those edits and stale stock compensation.
+- Release gate: Pages 0f03345 succeeded, but Rules activation failed. Preview exposed executable 256,774 bytes over the 256,000 limit. A predicate-preserving root-read compression plus exact six-key schema gate now previews at 255,965 bytes. Inverse-source regression passed; full unit/native proof rerun is required before activation. No business permission was removed or expanded to reduce size.
+- Release gate resolved: final ordinary suite 197 files / 1517 passed / 1 skipped; six native suites 99 passed / 2 skipped; lint/build green. Exact active `cloud.firestore` release source and executable verified as b5584595-58f5-4d65-8464-56e71f3f2a79 / 255965 bytes. Final compiler-fix commit and Pages readback are reported in chat.
