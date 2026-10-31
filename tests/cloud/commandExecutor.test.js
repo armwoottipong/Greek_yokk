@@ -17,6 +17,14 @@ beforeEach(() => {
 })
 
 describe('isolated command execution coordinator', () => {
+  it('preserves the original transport error while retaining an uncertain command',async()=>{
+    commit.mockRejectedValue(Object.assign(new Error('denied'),{code:'permission-denied'}))
+    expect(await executor.execute(scope,envelope)).toMatchObject({code:'PENDING_RESULT',causeCode:'permission-denied',outcome:'uncertain'})
+  })
+  it('reports an initial readiness refusal as blocked without claiming that a prior attempt failed',async()=>{
+    context.ready=false
+    expect(await executor.execute(scope,envelope)).toMatchObject({code:'NOT_READY',outcome:'blocked'})
+  })
   it.each([
     [{ online: false }, 'OFFLINE'], [{ ready: false }, 'NOT_READY'],
     [{ protocolCertified: false }, 'PROTOCOL_NOT_CERTIFIED'], [{ uid: 'bob' }, 'CONTEXT_CHANGED'],

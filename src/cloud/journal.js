@@ -114,6 +114,27 @@ export function createCommandJournal({ indexedDB = globalThis.indexedDB,
   }
 
   return {
+    async inspect(scope, opId, envelope) {
+      const sk=scopeKey(scope)
+      return transaction('readonly',async records=>{
+        const record=await requestResult(records.get(keyFor(sk,opId)))
+        if(record&&envelope&&record.json!==commandJson(envelope))throw fail('COMMAND_MISMATCH')
+        return record?view(record):null
+      })
+    },
+    async rejectUnsent(scope, opId) {
+      return withRecord(scope,opId,async(record,records,pending)=>{
+        if(record.state==='resolved')return view(record)
+        if(record.attempted)throw fail('RETRY_REQUIRED')
+        const envelope=JSON.parse(record.json)
+        record.state='resolved'
+        record.receiptJson=canonical({opId,kind:envelope.kind,rejected:true,code:'NOT_SUBMITTED'})
+        record.ownerId=null;record.leaseUntil=0;records.put(record)
+        const pointer=await requestResult(pending.get(record.scopeKey))
+        if(pointer?.key===record.key)pending.delete(record.scopeKey)
+        return view(record)
+      })
+    },
     async prepare(scope, envelope) {
       const sk = scopeKey(scope)
       const json = commandJson(envelope)

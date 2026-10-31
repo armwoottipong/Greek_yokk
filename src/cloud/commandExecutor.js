@@ -18,11 +18,12 @@ export function createCommandExecutor({ journal, getContext, getReceipt, commit 
 
   async function execute(scope, envelope) {
     let claim
+    let record
     let attempted = false
     let resolved = false
     try {
       guard(scope)
-      const record = await journal.prepare(scope, envelope)
+      record = await journal.prepare(scope, envelope)
       guard(scope)
       if (record.state === 'resolved') return { ok: true, value: record.receipt }
       claim = await journal.claim(scope, record.envelope.opId)
@@ -52,8 +53,9 @@ export function createCommandExecutor({ journal, getContext, getReceipt, commit 
       if (claim && !resolved) {
         try { await journal.markUncertain(scope, claim.envelope.opId, claim.token) } catch { /* retain durable sending record for recovery */ }
       }
-      if (attempted && !resolved) return failure('PENDING_RESULT')
-      return failure(error?.code === 'COMMAND_BUSY' ? 'PENDING_RESULT' : error?.code || 'PENDING_RESULT')
+      const causeCode=error?.code||'UNKNOWN'
+      if ((attempted || record?.attempted || causeCode==='COMMAND_BUSY') && !resolved) return {...failure(attempted||causeCode==='COMMAND_BUSY'?'PENDING_RESULT':causeCode),causeCode,outcome:'uncertain'}
+      return {...failure(causeCode==='UNKNOWN'?'PENDING_RESULT':causeCode),causeCode,outcome:record?'prepared':'blocked'}
     }
   }
 

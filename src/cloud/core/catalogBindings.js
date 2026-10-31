@@ -14,8 +14,8 @@ export function createCatalogBindings({snapshot,mutate,error}){
  function menuPayload(input,retire=false){
   version(input)
   const data=snapshot(),c=data.shop.catalog,id=input.id||`MENU-${crypto.randomUUID()}`,old=c.menus[id]
-  const selected=input.hasAddons===false?[]:input.addonGroupIds
-  const rawRecipe=retire?clone(old.rawRecipe||old.recipe):recipe(input.recipe,c,data.materials)
+  const selected=retire||input.hasAddons===false?[]:input.addonGroupIds
+  const rawRecipe=retire?{}:recipe(input.recipe,c,data.materials)
   // Retain declared packaging quantities while the packaging toggle is off.
   if(!retire&&input.hasPackage===false)for(const [key,q] of Object.entries(old?.rawRecipe||{}))if(data.materials.find(m=>m.id===key)?.inventoryType==='packaging')rawRecipe[key]=q
   const options=selected===undefined&&input.hasAddons!==false?[...(old?.optionIds||[])]:[]
@@ -27,10 +27,16 @@ export function createCatalogBindings({snapshot,mutate,error}){
   return {input:canonical,display}
  }
  return {
+  retiredMaterialCommands(materialId){
+   const d=snapshot(),entries=[]
+   for(const [id,row] of Object.entries(d.shop.catalog.menus))if(row.active===false&&d.display.menus?.[id]?.deleted&&Object.hasOwn(row.rawRecipe||row.recipe,materialId))entries.push({kind:'menu',payload:menuPayload({id},true)})
+   for(const [id,row] of Object.entries(d.shop.catalog.addons))if(row.active===false&&d.display.addons?.[id]?.deleted&&Object.hasOwn(row.recipe,materialId))entries.push({kind:'addon',payload:{entityId:id,input:{...clone(row),recipe:{},materialIds:[]},display:{...metadata({name:d.display.addons[id].name||row.name||id},d.display.addons[id]),deleted:true}}})
+   return entries
+  },
   saveMenu:guarded(input=>mutate([{kind:'menu',payload:menuPayload(input)}])),
   deleteMenu:guarded(id=>{const data=snapshot(),old=data.shop.catalog.menus[id];if(!old)return error('ไม่พบเมนู');return mutate([{kind:'menu',payload:menuPayload({id,name:data.display.menus?.[id]?.name||old.name,hasAddons:false},true)}])}),
   saveAddon:guarded(input=>{version(input);const d=snapshot(),c=d.shop.catalog,id=input.id||`ADDON-${crypto.randomUUID()}`,old=c.addons[id];return mutate([{kind:'addon',payload:{entityId:id,input:{name:input.name.trim(),active:input.isActive??old?.active??true,pricesCents:money(input.prices,c),recipe:recipe(input.recipe,c,d.materials)},display:metadata(input,d.display.addons?.[id])}}])}),
-  deleteAddon:guarded(id=>{const d=snapshot(),c=d.shop.catalog,old=c.addons[id];if(!old)return error('ไม่พบ Add-on');if(Object.values(c.menus).some(m=>m.active&&m.optionIds.includes(id))||Object.values(c.groups||{}).some(g=>g.active&&g.optionIds.includes(id)))return error('ยังลบไม่ได้: Add-on นี้อยู่ในเมนูหรือกลุ่มตัวเลือก กรุณานำออกก่อน');return mutate([{kind:'addon',payload:{entityId:id,input:{...clone(old),active:false},display:{...metadata({name:d.display.addons?.[id]?.name||old.name||id},d.display.addons?.[id]),deleted:true}}}])}),
+  deleteAddon:guarded(id=>{const d=snapshot(),c=d.shop.catalog,old=c.addons[id];if(!old)return error('ไม่พบ Add-on');if(Object.values(c.menus).some(m=>m.active&&m.optionIds.includes(id))||Object.values(c.groups||{}).some(g=>g.active&&g.optionIds.includes(id)))return error('ยังลบไม่ได้: Add-on นี้อยู่ในเมนูหรือกลุ่มตัวเลือก กรุณานำออกก่อน');return mutate([{kind:'addon',payload:{entityId:id,input:{...clone(old),active:false,recipe:{},materialIds:[]},display:{...metadata({name:d.display.addons?.[id]?.name||old.name||id},d.display.addons?.[id]),deleted:true}}}])}),
   saveAddonGroup:guarded(input=>{version(input);const d=snapshot(),c=d.shop.catalog,id=input.id||`GROUP-${crypto.randomUUID()}`,ids=input.options.map(o=>o.addonId);return mutate([{kind:'group',payload:{input:{id,name:input.name.trim(),active:input.isActive!==false,min:Number(input.minSelections),max:Number(input.maxSelections),allowRepeat:!!input.allowRepeat,pricingMode:input.pricingMode,optionIds:ids,optionPrices:Object.fromEntries(c.platformIds.map(p=>[p,{_:0,...Object.fromEntries(input.options.filter(o=>o.prices&&Object.hasOwn(o.prices,p)).map(o=>[o.addonId,scaled(o.prices[p])]))}]))},display:metadata({name:input.name.trim()},d.display.groups?.[id])}}])}),
   deleteAddonGroup:guarded(id=>{const d=snapshot(),old=d.shop.catalog.groups[id];if(!old)return error('ไม่พบกลุ่มตัวเลือก');if(old.menuIds.length)return error('ยังลบไม่ได้: กลุ่มนี้ยังถูกใช้ในเมนู กรุณานำออกจากเมนูก่อน');const input=clone(old);delete input.revision;delete input.menuIds;delete input.multiMenuIds;input.active=false;return mutate([{kind:'group',payload:{input,display:{...metadata({name:old.name},d.display.groups?.[id]),deleted:true}}}])})
  }

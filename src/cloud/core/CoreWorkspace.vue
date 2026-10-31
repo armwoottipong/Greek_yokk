@@ -4,7 +4,7 @@
   <p v-if="!state.serverReady||!online" class="connection-warning" role="status">ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว กรุณาเชื่อมต่อก่อนบันทึก</p>
   <p v-if="message" class="notice" role="status" aria-live="polite">{{ message }}</p>
   <p v-if="error" class="error" role="alert">{{ error }}</p>
-  <section v-if="pendingCommand&&operator" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนเริ่มรายการใหม่ เพื่อไม่บันทึกรายการซ้ำ</p><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button></section>
+  <section v-if="pendingCommand&&operator" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>{{ pendingLabel }} · เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนบันทึกรายการใหม่ เพื่อไม่บันทึกซ้ำ</p><p v-if="pendingCause">{{ explain({code:pendingCause}) }}</p><details><summary>รายละเอียดรายการรอตรวจผล</summary><p>รหัสรายการ: {{ pendingCommand.opId }}</p><p v-if="pendingCause">รหัสสาเหตุ: {{ pendingCause }}</p></details><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button><Button v-else-if="pendingCommand.payload?.expectedRevision!==undefined" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='stop'" @click="stopPending">หยุดรายการที่ยังไม่สำเร็จและเก็บแบบร่าง</Button></section>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
    <section v-if="operator" v-show="tab==='sale'" ref="saleRoot" class="pos-workspace" :class="{'is-split':split,'is-cart-page':!split&&cartOpen}" aria-label="ขายสินค้า">
@@ -70,6 +70,7 @@ import {Check,Plus} from 'lucide-vue-next'
 import {useElementWidth} from '@/composables/useElementWidth'
 import {projectMenus,projectCart,optionCents,projectReceipt} from './productPresentation.js'
 import {createCoreWorkspace} from './workspace.js'
+import {commandErrorMessage} from './commandErrors.js'
 import {maxSaleLines} from './model/limits.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
 const role=computed(()=>shopRole(props.state.shop,props.state.user?.email)),operator=computed(()=>canOperate(role.value))
@@ -83,6 +84,8 @@ const activeUsers=computed(()=>{
 function updatePresence(){presenceClock.value=Date.now();if(online.value&&props.state.serverReady&&document.visibilityState==='visible')void shopAccess?.heartbeat()}
 defineEmits(['sign-out'])
 const activeAction=ref(''),reloading=ref(false)
+const pendingCause=ref('')
+const pendingLabel=computed(()=>({sale:'บันทึกยอดขาย',cancel:'คืนบิล',inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ตรวจนับสต็อก',menu:'บันทึกเมนู',addon:'บันทึก Add-on',group:'บันทึกกลุ่มตัวเลือก',material_archive:'จัดเก็บวัตถุดิบ',material_delete:'ลบวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ'}[pendingCommand.value?.kind]||'บันทึกข้อมูลร้าน'))
 const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),message=ref(''),tab=ref(operator.value?'sale':'dashboard'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
 const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
@@ -93,7 +96,7 @@ try{
  deviceId=localStorage.getItem('gy-cloud-device-v1')||crypto.randomUUID();localStorage.setItem('gy-cloud-device-v1',deviceId)
  storageKey=JSON.stringify(['gy-core-cart-v1',props.connection.config.projectId,props.connection.shopId,props.state.shop.generation,props.state.user.uid])
  const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null')
- if(saved){cart.value=saved.cart||[];packageAdjustments.value=saved.packageAdjustments||[];platformId.value=saved.platformId||'';storedCommand=saved.command||null;pendingCommand.value=storedCommand;cartCommandId=saved.cartCommandId||null}
+ if(saved){cart.value=saved.cart||[];packageAdjustments.value=saved.packageAdjustments||[];platformId.value=saved.platformId||'';storedCommand=saved.command||null;pendingCommand.value=storedCommand;pendingCause.value=saved.causeCode||'';cartCommandId=saved.cartCommandId||null}
 }catch{storageReady.value=false;error.value='เก็บตะกร้าบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วเปิดหน้านี้ใหม่'}
 const context=()=>({projectId:props.connection.config.projectId,shopId:props.connection.shopId,generation:props.state.shop?.generation,uid:props.state.user?.uid,deviceId,online:online.value,ready:props.state.serverReady===true,protocolCertified:true,role:role.value})
 const ready=computed(()=>initialized.value&&storageReady.value&&online.value&&props.state.serverReady===true&&!!data.value)
@@ -171,7 +174,7 @@ function orderDate(o){return o.createdAt?.toDate?o.createdAt.toDate().toLocaleSt
 function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g.id==='legacy'?null:g,id,platformId.value);return cents===0?'รวมในราคา':`+${money(cents)}`}
 function selectMenu(id){if(locked.value)return;selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
-function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,cartCommandId}));return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
+function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
 function addLine(){
  if(locked.value||!menu.value||cart.value.length>=saleLimit.value)return
  try{
@@ -180,7 +183,7 @@ function addLine(){
  else line.optionIds=menuGroups.value.flatMap(g=>g.optionIds.flatMap(id=>{const q=choices.value[g.id][id]||0;if(!Number.isSafeInteger(q)||q<0||q>(g.allowRepeat?g.max:1))throw new Error('Invalid selection');return Array(q).fill(id)}))
  service.previewSale({platformId:platformId.value,lines:[...plain(cart.value),line]});cart.value.push(line);error.value='';lineError.value='';message.value='';selectedMenu.value='';if(!split.value)cartOpen.value=true}catch(e){lineError.value=explain(e)}
 }
-function explain(e){const code=e?.code||e?.message||'';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SALE_MATERIAL_LIMIT')return 'บิลนี้ใช้วัตถุดิบรวมเกิน 16 รายการ กรุณาแบ่งเป็นหลายบิล';if(code==='RECIPE_MATERIAL_LIMIT')return 'หนึ่งสูตรใช้วัตถุดิบได้ไม่เกิน 16 รายการ';if(code==='PREPARATION_LIMIT')return 'มีคำสั่งค้างหลายรายการ กรุณาตรวจและจัดการคำสั่งค้างก่อนลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
+function explain(e){const known=commandErrorMessage(e);if(known)return known;const code=e?.code||e?.message||'';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SALE_MATERIAL_LIMIT')return 'บิลนี้ใช้วัตถุดิบรวมเกิน 16 รายการ กรุณาแบ่งเป็นหลายบิล';if(code==='RECIPE_MATERIAL_LIMIT')return 'หนึ่งสูตรใช้วัตถุดิบได้ไม่เกิน 16 รายการ';if(code==='PREPARATION_LIMIT')return 'มีคำสั่งค้างหลายรายการ กรุณาตรวจและจัดการคำสั่งค้างก่อนลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
 let refreshTask=null
 function refresh(){
  if(!service||disposed)return Promise.resolve()
@@ -196,27 +199,59 @@ function refresh(){
 }
 
 async function updatePending(){const p=await service.pending();if(disposed)return;if(p.length)pendingCommand.value=p[0].envelope;else if(!storedCommand)pendingCommand.value=null;save()}
+async function recoverPending(){
+ if(busy.value||!service||!online.value||!props.state.serverReady)return
+ try{
+  await updatePending();if(disposed)return;initialized.value=true
+  if(!pendingCommand.value&&inventoryWorkspace.value?.model.unresolvedDraftCommand){pendingCommand.value=plain(inventoryWorkspace.value.model.unresolvedDraftCommand);storedCommand=pendingCommand.value;save()}
+  if(pendingCommand.value){
+   const result=service.recover?await service.recover(plain(pendingCommand.value)):await service.reconcile()
+   if(disposed)return
+   if(result.ok&&result.value)finish(result.value)
+   else if(result.causeCode){pendingCause.value=result.causeCode;save()}
+  }
+ }catch(e){if(!disposed)error.value=explain(e)}
+}
 async function send(command,action=command.kind){
- if(!operator.value||command.kind==='platform_gp'&&role.value!=='admin')return {ok:false,code:'ACCESS_DENIED'}
- if(busy.value||!ready.value)return {ok:false,code:'NOT_READY'}
+ if(!operator.value||command.kind==='platform_gp'&&role.value!=='admin')return {ok:false,code:'ACCESS_DENIED',outcome:'blocked'}
+ if(busy.value||!ready.value)return {ok:false,code:'NOT_READY',outcome:'blocked'}
  let refreshed=false
+ const previous=storedCommand
  busy.value=true;activeAction.value=action;error.value='';pendingCommand.value=plain(command);storedCommand=pendingCommand.value
- if(!save()){busy.value=false;activeAction.value='';return {ok:false,code:'LOCAL_JOURNAL_FAILED'}}
- try{let result=await service.execute(plain(command));if(disposed)return {ok:false};if(!result.ok&&command.payload.expectedRevision!==undefined&&service.rejectStaleInventory){const resolved=await service.rejectStaleInventory();if(resolved.ok&&resolved.value)result=resolved}if(result.ok){await reloadAfterWrite();refreshed=true;if(!disposed)finish(result.value)}else {message.value='ยังไม่ทราบผลการบันทึก กรุณาตรวจผลและลองคำสั่งเดิมต่อ';error.value=result.code==='PENDING_RESULT'?'':explain({code:result.code})}return result}catch(e){if(!disposed){message.value='ยังไม่ทราบผลการบันทึก';error.value=explain(e)}return {ok:false,code:'PENDING_RESULT'}}finally{try{if(!disposed&&!refreshed)await reloadEverything()}finally{busy.value=false;activeAction.value=''}}
+ if(!save()){pendingCommand.value=previous;storedCommand=previous;busy.value=false;activeAction.value='';return {ok:false,code:'LOCAL_JOURNAL_FAILED',outcome:previous?'uncertain':'blocked'}}
+ try{
+  let result=await service.execute(plain(command));if(disposed)return {ok:false}
+  if(!result.ok&&result.outcome==='prepared'&&service.discardUnsent){const closed=await service.discardUnsent(plain(command));if(closed.ok)result=closed.value?.rejected&&closed.value.code==='NOT_SUBMITTED'?{...result,outcome:'not_submitted'}:closed}
+  if(!result.ok&&command.payload.expectedRevision!==undefined&&result.outcome!=='not_submitted'&&service.rejectStaleInventory){const resolved=await service.rejectStaleInventory();if(resolved.ok&&resolved.value)result=resolved}
+  if(result.ok){await reloadAfterWrite();refreshed=true;if(!disposed)finish(result.value)}
+  else if(result.outcome==='not_submitted'||result.outcome==='blocked'&&!previous){
+   pendingCommand.value=null;storedCommand=null;pendingCause.value='';message.value='ยังไม่ได้ส่งข้อมูล เก็บตะกร้าหรือแบบร่างไว้แล้ว';error.value=explain(result);save();await updatePending()
+  }else{
+   pendingCause.value=result.causeCode||result.code;message.value='ยังไม่ทราบผลการบันทึก กรุณาตรวจผลและลองคำสั่งเดิมต่อ';error.value=result.code==='PENDING_RESULT'?'':explain(result);save()
+  }
+  return result
+ }catch(e){if(!disposed){pendingCause.value=e.code||e.message;message.value='ยังไม่ทราบผลการบันทึก';error.value=explain(e);save()}return {ok:false,code:'PENDING_RESULT',outcome:'uncertain'}}
+ finally{try{if(!disposed&&!refreshed)await reloadEverything()}finally{busy.value=false;activeAction.value=''}}
 }
 function finish(value){
+ pendingCause.value=''
  inventoryWorkspace.value?.acknowledge(value)
  if(value.kind==='cancel'){const orderId=value.result?.orderId;const old=data.value?.orders.find(o=>o.opId===orderId),sourceId=old?.sourceLegacyId||legacySources.get(orderId);if(sourceId){const row=legacyOrders.value.find(o=>o.orderId===sourceId);if(row)row.status='cancelled';legacySources.delete(orderId)}}
- if(value.rejected){pendingCommand.value=null;storedCommand=null;save();message.value='';error.value='ยอดคลังเปลี่ยน คำสั่งที่ยังไม่สำเร็จถูกหยุดแล้ว กรุณาตรวจแบบร่างที่เหลือใหม่';return}
+ if(value.rejected){pendingCommand.value=null;storedCommand=null;save();message.value='';error.value=value.code==='NOT_SUBMITTED'?'รายการนี้ยังไม่ได้ส่ง สามารถตรวจและบันทึกแบบร่างใหม่ได้':'หยุดรายการที่ยังไม่สำเร็จแล้ว กรุณาตรวจแบบร่างกับยอดล่าสุดก่อนบันทึก';return}
   if(value.kind==='sale'&&!value.abandoned&&value.opId===cartCommandId){cart.value=[];packageAdjustments.value=[];packageReviewState.isOpen=false;cartOpen.value=false;receiptState.order=projectReceipt({...value.result,opId:value.opId},data.value);receiptState.isOpen=true}
  cancelId.value='';pendingCommand.value=null;storedCommand=null;cartCommandId=null;approveShortage.value=false;save();message.value=value.abandoned?'หยุดบิลแล้ว ตะกร้ายังอยู่':'บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว'
 }
 function checkout(){if(!canCheckout.value)return;cartCommandId=crypto.randomUUID();void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value),subtotalCents:preview.value.subtotalCents,approvedShortages:Object.fromEntries(shortages.value)}})}
 async function retry(){if(!pendingCommand.value)return;await send(plain(pendingCommand.value),'retry')}
+async function stopPending(){
+ if(!operator.value||busy.value||!ready.value||!service.stop)return
+ busy.value=true;activeAction.value='stop'
+ try{const r=await service.stop(plain(pendingCommand.value));await reloadAfterWrite();if(!disposed){if(r.ok)finish(r.value);else{pendingCause.value=r.causeCode||r.code;error.value=explain(r);save()}}}catch(e){if(!disposed)error.value=explain(e)}finally{busy.value=false;activeAction.value=''}
+}
 async function abandon(){
  if(!operator.value||busy.value||!ready.value)return
  busy.value=true;activeAction.value='abandon'
- try{const r=await service.abandon();await reloadAfterWrite();if(!disposed){if(r.ok)finish(r.value);else error.value=explain(r)}}catch(e){if(!disposed)error.value=explain(e)}finally{busy.value=false;activeAction.value=''}
+ try{const r=await service.abandon(plain(pendingCommand.value));await reloadAfterWrite();if(!disposed){if(r.ok)finish(r.value);else error.value=explain(r)}}catch(e){if(!disposed)error.value=explain(e)}finally{busy.value=false;activeAction.value=''}
 }
 
 function cancelOrder(orderId){if(!locked.value&&ready.value)void send({opId:crypto.randomUUID(),kind:'cancel',payload:{orderId}})}
@@ -236,7 +271,7 @@ function loadOrders(){
 function reloadEverything(){
  if(reloadTask)return reloadTask
  reloading.value=true
- reloadTask=(async()=>{await refresh();if(tab.value==='dashboard')reportRefreshKey.value++;if(tab.value==='orders'&&!disposed)await loadOrders()})().finally(()=>{reloading.value=false;reloadTask=null})
+ reloadTask=(async()=>{if(!storageReady.value)save();await refresh();await recoverPending();if(tab.value==='dashboard')reportRefreshKey.value++;if(tab.value==='orders'&&!disposed)await loadOrders()})().finally(()=>{reloading.value=false;reloadTask=null})
  return reloadTask
 }
 
@@ -247,7 +282,7 @@ async function reloadAfterWrite(){
  await reloadEverything()
 }
 
-const connectivity=()=>{online.value=navigator.onLine;updatePresence();if(online.value&&props.state.serverReady)void refresh()}
+const connectivity=()=>{online.value=navigator.onLine;updatePresence();if(online.value&&props.state.serverReady)void reloadEverything()}
 watch([cart,platformId,packageAdjustments],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
 watch(()=>JSON.stringify(shortages.value),()=>{approveShortage.value=false})
 watch(role,()=>{shopAccess?.watchInvitations();const current=tab.value==='sale'?'pos':tab.value;if(!roleTabs(role.value).includes(current)&&!(current==='orders'&&operator.value))tab.value='dashboard';if(!operator.value){selectedMenu.value='';cancelId.value='';cartOpen.value=false;packageReviewState.isOpen=false;reportVisited.value=true}})
@@ -263,7 +298,7 @@ watch(()=>data.value?.shop.catalogRevision,(revision,previous)=>{
  }
 },{flush:'sync'})
 watch(()=>props.state.shop?.revision,()=>{if(props.state.serverReady)void refresh()})
-watch(()=>props.state.serverReady,value=>{if(value){updatePresence();void refresh()}})
+watch(()=>props.state.serverReady,value=>{if(value){updatePresence();void reloadEverything()}})
 onMounted(async()=>{
  window.addEventListener('online',connectivity);window.addEventListener('offline',connectivity)
  if(props.state.user?.email){
@@ -271,7 +306,7 @@ onMounted(async()=>{
   shopAccess=createShopAccess({db,shopId:props.connection.shopId,getUser:()=>props.state.user,getShop:()=>props.state.shop,onInvitations:rows=>{invitations.value=rows},onPresence:users=>{presentUsers.value=users}})
   shopAccess.watch();shopAccess.watchInvitations();updatePresence();presenceTimer=setInterval(updatePresence,60000);document.addEventListener('visibilitychange',updatePresence)
  }
- try{service=createCoreWorkspace({connection:props.connection,getContext:context});await refresh();if(disposed)return;await updatePending();initialized.value=true;if(operator.value&&pendingCommand.value&&ready.value){const r=await service.reconcile();if(!disposed&&r.ok&&r.value)finish(r.value)}}catch(e){error.value=explain(e)}
+ try{service=createCoreWorkspace({connection:props.connection,getContext:context});await refresh();if(disposed)return;await recoverPending()}catch(e){error.value=explain(e)}
 })
 onUnmounted(()=>{disposed=true;answerClear(false);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity);document.removeEventListener('visibilitychange',updatePresence);clearInterval(presenceTimer);shopAccess?.close();void service?.close()})
 </script>

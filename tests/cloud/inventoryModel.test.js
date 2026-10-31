@@ -13,6 +13,29 @@ function setup(customize=()=>{},readHistory=async()=>({logs:[]})){
  model=createInventoryModel({getData:()=>source,loadServer:async()=>source,execute,isReady:()=>ready,isBlocked:()=>blocked,storageKey:'inventory-test',readHistory})
  return {model,data,execute,setReady:v=>ready=v,setBlocked:v=>blocked=v,setData:v=>{source=v;model.update(v)}}
 }
+it('lets an unsent draft be discarded while an unrelated command blocks writes',()=>{
+ const {model,data,setBlocked}=setup(),m=data.materials[0]
+ model.stockAdjust(m.id,m.stock/100-1,'นับ','');setBlocked(true)
+ expect(model.discardStockDrafts().ok).toBe(true);model.close()
+})
+it('keeps a never-submitted draft editable when persisting submission intent fails',async()=>{
+ const {model,data,execute}=setup(),m=data.materials[0];model.stockAdjust(m.id,m.stock/100-1,'นับ','')
+ const spy=vi.spyOn(Storage.prototype,'setItem').mockImplementationOnce(()=>{throw new Error('quota')})
+ expect((await model.commitStockDrafts()).ok).toBe(false);expect(execute).not.toHaveBeenCalled()
+ spy.mockRestore();expect(model.discardStockDrafts().ok).toBe(true);model.close()
+})
+it('retains unsent draft but releases uncertainty after an explicit pre-submission refusal',async()=>{
+ const {model,data,execute}=setup(),m=data.materials[0];model.stockAdjust(m.id,m.stock/100-1,'นับ','')
+ execute.mockResolvedValueOnce({ok:false,code:'NOT_READY',outcome:'blocked'})
+ expect((await model.commitStockDrafts()).ok).toBe(false)
+ expect(model.discardStockDrafts().ok).toBe(true);model.close()
+})
+it('releases old uncertainty when the journal proves the command was never submitted',async()=>{
+ const {model,data,execute}=setup(),m=data.materials[0];model.stockAdjust(m.id,m.stock/100-1,'นับ','')
+ execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT'});await model.commitStockDrafts()
+ execute.mockResolvedValueOnce({ok:false,code:'NOT_READY',outcome:'not_submitted'});await model.commitStockDrafts()
+ expect(model.discardStockDrafts().ok).toBe(true);model.close()
+})
 it('stages original receiving UI inputs as canonical quantities, without a network write before Save',async()=>{
  const {model,data,execute}=setup(),m=data.materials[0],before=m.stock
  expect(model.stockIn(m.id,1.25,.5,'รับเข้า',.5,{receiveDate:'2026-10-26',expiryDate:null},true).ok).toBe(true)

@@ -12,6 +12,19 @@ const make = (ownerId = 'tab-a', options = {}) => createCommandJournal({ indexed
 beforeEach(() => { indexedDB = new IDBFactory(); now = 1000 })
 
 describe('durable scoped command journal', () => {
+  it('atomically closes a never-sent command and keeps its terminal record for other tabs',async()=>{
+    const journal=make();await journal.prepare(scope,command())
+    expect(await journal.rejectUnsent(scope,'sale-1')).toMatchObject({receipt:{rejected:true,code:'NOT_SUBMITTED'}})
+    expect(await journal.listUnresolved(scope)).toEqual([])
+    expect(await make('tab-b').inspect(scope,'sale-1')).toMatchObject({state:'resolved',receipt:{rejected:true}})
+    await expect(journal.claim(scope,'sale-1')).rejects.toMatchObject({code:'ALREADY_RESOLVED'})
+  })
+  it('never closes an attempted command without server evidence',async()=>{
+    const journal=make();await journal.prepare(scope,command());const c=await journal.claim(scope,'sale-1')
+    await journal.markSending(scope,'sale-1',c.token)
+    await expect(journal.rejectUnsent(scope,'sale-1')).rejects.toMatchObject({code:'RETRY_REQUIRED'})
+    expect(await journal.listUnresolved(scope)).toHaveLength(1)
+  })
   it('persists before returning, survives reopening, and copies caller data', async () => {
     const journal = make()
     const envelope = command()

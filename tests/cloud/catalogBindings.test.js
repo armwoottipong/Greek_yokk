@@ -31,6 +31,8 @@ it('creates and edits an original option group and binds it to a menu',async()=>
 it('retires a menu from the original management list and detaches its option groups while retaining the canonical identity',async()=>{
  const {model,snapshot}=fixture()
  expect((await model.deleteMenu('SIMPLE')).ok).toBe(true)
+ expect(snapshot().shop.catalog.menus.SIMPLE.rawRecipe).toEqual({})
+ expect(snapshot().shop.catalog.menus.SIMPLE.recipe).toEqual({})
  expect(model.menus.some(m=>m.id==='SIMPLE')).toBe(false);expect(snapshot().shop.catalog.menus.SIMPLE.active).toBe(false);expect(snapshot().display.menus.SIMPLE.deleted).toBe(true);model.close()
 })
 

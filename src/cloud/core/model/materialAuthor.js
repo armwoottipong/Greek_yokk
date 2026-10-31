@@ -26,8 +26,10 @@ export function summaryMaterialCreate(shop,input,{opId='MATERIAL-CREATE',uid='ca
   return {next,nextShop,operation:{...operation(shop,input.id,0,'material_create',opId,uid),materialSnapshot:structuredClone(next)}}
 }
 export function summaryMaterialArchive(shop,material,deleted,{opId='MATERIAL-ARCHIVE',uid='cashier'}={}){
-  if(typeof deleted!=='boolean'||material.deleted===deleted||!shop.materialIds?.includes(material.id)||shop.catalog.summaryMaterials.includes(material.id)||
+  if(typeof deleted!=='boolean'||material.deleted===deleted||!shop.materialIds?.includes(material.id)||
     shop.productionUsers?.[material.id]?.length!==0||deleted&&hasDeclaredMaterial(shop,material.id))throw new Error('Material still referenced or unchanged')
+  const nextShop=nextRoot(shop,opId,'material_archive')
+  if(deleted)nextShop.catalog.summaryMaterials=nextShop.catalog.summaryMaterials.filter(id=>id!==material.id)
   return {next:{...structuredClone(material),deleted,revision:material.revision+1,lastOpId:opId,lastOpKind:'material_archive',lastOpIndex:0},
-    nextShop:nextRoot(shop,opId,'material_archive'),...(deleted?{referenceProof:{opId}}:{}),operation:{...operation(shop,material.id,material.revision,'material_archive',opId,uid),deleted}}
+    nextShop,...(deleted?{referenceProof:{opId}}:{}),operation:{...operation(shop,material.id,material.revision,'material_archive',opId,uid),deleted}}
 }

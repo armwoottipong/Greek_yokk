@@ -1,6 +1,7 @@
 import {reactive,shallowRef} from 'vue'
 import {planInventoryCommand} from './inventoryPlan.js'
 import {createCatalogBindings} from './catalogBindings.js'
+import {declaredMaterialReferences,materialDeletionEligibility} from './materialEligibility.js'
 import {catalogMenus,catalogAddons,catalogGroups,catalogPlatforms} from './catalogPresentation.js'
 import {projectMaterial} from './productPresentation.js'
 import {buildMaterialUsage,getMaterialKind,MATERIAL_KIND_OPTIONS} from '@/domain/materialClassification'
@@ -49,7 +50,9 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   return {materialId,mode:'count',reason:reason||'นับสต็อกจริงรายวัน',note:note||'',counts:counts.filter(c=>c.to!==m.lotQty[c.id])}
  }
  async function commit(){
-  if(state.saving||isBlocked()||!isReady())return error('ยังไม่เชื่อมต่อหรือกำลังบันทึก กรุณารอและลองใหม่')
+  if(state.saving)return error('กำลังบันทึกแบบร่างนี้ กรุณารอผล')
+  if(isBlocked())return error('มีรายการอื่นรอตรวจผล กรุณาตรวจผลจากแถบสถานะด้านบนก่อนบันทึก')
+  if(!isReady())return error('ยังยืนยันการเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ แบบร่างยังอยู่ กรุณาเชื่อมต่อแล้วลองใหม่')
   if(!state.commands.length)return {ok:true,success:true}
   if(state.conflict&&!state.uncertain)return error('ยอดร้านเปลี่ยน กรุณายกเลิกแบบร่างที่ยังไม่บันทึกแล้วตรวจยอดใหม่')
   state.saving=true
@@ -59,10 +62,14 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
    const fresh=await loadServer()
    if(!state.uncertain&&fresh.shop.revision!==state.base.shop.revision){state.conflict=true;persist();return error('ยอดร้านเปลี่ยนจากเครื่องอื่น ยังไม่บันทึกแบบร่าง กรุณาตรวจยอดใหม่')}
    while(state.commands.length){
-    const command=clone(state.commands[0]);state.uncertain=true;if(!persist())throw new Error('เก็บคำสั่งไม่ได้ จึงยังไม่ส่งข้อมูล')
+    const command=clone(state.commands[0]),wasUncertain=state.uncertain;state.uncertain=true
+    if(!persist()){state.uncertain=wasUncertain;throw new Error('เก็บคำสั่งไม่ได้ จึงยังไม่ส่งข้อมูล')}
     const result=await execute(command)
     if(!alive)return {ok:false}
-    if(!result?.ok)return error(`ยังไม่ทราบผลรายการ ${names[command.kind]}${completed?` · ยืนยันแล้ว ${completed} คำสั่ง`:''} กรุณาตรวจผลคำสั่งเดิมก่อนทำต่อ`)
+    if(!result?.ok){
+     if(result?.outcome==='not_submitted'||!wasUncertain&&result?.outcome==='blocked'){state.uncertain=false;state.commands[0].opId=crypto.randomUUID();persist();return error(result.message||'ยังไม่ได้ส่งข้อมูล แบบร่างยังอยู่ สามารถแก้ไขหรือยกเลิกได้')}
+     return error(`ยังไม่ทราบผลรายการ ${names[command.kind]}${completed?` · ยืนยันแล้ว ${completed} คำสั่ง`:''} กรุณาตรวจผลคำสั่งเดิมก่อนทำต่อ`)
+    }
     if(result.value?.rejected){acknowledge(result.value);return error('ยอดร้านเปลี่ยน คำสั่งที่ยังไม่สำเร็จถูกหยุดแล้ว กรุณาตรวจแบบร่างที่เหลือใหม่')}
     // The parent also calls acknowledge; this makes the model usable by a direct service adapter.
     acknowledge(result.value||{opId:command.opId,kind:command.kind});completed++
@@ -86,7 +93,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   ...createCatalogBindings({snapshot:()=>virtual.value,mutate,error}),
   get catalogRevision(){return virtual.value.shop.catalogRevision},
   get menus(){return catalogMenus(virtual.value)},get addons(){return catalogAddons(virtual.value)},get addonGroups(){return catalogGroups(virtual.value)},get platforms(){return catalogPlatforms(virtual.value)},
-  get inventorySaving(){return state.saving},modals:state.modals,emojiCatalog:EMOJI_CATALOG,get toasts(){return state.toasts},get activityLogs(){return state.logs},get orders(){return []},
+  get inventorySaving(){return state.saving},get unresolvedDraftCommand(){return state.uncertain?state.commands[0]||null:null},modals:state.modals,emojiCatalog:EMOJI_CATALOG,get toasts(){return state.toasts},get activityLogs(){return state.logs},get orders(){return []},
   get materials(){return virtual.value.materials.map(view)},get activeMaterials(){return this.materials.filter(m=>!m.isDeleted)},get matMap(){return Object.fromEntries(this.materials.map(m=>[m.id,m]))},
   get materialKindOptions(){return MATERIAL_KIND_OPTIONS},getMaterialKind,get materialUsageById(){return buildMaterialUsage({materials:this.materials,menus:recipes('menus'),addons:recipes('addons')})},
   get lowStockMaterials(){return this.activeMaterials.filter(m=>m.stock<=m.minAlert)},get outOfStockMaterials(){return this.activeMaterials.filter(m=>m.stock<=0)},
@@ -95,10 +102,10 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   get stockDraftSummary(){const ids=new Set(state.commands.flatMap(c=>c.payload.requests?.map(r=>r.materialId)||[c.payload.materialId||c.payload.input?.id]));const items=[...ids].filter(Boolean).map(id=>{const m=this.matMap[id],before=this.stockDraftSnapshot.find(m=>m.id===id),c=[...state.commands].reverse().find(c=>c.payload.materialId===id||c.payload.input?.id===id||c.payload.requests?.some(r=>r.materialId===id));return {id,materialId:id,name:m?.name||id,emoji:m?.emoji||'',unit:m?.unit||'',title:names[c?.kind]||'แก้ข้อมูล',description:c?.payload.requests?.find(r=>r.materialId===id)?.mode==='waste'?'บันทึกของเสีย':names[c?.kind]||'',delta:(m?.stock||0)-(before?.stock||0)}});return {count:items.length,items,text:items.map(i=>i.name).join(', ')}},
   showToast(message,type='info'){state.toasts.push({id:crypto.randomUUID(),message,type})},dismissToast(id){state.toasts=state.toasts.filter(t=>t.id!==id)},
   initStockDraftSnapshot(){},commitStockDrafts:commit,
-  discardStockDrafts(){if(state.saving||state.uncertain||isBlocked())return error('ยังมีคำสั่งที่รอตรวจผล กรุณาตรวจผลก่อนยกเลิกแบบร่าง');state.commands=[];state.base=null;state.conflict=false;virtual.value=latest.value;persist();return {ok:true}},
+  discardStockDrafts(){if(state.saving||state.uncertain)return error('แบบร่างนี้มีคำสั่งที่รอตรวจผล กรุณาตรวจผลจากแถบสถานะด้านบนก่อนยกเลิก');state.commands=[];state.base=null;state.conflict=false;virtual.value=latest.value;persist();return {ok:true}},
   getMaterialTrackingMode:m=>!m||m.inventoryType==='packaging'?'none':'expiry_and_receive',
   getMaterialLots(m,showDepleted=false){return (m?.lots||[]).filter(l=>showDepleted||l.qty>0).sort((a,b)=>Number(b.isInUse)-Number(a.isInUse)||(a.expiryDate||'9999').localeCompare(b.expiryDate||'9999')||(a.receiveDate||'').localeCompare(b.receiveDate||''))},
-  getMaterialUsage(id){const usage=this.materialUsageById.get(id)||{menu:[],addon:[],production:[]};return {isInUse:Object.values(usage).some(a=>a.length),usedInMenus:usage.menu.map(r=>r.sourceName),usedInAddons:usage.addon.map(r=>r.sourceName),usedInMaterials:usage.production.map(r=>r.sourceName)}},
+  getMaterialUsage(id){const refs=declaredMaterialReferences(virtual.value,id),production=virtual.value.shop.productionUsers?.[id]||[];const name=ref=>`${ref.name}${ref.retired?' (ลบแล้ว)':''}`;return {isInUse:refs.length>0||production.length>0,usedInMenus:refs.filter(ref=>ref.collection==='menus').map(name),usedInAddons:refs.filter(ref=>ref.collection==='addons').map(name),usedInMaterials:production.map(key=>this.matMap[key]?.name||key)}},
   getLotActionPreview(m,receiveDate,expiryDate){const same=m?.lots?.some(l=>(l.receiveDate||'')===(receiveDate||'')&&(l.expiryDate||'')===(expiryDate||''));return {action:same?'merge_lot':'new_lot',label:m?.inventoryType==='packaging'?'บวกเข้ายอดบรรจุภัณฑ์':same?'รับเพิ่มในล็อตวันที่เดียวกัน':'เปิดล็อตใหม่ตามวันที่รับเข้าและหมดอายุ',shortLabel:same?'รวมล็อตเดิม':'เปิดล็อตใหม่',badgeClass:'text-stone-600'}},
   checkLotDepletion(id,qty){const m=this.matMap[id],lots=this.getMaterialLots(m),current=lots.find(l=>l.isInUse)||lots[0],next=lots.find(l=>l.id!==current?.id&&l.qty>0),available=current?.qty||0;return {currentLot:current||null,nextLot:next||null,willDeplete:qty>=available,isShort:qty>available,isLow:available>0&&available-qty<available*.1,availableInCurrent:available,neededQty:qty,remainingAfter:available-qty,shortageQty:Math.max(0,qty-available)}},
   promptLotDepletion(info){return new Promise(resolve=>{const m=info.material;state.modals.lotDepletion={...info,isOpen:true,materialId:m?.id,materialName:m?.name,materialEmoji:m?.emoji,unit:m?.unit,onConfirm:()=>{state.modals.lotDepletion.isOpen=false;resolve(true)},onCancel:()=>{state.modals.lotDepletion.isOpen=false;resolve(false)}}})},
@@ -116,7 +123,18 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   async clearActivityLogs(){const result=await mutate([{kind:'history_clear',payload:{}}]);if(result.ok){state.logs=[];await refreshHistory()}return result},
   undoOrder(){return error('กรุณาคืนบิลจากปุ่มประวัติด้านบน')},
 
-  async softDeleteMaterial(id){return mutate([{kind:'material_archive',payload:{materialId:id,deleted:true}}])},async restoreMaterial(id){return mutate([{kind:'material_archive',payload:{materialId:id,deleted:false}}])},async deleteMaterialPermanently(id){const m=this.matMap[id];if(!m?.isDeleted)return error('กรุณาจัดเก็บวัตถุดิบก่อนลบถาวร');if(m.stock!==0)return error('ยังลบไม่ได้: มีสต็อกคงเหลือ กรุณาตรวจนับหรือบันทึกของเสียให้ถูกต้องก่อน');if(m.hasSubRecipe||this.getMaterialUsage(id).isInUse)return error('ยังลบไม่ได้: มีสูตรอ้างอิง กรุณานำรายการออกจากสูตรก่อน');return mutate([{kind:'material_delete',payload:{materialId:id}}])},
+  materialDeletionEligibility(id){return materialDeletionEligibility(virtual.value,id)},
+  async softDeleteMaterial(id){
+   if(state.commands.length)return error('กรุณาบันทึกหรือยกเลิกแบบร่างคลังก่อนจัดเก็บวัตถุดิบ')
+   const refs=declaredMaterialReferences(virtual.value,id),live=refs.filter(ref=>!ref.retired)
+   if(live.length)return error(`ยังจัดเก็บไม่ได้: มีสูตรอ้างอิง ${live.map(ref=>ref.name).join(', ')} กรุณานำวัตถุดิบออกจากสูตรก่อน`)
+   const users=virtual.value.shop.productionUsers?.[id]||[]
+   if(users.length)return error(`ยังจัดเก็บไม่ได้: ใช้ในสูตรผลิต ${users.map(key=>this.matMap[key]?.name||key).join(', ')}`)
+   if(refs.length&&!await this.confirmDialog({title:'นำสูตรของรายการที่ลบแล้วออก?',message:`${refs.map(ref=>ref.name).join(', ')} ยังมีสูตรอ้างอิง จะนำสูตรของรายการที่ลบแล้วออกจากการใช้งานเพื่อจัดเก็บวัตถุดิบ ประวัติบิลเดิมยังอยู่`,confirmText:'นำสูตรออกและจัดเก็บ',cancelText:'เก็บไว้'}))return {ok:false}
+   return mutate([...this.retiredMaterialCommands(id),{kind:'material_archive',payload:{materialId:id,deleted:true}}])
+  },
+  async restoreMaterial(id){return mutate([{kind:'material_archive',payload:{materialId:id,deleted:false}}])},
+  async deleteMaterialPermanently(id){const eligibility=this.materialDeletionEligibility(id);if(!eligibility.allowed)return error(`ยังลบไม่ได้: ${eligibility.blockers.join(' · ')}`);return mutate([{kind:'material_delete',payload:{materialId:id}}])},
   async saveMaterial(input){
    if(state.commands.length)return error('กรุณาบันทึกหรือยกเลิกแบบร่างคลังก่อนแก้ข้อมูลวัตถุดิบ')
    try{

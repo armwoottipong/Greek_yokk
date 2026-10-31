@@ -1,52 +1,62 @@
-# Prepared command journal and recovery coordinator
+# Command journal and recovery
 
-These modules are isolated preparation. The running POS does not import them, no
-Firebase transaction adapter is connected, and the security proof is still
-uncertified. This is not a completed cloud checkout or migration.
+The Firebase workspace uses `src/cloud/journal.js`, `commandExecutor.js` and
+`core/commands.js` in production. The journal is an IndexedDB durability and tab
+coordination mechanism; server receipts are the authority for business outcomes.
 
-`src/cloud/journal.js` stores a strict immutable JSON envelope in IndexedDB before
-submission. Its draft local envelope is `{opId,kind,payload}`; final protocol data
-such as expected revisions and approvals must be encoded in the payload by the
-future certified planner. This is not the published Firestore protocol.
+## Submission and recovery
 
-Records are scoped by project, shop, generation, UID and device. One IndexedDB
-read/write transaction writes both the command and the unresolved-command pointer.
-Two tabs cannot prepare different commands in the same scope simultaneously. A
-resolved operation remains available for replay; resolving it again cannot clear
-a newer pending command. This conservative first implementation allows one pending
-mutation of any kind per device scope.
+- Commands are immutable `{opId, kind, payload}` envelopes scoped to project,
+  shop, generation, account and device. Only one unresolved mutation may write
+  from that scope. Claims have leases and fencing epochs.
+- `execute` reports the underlying `causeCode` and whether this invocation was
+  blocked, prepared or uncertain. A prior attempted command remains uncertain
+  even if a later recovery attempt fails before sending.
+- `inspect` can recover a receipt another tab already resolved. `rejectUnsent`
+  atomically closes only a command with no durable attempted flag. It retains a
+  terminal record so late tabs cannot claim and send it.
+- Manual reload and reconnect read/reconcile commands; they never automatically
+  submit a sale or stock command. Initialization can retry after a storage error.
+  A retained inventory envelope is recoverable even if the parent cart snapshot
+  was not saved. A missing journal entry does not prove a session command failed.
+- When unsent cleanup races with another tab completing the operation, the actual
+  committed receipt wins. A successful sale clears only its matching cart.
 
-Each page instance generates a fresh owner UUID; do not replace it with a copied
-sessionStorage tab ID. Claims have a lease and fencing epoch. Lease expiry permits
-another tab to inspect the same operation, but does not declare the sale failed.
-A takeover or uncertain attempt requires a server receipt read before an explicit
-retry. Stale owners cannot change claim state. A late authoritative receipt can
-resolve its own operation even after ownership changes.
+## Explicitly stopping a pending operation
 
-`src/cloud/commandExecutor.js` accepts injected receipt-read and commit adapters.
-It checks current identity, generation, readiness, network state and an internal
-protocol-certification gate before and after asynchronous preparation. Journal
-failure blocks all network calls. It persists `sending` before calling commit and
-retains an uncertain command if the reply is lost. Reconciliation reads only; it
-never submits a command. A missing receipt leaves the command pending. An explicit
-retry submits the original ID and stored payload. There is no automatic queue,
-online listener or background retry.
+Sales use the existing manifest abandonment transaction. A committed sale wins;
+otherwise the server closes the manifest and keeps the cart. This also works for
+an old session envelope whose IndexedDB entry is unavailable.
 
-The future Firebase adapter must use server-only receipt reads scoped to the
-authenticated shop/generation, validate the receipt's complete protocol schema,
-and perform one atomic idempotent transaction. Network hints and IndexedDB claims
-alone do not enforce server availability or exact-once writes. The coordinator's
-`protocolCertified` flag must remain disabled in product integration until the
-Rules/model gate passes; it is not a permission role.
+Inventory/catalog commands carry `expectedRevision`. Stopping one checks its
+original receipt first. If still eligible to run, a transaction advances only
+the shop revision and writes an immutable `command_abort` receipt at the original
+operation ID. That receipt also closes the ID: ordinary mutations cannot replace
+it, including a payload rebuilt at a newer revision. The transaction
+cannot alter stock, catalog, access or money. An already advanced root and an
+absent receipt also prove the original immutable revision command cannot run.
+Manager/Admin authorization remains required. Cancellation commands without an
+expected revision retain their existing receipt/retry flow.
 
-Remaining work includes final protocol/receipt schemas, a local payload digest,
-real browser storage/reload/multi-tab tests, storage-eviction handling, Firebase
-transaction contention tests, and UI integration retaining the original basket.
-Browser storage can be cleared or evicted; local persistence is not a server
-backup or a security boundary. This journal has no abandon/delete API for an
-uncertain command.
+## Drafts and inventory
 
-Tests use fake-indexeddb in Node to exercise actual IndexedDB transactions across
-independent connections, rollback after a pending-pointer write failure, identity
-isolation, claim fencing, response loss, replay and offline blocking. They do not
-claim real-browser or live Firebase verification.
+Never-submitted stock drafts can be discarded even while another operation is
+pending. Failed local persistence does not turn such a draft into an uncertain
+write. An attempted draft needs server evidence before it can be cleared. A
+stopped/stale draft remains available for inspection; discard it deliberately
+before recreating it against current balances.
+
+Deleting a menu or Add-on removes its live recipe bindings while retaining its
+identity and immutable historical bill data. Archiving an unreferenced original
+material may remove it from the current summary set, retaining its stock, lots
+and return history. Legacy hidden recipe bindings are named and can be detached
+through an explicit confirmation when archiving. Permanent deletion remains
+blocked by nonzero lots, live formulas, production dependencies or return history.
+
+## Verification
+
+Unit/UI tests cover journal races, crash windows, failed persistence, readiness
+retry, cross-tab receipts and diagnostics. Native Firestore proofs exercise
+sale/stock deduction, original-lot cancellation after menu deletion/archival,
+command stopping, forged writes and role restrictions. See
+`docs/superpowers/verification/2026-10-31-command-recovery.md`.

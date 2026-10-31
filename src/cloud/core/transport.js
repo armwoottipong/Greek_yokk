@@ -1,4 +1,5 @@
 import {applyCatalogDisplay} from './catalogPlan.js'
+import {REVISION_COMMAND_KINDS} from './revisionCommands.js'
 import {doc,collection,getDocFromServer,getDocsFromServer,runTransaction,serverTimestamp} from 'firebase/firestore'
 import {summaryMultiGroupSale} from './model/saleGroups.js'
 import {summaryCancel} from './model/cancel.js'
@@ -43,6 +44,10 @@ export function createCoreTransport({db,getContext}){
  const cacheChanged=(a,b)=>a.revision!==b.revision||!equal(a.billPreparations||{},b.billPreparations||{})||a.billPreparationId!==b.billPreparationId
  const collectionFor=kind=>kind==='sale'?'orders':'operations'
  function checkReceipt(s,command,r){
+  if(r.kind==='command_abort'){
+   if(r.opId!==command.opId||r.uid!==s.uid||r.sourceKind!==command.kind||command.payload?.expectedRevision!==undefined&&r.sourceRevision!==command.payload.expectedRevision)throw fail('COMMAND_ID_COLLISION')
+   return r
+  }
   const kinds={menu:['menu'],addon:['addon','catalog'],group:['group'],sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['platform_gp','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
   if(r.opId!==command.opId||r.uid!==s.uid||!kinds[command.kind]?.includes(r.kind))throw fail('COMMAND_ID_COLLISION')
   const p=command.payload
@@ -238,8 +243,7 @@ export function createCoreTransport({db,getContext}){
  }
  async function rejectStaleInventory(command){
   const s=scope(),expected=command.payload?.expectedRevision
-  const kinds=['platform_gp','menu','addon','group','inventory','receive','produce','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe']
-  if(!kinds.includes(command.kind)||!Number.isSafeInteger(expected)||expected<0)throw fail('STALE_NOT_PROVEN')
+  if(!REVISION_COMMAND_KINDS.includes(command.kind)||!Number.isSafeInteger(expected)||expected<0)throw fail('STALE_NOT_PROVEN')
   // Read the advanced root first. Once observed it fences this immutable draft;
   // a subsequent server receipt read also catches commits completed before it.
   const fresh=await snapshot();guard(s)
@@ -268,6 +272,24 @@ export function createCoreTransport({db,getContext}){
   })
   if(result.abandoned)await cleanupBillCache(s,command.opId)
   return result
+ }
+ async function abortInventory(command){
+  const s=scope(),expected=command.payload?.expectedRevision
+  if(!REVISION_COMMAND_KINDS.includes(command.kind)||!Number.isSafeInteger(expected)||expected<0||!/^[A-Za-z0-9_-]{1,120}$/.test(command.opId||''))throw fail('RETRY_REQUIRED')
+  return runTransaction(db,async t=>{
+   guard(s)
+   const rootRef=doc(db,root(s)),before=await t.get(rootRef);checkRoot(s,before.data())
+   const original=await t.get(doc(db,`${gen(s)}/operations/${command.opId}`))
+   if(original.exists())return {receipt:checkReceipt(s,command,original.data())}
+   const shop=before.data()
+   if(shop.revision>expected)return {rejected:true,code:'COMMAND_STOPPED'}
+   if(shop.revision!==expected)throw fail('STALE_NOT_PROVEN')
+   const closureRef=doc(db,`${gen(s)}/operations/${command.opId}`)
+   const closed={schemaVersion:2,kind:'command_abort',status:'committed',opId:command.opId,uid:s.uid,createdAt:serverTimestamp(),sourceKind:command.kind,sourceRevision:expected,shopRevision:expected+1}
+   const next={...shop,revision:expected+1,lastOpId:command.opId,lastOpKind:'command_abort'}
+   guard(s);admit(s,[{path:rootRef.path,data:next},{path:closureRef.path,data:closed}]);t.set(rootRef,next);t.set(closureRef,closed)
+   return {rejected:true,code:'COMMAND_STOPPED'}
+  })
  }
  async function recoverExpiredCapacity(s,rows){
   let recovered=false
@@ -314,5 +336,5 @@ export function createCoreTransport({db,getContext}){
    if(!changed)throw error
   }
  }
- return {snapshot,commit,receipt,abandonSale,rejectStaleInventory}
+ return {snapshot,commit,receipt,abandonSale,rejectStaleInventory,abortInventory}
 }

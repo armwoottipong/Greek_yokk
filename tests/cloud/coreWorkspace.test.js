@@ -3,15 +3,66 @@ import {mount,flushPromises} from '@vue/test-utils'
 import CoreWorkspace from '../../src/cloud/core/CoreWorkspace.vue'
 import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
-const h=vi.hoisted(()=>({abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn()}))
-vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,close:()=>{}})}))
+const h=vi.hoisted(()=>({recover:vi.fn(),discardUnsent:vi.fn(),abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn()}))
+vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,recover:h.recover,discardUnsent:h.discardUnsent,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,close:()=>{}})}))
 vi.mock('../../src/cloud/firebaseClient.js',()=>({getFirebaseClient:()=>({db:{}})}))
 vi.mock('../../src/cloud/shopAccess.js',async original=>({...await original(),createShopAccess:()=>({watch(){},watchInvitations(){},heartbeat:async()=>{},close(){}})}))
 const state={user:{uid:'u',email:'u@example.com'},shop:{generation:'g1',revision:1,allowedEmails:{'u@example.com':true},userRoles:{'u@example.com':'admin'}},serverReady:true}
 beforeEach(()=>{
+ h.pending.mockReset();h.recover.mockReset().mockResolvedValue({ok:false,code:'PENDING_RESULT'});h.discardUnsent.mockReset()
  sessionStorage.clear();h.report.mockReset();h.report.mockResolvedValue({receipts:[],legacyOrders:[]});h.abandon.mockReset();h.orders.mockResolvedValue([]);h.history.mockResolvedValue([]);h.execute.mockClear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))
  h.preview.mockReturnValue({subtotalCents:6900,approvedShortages:{}})
  h.load.mockResolvedValue({shop:{generation:'g1',revision:1,catalog:{summaryMaterials:Array.from({length:15},(_,i)=>`M${i}`),menus:{M:{id:'M',active:true,pricesCents:{P:6900},optionIds:[],min:0,max:0}},groups:{},platforms:{P:{active:true}},platformIds:['P']}},materials:[],display:{trial:true,sourceDate:'2026-10-20',menus:{M:{name:'โยเกิร์ต'}},addons:{},platforms:{P:{name:'หน้าร้าน'}}},orders:[]})
+})
+it('retries journal initialization on manual reload and enables recovery without a page refresh',async()=>{
+ const key=JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u'])
+ sessionStorage.setItem(key,JSON.stringify({command:{opId:'OLD',kind:'sale',payload:{}}}))
+ h.pending.mockRejectedValueOnce(new Error('LOCAL_JOURNAL_FAILED'))
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('button[aria-label="โหลดข้อมูลล่าสุด"]').trigger('click');await flushPromises()
+ expect(w.get('[data-retry-command]').attributes('disabled')).toBeUndefined();expect(h.pending.mock.calls.length).toBeGreaterThan(1);w.unmount()
+})
+it('recovers another tab’s resolved command during reload without resubmission',async()=>{
+ const key=JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u']),command={opId:'OLD',kind:'material_metadata',payload:{expectedRevision:1}}
+ sessionStorage.setItem(key,JSON.stringify({command}))
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ h.recover.mockResolvedValue({ok:true,value:{...command,rejected:true,code:'STALE_INVENTORY_DRAFT'}})
+ await w.get('button[aria-label="โหลดข้อมูลล่าสุด"]').trigger('click');await flushPromises()
+ expect(w.find('.pending-panel').exists()).toBe(false);expect(h.execute).not.toHaveBeenCalled();w.unmount()
+})
+it('does not lock the shop for a new sale refused before journal submission',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+ h.execute.mockResolvedValueOnce({ok:false,code:'NOT_READY',outcome:'blocked'})
+ await w.get('[data-checkout]').trigger('click');await flushPromises()
+ expect(w.find('.pending-panel').exists()).toBe(false);expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
+})
+it('shows the real access failure and operation identity for an uncertain sale',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+ h.execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT',causeCode:'permission-denied',outcome:'uncertain'})
+ await w.get('[data-checkout]').trigger('click');await flushPromises()
+ expect(w.get('.pending-panel').text()).toContain('สิทธิ์');expect(w.get('.pending-panel').text()).toContain(h.execute.mock.calls.at(-1)[0].opId)
+ w.unmount()
+})
+it('honors a committed receipt when another tab resolves during unsent cleanup',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+ h.execute.mockResolvedValueOnce({ok:false,code:'NOT_READY',outcome:'prepared'})
+ h.discardUnsent.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:'sale',result:{subtotalCents:6900}}}))
+ await w.get('[data-checkout]').trigger('click');await flushPromises()
+ expect(w.findAll('[data-cart-line]')).toHaveLength(0);expect(w.find('.receipt-paper').exists()).toBe(true)
+ w.unmount()
+})
+it('recovers an uncertain inventory draft even when the parent session command was never saved',async()=>{
+ const key=JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u']),f=summaryFixture()
+ const data={shop:materialRegistryShop(f.shop,f.materials),materials:f.materials,display:{menus:{},addons:{},platforms:{}},orders:[]}
+ const command={opId:'ORPHAN',kind:'material_metadata',payload:{expectedRevision:data.shop.revision,materialId:f.materials[0].id,metadata:{name:'Draft name',emoji:'',minAlertQ:0}}}
+ sessionStorage.setItem(`gy-inventory-drafts-v1:${key}`,JSON.stringify({base:data,commands:[command],uncertain:true,conflict:false}))
+ h.load.mockResolvedValue(data)
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ expect(h.recover).toHaveBeenCalledWith(command);expect(w.get('.pending-panel').text()).toContain('ORPHAN')
+ w.unmount()
 })
 it('shows the four-line limit for a sixteen-material shop and prevents creating a fifth line',async()=>{
  const d=await h.load();d.shop.catalog.summaryMaterials.push('M15');h.load.mockResolvedValue(d)
