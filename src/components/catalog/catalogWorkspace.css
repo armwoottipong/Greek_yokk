@@ -35,7 +35,7 @@
 .menu-header-identity>div {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   min-width: 0;
 }
 
@@ -299,7 +299,7 @@
   }
   .menu-header-identity--selected h2 {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     min-height: 112px;
   }
   .menu-header-identity--selected .menu-header-description,
