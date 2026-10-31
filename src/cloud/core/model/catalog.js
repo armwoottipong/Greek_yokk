@@ -18,7 +18,7 @@ export function summaryCatalog(shop,materials,change=()=>{}, {opId='CATALOG-EDIT
   if(collection==='addons'){
     for(const p of catalog.platformIds)catalog.addonPrices[p][key]=catalog.addons[key].pricesCents[p]
     for(const menu of Object.values(catalog.menus))if(menu.optionIds.includes(key)){
-      menu.choiceMaterials[key]=Object.keys(catalog.addons[key].recipe)
+      menu.choiceMaterials[key]=Object.keys(catalog.addons[key].recipe).sort()
       // Preserve existing references as a safe superset, including ingredients
       // shared by other choices. A later menu edit can rebuild the minimal set.
       menu.materialIds=[...new Set([...menu.materialIds,...menu.choiceMaterials[key]])]
@@ -51,7 +51,9 @@ export function summaryMenu(shop,materials,input,{opId='MENU-EDIT',uid='cashier'
     if(newGroup)catalog.groups[newGroup].menuIds.push(menu.id)
   }
   if(menu.optionIds.length>45)throw new Error('Unsupported menu option count')
-  menu.choiceMaterials=Object.fromEntries(menu.optionIds.map(key=>[key,Object.keys(catalog.addons[key]?.recipe||{})]))
+  // Firestore map iteration order can differ between the admission read and
+  // transaction read. Derived ID arrays must have one stable representation.
+  menu.choiceMaterials=Object.fromEntries(menu.optionIds.map(key=>[key,Object.keys(catalog.addons[key]?.recipe||{}).sort()]))
   menu.materialIds=[...new Set([...Object.keys(menu.recipe),...Object.values(menu.choiceMaterials).flat()])]
   catalog.menus[menu.id]=menu
   if(create)catalog.menuIds.push(menu.id)

@@ -474,6 +474,7 @@ import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 const imageEditor=ref(null)
 const confirmedBusiness=ref('')
+const initialBusiness=ref('')
 const businessFingerprint=()=>JSON.stringify({...form.value,image:undefined})
 import { getTodayString } from '@/stores/posStore'
 import { useInventoryStore } from '@/composables/useInventoryStore'
@@ -898,6 +899,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
     form.value.expiryDate = ''
     nextTick(() => {
       saveSnapshot()
+      initialBusiness.value=businessFingerprint()
     })
   }
 })
@@ -970,6 +972,11 @@ async function performSubmit() {
 
   const ok = await confirmSave(form.value.name.trim())
   if (!ok) return
+  try{imageEditor.value?.assertReady()}catch(e){formError.value=e.message;return}
+  if(store.cloud&&form.value.id&&initialBusiness.value===businessFingerprint()){
+    confirmedBusiness.value=businessFingerprint()
+    await savePictureAndClose();return
+  }
 
   const hasRecipe = Boolean(form.value.hasSubRecipe)
   const isSub = Boolean(form.value.isSubIngredient)
@@ -989,7 +996,6 @@ async function performSubmit() {
   }
 
   const previousIds=new Set(store.materials.map(material=>material.id))
-  try{imageEditor.value?.assertReady()}catch(e){formError.value=e.message;return}
   const result = await store.saveMaterial({
     ...(!store.cloud?{image:form.value.image||''}:{}),
     id: form.value.id || undefined,

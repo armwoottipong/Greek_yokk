@@ -75,6 +75,7 @@ const store = useInventoryStore()
 const nameError=ref('')
 const imageEditor=ref(null)
 const confirmedBusiness=ref('')
+const initialBusiness=ref('')
 const businessFingerprint=()=>JSON.stringify({...form.value,image:undefined,baseRecipeRows:baseRecipeRows.value,packageRecipeRows:packageRecipeRows.value})
 const editCatalogRevision=ref(null)
 const openPriceInfo=ref(null)
@@ -184,6 +185,7 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
 
     nextTick(() => {
       saveSnapshot()
+      initialBusiness.value=businessFingerprint()
       if(store.modals.menuEdit.initialSection==='recipe'){
         const section=document.getElementById('MenuEditModal')?.querySelector('[data-menu-recipe]')
         if(section){section.open=true;section.querySelector('button:not(:disabled)')?.scrollIntoView?.({block:'nearest'})}
@@ -272,6 +274,11 @@ async function performSave() {
 
   const ok = await confirmSave(form.value.name.trim())
   if (!ok) return
+  try{imageEditor.value?.assertReady()}catch(e){nameError.value=e.message;return}
+  if(store.cloud&&form.value.id&&initialBusiness.value===businessFingerprint()){
+    confirmedBusiness.value=businessFingerprint()
+    await savePictureAndClose();return
+  }
 
   // Combine recipes
   const combinedRecipe = []
@@ -290,7 +297,6 @@ async function performSave() {
   }
 
   const previousIds=new Set(store.menus.map(menu=>menu.id))
-  try{imageEditor.value?.assertReady()}catch(e){nameError.value=e.message;return}
   const result = await store.saveMenu({
     ...(!store.cloud?{image:form.value.image||''}:{}),
     ...(store.cloud?{expectedCatalogRevision:editCatalogRevision.value}:{}),

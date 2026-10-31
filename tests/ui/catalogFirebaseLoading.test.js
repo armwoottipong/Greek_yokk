@@ -9,6 +9,7 @@ it.each([{component:MenuEdit,modal:'menuEdit',rows:'menus',key:'menuId',save:'sa
  vi.spyOn(s,'confirmDialog').mockResolvedValue(true)
  let resolve;const send=vi.spyOn(s,save).mockImplementation(()=>new Promise(r=>{resolve=r}))
  const w=mount(component,{global:{stubs:{teleport:true}}});s.modals[modal]={isOpen:true,[key]:s[rows][0].id};await flushPromises()
+ w.vm.form.name+=' updated'
  const button=()=>w.get('.menu-editor-footer .ui-button--primary')
  await button().trigger('click');await flushPromises()
  expect(button().attributes('aria-busy')).toBe('true');expect(s.modals[modal].isOpen).toBe(true)
