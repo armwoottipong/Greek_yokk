@@ -4,6 +4,7 @@
    <section class="menu-editor-basics" aria-label="ข้อมูลเมนู">
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอนเมนู" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="menu-name" label="ชื่อเมนู" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น Greek Yogurt Bowl (M)"/></FormField></div>
     <FormField id="menu-description" label="คำอธิบายสั้น" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.description" placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด"/></FormField>
+    <CatalogImageEditor v-if="store.modals.menuEdit.isOpen" ref="imageEditor" v-model="form.image" kind="menus" :entity-id="form.id" :emoji="form.emoji" :disabled="!!actionPending"/>
    </section>
    <details v-smooth-disclosure class="menu-editor-section" data-menu-prices open><summary><span>ราคาขายแต่ละช่องทาง</span><small>{{ store.platforms.length }} ช่องทาง</small></summary><div class="menu-editor-section-body">
     <div class="menu-editor-prices">
@@ -54,6 +55,7 @@ import '@/components/catalog/menuFocus.css'
 import {vSmoothDisclosure} from '@/directives/smoothDisclosure'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
 import MenuPriceInfo from '@/components/catalog/MenuPriceInfo.vue'
+import CatalogImageEditor from '@/components/images/CatalogImageEditor.vue'
 import FormField from '@/components/ui/FormField.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import RecipeEditorRow from '@/components/ui/RecipeEditorRow.vue'
@@ -71,6 +73,9 @@ import {useActionPending} from '@/composables/useActionPending'
 const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
 const nameError=ref('')
+const imageEditor=ref(null)
+const confirmedBusiness=ref('')
+const businessFingerprint=()=>JSON.stringify({...form.value,image:undefined,baseRecipeRows:baseRecipeRows.value,packageRecipeRows:packageRecipeRows.value})
 const editCatalogRevision=ref(null)
 const openPriceInfo=ref(null)
 watch(() => store.modals.menuEdit.isOpen, () => { openPriceInfo.value = null })
@@ -126,6 +131,7 @@ function getUnit(matId) {
 // Watch modal open and populate
 watch(() => store.modals.menuEdit.isOpen, (open) => {
   if (open) {
+    confirmedBusiness.value=''
     editCatalogRevision.value=store.catalogRevision
     nameError.value=''
     const menuId = store.modals.menuEdit.menuId
@@ -133,6 +139,7 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
 
     form.value = {
       id: menu ? menu.id : '',
+      image: menu?.image || '',
       name: menu ? menu.name : '',
       category: menu ? menu.category : 'Classic Bowls',
       emoji: menu ? menu.emoji : '🥣',
@@ -252,6 +259,10 @@ function close() {
 const submit=()=>runAction('save',performSave)
 async function performSave() {
   nameError.value=''
+  if(confirmedBusiness.value){
+    if(confirmedBusiness.value!==businessFingerprint()){nameError.value='ข้อมูลเมนูถูกแก้เพิ่มหลังบันทึกแล้ว กรุณาคืนค่าหรือเปิดรายการใหม่ก่อนแก้ข้อมูลอื่น';return}
+    await savePictureAndClose();return
+  }
   if (!form.value.name.trim()) {
     nameError.value='กรุณากรอกชื่อเมนูก่อนบันทึก'
     await nextTick()
@@ -279,7 +290,9 @@ async function performSave() {
   }
 
   const previousIds=new Set(store.menus.map(menu=>menu.id))
+  try{imageEditor.value?.assertReady()}catch(e){nameError.value=e.message;return}
   const result = await store.saveMenu({
+    ...(!store.cloud?{image:form.value.image||''}:{}),
     ...(store.cloud?{expectedCatalogRevision:editCatalogRevision.value}:{}),
     id: form.value.id || undefined,
     name: form.value.name.trim(),
@@ -293,9 +306,17 @@ async function performSave() {
   })
 
   if (result?.ok || result?.success || (!store.cloud&&result===undefined)) {
-    store.modals.menuEdit.savedMenuId=form.value.id || store.menus.find(menu=>!previousIds.has(menu.id))?.id || null
-    close()
+    const savedId=form.value.id || store.menus.find(menu=>!previousIds.has(menu.id))?.id
+    form.value.id=savedId
+    editCatalogRevision.value=store.catalogRevision
+    confirmedBusiness.value=businessFingerprint()
+    await savePictureAndClose()
   } else nameError.value=result?.message||'บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลและลองอีกครั้ง'
+}
+async function savePictureAndClose(){
+  try{await imageEditor.value?.save(form.value.id)}catch(e){nameError.value=`บันทึกข้อมูลเมนูแล้ว แต่รูปยังไม่สำเร็จ: ${e.message} · รูปที่เลือกยังอยู่ กดบันทึกเพื่อลองส่งเฉพาะรูปอีกครั้ง`;return}
+  store.modals.menuEdit.savedMenuId=form.value.id || null
+  close()
 }
 </script>
 

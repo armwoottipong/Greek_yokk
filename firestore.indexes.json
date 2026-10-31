@@ -1,6 +1,7 @@
 {
   "indexes": [],
   "fieldOverrides": [
+    { "collectionGroup": "catalogImages", "fieldPath": "*", "indexes": [] },
     { "collectionGroup": "preparations", "fieldPath": "*", "indexes": [] },
     { "collectionGroup": "preparations", "fieldPath": "createdAt", "indexes": [
       { "order": "ASCENDING", "queryScope": "COLLECTION" },

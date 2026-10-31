@@ -4,7 +4,7 @@ import CoreWorkspace from '../../src/cloud/core/CoreWorkspace.vue'
 import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
 const h=vi.hoisted(()=>({recover:vi.fn(),discardUnsent:vi.fn(),abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn()}))
-vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,recover:h.recover,discardUnsent:h.discardUnsent,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,close:()=>{}})}))
+vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({images:{watch:(_kind,_id,cb)=>{cb({dataURL:"",revision:0});return ()=>{}},save:vi.fn()},load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,recover:h.recover,discardUnsent:h.discardUnsent,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,close:()=>{}})}))
 vi.mock('../../src/cloud/firebaseClient.js',()=>({getFirebaseClient:()=>({db:{}})}))
 vi.mock('../../src/cloud/shopAccess.js',async original=>({...await original(),createShopAccess:()=>({watch(){},watchInvitations(){},heartbeat:async()=>{},close(){}})}))
 const state={user:{uid:'u',email:'u@example.com'},shop:{generation:'g1',revision:1,allowedEmails:{'u@example.com':true},userRoles:{'u@example.com':'admin'}},serverReady:true}

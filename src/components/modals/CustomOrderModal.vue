@@ -1,6 +1,6 @@
 <template>
  <DialogFrame :open="store.modals.customOrder.isOpen && Boolean(selectedMenu)" id="CustomOrderModal" title="รายละเอียดสินค้า" presentation="drawer" width="520px" :teleport="false" @request-close="requestClose">
-  <div class="product-detail"><div class="product-visual" aria-hidden="true">{{ selectedMenu.emoji }}</div><div class="bowl-heading"><h3>{{ selectedMenu.name }}</h3><p>{{ selectedMenu.description }}</p><strong class="product-base-price font-number">฿{{ basePrice }}</strong></div></div>
+  <div class="product-detail"><div class="product-visual" aria-hidden="true"><EntityImage kind="menus" :entity-id="selectedMenu.id" :image="selectedMenu.image" :emoji="selectedMenu.emoji"/></div><div class="bowl-heading"><h3>{{ selectedMenu.name }}</h3><p>{{ selectedMenu.description }}</p><strong class="product-base-price font-number">฿{{ basePrice }}</strong></div></div>
   <div v-if="selectedMenu.hasAddons !== false && Array.isArray(selectedMenu.addonGroupIds)" class="bowl-groups">
    <section v-for="group in groups" :key="group.id" class="bowl-options" :aria-label="group.name">
     <header><div><h4>{{ group.name }}</h4><p>{{ groupRule(group) }} · {{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }}</p></div><span aria-live="polite">{{ groupCount(group.id) }}/{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่' : 'ชนิด' }}</span></header>
@@ -39,6 +39,7 @@
 </template>
 
 <script setup>
+import EntityImage from '@/components/images/EntityImage.vue'
 import { selectedItemCosts } from '@/domain/menuCosts'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import Button from '@/components/ui/Button.vue'

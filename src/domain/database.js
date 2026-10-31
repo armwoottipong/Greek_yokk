@@ -1,3 +1,4 @@
+import {validateImage} from './catalogImage.js'
 import {
   DEFAULT_CATEGORIES,
   DEFAULT_PLATFORMS
@@ -75,6 +76,9 @@ export function normalizeDatabase(raw, {
       }
       const item = clone(record),
         id = field === 'orders' ? record.orderId : record.id
+      if (['menus','materials'].includes(field) && record.image !== undefined) {
+        try { item.image=validateImage(record.image) } catch { fail(`${p}.image`, 'INVALID_IMAGE') }
+      }
       if (field !== 'stockShortages') {
         if (typeof id !== 'string' || !id) fail(`${p}.id`, 'MISSING_ID')
         if (ids.has(id)) fail(`${p}.id`, 'DUPLICATE_ID');

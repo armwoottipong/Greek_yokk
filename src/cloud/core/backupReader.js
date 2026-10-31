@@ -3,7 +3,7 @@ import {encodeBackupValue,createBusinessBackup,MAX_BACKUP_BYTES,verifyBusinessBa
 import {businessDateKey} from '../../domain/businessDate.js'
 const sdkDefault={doc,collection,getDocFromServer,getDocsFromServer,query,orderBy,documentId,startAfter,limit}
 const fail=code=>Object.assign(new Error(code),{code})
-const identity=['projectId','shopId','generation','uid'],collections=['materials','display','orders','operations','legacyRecords'],MAX_DOCS=10000,PAGE=250
+const identity=['projectId','shopId','generation','uid'],collections=['materials','display','orders','operations','legacyRecords','catalogImages'],MAX_DOCS=10000,PAGE=250
 export function createBackupReader({db,getContext},sdk=sdkDefault){
  let closed=false,inFlight=false
  function guard(s){const c=getContext();if(closed||!c?.online||!c.ready)throw fail('NOT_READY');if(identity.some(k=>!s[k]||s[k]!==c[k]))throw fail('CONTEXT_CHANGED')}

@@ -1,12 +1,13 @@
 <template>
  <article class="menu-management-row">
-  <button type="button" v-bind="{[detailsAttribute]:item.id}" class="menu-row-name" :aria-label="`ดูรายละเอียด ${item.name}`" @click="$emit('details',item)"><span aria-hidden="true" class="menu-row-emoji">{{ item.emoji }}</span><span><strong>{{ item.name }}</strong><small v-if="item.description">{{ item.description }}</small><span v-if="status||metadata" class="menu-row-meta"><StatusBadge v-if="status" :label="status" :tone="statusTone"/><span v-if="metadata">{{ metadata }}</span></span></span></button>
+  <button type="button" v-bind="{[detailsAttribute]:item.id}" class="menu-row-name" :aria-label="`ดูรายละเอียด ${item.name}`" @click="$emit('details',item)"><span aria-hidden="true" class="menu-row-emoji"><EntityImage v-if="detailsAttribute==='data-catalog-details'" kind="menus" :entity-id="item.id" :image="item.image" :emoji="item.emoji"/><template v-else>{{ item.emoji }}</template></span><span><strong>{{ item.name }}</strong><small v-if="item.description">{{ item.description }}</small><span v-if="status||metadata" class="menu-row-meta"><StatusBadge v-if="status" :label="status" :tone="statusTone"/><span v-if="metadata">{{ metadata }}</span></span></span></button>
   <div class="menu-row-recipe"><Button variant="quiet" size="compact" :aria-label="`ดูสูตร ${item.name}`" @click="$emit('details',item)"><BookOpen :size="16" aria-hidden="true"/>ดูสูตร</Button><small>{{ recipeSummary }}</small></div>
   <div class="menu-row-price"><PlatformPriceSummary :prices="item.prices||{}" :platforms="selectedPlatforms" :selected-id="selectedId"/></div>
   <div class="menu-row-actions"><Button variant="secondary" :aria-label="`แก้ไข ${item.name}`" @click="$emit('edit',item.id)">แก้ไข</Button><IconButton :label="`ลบ ${item.name}`" @click="$emit('delete',item)"><Trash2 :size="18" aria-hidden="true"/></IconButton></div>
  </article>
 </template>
 <script setup>
+import EntityImage from '@/components/images/EntityImage.vue'
 import {computed} from 'vue'
 import {Trash2,BookOpen} from 'lucide-vue-next'
 import Button from '../ui/Button.vue'

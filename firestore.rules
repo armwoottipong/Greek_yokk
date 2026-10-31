@@ -9,9 +9,9 @@ function _r(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generation
 function _h(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materials/$(a); }
 function _f(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a); }
 function _at(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/0; }
-function _af(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/lineProofs/$(i); }
+function _ag(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/lineProofs/$(i); }
 function _n() {
-  return _ak(get(/databases/$(d0)/documents/shops/greek-yogg).data);
+  return _M(get(/databases/$(d0)/documents/shops/greek-yogg).data);
  }
 function _d(n,a,b) { return n is int && n >= a && n <= b; }
 function _g() { return getAfter(/databases/$(d0)/documents/shops/greek-yogg).data; }
@@ -62,7 +62,7 @@ function _aw(o,a) {
         b[8][c]+b[9][c]+b[10][c]+b[11][c]+b[12][c]+b[13][c]+b[14][c]+(b.size()==16 ? b[15][c] : 0);
     }
 function _H(q,c,a,b) { return ((q / 100.0) * c + (a / 100.0) * b) / ((q + a) / 100.0); }
-function _ag(a) { return int(a * 10000.0 + 0.5) / 10000.0; }
+function _ah(a) { return int(a * 10000.0 + 0.5) / 10000.0; }
 function _s(n,a,b) { return n is number && n >= a && n <= b; }
 function _y(m) { return m.get('groupIds',[]).size()>0 ? m.groupIds : m.get('groupId','')=='' ? [] : [m.groupId]; }
 function _I(c,a,i) {
@@ -91,7 +91,7 @@ function _J(c,b,d,e,f,g) {
 function _K(q,z,a,b) {
       return b ? q[a]>0 || a in z : a=='_';
     }
-function _ah(c,d,z,x,y) {
+function _ai(c,d,z,x,y) {
       let a=c[x];
       let b=c[y];
       let e=x==d || x in z;
@@ -110,7 +110,7 @@ function _L(m) {
         a==b.concat(['_','_','_','_'])[0:4] &&
         _K(q,z,a[0],c>0) && _K(q,z,a[1],c>1) && _K(q,z,a[2],c>2) && _K(q,z,a[3],c>3) &&
         m.stock==q[a[0]]+q[a[1]]+q[a[2]]+q[a[3]] &&
-        (c<2 || _ah(d,e,z,a[0],a[1])) && (c<3 || _ah(d,e,z,a[1],a[2])) && (c<4 || _ah(d,e,z,a[2],a[3]));
+        (c<2 || _ai(d,e,z,a[0],a[1])) && (c<3 || _ai(d,e,z,a[1],a[2])) && (c<4 || _ai(d,e,z,a[2],a[3]));
     }
 function _ay(q,a,b,c) {
       return q==0 || a==c ? c : _H(q,a,b,c);
@@ -124,17 +124,17 @@ function _az(g,a,b,c) {
       return _m(g) && m.kind==b && m.opId==a && m.state in ['abandoned','expired','committed'] &&
         (!c || m.state!='committed') && (m.uid==_b() || request.time>=m.createdAt+duration.value(7,'d'));
     }
-function _aW(a,m,b) {
+function _aY(a,m,b) {
   return b in a.materialIds && !(b in a.catalog.summaryMaterials) && m.id==b && m.deleted==true &&
    m.stock==0 && m.lotQty.values().hasOnly([0]) && a.productionUsers[b]==[] &&
    m.get('productionRecipe',{}).size()==0 && !a.get('returnMaterials',{}).get(b,false);
  }
-function _ai(g,a,o,b,n,m) {
+function _aj(g,a,o,b,n,m) {
   return b.status=='active' && b.generation==g &&
    o.keys().hasAll(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','materialSnapshot']) &&
    o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','materialSnapshot']) &&
    o.schemaVersion==2 && o.kind=='material_delete' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time &&
-   o.materialRevision==m.revision && o.materialSnapshot==m && _aW(b,m,o.materialId) && _aD(g,o) &&
+   o.materialRevision==m.revision && o.materialSnapshot==m && _aY(b,m,o.materialId) && _aD(g,o) &&
    n.diff(b).affectedKeys().hasOnly(['materialIds','productionUsers','nextMaterialCostRank','revision','lastOpId','lastOpKind']) &&
    n.revision==b.revision+1 && n.revision==o.shopRevision && n.lastOpId==a && n.lastOpKind=='material_delete' &&
    n.materialIds==b.materialIds.removeAll([o.materialId]) &&
@@ -152,7 +152,7 @@ function _aB(d) {
    (!d.keys().hasAny(['deleted']) || d.deleted is bool);
  }
 function _aC(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/certificates/bill; }
-function _aj(n,a) { return a=='menu' ? n.get('rawRecipe',n.recipe) : n.recipe; }
+function _ak(n,a) { return a=='menu' ? n.get('rawRecipe',n.recipe) : n.recipe; }
 function _t(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('check'+string(i)); }
 function _aD(g,o) { return o.kind=='material_archive' && o.deleted==false || getAfter(_at(g,o.opId)).data.opId==o.opId; }
 function _u(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('type'+string(i)); }
@@ -162,21 +162,21 @@ function _aE(g,a,b) {
    getAfter(_u(g,a,b+4)).data.opId==a && getAfter(_u(g,a,b+5)).data.opId==a &&
    getAfter(_u(g,a,b+6)).data.opId==a && getAfter(_u(g,a,b+7)).data.opId==a;
  }
-function _ak(a) {
+function _M(a) {
   let b=request.auth.token;
   return b.email_verified && b.firebase.sign_in_provider=='google.com' && a.allowedEmails[b.email.lower()]==true;
  }
-function _aX(a) {
+function _aZ(a) {
   return a.userRoles[request.auth.token.email.lower()];
  }
-function _aY(a) {
+function _aF(a) {
   let b=request.auth.token;
   let c=b.email.lower();
   let d=a.userRoles[c];
   return b.email_verified && b.firebase.sign_in_provider=='google.com' && d.matches('^(admin|manager)$');
  }
 function _F(a) {
-  return _ak(a) && _aX(a)=='admin';
+  return _M(a) && _aZ(a)=='admin';
  }
 function _l() {
   let a=getAfter(/databases/$(d0)/documents/shops/greek-yogg).data;
@@ -185,11 +185,11 @@ function _l() {
   let d=a.userRoles[c];
   return b.email_verified && b.firebase.sign_in_provider=='google.com' && d.matches('^(admin|manager)$');
  }
-function _aZ() {
+function _ba() {
   return _F(getAfter(/databases/$(d0)/documents/shops/greek-yogg).data);
  }
 match /shops/greek-yogg/invitations/{id} {
-function _ba() {
+function _bb() {
   let n=_c();
   let a=getAfter(/databases/$(d0)/documents/shops/greek-yogg).data;
   return _F(a) && n.keys().hasOnly(['email','role','createdBy','createdAt','status']) &&
@@ -197,10 +197,10 @@ function _ba() {
    a.userRoles.get(n.email,'')==n.role && n.createdBy==_b() && n.createdAt==request.time && n.status=='pending';
  }
 allow read: if _n() && (_F(get(/databases/$(d0)/documents/shops/greek-yogg).data));
-   allow create: if _l() && (id.matches('^[A-Za-z0-9_-]{1,200}$') && _ba());
+   allow create: if _l() && (id.matches('^[A-Za-z0-9_-]{1,200}$') && _bb());
 }
 match /shops/greek-yogg/presence/{uid} {
-function _bb(a) {
+function _bc(a) {
   let p=_c();
   return a==_b() && p.keys().hasAll(['email','displayName','photoURL','lastSeen']) &&
    p.keys().hasOnly(['email','displayName','photoURL','lastSeen']) && p.email==request.auth.token.email.lower() &&
@@ -208,24 +208,24 @@ function _bb(a) {
    (p.photoURL=='' || p.photoURL.matches('^https://[A-Za-z0-9.-]+[.]googleusercontent[.]com/.*$')) && p.lastSeen==request.time;
  }
 allow read: if _n();
-   allow create,update: if _n() && (_bb(uid));
+   allow create,update: if _n() && (_bc(uid));
    allow delete: if _n() && (_n() && uid==_b());
 }
 match /shops/greek-yogg/generations/{g}/operations/{id}/referenceProofs/{index} {
-function _bc(c,m,i) {
+function _bd(c,m,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];
       let a=m.optionPrices.get(p,{});
       return i>=c.platformIds.size() || _d(m.pricesCents[c.platformIds[i]],0,1000000000) &&
         a.keys().toSet()==m.optionIds.concat(['_']).toSet() && a._==0;
     }
-function _bd(c,m) {
+function _be(c,m) {
       let a=_y(m);
       let b=c.groups;
 return a is list && a.size()<=2 && a.toSet().size()==a.size() && a.hasOnly(c.groupIds) &&
         (a.size()==0 || m.optionIds==[] && m.min==0 && m.max==0 && m.priceMode=='addon' && b[a[0]].active) &&
         (a.size()<2 || m.get('groupId','')=='' && b[a[1]].active && b[a[0]].max<=3 && b[a[1]].max<=3);
     }
-function _be(c,a) {
+function _bf(c,a) {
       let m=c.menus[a];
       return m.get('baseMaterialIds',m.recipe.keys()) is list && m.get('baseMaterialIds',m.recipe.keys()).size()<=16 && m.get('baseMaterialIds',m.recipe.keys()).toSet().size()==m.get('baseMaterialIds',m.recipe.keys()).size() && m.get('baseMaterialIds',m.recipe.keys()).hasOnly(m.recipe.keys()) && m.recipe.keys().hasOnly(m.get('rawRecipe',m.recipe).keys()) && m.keys().hasOnly(['id','name','revision','active','pricesCents','recipe','baseMaterialIds','rawRecipe','hasPackage','optionIds','min','max','optionPrices','choiceMaterials','materialIds','priceMode','groupId','groupIds']) &&
         (!m.keys().hasAny(['rawRecipe','hasPackage']) || m.keys().hasAll(['rawRecipe','hasPackage']) && m.rawRecipe is map && m.hasPackage is bool && m.rawRecipe.keys().hasOnly(c.get('recipeRegistryIds',c.summaryMaterials)) && m.rawRecipe.keys().hasOnly(m.materialIds)) &&
@@ -235,15 +235,15 @@ function _be(c,a) {
         m.optionIds is list && m.optionIds.toSet().size()==m.optionIds.size() && m.optionIds.hasOnly(c.addonIds) && m.choiceMaterials.keys().toSet()==m.optionIds.toSet() &&
         m.optionIds.size()<=45 && _d(m.min,0,11) && _d(m.max,m.min,11) && m.max<=m.optionIds.size() &&
         m.pricesCents.keys().toSet()==c.platformIds.toSet() && m.optionPrices.keys().toSet()==c.platformIds.toSet() &&
-        _bd(c,m);
+        _be(c,m);
     }
-function _v(c,a,b,i) { return i>=c.menuIds.size() || (b in a.menus[c.menuIds[i]].optionIds ? _bz(c,a,b,i) : c.menus[c.menuIds[i]]==a.menus[c.menuIds[i]]); }
-function _bf(c,a,i) {
+function _v(c,a,b,i) { return i>=c.menuIds.size() || (b in a.menus[c.menuIds[i]].optionIds ? _bA(c,a,b,i) : c.menus[c.menuIds[i]]==a.menus[c.menuIds[i]]); }
+function _bg(c,a,i) {
       let b=get(_k()).data.catalog;
       return _v(c,b,a,i) && _v(c,b,a,i+15) &&
         _v(c,b,a,i+30) && _v(c,b,a,i+45);
     }
-function _bg(g,a,b,d) {
+function _bh(g,a,b,d) {
       let c=_g();
       let e=get(_k()).data;
       let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
@@ -267,28 +267,28 @@ function _al(c,m,f) {
         a is int && a>=0 && a<=1000000000 && b is int && b>=0 && b<=1000000000 &&
         d is int && d>=0 && d<=1000000000 && e is int && e>=0 && e<=1000000000;
     }
-function _bh(c,m,i) {
+function _bi(c,m,i) {
       let d=m.optionIds;
       let e=d.size();
       let a=i+15;
       let b=i+30;
       return (i>=e || _al(c,m,d[i])) && (a>=e || _al(c,m,d[a])) && (b>=e || _al(c,m,d[b]));
     }
-function _bi(g,a,b,d) {
+function _bj(g,a,b,d) {
       let c=_g();
       let e=get(_k()).data;
       let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
       return _e(g) && b=='shape' && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==_b() &&
         (o.kind=='menu' || o.kind=='catalog' && o.collection=='menus') && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==e.revision+1 && c.revision==o.shopRevision &&
-        _be(c.catalog,o.entityId) && _bj(c.catalog,e.catalog,o.entityId,o.get('create',false));
+        _bf(c.catalog,o.entityId) && _bk(c.catalog,e.catalog,o.entityId,o.get('create',false));
     }
-function _bj(c,d,e,f) {
+function _bk(c,d,e,f) {
       let a=f ? [] : _y(d.menus[e]);
       let b=_y(c.menus[e]);
       return c.groups.keys().toSet()==d.groups.keys().toSet() && c.groups.diff(d.groups).affectedKeys().hasOnly(a.concat(b)) &&
         (a.size()==0 || _J(c,d,e,a[0],a,b)) && (a.size()<2 || _J(c,d,e,a[1],a,b));
     }
-function _bk(c,g) {
+function _bl(c,g) {
       return g.keys().hasOnly(['id','name','revision','active','min','max','allowRepeat','pricingMode','optionIds','optionPrices','menuIds','multiMenuIds']) &&
         g.name is string && g.name.size()>0 && g.name.size()<=120 && g.name.matches('.*\\S.*') && _d(g.revision,1,1000000000) &&
         g.active is bool && g.allowRepeat is bool && g.pricingMode in ['included','extra'] &&
@@ -298,7 +298,7 @@ function _bk(c,g) {
         g.menuIds is list && g.menuIds.toSet().size()==g.menuIds.size() && g.menuIds.hasOnly(c.menuIds) &&
         g.get('multiMenuIds',[]).toSet().size()==g.get('multiMenuIds',[]).size() && g.get('multiMenuIds',[]).hasOnly(g.menuIds) && (g.get('multiMenuIds',[]).size()==0 || g.max<=3);
     }
-function _bl(c,g,i) {
+function _bm(c,g,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];
       let a=g.optionPrices.get(p,{});
       return i>=c.platformIds.size() || a.keys().hasOnly(g.optionIds.concat(['_'])) && a._==0;
@@ -314,26 +314,26 @@ function _am(c,g,f) {
       return (!g.active || c.addons[f].get('active',true)) && a is int && a>=0 && a<=1000000000 && b is int && b>=0 && b<=1000000000 &&
         d is int && d>=0 && d<=1000000000 && e is int && e>=0 && e<=1000000000;
     }
-function _bm(c,g,i) {
+function _bn(c,g,i) {
       let a=g.optionIds;
       let b=a.size();
       return (i>=b || _am(c,g,a[i])) && (i+15>=b || _am(c,g,a[i+15])) && (i+30>=b || _am(c,g,a[i+30]));
     }
-function _bn(g,a,b,d) {
+function _bo(g,a,b,d) {
       let c=_g();
       let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
       return _e(g) && b=='shape' && d.keys().hasOnly(['opId']) && d.opId==a && o.kind=='group' && o.uid==_b() &&
         c.lastOpId==a && c.lastOpKind=='group' && c.revision==get(_k()).data.revision+1 && c.revision==o.shopRevision &&
-        _bk(c.catalog,c.catalog.groups[o.entityId]);
+        _bl(c.catalog,c.catalog.groups[o.entityId]);
     }
-function _bo(g,a,b,d) {
+function _bp(g,a,b,d) {
   let c=_g();
   let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
   return _e(g) && b=='input' && d.keys().hasOnly(['opId']) && d.opId==a &&
    o.kind in ['menu','addon','group','catalog'] && (o.kind!='catalog' || o.collection=='addons') &&
-   o.uid==_b() && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision && _bp(o) && o.validationIds is list && o.validationIds.size()<=16 && o.validationIds.toSet().size()==o.validationIds.size() && o.validationIds.toSet()==(o.kind=='group' ? [].toSet() : _aj(o.entitySnapshot,o.kind=='catalog'?'addon':o.kind).keys().toSet());
+   o.uid==_b() && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision && _bq(o) && o.validationIds is list && o.validationIds.size()<=16 && o.validationIds.toSet().size()==o.validationIds.size() && o.validationIds.toSet()==(o.kind=='group' ? [].toSet() : _ak(o.entitySnapshot,o.kind=='catalog'?'addon':o.kind).keys().toSet());
  }
-function _bp(o) {
+function _bq(o) {
   let a=o.input;
   let n=o.entitySnapshot;
   let b=o.kind=='menu' ? _y(n) : [];
@@ -346,57 +346,57 @@ function _bp(o) {
    (a.keys().hasAny(['rawRecipe']) ? a.recipe==a.rawRecipe : a.recipe==n.recipe) && _y(a)==b &&
    (b.size()>0 || a.optionIds==n.optionIds && a.min==n.min && a.max==n.max && a.priceMode==n.priceMode && a.optionPrices==n.optionPrices));
  }
-function _bq(g,a,b,d) {
+function _br(g,a,b,d) {
   let c=_g();
   let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
   return _e(g) && b=='shape' && d.keys().hasOnly(['opId']) && d.opId==a && o.kind=='addon' && o.uid==_b() &&
    c.lastOpId==a && c.lastOpKind=='addon' && c.revision==o.shopRevision && _ax(c.catalog,o.entityId);
  }
-function _M(c,a,i) {
+function _N(c,a,i) {
   let b=i<c.groupIds.size() ? c.groupIds[i] : '_';
   return c.addons[a].get('active',true) || i>=c.groupIds.size() || !c.groups[b].active || !(a in c.groups[b].optionIds);
  }
-function _N(g,o,a,i) {
-  return i*4>=o.validationIds.size() || _br('greek-yogg',g,o,a,i);
+function _O(g,o,a,i) {
+  return i*4>=o.validationIds.size() || _bs('greek-yogg',g,o,a,i);
  }
-function _br(a,b,c,d,e) {
+function _bs(a,b,c,d,e) {
   let f=get(/databases/$(d0)/documents/shops/$(a)/generations/$(b)/recipeAdmissions/$(c.opId)/parts/$(string(e))).data;
-  return _bs(f,c,d,e);
+  return _bt(f,c,d,e);
  }
-function _bs(d,o,a,i) {
+function _bt(d,o,a,i) {
   let b=o.validationIds;
   let c=i*4;
   return d.opId==o.opId && d.index==i && d.uid==o.uid && d.sourceRevision==a-1 && d.entityId==o.entityId &&
    d.kind==(o.kind=='catalog' ? 'addon' : o.kind) && d.input==o.input && d.entitySnapshot==o.entitySnapshot &&
    d.materialIds==b[c:(c+4<b.size() ? c+4 : b.size())];
  }
-function _bt(g,a,b,d) {
+function _bu(g,a,b,d) {
   let c=_g();
   let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
   return _e(g) && b=='admitted' && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==_b() &&
    o.kind in ['menu','addon','group','catalog'] && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
-   _N(g,o,c.revision,0) && _N(g,o,c.revision,1) && _N(g,o,c.revision,2) && _N(g,o,c.revision,3);
+   _O(g,o,c.revision,0) && _O(g,o,c.revision,1) && _O(g,o,c.revision,2) && _O(g,o,c.revision,3);
  }
-function _aF(c,o,i) {
-  return o.kind=='menu' ? _bh(c,c.menus[o.entityId],i) && (i>=4 || _bc(c,c.menus[o.entityId],i)) :
-   o.kind=='group' ? _bm(c,c.groups[o.entityId],i) && (i>=4 || _bl(c,c.groups[o.entityId],i)) :
-   o.kind=='catalog' && _bf(c,o.entityId,i) &&
-    _M(c,o.entityId,i*4) && _M(c,o.entityId,i*4+1) && _M(c,o.entityId,i*4+2) && _M(c,o.entityId,i*4+3);
+function _aG(c,o,i) {
+  return o.kind=='menu' ? _bi(c,c.menus[o.entityId],i) && (i>=4 || _bd(c,c.menus[o.entityId],i)) :
+   o.kind=='group' ? _bn(c,c.groups[o.entityId],i) && (i>=4 || _bm(c,c.groups[o.entityId],i)) :
+   o.kind=='catalog' && _bg(c,o.entityId,i) &&
+    _N(c,o.entityId,i*4) && _N(c,o.entityId,i*4+1) && _N(c,o.entityId,i*4+2) && _N(c,o.entityId,i*4+3);
  }
-function _bu(g,a,b,d) {
+function _bv(g,a,b,d) {
   let c=_g();
   let o=getAfter(_f(g,a)).data;
   let e=b=='check0'?0:b=='check1'?1:b=='check2'?2:b=='check3'?3:b=='check4'?4:b=='check5'?5:b=='check6'?6:b=='check7'?7:-1;
   return _e(g) && e>=0 && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==_b() &&
    o.kind in ['menu','group','catalog'] && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
-   _aF(c.catalog,o,e*2) && _aF(c.catalog,o,e*2+1);
+   _aG(c.catalog,o,e*2) && _aG(c.catalog,o,e*2+1);
  }
-function _bv(g,a,b) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materialReferences/$(a)/parts/$(string(b)); }
+function _bw(g,a,b) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materialReferences/$(a)/parts/$(string(b)); }
 function _w(g,o,a,i) {
-  let d=get(_bv(g,o.opId,i)).data;
+  let d=get(_bw(g,o.opId,i)).data;
   return d.opId==o.opId && d.index==i && d.uid==o.uid && d.sourceRevision==a-1 && d.kind==o.kind && d.materialId==o.materialId;
  }
-function _bw(g,a,b,d) {
+function _bx(g,a,b,d) {
   let c=_g();
   let o=getAfter(_f(g,a)).data;
   return _e(g) && b=='0' && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==_b() &&
@@ -404,10 +404,10 @@ function _bw(g,a,b,d) {
    _w(g,o,c.revision,0) && _w(g,o,c.revision,1) && _w(g,o,c.revision,2) && _w(g,o,c.revision,3) &&
    _w(g,o,c.revision,4) && _w(g,o,c.revision,5) && _w(g,o,c.revision,6) && _w(g,o,c.revision,7);
  }
-function _O(c,a,b,d,i) {
-  return i>=c.menuIds.size() || _bx(c.menus[c.menuIds[i]],a.menus[c.menuIds[i]],b,d);
+function _P(c,a,b,d,i) {
+  return i>=c.menuIds.size() || _by(c.menus[c.menuIds[i]],a.menus[c.menuIds[i]],b,d);
  }
-function _bx(n,b,a,c) {
+function _by(n,b,a,c) {
   let d=b.get('rawRecipe',{});
   let e=d.keys().hasAny([a]) && (b.get('hasPackage',true) || c!='packaging');
   let f=b.recipe.keys().removeAll([a]).concat(e ? [a] : []);
@@ -419,17 +419,17 @@ function _bx(n,b,a,c) {
     n.baseMaterialIds is list && n.baseMaterialIds.toSet().size()==n.baseMaterialIds.size() &&
     n.baseMaterialIds.toSet()==b.baseMaterialIds.removeAll([a]).concat(g ? [a] : []).toSet());
  }
-function _by(g,a,b,d) {
+function _bz(g,a,b,d) {
   let c=_g();
   let e=get(_k()).data;
   let o=getAfter(_f(g,a)).data;
   let f=c.catalog;
 return _e(g) && d.keys().hasOnly(['opId','index']) && d.opId==a && _d(d.index,0,15) && b=='type'+string(d.index) &&
    o.kind=='material_type' && o.uid==_b() && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
-   _O(f,e.catalog,o.targetId,o.inventoryType,d.index*4) && _O(f,e.catalog,o.targetId,o.inventoryType,d.index*4+1) &&
-   _O(f,e.catalog,o.targetId,o.inventoryType,d.index*4+2) && _O(f,e.catalog,o.targetId,o.inventoryType,d.index*4+3);
+   _P(f,e.catalog,o.targetId,o.inventoryType,d.index*4) && _P(f,e.catalog,o.targetId,o.inventoryType,d.index*4+1) &&
+   _P(f,e.catalog,o.targetId,o.inventoryType,d.index*4+2) && _P(f,e.catalog,o.targetId,o.inventoryType,d.index*4+3);
  }
-function _bz(c,a,b,i) {
+function _bA(c,a,b,i) {
       let d=i<c.menuIds.size() ? c.menuIds[i] : '_';
       let m=c.menus.get(d,{});
       let e=a.menus.get(d,{});
@@ -444,7 +444,7 @@ function _bz(c,a,b,i) {
         h is list && h.size()==k.size() && h.toSet()==k.toSet() &&
         j is list && j.toSet().size()==j.size() && j.toSet()==e.materialIds.concat(k).toSet());
     }
-allow create: if _l() && ((index.matches('^type([0-9]|1[0-5])$') && _by(g,id,index,_c())) || (index=='0' && _bw(g,id,index,_c())) || (index=='admitted' && _bt(g,id,index,_c())) || (index.matches('^check[0-7]$') && _bu(g,id,index,_c())) || (index=='input' && _bo(g,id,index,_c())) || (_bq(g,id,index,_c()) || _bi(g,id,index,_c()) || _bn(g,id,index,_c()) || _bg(g,id,index,_c())));
+allow create: if _l() && ((index.matches('^type([0-9]|1[0-5])$') && _bz(g,id,index,_c())) || (index=='0' && _bx(g,id,index,_c())) || (index=='admitted' && _bu(g,id,index,_c())) || (index.matches('^check[0-7]$') && _bv(g,id,index,_c())) || (index=='input' && _bp(g,id,index,_c())) || (_br(g,id,index,_c()) || _bj(g,id,index,_c()) || _bo(g,id,index,_c()) || _bh(g,id,index,_c())));
 
 
 
@@ -453,10 +453,10 @@ allow create: if _l() && ((index.matches('^type([0-9]|1[0-5])$') && _by(g,id,ind
 }
 match /shops/greek-yogg/generations/{g}/operations/{id} {
 function _an(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/shape; }
-function _aG(l,o) { return l.qty > 0 && l.receiveDay == o.receiveDay && l.expiryDay == o.expiryDay; }
-function _P(a,o,i) {
+function _aH(l,o) { return l.qty > 0 && l.receiveDay == o.receiveDay && l.expiryDay == o.expiryDay; }
+function _Q(a,o,i) {
       let l = _x(a,a.slotIds[i]);
-      return !_aG(l,o) || (o.mode == 'merge' && a.lots[o.lotId].ordinal <= l.ordinal);
+      return !_aH(l,o) || (o.mode == 'merge' && a.lots[o.lotId].ordinal <= l.ordinal);
     }
 function _ao(a,b,o) {
       let l = b.lots[o.lotId];
@@ -469,7 +469,7 @@ function _ao(a,b,o) {
         l.ordinal<1000 && l.sortKey==l.expiryDay*1000000000+l.receiveDay*1000+l.ordinal &&
         l.isInUse == !c && b.activeLotId == (c ? a.activeLotId : o.lotId);
     }
-function _aH(a,b,o) {
+function _aI(a,b,o) {
       let c=a.lots[o.lotId];
       let l=b.lots[o.lotId];
       let d=a.inventoryType=='packaging';
@@ -480,11 +480,11 @@ function _aH(a,b,o) {
         l.sortKey==l.expiryDay*1000000000+l.receiveDay*1000+l.ordinal &&
         l.initialQtyQ==c.initialQtyQ+o.qtyQ && l.packCostCents==o.packCostCents &&
         l.note==(o.note=='' ? c.note : c.note=='' ? o.note : c.note+'; '+o.note) &&
-        _s(l.unitCost,0,100000) && l.unitCost==(d ? _H(a.stock,a.unitCost,o.qtyQ,o.unitCost) : _ag(_H(q,e,o.qtyQ,o.unitCost))) &&
+        _s(l.unitCost,0,100000) && l.unitCost==(d ? _H(a.stock,a.unitCost,o.qtyQ,o.unitCost) : _ah(_H(q,e,o.qtyQ,o.unitCost))) &&
         (d ? a.lotIds[0]==o.lotId && a.stock==q && l.receiveDay==o.receiveDay && b.activeLotId==o.lotId :
-          _aG(_x(a,o.lotId),o) && b.activeLotId==a.activeLotId);
+          _aH(_x(a,o.lotId),o) && b.activeLotId==a.activeLotId);
     }
-function _bA(g,a,o) {
+function _bB(g,a,o) {
       let b = get(_h(g,o.materialId)).data;
       let c = getAfter(_h(g,o.materialId)).data;
       let d = _g();
@@ -496,34 +496,34 @@ function _bA(g,a,o) {
         o.lotId is string && o.lotId.matches('^[A-Za-z0-9_-]{1,200}$') && o.lotCreatedAtISO is string && o.lotCreatedAtISO.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$') &&
         c.lastOpId == a && c.lastOpKind == 'stock_in' && d.lastOpId == a && d.lastOpKind == 'stock_in' && d.revision == o.shopRevision &&
         c.lots.diff(b.lots).affectedKeys().hasOnly([o.lotId]) &&
-        (b.inventoryType == 'packaging' ? (b.lotIds.size() == 0 ? o.mode == 'new' && _ao(b,c,o) : o.mode == 'merge' && _aH(b,c,o)) :
-          _P(b,o,0) && _P(b,o,1) && _P(b,o,2) && _P(b,o,3) &&
-          (o.mode == 'new' ? _ao(b,c,o) : o.mode == 'merge' && _aH(b,c,o)));
-    }
-function _bB(g,a,o) {
-      let b=_g();
-      return _e(g) && getAfter(_Q(g,a)).data.opId==a && _R(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','counterIndex','collection','entityId','validationIds','input','display','entitySnapshot']) &&
-        o.schemaVersion==2 && o.kind=='catalog' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time &&
-        o.sourceCatalogRevision==get(_k()).data.catalogRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
-        o.collection=='addons' && _d(o.counterIndex,-1,14) && b.lastOpId==a && b.lastOpKind=='catalog' && b.revision==o.shopRevision && o.materialIds==b.catalog.summaryMaterials &&
-        _ax(b.catalog,o.entityId) && getAfter(_at(g,a)).data.opId==a && _T(g,a,o) && getAfter(_S(g,a)).data.opId==a;
+        (b.inventoryType == 'packaging' ? (b.lotIds.size() == 0 ? o.mode == 'new' && _ao(b,c,o) : o.mode == 'merge' && _aI(b,c,o)) :
+          _Q(b,o,0) && _Q(b,o,1) && _Q(b,o,2) && _Q(b,o,3) &&
+          (o.mode == 'new' ? _ao(b,c,o) : o.mode == 'merge' && _aI(b,c,o)));
     }
 function _bC(g,a,o) {
       let b=_g();
-      return _e(g) && getAfter(_Q(g,a)).data.opId==a && _R(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','create']) &&
-        o.schemaVersion==2 && o.kind=='menu' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time && o.create is bool &&
-        o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==b.catalog.summaryMaterials &&
-        b.lastOpId==a && b.lastOpKind=='menu' && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
-        getAfter(_an(g,a)).data.opId==a && _T(g,a,o) && getAfter(_S(g,a)).data.opId==a;
+      return _e(g) && getAfter(_R(g,a)).data.opId==a && _S(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','counterIndex','collection','entityId','validationIds','input','display','entitySnapshot']) &&
+        o.schemaVersion==2 && o.kind=='catalog' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time &&
+        o.sourceCatalogRevision==get(_k()).data.catalogRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
+        o.collection=='addons' && _d(o.counterIndex,-1,14) && b.lastOpId==a && b.lastOpKind=='catalog' && b.revision==o.shopRevision && o.materialIds==b.catalog.summaryMaterials &&
+        _ax(b.catalog,o.entityId) && getAfter(_at(g,a)).data.opId==a && _U(g,a,o) && getAfter(_T(g,a)).data.opId==a;
     }
 function _bD(g,a,o) {
       let b=_g();
-      return _e(g) && getAfter(_Q(g,a)).data.opId==a && _R(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','counterIndex']) &&
-        o.schemaVersion==2 && o.kind=='addon' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time && _d(o.counterIndex,4,67) &&
+      return _e(g) && getAfter(_R(g,a)).data.opId==a && _S(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','create']) &&
+        o.schemaVersion==2 && o.kind=='menu' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time && o.create is bool &&
         o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==b.catalog.summaryMaterials &&
-        getAfter(_an(g,a)).data.opId==a && b.lastOpId==a && b.lastOpKind=='addon' && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 && _T(g,a,o) && getAfter(_S(g,a)).data.opId==a;
+        b.lastOpId==a && b.lastOpKind=='menu' && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
+        getAfter(_an(g,a)).data.opId==a && _U(g,a,o) && getAfter(_T(g,a)).data.opId==a;
     }
 function _bE(g,a,o) {
+      let b=_g();
+      return _e(g) && getAfter(_R(g,a)).data.opId==a && _S(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','counterIndex']) &&
+        o.schemaVersion==2 && o.kind=='addon' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time && _d(o.counterIndex,4,67) &&
+        o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==b.catalog.summaryMaterials &&
+        getAfter(_an(g,a)).data.opId==a && b.lastOpId==a && b.lastOpKind=='addon' && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 && _U(g,a,o) && getAfter(_T(g,a)).data.opId==a;
+    }
+function _bF(g,a,o) {
       let b=get(_r(g,o.orderId)).data;
       let c=getAfter(_r(g,o.orderId)).data;
       let d=_g();
@@ -534,11 +534,11 @@ return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','
         c.status=='cancelled' && c.cancelOpId==a && d.lastOpId==a && d.lastOpKind=='cancel' && d.revision==o.shopRevision &&
         _i(g,o,9) && _i(g,o,10) && _i(g,o,11) && _i(g,o,12) && _i(g,o,13) && _i(g,o,14) && _i(g,o,15);
     }
-function _aI(g,o,i) {
+function _aJ(g,o,i) {
       let n=getAfter(_h(g,o.materialIds[i])).data;
       return n.lastOpId==o.opId && n.lastOpKind=='produce' && n.lastOpIndex==i;
     }
-function _bF(g,a,o) {
+function _bG(g,a,o) {
       let b=get(_h(g,o.outputId)).data;
       let c=getAfter(_h(g,o.outputId)).data;
       let r=b.productionRecipe;
@@ -555,16 +555,16 @@ return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','
         o.inputs.size()==f.size() && r.quantities.size()==f.size() && _d(r.yieldQ,1,1000000000) &&
         o.rawCostBaht==o.inputs[0].ingredientCostBaht+(o.inputs.size()==2 ? o.inputs[1].ingredientCostBaht : 0) &&
         c.lastOpId==a && c.lastOpKind=='produce' && d.lastOpId==a && d.lastOpKind=='produce' && d.revision==o.shopRevision &&
-        _ao(b,c,e) && _aI(g,o,0) && (f.size()==1 || _aI(g,o,1));
+        _ao(b,c,e) && _aJ(g,o,0) && (f.size()==1 || _aJ(g,o,1));
     }
-function _bG(g,a,o) {
+function _bH(g,a,o) {
       let n=getAfter(_h(g,o.materialId)).data;
       let b=_g();
       return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','lotId','shopRevision']) &&
         o.schemaVersion==2 && o.kind=='switch_lot' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time &&
         n.lastOpId==a && n.lastOpKind=='switch_lot' && b.lastOpId==a && b.lastOpKind=='switch_lot' && b.revision==o.shopRevision;
     }
-function _bH(g,a,o) {
+function _bI(g,a,o) {
       let b=_g();
       let c=o.materialIds;
 return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialIds','rows','shopRevision']) &&
@@ -573,29 +573,29 @@ return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','
         b.lastOpId==a && b.lastOpKind=='stock_count' && b.revision==o.shopRevision &&
         _i(g,o,9) && _i(g,o,10) && _i(g,o,11) && _i(g,o,12) && _i(g,o,13) && _i(g,o,14) && _i(g,o,15) && _i(g,o,16) && _i(g,o,17);
     }
-function _bI(g,a,o) {
+function _bJ(g,a,o) {
       let b=_g();
-      return _e(g) && getAfter(_Q(g,a)).data.opId==a && _R(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','create']) &&
+      return _e(g) && getAfter(_R(g,a)).data.opId==a && _S(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','create']) &&
         o.schemaVersion==2 && o.kind=='group' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time && o.create is bool &&
         o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==b.catalog.summaryMaterials &&
         b.lastOpId==a && b.lastOpKind=='group' && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
-        getAfter(_an(g,a)).data.opId==a && _T(g,a,o) && getAfter(_S(g,a)).data.opId==a;
+        getAfter(_an(g,a)).data.opId==a && _U(g,a,o) && getAfter(_T(g,a)).data.opId==a;
     }
-function _bJ(g,a,o) {
+function _bK(g,a,o) {
       let b=_g();
       let m=getAfter(_h(g,o.materialId)).data;
       return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','recipe']) &&
         o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time &&
         b.lastOpId==a && b.lastOpKind=='production_recipe' && b.revision==o.shopRevision && m.lastOpId==a && m.lastOpKind=='production_recipe' && m.revision==o.materialRevision+1;
     }
-function _bK(g,a,o) {
+function _bL(g,a,o) {
       let n=getAfter(_h(g,o.materialId)).data;
       let b=_g();
       return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','materialSnapshot']) &&
         o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time && o.materialRevision==0 &&
         n.lastOpId==a && n.lastOpKind=='material_create' && n==o.materialSnapshot && b.lastOpId==a && b.lastOpKind=='material_create' && b.revision==o.shopRevision;
     }
-function _bL(g,a,o) {
+function _bM(g,a,o) {
       let n=getAfter(_h(g,o.materialId)).data;
       let b=_g();
       return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','deleted']) &&
@@ -603,7 +603,7 @@ function _bL(g,a,o) {
         n.lastOpId==a && n.lastOpKind=='material_archive' && n.revision==o.materialRevision+1 && n.deleted==o.deleted &&
         b.lastOpId==a && b.lastOpKind=='material_archive' && b.revision==o.shopRevision;
     }
-function _bM(g,a,o) {
+function _bN(g,a,o) {
       let n=getAfter(_h(g,o.materialId)).data;
       let b=_g();
       return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','metadata']) &&
@@ -611,7 +611,7 @@ function _bM(g,a,o) {
         n.lastOpId==a && n.lastOpKind=='material_metadata' && n.revision==o.materialRevision+1 &&
         b.lastOpId==a && b.lastOpKind=='material_metadata' && b.revision==o.shopRevision;
     }
-function _bN(g,a,o) {
+function _bO(g,a,o) {
       let n=getAfter(_h(g,o.materialId)).data;
       let b=_g();
       return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','measure']) &&
@@ -619,7 +619,7 @@ function _bN(g,a,o) {
         n.lastOpId==a && n.lastOpKind=='material_measure' && n.revision==o.materialRevision+1 &&
         b.lastOpId==a && b.lastOpKind=='material_measure' && b.revision==o.shopRevision;
     }
-function _bO(g,a,o) {
+function _bP(g,a,o) {
   let b=_g();
   let m=getAfter(_h(g,o.targetId)).data;
   return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','targetId','targetRevision','previousType','inventoryType','sourceCatalogRevision','shopRevision','materialIds']) &&
@@ -627,12 +627,12 @@ function _bO(g,a,o) {
    b.lastOpId==a && b.lastOpKind==o.kind && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
    m.lastOpId==a && m.lastOpKind==o.kind && m.lastOpIndex==0 && m.revision==o.targetRevision+1 && m.inventoryType==o.inventoryType && _aE(g,a,8);
  }
-function _bP(b) {
+function _bQ(b) {
       let a=b.slotIds;
       let q=b.lotQty;
       return q[a[0]]>0 ? a[0] : q[a[1]]>0 ? a[1] : q[a[2]]>0 ? a[2] : q[a[3]]>0 ? a[3] : b.allocationIds.size()>0 ? a[0] : b.lotIds[0];
     }
-function _bQ(g,a,o) {
+function _bR(g,a,o) {
       let b=get(_h(g,o.materialId)).data;
       let n=getAfter(_h(g,o.materialId)).data;
       let c=_g();
@@ -642,7 +642,7 @@ function _bQ(g,a,o) {
         o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time &&
         _d(o.qtyQ,1,1000000000) && _s(o.unitCost,0,100000) && _d(o.packCostCents,0,1000000000) &&
         (_d(o.receiveDay,0,100000) || o.receiveDay==999999) && o.note is string && o.note.size()<=1000 &&
-        b.lotIds.size()>0 && o.lotId==_bP(b) &&
+        b.lotIds.size()>0 && o.lotId==_bQ(b) &&
         o.beforeStockQ==b.stock && o.beforeUnitCost==b.unitCost && o.beforeLotQtyQ==b.lotQty[o.lotId] && o.beforeLot==d &&
         o.beforeActiveLotId==b.activeLotId && o.beforeZeroActiveIds==b.zeroActiveIds &&
         n.lastOpId==a && n.lastOpKind=='package_stock_in' && c.lastOpId==a && c.lastOpKind=='package_stock_in' && c.revision==o.shopRevision &&
@@ -654,35 +654,35 @@ function _bQ(g,a,o) {
         e.sortKey==999999*1000000000+o.receiveDay*1000+d.ordinal &&
         e.note==(o.note=='' ? d.note : d.note=='' ? o.note : d.note+'; '+o.note);
     }
-function _bR(d) {
+function _bS(d) {
       return d is map && d.size()>0 && d.keys().hasOnly(['category','packUnit','shelfLifeDays','isSubIngredient']) &&
         (!d.keys().hasAny(['category']) || d.category==null || d.category is string && d.category.size()<=160) &&
         (!d.keys().hasAny(['packUnit']) || d.packUnit==null || d.packUnit is string && d.packUnit.size()<=32) &&
         (!d.keys().hasAny(['shelfLifeDays']) || d.shelfLifeDays==null || _s(d.shelfLifeDays,0,100000)) &&
         (!d.keys().hasAny(['isSubIngredient']) || d.isSubIngredient is bool);
     }
-function _bS(p,b) {
+function _bT(p,b) {
       return p.keys().toSet()==b.keys().toSet().intersection(['category','packUnit','shelfLifeDays','isSubIngredient'].toSet()) &&
         p.get('category',null)==b.get('category',null) && p.get('packUnit',null)==b.get('packUnit',null) &&
         p.get('shelfLifeDays',null)==b.get('shelfLifeDays',null) && p.get('isSubIngredient',null)==b.get('isSubIngredient',null);
     }
-function _bT(g,a,o) {
+function _bU(g,a,o) {
       let b=get(_h(g,o.materialId)).data;
       let n=getAfter(_h(g,o.materialId)).data;
       let c=_g();
       return _e(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','beforeDetails','details']) &&
         o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time &&
-        _bR(o.details) && _bS(o.beforeDetails,b) &&
+        _bS(o.details) && _bT(o.beforeDetails,b) &&
         n.lastOpId==a && n.lastOpKind=='material_details' && n.revision==o.materialRevision+1 &&
         c.lastOpId==a && c.lastOpKind=='material_details' && c.revision==o.shopRevision;
     }
-function _bU(g,a,o) {
+function _bV(g,a,o) {
   let b=get(_k()).data;
   let n=_g();
   let m=get(_h(g,o.materialId)).data;
-  return _ai(g,a,o,b,n,m);
+  return _aj(g,a,o,b,n,m);
  }
-function _bV(g,a,o) {
+function _bW(g,a,o) {
  let b=get(_k()).data;
  let n=_g();
  return _e(g) &&
@@ -693,17 +693,17 @@ function _bV(g,a,o) {
   n.lastOpId==a && n.lastOpKind=='history_clear' && n.revision==b.revision+1 &&
   o.shopRevision==n.revision && o.clearedThroughRevision==n.revision && n.inventoryHistoryCutoff==n.revision;
 }
-function _Q(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/input; }
-function _R(g,o) {
+function _R(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/input; }
+function _S(g,o) {
   let a=_aA(o);
   return getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/display/catalog).data[a][o.entityId]==o.display;
  }
-function _S(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/admitted; }
-function _T(g,a,o) {
+function _T(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/admitted; }
+function _U(g,a,o) {
   return o.kind=='addon' || getAfter(_t(g,a,0)).data.opId==a && getAfter(_t(g,a,1)).data.opId==a &&
    getAfter(_t(g,a,2)).data.opId==a && getAfter(_t(g,a,3)).data.opId==a;
  }
-function _bW(g,a,o) {
+function _bX(g,a,o) {
  let b=get(_k()).data;
  let n=_g();
  return _e(g) &&
@@ -712,14 +712,14 @@ function _bW(g,a,o) {
   o.uid==_b() && o.createdAt==request.time &&
   n.lastOpId==a && n.lastOpKind=='platform_gp' && n.revision==b.revision+1 && o.shopRevision==n.revision;
 }
-function _bX(g,a,o) {
+function _bY(g,a,o) {
   let n=_g();
   return _e(g) && o.opId==a && n.lastOpId==a && n.lastOpKind=='command_abort' && n.revision==get(_k()).data.revision+1;
  }
 allow read: if _n() && (_m(g));
-   function _bY() { let a=_c().get('kind',''); let b=_c();
-return (a=='command_abort' && _bX(g,id,b)) || (a=='platform_gp' && _aZ() && _bW(g,id,b)) || (a=='menu' && _bC(g,id,b)) || (a=='addon' && _bD(g,id,b)) || (a=='group' && _bI(g,id,b)) || (a=='catalog' && _bB(g,id,b)) || (a=='history_clear' && _bV(g,id,b)) || (a=='stock_count' && _bH(g,id,b)) || (a=='switch_lot' && _bG(g,id,b)) || (a=='material_create' && _bK(g,id,b)) || (a=='material_archive' && _bL(g,id,b)) || (a=='material_metadata' && _bM(g,id,b)) || (a=='material_measure' && _bN(g,id,b)) || (a=='material_details' && _bT(g,id,b)) || (a=='material_type' && _bO(g,id,b)) || (a=='production_recipe' && _bJ(g,id,b)) || (a=='stock_in' && _bA(g,id,b)) || (a=='package_stock_in' && _bQ(g,id,b)) || (a=='produce' && _bF(g,id,b)) || (a=='cancel' && _bE(g,id,b)) || (a=='material_delete' && _bU(g,id,b)); }
-allow create: if _l() && (_bY());
+   function _bZ() { let a=_c().get('kind',''); let b=_c();
+return (a=='command_abort' && _bY(g,id,b)) || (a=='platform_gp' && _ba() && _bX(g,id,b)) || (a=='menu' && _bD(g,id,b)) || (a=='addon' && _bE(g,id,b)) || (a=='group' && _bJ(g,id,b)) || (a=='catalog' && _bC(g,id,b)) || (a=='history_clear' && _bW(g,id,b)) || (a=='stock_count' && _bI(g,id,b)) || (a=='switch_lot' && _bH(g,id,b)) || (a=='material_create' && _bL(g,id,b)) || (a=='material_archive' && _bM(g,id,b)) || (a=='material_metadata' && _bN(g,id,b)) || (a=='material_measure' && _bO(g,id,b)) || (a=='material_details' && _bU(g,id,b)) || (a=='material_type' && _bP(g,id,b)) || (a=='production_recipe' && _bK(g,id,b)) || (a=='stock_in' && _bB(g,id,b)) || (a=='package_stock_in' && _bR(g,id,b)) || (a=='produce' && _bG(g,id,b)) || (a=='cancel' && _bF(g,id,b)) || (a=='material_delete' && _bV(g,id,b)); }
+allow create: if _l() && (_bZ());
 
 
 
@@ -748,7 +748,7 @@ function _o(c,a,i) {
   let d=i<64 ? i : i-64;
   return d>=b.size() || !(a in (i<64 ? c.menus[b[d]].get('rawRecipe',c.menus[b[d]].recipe) : c.addons[b[d]].recipe));
  }
-function _aJ(g,a,b,d) {
+function _aK(g,a,b,d) {
   let c=get(_k()).data;
   let e=c.catalog;
 return _m(g) && d.keys().hasOnly(['opId','index','uid','sourceRevision','kind','materialId']) &&
@@ -757,74 +757,74 @@ return _m(g) && d.keys().hasOnly(['opId','index','uid','sourceRevision','kind','
    _o(e,d.materialId,d.index*16+0) && _o(e,d.materialId,d.index*16+1) && _o(e,d.materialId,d.index*16+2) && _o(e,d.materialId,d.index*16+3) && _o(e,d.materialId,d.index*16+4) && _o(e,d.materialId,d.index*16+5) && _o(e,d.materialId,d.index*16+6) && _o(e,d.materialId,d.index*16+7) && _o(e,d.materialId,d.index*16+8) && _o(e,d.materialId,d.index*16+9) && _o(e,d.materialId,d.index*16+10) && _o(e,d.materialId,d.index*16+11) && _o(e,d.materialId,d.index*16+12) && _o(e,d.materialId,d.index*16+13) && _o(e,d.materialId,d.index*16+14) && _o(e,d.materialId,d.index*16+15);
  }
 allow read: if _n() && (_m(g));
-   allow create: if _l() && (_aJ(g,id,index,_c()));
-   allow update: if _l() && (_a().uid==_b() && _c().materialId==_a().materialId && _c().kind==_a().kind && _aJ(g,id,index,_c()));
+   allow create: if _l() && (_aK(g,id,index,_c()));
+   allow update: if _l() && (_a().uid==_b() && _c().materialId==_a().materialId && _c().kind==_a().kind && _aK(g,id,index,_c()));
 }
 match /shops/greek-yogg/generations/{g}/recipeAdmissions/{id}/parts/{index} {
-function _U(g,d,i) {
-  return i>=d.materialIds.size() || _bZ(get(_h(g,d.materialIds[i])).data,d,d.materialIds[i]);
+function _V(g,d,i) {
+  return i>=d.materialIds.size() || _ca(get(_h(g,d.materialIds[i])).data,d,d.materialIds[i]);
  }
-function _bZ(m,d,a) {
+function _ca(m,d,a) {
   let n=d.entitySnapshot;
-  let q=_aj(n,d.kind).get(a,0);
+  let q=_ak(n,d.kind).get(a,0);
   let b=d.kind=='menu' ? n.baseMaterialIds : n.materialIds;
   let c=d.kind=='menu' && !n.get('hasPackage',true) && m.inventoryType=='packaging' ? 0 : q;
   return m.id==a && !m.deleted && m.inventoryType in ['ingredient','packaging'] && _d(q,0,1000000000) &&
    (d.kind!='menu' || n.recipe.get(a,0)==c) &&
    (a in b)==(c>0);
  }
-function _aK(g,a,b,d) {
+function _aL(g,a,b,d) {
   let c=get(_k()).data;
   return _m(g) && d.keys().hasOnly(['opId','index','uid','sourceRevision','kind','entityId','input','entitySnapshot','materialIds']) &&
    d.opId==a && d.uid==_b() && _d(d.index,0,3) && b==string(d.index) && d.sourceRevision==c.revision &&
    d.kind in ['menu','addon'] && d.entityId is string && !exists(_f(g,a)) &&
    d.materialIds is list && _d(d.materialIds.size(),1,4) && d.materialIds.toSet().size()==d.materialIds.size() &&
-   d.materialIds.hasOnly(c.get('materialIds',c.catalog.summaryMaterials)) && d.materialIds.hasOnly(_aj(d.entitySnapshot,d.kind).keys()) &&
-   _U(g,d,0) && _U(g,d,1) && _U(g,d,2) && _U(g,d,3);
+   d.materialIds.hasOnly(c.get('materialIds',c.catalog.summaryMaterials)) && d.materialIds.hasOnly(_ak(d.entitySnapshot,d.kind).keys()) &&
+   _V(g,d,0) && _V(g,d,1) && _V(g,d,2) && _V(g,d,3);
  }
 allow read: if _n() && (_m(g));
-   allow create: if _l() && (_aK(g,id,index,_c()));
-   allow update: if _l() && (_a().uid==_b() && _c().input==_a().input && _c().entityId==_a().entityId && _c().kind==_a().kind && _aK(g,id,index,_c()));
+   allow create: if _l() && (_aL(g,id,index,_c()));
+   allow update: if _l() && (_a().uid==_b() && _c().input==_a().input && _c().entityId==_a().entityId && _c().kind==_a().kind && _aL(g,id,index,_c()));
 }
 match /shops/greek-yogg/generations/{g}/preparations/{id} {
-function _ca(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedPlatforms/$(a)/columnProofs/$(string(i)); }
-function _cb(g,a,i,j) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedInventory/$(a)/steps/$(string(i))/proofs/$(string(j)); }
-function _aL(g,m) { return m.kind=='sale_set' ? _r(g,m.opId) : _f(g,m.opId); }
-function _cc(g,m) {
-      return m.kind=='sale_set' ? _af(g,m.opId,'0') : m.kind=='platform' ? _ca(g,m.opId,m.proofCount-1) : _cb(g,m.opId,m.stepCount-1,m.proofCount-1);
+function _cb(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedPlatforms/$(a)/columnProofs/$(string(i)); }
+function _cc(g,a,i,j) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedInventory/$(a)/steps/$(string(i))/proofs/$(string(j)); }
+function _aM(g,m) { return m.kind=='sale_set' ? _r(g,m.opId) : _f(g,m.opId); }
+function _cd(g,m) {
+      return m.kind=='sale_set' ? _ag(g,m.opId,'0') : m.kind=='platform' ? _cb(g,m.opId,m.proofCount-1) : _cc(g,m.opId,m.stepCount-1,m.proofCount-1);
     }
-function _cd(g,a,m) {
+function _ce(g,a,m) {
       return _m(g) && m.keys().hasOnly(['kind','opId','uid','state','createdAt','lifetimeDays','proofCount','stepCount','materialCount']) &&
         m.kind in ['sale_set','inventory_batch','platform'] && m.opId is string && m.opId.matches('^[A-Za-z0-9_-]{1,200}$') &&
         a==(m.kind=='sale_set' ? 'sale_' : m.kind=='platform' ? 'platform_' : 'inventory_')+m.opId &&
-        m.uid==_b() && m.state=='open' && m.createdAt==request.time && m.lifetimeDays==7 && !exists(_aL(g,m)) &&
+        m.uid==_b() && m.state=='open' && m.createdAt==request.time && m.lifetimeDays==7 && !exists(_aM(g,m)) &&
         (m.kind=='inventory_batch' ? _d(m.stepCount,1,6) && _d(m.materialCount,1,6) && m.proofCount==m.materialCount*3 :
           m.stepCount==0 && m.materialCount==0 && _d(m.proofCount,1,m.kind=='sale_set'?3:32));
     }
-function _ce(g) {
+function _cf(g) {
       let b=_a();
       let n=_c();
-      let a=_aL(g,b);
+      let a=_aM(g,b);
       return _m(g) && b.state=='open' && n.diff(b).affectedKeys().hasOnly(['state','closedAt']) && n.closedAt==request.time &&
         (n.state=='committed' ? _b()==b.uid && getAfter(a).data.kind==b.kind && getAfter(a).data.opId==b.opId && getAfter(a).data.uid==b.uid :
           ((n.state=='abandoned' && _b()==b.uid) || (n.state=='expired' && request.time>=b.createdAt+duration.value(7,'d'))) &&
-          (!existsAfter(a) || getAfter(a).data.kind!=b.kind || getAfter(a).data.uid!=b.uid) && !existsAfter(_cc(g,b))) && (b.kind!='sale_set' || n.state=='committed' || !existsAfter(_aC(g,b.opId)));
+          (!existsAfter(a) || getAfter(a).data.kind!=b.kind || getAfter(a).data.uid!=b.uid) && !existsAfter(_cd(g,b))) && (b.kind!='sale_set' || n.state=='committed' || !existsAfter(_aC(g,b.opId)));
     }
 allow read: if _n() && (_m(g));
-   allow create: if _l() && (_c().kind=='sale_set' && _cd(g,id,_c()));
-   allow update: if _l() && (_ce(g));
+   allow create: if _l() && (_c().kind=='sale_set' && _ce(g,id,_c()));
+   allow update: if _l() && (_cf(g));
 }
 match /shops/greek-yogg/generations/{g}/preparedSales/{id}/lineProofs/{index} {
-function _aM(g,q) {
-      let a=_cm(q);
+function _aN(g,q) {
+      let a=_cn(q);
       return g.active && g.max<=3 && q.size()<=4 && q._==0 && q.keys().hasOnly(g.optionIds.concat(['_'])) &&
         q.values().hasOnly(g.allowRepeat ? [0,1,2,3] : [0,1]) && q.values().removeAll([0]).size()==q.size()-1 && a>=g.min && a<=g.max;
     }
-function _aN(g,q,c,a) {
-      return g.pricingMode=='included' ? 0 : _cl(g.optionPrices[a],c.addonPrices[a],q.keys().removeAll(['_']),q);
+function _aO(g,q,c,a) {
+      return g.pricingMode=='included' ? 0 : _cm(g.optionPrices[a],c.addonPrices[a],q.keys().removeAll(['_']),q);
     }
 function _A(q,a,b,c) { return q[c]==a.get(c,0)+b.get(c,0); }
-function _cf(c,m,l,o) {
+function _cg(c,m,l,o) {
       let d=m.groupIds;
       let a=c.groups[d[0]];
       let b=c.groups[d[1]];
@@ -832,19 +832,19 @@ function _cf(c,m,l,o) {
       let y=l.groupSelections[d[1]];
       let q=l.optionQuantities;
       let e=l.optionIds.concat(['_','_','_','_','_','_']);
-      let f=_aN(a,x,c,o.platformId)+_aN(b,y,c,o.platformId);
+      let f=_aO(a,x,c,o.platformId)+_aO(b,y,c,o.platformId);
       return l.keys().hasOnly(['menuId','qty','optionIds','optionQuantities','catalog','groups','groupSelections','note','totalCents']) &&
         m.active && l.catalog==m && d.size()==2 && d.toSet().size()==2 && _d(l.qty,1,1000000) && l.note is string && l.note.size()<=1000 &&
         l.groups.keys().toSet()==d.toSet() && l.groups[d[0]]==a && l.groups[d[1]]==b && l.groupSelections.keys().toSet()==d.toSet() &&
-        _aM(a,x) && _aM(b,y) && l.optionIds.size()<=6 && l.optionIds.toSet().size()==l.optionIds.size() &&
+        _aN(a,x) && _aN(b,y) && l.optionIds.size()<=6 && l.optionIds.toSet().size()==l.optionIds.size() &&
         l.optionIds.toSet()==q.keys().removeAll(['_']).toSet() && l.optionIds.hasOnly(o.addonKeys.values()) && q._==0 &&
         q.keys().toSet()==x.keys().toSet().union(y.keys().toSet()) &&
         _A(q,x,y,e[0]) && _A(q,x,y,e[1]) && _A(q,x,y,e[2]) &&
         _A(q,x,y,e[3]) && _A(q,x,y,e[4]) && _A(q,x,y,e[5]) &&
         l.totalCents==(m.pricesCents[o.platformId]+f)*l.qty;
     }
-function _cg(c,m,l,o) { return m.get('groupIds',[]).size()>0 ? _cf(c,m,l,o) : _ci(c,m,l,o); }
-function _aO(g,a,b,d) {
+function _ch(c,m,l,o) { return m.get('groupIds',[]).size()>0 ? _cg(c,m,l,o) : _cj(c,m,l,o); }
+function _aP(g,a,b,d) {
       let e=get(_k()).data;
       let c=e.catalog;
       let f=getAfter(_z(g,a,'sale_set')).data;
@@ -856,18 +856,18 @@ function _aO(g,a,b,d) {
         d.keys().hasOnly(['opId','index','uid','catalogRevision','platformId','addonKeys','materialIds','billOperands','coverageCount','lines']) &&
         _d(d.index,0,f.proofCount-1) && b==string(d.index) &&
         d.catalogRevision==e.catalogRevision && c.platforms[d.platformId].active &&
-        (h && d.coverageCount==0 || i) && _cg(c,c.menus[j.menuId],j,d);
+        (h && d.coverageCount==0 || i) && _ch(c,c.menus[j.menuId],j,d);
     }
-function _ch(l) {
+function _ci(l) {
       return l.keys().hasOnly(['menuId','qty','optionIds','optionQuantities','catalog','group','note','totalCents']) &&
         _d(l.qty,1,1000000) && l.note is string && l.note.size()<=1000 &&
         l.optionIds is list && l.optionIds.size()<=11 && l.optionIds.toSet().size()==l.optionIds.size();
     }
-function _ci(c,m,l,o) {
-      let a=m.get('groupId','');
-      return _ch(l) && (a=='' ? l.group=={} && _cj(c,m,l,o) : _cp(c,m,c.groups[a],l,o));
-    }
 function _cj(c,m,l,o) {
+      let a=m.get('groupId','');
+      return _ci(l) && (a=='' ? l.group=={} && _ck(c,m,l,o) : _cq(c,m,c.groups[a],l,o));
+    }
+function _ck(c,m,l,o) {
       let a = l.optionIds.concat(['_','_','_','_','_','_','_','_','_','_','_']);
       let p = m.priceMode == 'addon' ? c.addonPrices[o.platformId] : m.optionPrices[o.platformId];
       return l.catalog == m && m.active &&
@@ -875,34 +875,34 @@ function _cj(c,m,l,o) {
         l.optionIds.hasOnly(m.optionIds) && l.optionIds.hasOnly(o.addonKeys.values()) && l.optionIds.size() >= m.min && l.optionIds.size() <= m.max &&
         l.totalCents == (m.pricesCents[o.platformId] + p[a[0]]+p[a[1]]+p[a[2]]+p[a[3]]+p[a[4]]+p[a[5]]+p[a[6]]+p[a[7]]+p[a[8]]+p[a[9]]+p[a[10]]) * l.qty;
     }
-function _ck(p,a,b) {
+function _cl(p,a,b) {
       return p.get(b[0],a[b[0]])+p.get(b[1],a[b[1]])+p.get(b[2],a[b[2]])+p.get(b[3],a[b[3]])+
         p.get(b[4],a[b[4]])+p.get(b[5],a[b[5]])+p.get(b[6],a[b[6]])+p.get(b[7],a[b[7]])+
         p.get(b[8],a[b[8]])+p.get(b[9],a[b[9]])+p.get(b[10],a[b[10]]);
     }
-function _cl(p,a,b,q) {
+function _cm(p,a,b,q) {
       let c=b.size();
       return (c>0 ? p.get(b[0],a[b[0]])*q[b[0]] : 0)+(c>1 ? p.get(b[1],a[b[1]])*q[b[1]] : 0)+(c>2 ? p.get(b[2],a[b[2]])*q[b[2]] : 0);
     }
-function _cm(q) {
+function _cn(q) {
       let a=q.values().concat([0,0,0,0]);
       return a[0]+a[1]+a[2]+a[3];
     }
-function _cn(p,a,b,q) {
+function _co(p,a,b,q) {
       let c=b.size();
       return (c>0 ? p.get(b[0],a[b[0]])*q[b[0]] : 0)+(c>1 ? p.get(b[1],a[b[1]])*q[b[1]] : 0)+(c>2 ? p.get(b[2],a[b[2]])*q[b[2]] : 0)+
         (c>3 ? p.get(b[3],a[b[3]])*q[b[3]] : 0)+(c>4 ? p.get(b[4],a[b[4]])*q[b[4]] : 0)+(c>5 ? p.get(b[5],a[b[5]])*q[b[5]] : 0)+
         (c>6 ? p.get(b[6],a[b[6]])*q[b[6]] : 0)+(c>7 ? p.get(b[7],a[b[7]])*q[b[7]] : 0)+(c>8 ? p.get(b[8],a[b[8]])*q[b[8]] : 0)+
         (c>9 ? p.get(b[9],a[b[9]])*q[b[9]] : 0)+(c>10 ? p.get(b[10],a[b[10]])*q[b[10]] : 0);
     }
-function _co(q) {
+function _cp(q) {
       let v=q.values().concat([0,0,0,0,0,0,0,0,0,0,0,0]);
       return v[0]+v[1]+v[2]+v[3]+v[4]+v[5]+v[6]+v[7]+v[8]+v[9]+v[10]+v[11];
     }
-function _cp(c,m,g,l,o) {
+function _cq(c,m,g,l,o) {
       let q=l.optionQuantities;
-      let a=g.allowRepeat ? _co(q) : l.optionIds.size();
-      let b=g.pricingMode=='included' ? 0 : g.allowRepeat ? _cn(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds,q) : _ck(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds.concat(['_','_','_','_','_','_','_','_','_','_','_']));
+      let a=g.allowRepeat ? _cp(q) : l.optionIds.size();
+      let b=g.pricingMode=='included' ? 0 : g.allowRepeat ? _co(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds,q) : _cl(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds.concat(['_','_','_','_','_','_','_','_','_','_','_']));
       return l.catalog==m && l.group==g && m.active && g.active &&
         l.optionIds.hasOnly(g.optionIds) && (!g.allowRepeat || l.optionIds.size()<=11) &&
         q.keys().toSet()==l.optionIds.concat(['_']).toSet() && q._==0 && q.values().removeAll([0]).size()==l.optionIds.size() &&
@@ -910,26 +910,26 @@ function _cp(c,m,g,l,o) {
         l.optionIds.hasOnly(o.addonKeys.values()) && a>=g.min && a<=g.max &&
         l.totalCents==(m.pricesCents[o.platformId]+b)*l.qty;
     }
-function _cq(g,a,b,c,d) {
+function _cr(g,a,b,c,d) {
       let m=getAfter(_z(g,a,b)).data;
       let i=int(c);
       return _az(g,a,b,false) && string(i)==c && _d(i,0,m.proofCount-1) &&
         (b!='inventory_batch' || _d(int(d),0,m.stepCount-1) && string(int(d))==d);
     }
-function _cr(g,a,c,d) {
+function _cs(g,a,c,d) {
   let b=_a();
   let e=get(_k()).data;
   let f=get(_z(g,a,'sale_set')).data;
   return _m(g) && b.uid==_b() && b.catalogRevision==e.catalogRevision &&
    f.state=='open' && f.uid==b.uid && b.opId==a && c==string(b.index) && !exists(_r(g,a)) &&
    d.diff(b).affectedKeys().hasOnly(['coverageCount']) && _d(b.coverageCount,0,b.lines.size()-1) &&
-   d.coverageCount==b.coverageCount+1 && _cs(e.catalog,b.lines[b.coverageCount],b.materialIds);
+   d.coverageCount==b.coverageCount+1 && _ct(e.catalog,b.lines[b.coverageCount],b.materialIds);
  }
 function _p(c,l,a,i) {
   let b=l.optionIds;
   return i>=b.size() || c.addons[b[i]].get('materialIds',c.addons[b[i]].recipe.keys()).hasOnly(a);
  }
-function _cs(c,l,a) {
+function _ct(c,l,a) {
   return a is list && _d(a.size(),0,16) && a.toSet().size()==a.size() &&
    l.catalog.get('baseMaterialIds',l.catalog.recipe.keys()).hasOnly(a) &&
    _p(c,l,a,0) && _p(c,l,a,1) && _p(c,l,a,2) && _p(c,l,a,3) &&
@@ -937,13 +937,13 @@ function _cs(c,l,a) {
    _p(c,l,a,8) && _p(c,l,a,9) && _p(c,l,a,10);
  }
 allow read: if _n() && (_m(g));
-   allow create: if _l() && (_c().lines.size()==1 && _aO(g,id,index,_c()));
-   allow update: if _l() && (((!_a().keys().hasAny(['billOperands']) || _c().billOperands==_a().billOperands) && _a().uid==_b() && _aO(g,id,index,_c())) || (_cr(g,id,index,_c())));
+   allow create: if _l() && (_c().lines.size()==1 && _aP(g,id,index,_c()));
+   allow update: if _l() && (((!_a().keys().hasAny(['billOperands']) || _c().billOperands==_a().billOperands) && _a().uid==_b() && _aP(g,id,index,_c())) || (_cs(g,id,index,_c())));
 
-   allow delete: if _l() && (_cq(g,id,'sale_set',index,'0'));
+   allow delete: if _l() && (_cr(g,id,'sale_set',index,'0'));
 }
 match /shops/greek-yogg/generations/{g}/preparedSales/{id}/operandProofs/{index} {
-function _ct(d,i,c) {
+function _cu(d,i,c) {
   let z={'menuId':'_','qty':0,'optionQuantities':{'_':0}};
   let l=d.lines.concat([z,z,z,z,z,z]);
   let o={'lines':d.lines,'lineMenuIds':d.billOperands.lineMenuIds,'lineQtys':d.billOperands.lineQtys,'addonKeys':d.addonKeys,'addonCounts':d.billOperands.addonCounts,
@@ -951,52 +951,52 @@ function _ct(d,i,c) {
   let n=i*4+4;
   return d.addonKeys==d.billOperands.addonKeys && (i!=0 || d.lineOptionQuantities==o.lineOptionQuantities) && _au(o,i*2) && _E(o,n,c) && _E(o,n+1,c) && _E(o,n+2,c) && (n+3>14 || _E(o,n+3,c));
  }
-function _cu(g,a,b,d) {
+function _cv(g,a,b,d) {
   let c=get(_k()).data;
   return _m(g) && b in ['0','1','2'] && d.uid==_b() && d.opId==a && d.catalogRevision==c.catalogRevision && d.lines.size()>0 && d.lines.size()<=6 &&
-   d.materialIds.size()<15 && _ct(d,int(b),c.catalog);
+   d.materialIds.size()<15 && _cu(d,int(b),c.catalog);
  }
-allow read: if _n() && (_m(g)); allow create: if _l() && (_cu(g,id,index,_c()));
+allow read: if _n() && (_m(g)); allow create: if _l() && (_cv(g,id,index,_c()));
 }
 match /shops/greek-yogg/generations/{g}/preparedSales/{id}/certificates/{index} {
 function _ap(g,d,i) {
-  return i*2>=d.lines.size() || _cv(get(_af(g,d.opId,string(i))).data,d,i);
+  return i*2>=d.lines.size() || _cw(get(_ag(g,d.opId,string(i))).data,d,i);
  }
-function _cv(p,d,i) {
+function _cw(p,d,i) {
   let a=i*2;
   return p.opId==d.opId && p.index==i && p.uid==d.uid && p.catalogRevision==d.catalogRevision && p.platformId==d.platformId &&
    p.addonKeys==d.addonKeys && p.materialIds==d.materialIds && p.billOperands==d.billOperands && p.coverageCount==p.lines.size() &&
    p.lines==d.lines[a:(a+2<d.lines.size() ? a+2 : d.lines.size())];
  }
-function _cw(g,a,b,d) {
+function _cx(g,a,b,d) {
   let c=get(_k()).data;
   let e=get(_z(g,a,'sale_set')).data;
   return _m(g) && b=='bill' && d.keys().hasOnly(['opId','uid','catalogRevision','platformId','addonKeys','materialIds','billOperands','lines','lineOptionQuantities']) &&
    d.opId==a && d.uid==_b() && d.catalogRevision==c.catalogRevision && e.state=='open' && e.uid==d.uid && !exists(_r(g,a)) &&
-   d.lines is list && _d(d.lines.size(),1,6) && d.billOperands.keys().hasOnly(['lineMenuIds','lineQtys','addonKeys','addonCounts','packages','packageSnapshots']) && _cy(d.billOperands,d.materialIds) &&
-   _cx(g,d);
+   d.lines is list && _d(d.lines.size(),1,6) && d.billOperands.keys().hasOnly(['lineMenuIds','lineQtys','addonKeys','addonCounts','packages','packageSnapshots']) && _cz(d.billOperands,d.materialIds) &&
+   _cy(g,d);
  }
 function _aq(g,a,i) {return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/operandProofs/$(i);}
-function _cx(g,d) {
+function _cy(g,d) {
   return _ap(g,d,0) && _ap(g,d,1) && _ap(g,d,2) && (d.materialIds.size()>=15 ||
    get(_aq(g,d.opId,'0')).data==d && get(_aq(g,d.opId,'1')).data==d && get(_aq(g,d.opId,'2')).data==d);
  }
-function _cy(o,a) {
+function _cz(o,a) {
   let p=o.get('packages',{});
   let b=o.get('packageSnapshots',{});
   return p is map && p.size()<=16 && p.keys().hasOnly(a) && b is map && b.size()<=16 && b.keys().hasOnly(a) && p.keys().hasOnly(b.keys());
  }
 allow read: if _n() && (_m(g));
-   allow create: if _l() && (_cw(g,id,index,_c()));
+   allow create: if _l() && (_cx(g,id,index,_c()));
    allow delete: if _l() && (index=='bill' && _az(g,id,'sale_set',true));
 }
 match /shops/greek-yogg/generations/{g}/orders/{id} {
-function _cz(o) {
+function _cA(o) {
       return o.lineMenuIds is list && o.lineMenuIds.size()==6 && o.lineQtys is list && o.lineQtys.size()==6 &&
         o.lineOptionQuantities.keys().toSet()==['L0','L1','L2','L3','L4','L5'].toSet();
     }
 function _B(o,i) { return i < o.lines.size() ? o.lines[i].totalCents : 0; }
-function _cA(g,a,o) {
+function _cB(g,a,o) {
       let b = _g();
       let c = b.catalog.platforms[o.platformId];
 
@@ -1014,7 +1014,7 @@ return b.status=='active' && b.generation==g && o.keys().hasOnly(['schemaVersion
         e==['A0','A1','A2','A3','A4','A5','A6','A7','A8','A9','A10'].toSet() &&
         o.addonCounts.keys().toSet()==e &&
         f.toSet().size()==f.size() && o.addonKeys.values().hasOnly(k.addonIds.concat(['_'])) &&
-        o.lines is list && _d(i,1,6) && _cz(o) && o.lineWitnessCount == int((i + 1) / 2) &&
+        o.lines is list && _d(i,1,6) && _cA(o) && o.lineWitnessCount == int((i + 1) / 2) &&
         l.hasOnly(b.get('materialIds',k.summaryMaterials)) && l.toSet().size() == d && _d(j,0,16) && j == d &&
         h.hasOnly(l) && h.size() == d &&
         d + o.lineWitnessCount + 2 <= 20 && c.active && o.platformRevision == c.revision &&
@@ -1022,40 +1022,40 @@ return b.status=='active' && b.generation==g && o.keys().hasOnly(['schemaVersion
         o.gpCents == int((o.subtotalCents * c.gpBasisPoints + 5000) / 10000) && o.netCents == o.subtotalCents - o.gpCents &&
         o.packagingCostCents == _aw(o,false) &&
         o.grossProfitCents == o.netCents - o.ingredientCostCents - o.packagingCostCents &&
-        _cC(o,k) && o.proofMode=='prepared' &&
+        _cD(o,k) && o.proofMode=='prepared' &&
         (d>=14 ? (_j(g,o,7) && _j(g,o,8) && _j(g,o,9) && _j(g,o,10) && _j(g,o,11) && _j(g,o,12) && _j(g,o,13) && (d==14 || _j(g,o,14))) : ((7>=d || _j(g,o,7)) && (8>=d || _j(g,o,8)) && (9>=d || _j(g,o,9)) && (10>=d || _j(g,o,10)) && (11>=d || _j(g,o,11)) && (12>=d || _j(g,o,12)) && (13>=d || _j(g,o,13)) && (14>=d || _j(g,o,14)))) &&
         b.lastOpId == a && b.lastOpKind == 'sale_set' && b.revision == o.shopRevision;
     }
-function _cB(g,a) {
+function _cC(g,a) {
       let n=_c();
       let o=getAfter(_f(g,n.cancelOpId)).data;
       return _e(g) && _a().status=='committed' && n.status=='cancelled' &&
         n.diff(_a()).affectedKeys().hasOnly(['status','cancelOpId','cancelledAt']) && n.cancelledAt==request.time &&
         o.kind=='cancel' && o.orderId==a && o.uid==_b();
     }
-function _cC(o,c) {
+function _cD(o,c) {
   return o.materialIds.size()>=4 ||
    o.billOperands.diff({'lineMenuIds':o.lineMenuIds,'lineQtys':o.lineQtys,'addonKeys':o.addonKeys,'addonCounts':o.addonCounts}).affectedKeys().hasOnly(['packages','packageSnapshots']);
  }
 allow read: if _n() && (_m(g));
-   allow create: if _l() && (_cA(g,id,_c()));
-   allow update: if _l() && (_cB(g,id));
+   allow create: if _l() && (_cB(g,id,_c()));
+   allow update: if _l() && (_cC(g,id));
 }
 match /shops/greek-yogg/generations/{g}/materials/{id} {
 function _C(a,b) { return a < b ? a : b; }
-function _cD(a,b,c,d) {
-      return a.allocationIds.size()<2 ? _aP(a,b,c,d) : _aQ(a,b,c,d);
+function _cE(a,b,c,d) {
+      return a.allocationIds.size()<2 ? _aQ(a,b,c,d) : _aR(a,b,c,d);
     }
-function _aP(a,b,c,d) {
-      return a.allocationIds.size()==0 ? _cE(a,b,c) : _cF(a,b,c,d);
+function _aQ(a,b,c,d) {
+      return a.allocationIds.size()==0 ? _cF(a,b,c) : _cG(a,b,c,d);
     }
-function _cE(a,b,c) {
+function _cF(a,b,c) {
       return a.stock==0 && a.lotQty.values().hasOnly([0]) && a.slotIds==['_','_','_','_'] &&
         a.activeLotId=='' && a.zeroActiveIds==[] && c.lotTakes==[0,0,0,0] && c.take==0 &&
         b.stock==0 && b.lotQty==a.lotQty && b.activeLotId=='' && b.zeroActiveIds==[] &&
         b.lastStockInDay==a.lastStockInDay && b.expiryDay==a.expiryDay;
     }
-function _cF(a,b,c,d) {
+function _cG(a,b,c,d) {
       let e=a.allocationIds[0];
       let q=a.lotQty;
       let f=b.lotQty;
@@ -1071,7 +1071,7 @@ function _cF(a,b,c,d) {
         b.zeroActiveIds==(c.needed==0 ? a.zeroActiveIds : []) &&
         b.lastStockInDay==k.receiveDay && b.expiryDay==k.expiryDay;
     }
-function _aQ(a,b,c,d) {
+function _aR(a,b,c,d) {
       let f=a.slotIds;
       let q=a.lotQty;
       let g=b.lotQty;
@@ -1096,7 +1096,7 @@ function _aQ(a,b,c,d) {
         b.activeLotId == (i==0 ? a.activeLotId : k) && b.zeroActiveIds == (i==0 ? a.zeroActiveIds : []) &&
         b.lastStockInDay==l.receiveDay && b.expiryDay==l.expiryDay;
     }
-function _cG(g,a) {
+function _cH(g,a) {
       let b = _a();
       let c = _c();
       let o = getAfter(_r(g,c.lastOpId)).data;
@@ -1112,7 +1112,7 @@ let k=e.take;
 return (i is int && i>=0 && i<=15) && o.materialIds[i] == a && e.materialId == a &&
         !b.deleted && b.id == a &&
         e.keys().hasOnly(['materialId','revision','costRank','needed','take','shortage','ingredientCostBaht','packagingCostCents','lotIds','lotTakes']) &&
-        e.revision == b.revision && e.costRank == b.costRank && h == _dj(b,o,d.catalogRevision) &&
+        e.revision == b.revision && e.costRank == b.costRank && h == _dk(b,o,d.catalogRevision) &&
         (i<4 || i>=15 || _E(o,i,d.catalog)) &&
 
         e.lotIds == b.allocationIds && b.allocationIds.size() <= 4 && e.shortage == h - k && o.approvedShortages[a] == e.shortage &&
@@ -1120,36 +1120,36 @@ return (i is int && i>=0 && i<=15) && o.materialIds[i] == a && e.materialId == a
         e.packagingCostCents == (j == 'packaging' ? int(((k / 100.0) * b.unitCost) * 100.0 + 0.5) : 0) &&
         c.diff(b).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex','billPreparations']) &&
         c.revision == b.revision + 1 &&
-        _dl(o,i) && _dk(b,c,o.opId) && (b.allocationIds.size()<2 ? _aP(b,c,e,f) : _aQ(b,c,e,f)) && (i>=3 || _au(o,i*2));
+        _dm(o,i) && _dl(b,c,o.opId) && (b.allocationIds.size()<2 ? _aQ(b,c,e,f) : _aR(b,c,e,f)) && (i>=3 || _au(o,i*2));
     }
-function _cH(g,a) {
+function _cI(g,a) {
       let b = _a();
       let c = _c();
       let o = getAfter(_f(g,c.lastOpId)).data;
       return _e(g) && !b.deleted && b.id == a && o.uid == _b() && o.kind == 'stock_in' && o.materialId == a &&
         o.materialRevision == b.revision && c.revision == b.revision + 1 && c.lastOpIndex == 0 &&
         c.diff(b).affectedKeys().hasOnly(['stock','unitCost','packCostCents','lastStockInDay','expiryDay','lots','lotQty','zeroActiveIds','lotIds','allocationIds','slotIds','activeLotId','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        _d(c.stock,1,1000000000) && c.stock == b.stock + o.qtyQ && _s(c.unitCost,0,100000) && c.unitCost == _ag(_H(b.stock,b.unitCost,o.qtyQ,o.unitCost)) &&
+        _d(c.stock,1,1000000000) && c.stock == b.stock + o.qtyQ && _s(c.unitCost,0,100000) && c.unitCost == _ah(_H(b.stock,b.unitCost,o.qtyQ,o.unitCost)) &&
         c.packCostCents == o.packCostCents && c.lotQty.diff(b.lotQty).affectedKeys().hasOnly([o.lotId]) &&
-        c.lotQty[o.lotId] == b.lotQty.get(o.lotId,0)+o.qtyQ && c.zeroActiveIds == b.zeroActiveIds.removeAll([o.lotId]) && _cI(b,c,o);
+        c.lotQty[o.lotId] == b.lotQty.get(o.lotId,0)+o.qtyQ && c.zeroActiveIds == b.zeroActiveIds.removeAll([o.lotId]) && _cJ(b,c,o);
     }
-function _V(l,a,b) {
+function _W(l,a,b) {
       return a.qty == 0 || (a.isInUse && a.expiryDay >= b ? l.id == a.id :
         (l.isInUse && l.expiryDay >= b) || l.ordinal <= a.ordinal);
     }
-function _cI(b,c,o) {
+function _cJ(b,c,o) {
       let l = _x(c,o.dateLotId);
       let a = _av(c);
       let d = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
       return b.inventoryType == 'packaging' ? c.lastStockInDay == o.receiveDay && c.expiryDay == o.expiryDay :
         o.dateLotId in c.allocationIds && l.qty > 0 && c.lastStockInDay == l.receiveDay && c.expiryDay == l.expiryDay &&
-        _V(l,a[0],d) && _V(l,a[1],d) && _V(l,a[2],d) && _V(l,a[3],d);
+        _W(l,a[0],d) && _W(l,a[1],d) && _W(l,a[2],d) && _W(l,a[3],d);
     }
 function _G(a,b) { return a.activeLotId==b || b in a.zeroActiveIds; }
-function _W(a,b,c,d) {
+function _X(a,b,c,d) {
       return b.lotQty[c]==0 || (d ? !_G(a,c) || c==b.activeLotId : !_G(a,c) && b.lots[b.activeLotId].ordinal<=b.lots[c].ordinal);
     }
-function _aR(b) {
+function _aS(b) {
       let a=b.slotIds;
       let c=b.lots;
       let q=b.lotQty;
@@ -1159,13 +1159,13 @@ function _aR(b) {
         (q[a[2]]==0 || d<=c[a[2]].ordinal) &&
         (q[a[3]]==0 || d<=c[a[3]].ordinal);
     }
-function _aS(b,c,d) {
+function _aT(b,c,d) {
       let a=c.slotIds;
       return b.zeroActiveIds.size()==0 ? d ||
-        (b.activeLotId=='' || c.lotQty[b.activeLotId]==0) && _aR(c) :
-        _W(b,c,a[0],d) && _W(b,c,a[1],d) && _W(b,c,a[2],d) && _W(b,c,a[3],d);
+        (b.activeLotId=='' || c.lotQty[b.activeLotId]==0) && _aS(c) :
+        _X(b,c,a[0],d) && _X(b,c,a[1],d) && _X(b,c,a[2],d) && _X(b,c,a[3],d);
     }
-function _cJ(a,b,c) {
+function _cK(a,b,c) {
       let d=b.activeLotId!='' && _G(a,b.activeLotId);
       let e=c.lotIds.concat(['_','_','_','_']);
       let t=c.lotTakes;
@@ -1177,12 +1177,12 @@ function _cJ(a,b,c) {
         n.keys().toSet()==q.keys().toSet() && n.diff(q).affectedKeys().hasOnly(c.lotIds) &&
         n[e[0]]==q[e[0]]+t[0] && n[e[1]]==q[e[1]]+t[1] && n[e[2]]==q[e[2]]+t[2] && n[e[3]]==q[e[3]]+t[3] &&
         b.activeLotId in b.allocationIds && b.lotQty[b.activeLotId]>0 && _L(b) &&
-        _aS(a,b,d) &&
+        _aT(a,b,d) &&
         b.zeroActiveIds==(d ? a.zeroActiveIds.removeAll(f) : []) &&
         (d ? b.lastStockInDay==a.lastStockInDay && b.expiryDay==a.expiryDay :
           b.lastStockInDay==b.lots[b.activeLotId].receiveDay && b.expiryDay==b.lots[b.activeLotId].expiryDay);
     }
-function _cK(g,a) {
+function _cL(g,a) {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(g,n.lastOpId)).data;
@@ -1192,9 +1192,9 @@ function _cK(g,a) {
       return _e(g) && o.kind=='cancel' && o.uid==_b() && _d(i,0,15) && o.materialIds[i]==a && c.materialIds[i]==a &&
         o.sourceRevisions[i]==b.revision && n.revision==b.revision+1 &&
         n.diff(b).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        _d(n.stock,0,1000000000) && n.stock==b.stock+d.take && _cJ(b,n,d);
+        _d(n.stock,0,1000000000) && n.stock==b.stock+d.take && _cK(b,n,d);
     }
-function _cL(g,a) {
+function _cM(g,a) {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(g,n.lastOpId)).data;
@@ -1208,9 +1208,9 @@ function _cL(g,a) {
         _d(d.needed,1,1000000000) && d.needed==int((c.quantities[i] / 100.0)*(o.qtyQ / float(c.yieldQ))*100.0+0.5) &&
         d.shortage==0 && d.take==d.needed && d.packagingCostCents==0 && d.ingredientCostBaht==(d.needed / 100.0)*b.unitCost &&
         d.lotIds==b.allocationIds && n.diff(b).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        n.revision==b.revision+1 && _cD(b,n,d,e);
+        n.revision==b.revision+1 && _cE(b,n,d,e);
     }
-function _cM(g,a) {
+function _cN(g,a) {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(g,n.lastOpId)).data;
@@ -1222,7 +1222,7 @@ function _cM(g,a) {
         n.lotQty.diff(b.lotQty).affectedKeys().hasOnly([o.lotId]) && n.lotQty[o.lotId]==o.qtyQ &&
         n.lots.diff(b.lots).affectedKeys().hasOnly([o.lotId]);
     }
-function _cN(g,a) {
+function _cO(g,a) {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(g,n.lastOpId)).data;
@@ -1230,17 +1230,17 @@ function _cN(g,a) {
       return _e(g) && !b.deleted && b.id==a && o.kind=='switch_lot' && o.uid==_b() && o.materialId==a &&
         o.materialRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==0 && o.lotId in b.lotIds &&
         n.diff(b).affectedKeys().hasOnly(['activeLotId','zeroActiveIds','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        (b.lotQty[o.lotId]>0 ? n.activeLotId==o.lotId : b.stock==0 ? n.activeLotId=='' : n.activeLotId in b.lotIds && b.lotQty[n.activeLotId]>0 && _aR(n)) &&
+        (b.lotQty[o.lotId]>0 ? n.activeLotId==o.lotId : b.stock==0 ? n.activeLotId=='' : n.activeLotId in b.lotIds && b.lotQty[n.activeLotId]>0 && _aS(n)) &&
         n.zeroActiveIds==(b.lotQty[o.lotId]==0 ? [o.lotId] : []) &&
         n.lastStockInDay==c.receiveDay && n.expiryDay==c.expiryDay;
     }
-function _X(q,n,c) {
+function _Y(q,n,c) {
       let a=c.id;
       let b=c.to;
       return c.keys().hasOnly(['id','from','to']) && a!='_' &&
         c.from==q[a] && b is int && b>=0 && b<=1000000000 && n[a]==b;
     }
-function _aT(b,c) {
+function _aU(b,c) {
       let a=b.slotIds;
       let q=c.lotQty;
       let d=[q[a[0]]>0 ? a[0] : '_',q[a[1]]>0 ? a[1] : '_',q[a[2]]>0 ? a[2] : '_',q[a[3]]>0 ? a[3] : '_'].removeAll(['_']);
@@ -1248,7 +1248,7 @@ function _aT(b,c) {
       let f=(e=='' ? [] : [e]).concat(d.removeAll([e]));
       return c.zeroActiveIds==[] ? c.allocationIds==f && c.slotIds==f.concat(['_','_','_','_'])[0:4] : _L(c);
     }
-function _cO(a,b,c,d) {
+function _cP(a,b,c,d) {
       let e=b.slotIds;
       let z=b.zeroActiveIds;
       let q=b.lotQty;
@@ -1256,17 +1256,17 @@ function _cO(a,b,c,d) {
       let g=b.allocationIds;
       // Surviving zero flags are frozen source zeros: changed IDs are removed by countState.
       return z==[] && d.hasOnly(a.allocationIds.concat(['_'])) ?
-        _aT(a,b) && (c=='waste' || (b.stock==0 ? f=='' : f!='' && q[f]>0)) :
-        c=='waste' ? _aT(a,b) : z.hasOnly(g) &&
+        _aU(a,b) && (c=='waste' || (b.stock==0 ? f=='' : f!='' && q[f]>0)) :
+        c=='waste' ? _aU(a,b) : z.hasOnly(g) &&
         (g.size()==0 ? b.stock==0 && e==['_','_','_','_'] && z==[] && f=='' :
           _L(b) && (b.stock==0 ? f=='' : f in g && q[f]>0));
     }
-function _Y(a,q,b,c,d) {
+function _Z(a,q,b,c,d) {
       let e=a[c];
       return q[c]==0 || (b.expiryDay>=d ? e.expiryDay<d || b.ordinal<=e.ordinal :
         e.expiryDay<d && b.ordinal<=e.ordinal);
     }
-function _cP(b,d,e) {
+function _cQ(b,d,e) {
       let c=e.counts[0];
       let f=c.from;
       let g=c.to;
@@ -1281,15 +1281,15 @@ function _cP(b,d,e) {
         e.lossCents==int((((f-g) / 100.0)*l)*100.0+0.5) &&
         d.lastStockInDay==b.lastStockInDay && d.expiryDay==b.expiryDay &&
         (b.activeLotId!=c.id || g>0 ? h==b.activeLotId : d.stock==0 ? h=='' :
-          h!='' && q[h]>0 && _Y(j,q,k,a[0],i) && _Y(j,q,k,a[1],i) && _Y(j,q,k,a[2],i) && (a[3]=='_' || _Y(j,q,k,a[3],i)));
+          h!='' && q[h]>0 && _Z(j,q,k,a[0],i) && _Z(j,q,k,a[1],i) && _Z(j,q,k,a[2],i) && (a[3]=='_' || _Z(j,q,k,a[3],i)));
     }
-function _cQ(a,b) {
+function _cR(a,b) {
       let c=b.activeLotId=='' ? a.lotIds[0] : b.activeLotId;
       let l=a.lots[c];
       return b.lastStockInDay==(l.receiveDay==999999 ? a.lastStockInDay : l.receiveDay) &&
         b.expiryDay==(l.expiryDay==999999 ? a.expiryDay : l.expiryDay);
     }
-function _cR(a,b,d) {
+function _cS(a,b,d) {
       let e={'id':'_','from':0,'to':0};
       let f=d.counts;
       let g=f.size();
@@ -1298,19 +1298,19 @@ function _cR(a,b,d) {
       let n=b.lotQty;
       let q=a.lotQty;
       return f is list && g>=1 && g<=4 && h[0:g].toSet().size()==g &&
-        _X(q,n,c[0]) && (g<2 || _X(q,n,c[1])) &&
-        (g<3 || _X(q,n,c[2])) && (g<4 || _X(q,n,c[3])) &&
+        _Y(q,n,c[0]) && (g<2 || _Y(q,n,c[1])) &&
+        (g<3 || _Y(q,n,c[2])) && (g<4 || _Y(q,n,c[3])) &&
         n._==0 && n.diff(q).affectedKeys().hasOnly(h) &&
         _d(b.stock,0,1000000000) && b.stock==a.stock+c[0].to-c[0].from+c[1].to-c[1].from+c[2].to-c[2].from+c[3].to-c[3].from &&
         b.zeroActiveIds==a.zeroActiveIds.removeAll(h) && d.activeLotId==b.activeLotId && d.zeroActiveIds==b.zeroActiveIds &&
-        _cO(a,b,d.mode,h) && (d.mode=='waste' ? _cP(a,b,d) :
-          d.mode=='count' && d.requestedQ==0 && d.lossCents==0 && _cQ(a,b) &&
+        _cP(a,b,d.mode,h) && (d.mode=='waste' ? _cQ(a,b,d) :
+          d.mode=='count' && d.requestedQ==0 && d.lossCents==0 && _cR(a,b) &&
           (b.stock==0 || (a.zeroActiveIds.size()==0 ?
             a.activeLotId=='' || n[a.activeLotId]==0 || b.activeLotId==a.activeLotId :
             a.activeLotId=='' && a.zeroActiveIds.size()==1 && _G(a,b.activeLotId) ||
-            _aS(a,b,_G(a,b.activeLotId)))));
+            _aT(a,b,_G(a,b.activeLotId)))));
     }
-function _cS(g,a) {
+function _cT(g,a) {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(g,n.lastOpId)).data;
@@ -1321,18 +1321,18 @@ function _cS(g,a) {
         c.keys().hasOnly(['materialId','revision','mode','counts','requestedQ','reason','note','lossCents','activeLotId','zeroActiveIds']) &&
         c.reason is string && c.reason.size()<=200 && c.note is string && c.note.size()<=1000 &&
         n.diff(b).affectedKeys().hasOnly(['stock','lotQty','activeLotId','zeroActiveIds','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        _cR(b,n,c);
+        _cS(b,n,c);
     }
-function _cT(r,a,b) {
+function _cU(r,a,b) {
       return r=={} || r.keys().hasAll(['inputIds','quantities','yieldQ']) && r.keys().hasOnly(['inputIds','quantities','yieldQ']) &&
         r.inputIds is list && _d(r.inputIds.size(),1,2) && r.inputIds.toSet().size()==r.inputIds.size() && r.inputIds.hasOnly(b) && !(a in r.inputIds) &&
         r.quantities is list && r.quantities.size()==r.inputIds.size() && _d(r.quantities[0],1,1000000000) &&
         (r.inputIds.size()==1 || _d(r.quantities[1],1,1000000000)) && _d(r.yieldQ,1,1000000000);
     }
-function _aU(g,r,i) {
+function _aV(g,r,i) {
       return i>=r.get('inputIds',[]).size() || !getAfter(_h(g,r.inputIds[i])).data.deleted && getAfter(_h(g,r.inputIds[i])).data.inventoryType=='ingredient';
     }
-function _cU(g,a) {
+function _cV(g,a) {
       let b=_a();
       let n=_c();
       let c=_g();
@@ -1340,14 +1340,14 @@ function _cU(g,a) {
       return _e(g) && b.id==a && a in c.materialIds && !b.deleted && b.inventoryType=='ingredient' &&
         o.kind=='production_recipe' && o.uid==_b() && o.materialId==a && o.materialRevision==b.revision &&
         n.revision==b.revision+1 && n.lastOpIndex==0 && n.diff(b).affectedKeys().hasOnly(['productionRecipe','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        o.recipe!=b.get('productionRecipe',{}) && _cT(o.recipe,a,c.materialIds) &&
+        o.recipe!=b.get('productionRecipe',{}) && _cU(o.recipe,a,c.materialIds) &&
         (o.recipe=={} ? !n.keys().hasAny(['productionRecipe']) : n.productionRecipe==o.recipe) &&
-        _aU(g,o.recipe,0) && _aU(g,o.recipe,1);
+        _aV(g,o.recipe,0) && _aV(g,o.recipe,1);
     }
-function _cV(n,c,a,b) {
+function _cW(n,c,a,b) {
       return n.keys().hasOnly(['id','revision','costRank','deleted','inventoryType','name','emoji','unit','minAlertQ','unitCost','packSize','packCostCents','stock','lots','lotIds','lotQty','zeroActiveIds','allocationIds','slotIds','activeLotId','lastStockInDay','expiryDay','recipeIndex','lastOpId','lastOpKind','lastOpIndex']) &&
         a.matches('^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$') && n.id==a && n.revision==1 && n.costRank==b && n.deleted==false &&
-        n.inventoryType in ['ingredient','packaging'] && _aV({'name':n.name,'emoji':n.emoji,'minAlertQ':n.minAlertQ}) &&
+        n.inventoryType in ['ingredient','packaging'] && _aW({'name':n.name,'emoji':n.emoji,'minAlertQ':n.minAlertQ}) &&
         n.unit is string && n.unit.size()>0 && n.unit.size()<=32 && _d(n.packSize,1,10000000) &&
         n.stock==0 && n.unitCost==0 && n.packCostCents==0 && n.lotIds==[] && n.lotQty=={'_':0} && n.zeroActiveIds==[] &&
         n.allocationIds==[] && n.slotIds==['_','_','_','_'] && n.activeLotId=='' && n.lastStockInDay==999999 && n.expiryDay==999999 &&
@@ -1355,16 +1355,16 @@ function _cV(n,c,a,b) {
         n.recipeIndex.keys().hasOnly(['catalogRevision','quantities','menus','addons']) && n.recipeIndex.catalogRevision==c &&
         n.recipeIndex.quantities==[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] && n.recipeIndex.menus.values().hasOnly([0]) && n.recipeIndex.addons.values().hasOnly([0]);
     }
-function _cW(g,a) {
+function _cX(g,a) {
       let n=_c();
       let b=get(_k()).data;
       let o=getAfter(_f(g,n.lastOpId)).data;
       return _e(g) && o.kind=='material_create' && o.uid==_b() && o.materialId==a && n.lastOpIndex==0 &&
-        n==o.materialSnapshot && _cV(n,b.catalogRevision,a,b.get('nextMaterialCostRank',b.materialIds.size())) &&
+        n==o.materialSnapshot && _cW(n,b.catalogRevision,a,b.get('nextMaterialCostRank',b.materialIds.size())) &&
         n.recipeIndex.menus.keys().toSet()==b.catalog.menuIds.concat(['_']).toSet() &&
         n.recipeIndex.addons.keys().toSet()==b.catalog.addonIds.concat(['_']).toSet();
     }
-function _cX(g,a) {
+function _cY(g,a) {
       let b=_a();
       let n=_c();
       let c=get(_k()).data;
@@ -1375,35 +1375,35 @@ function _cX(g,a) {
         n.revision==b.revision+1 && n.lastOpIndex==0 && n.deleted is bool && n.deleted!=b.deleted && n.deleted==o.deleted &&
         n.diff(b).affectedKeys().hasOnly(['deleted','revision','lastOpId','lastOpKind','lastOpIndex']);
     }
-function _aV(d) {
+function _aW(d) {
       return d.keys().hasAll(['name','emoji','minAlertQ']) && d.keys().hasOnly(['name','emoji','minAlertQ']) &&
         d.name is string && d.name.size()>0 && d.name.size()<=160 &&
         d.emoji is string && d.emoji.size()<=32 && _d(d.minAlertQ,0,1000000000);
     }
-function _cY(g,a) {
+function _cZ(g,a) {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(g,n.lastOpId)).data;
       return _e(g) && !b.deleted && b.id==a && o.kind=='material_metadata' && o.uid==_b() &&
         o.materialId==a && o.materialRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==0 &&
         n.diff(b).affectedKeys().hasOnly(['name','emoji','minAlertQ','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        _aV(o.metadata) && n.name==o.metadata.name && n.emoji==o.metadata.emoji && n.minAlertQ==o.metadata.minAlertQ;
+        _aW(o.metadata) && n.name==o.metadata.name && n.emoji==o.metadata.emoji && n.minAlertQ==o.metadata.minAlertQ;
     }
-function _cZ(d) {
+function _da(d) {
       return d.keys().hasAll(['unit','packSize','unitCost','packCostCents']) && d.keys().hasOnly(['unit','packSize','unitCost','packCostCents']) &&
         d.unit is string && d.unit.size()>0 && d.unit.size()<=32 && d.unit.matches('[\\s\\S]*\\S[\\s\\S]*') && _d(d.packSize,1,10000000) &&
         _s(d.unitCost,0,100000) && _d(d.packCostCents,0,1000000000);
     }
-function _da(g,a) {
+function _db(g,a) {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(g,n.lastOpId)).data;
       return _e(g) && !b.deleted && b.id==a && a in _g().materialIds && o.kind=='material_measure' && o.uid==_b() &&
         o.materialId==a && o.materialRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==0 &&
         n.diff(b).affectedKeys().hasOnly(['unit','packSize','unitCost','packCostCents','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        _cZ(o.measure) && n.unit==o.measure.unit && n.packSize==o.measure.packSize && n.unitCost==o.measure.unitCost && n.packCostCents==o.measure.packCostCents;
+        _da(o.measure) && n.unit==o.measure.unit && n.packSize==o.measure.packSize && n.unitCost==o.measure.unitCost && n.packCostCents==o.measure.packCostCents;
     }
-function _db(g,a) {
+function _dc(g,a) {
   let b=_a();
   let n=_c();
   let c=_g();
@@ -1413,7 +1413,7 @@ function _db(g,a) {
    o.inventoryType in ['ingredient','packaging'] && o.inventoryType!=b.inventoryType && n.inventoryType==o.inventoryType &&
    n.revision==b.revision+1 && n.lastOpIndex==0 && n.diff(b).affectedKeys().hasOnly(['inventoryType','revision','lastOpId','lastOpKind','lastOpIndex']);
  }
-function _dc(g,a) {
+function _dd(g,a) {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(g,n.lastOpId)).data;
@@ -1422,12 +1422,12 @@ function _dc(g,a) {
         o.materialId==a && o.materialRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==0 &&
         c.lastOpId==o.opId && c.lastOpKind=='package_stock_in' && c.revision==o.shopRevision &&
         n.diff(b).affectedKeys().hasOnly(['stock','unitCost','packCostCents','lastStockInDay','expiryDay','lots','lotQty','zeroActiveIds','allocationIds','slotIds','activeLotId','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        _d(n.stock,1,1000000000) && n.stock==b.stock+o.qtyQ && n.unitCost==_ag(_ay(b.stock,b.unitCost,o.qtyQ,o.unitCost)) &&
+        _d(n.stock,1,1000000000) && n.stock==b.stock+o.qtyQ && n.unitCost==_ah(_ay(b.stock,b.unitCost,o.qtyQ,o.unitCost)) &&
         _s(n.unitCost,0,100000) && n.packCostCents==o.packCostCents && n.lastStockInDay==o.receiveDay && n.expiryDay==999999 &&
         n.activeLotId==o.lotId && n.zeroActiveIds==[] &&
         n.lotQty.diff(b.lotQty).affectedKeys().hasOnly([o.lotId]) && n.lotQty[o.lotId]==b.lotQty[o.lotId]+o.qtyQ;
     }
-function _dd(g,a) {
+function _de(g,a) {
       let b=_a();
       let n=_c();
       let c=_g();
@@ -1441,18 +1441,18 @@ function _dd(g,a) {
         (!d.keys().hasAny(['category']) || n.category==d.category) && (!d.keys().hasAny(['packUnit']) || n.packUnit==d.packUnit) &&
         (!d.keys().hasAny(['shelfLifeDays']) || n.shelfLifeDays==d.shelfLifeDays) && (!d.keys().hasAny(['isSubIngredient']) || n.isSubIngredient==d.isSubIngredient);
     }
-function _de(g,a) {
+function _df(g,a) {
   let b=get(_k()).data;
   let n=_g();
   let o=getAfter(_f(g,n.lastOpId)).data;
-  return o.materialId==a && _ai(g,n.lastOpId,o,b,n,_a());
+  return o.materialId==a && _aj(g,n.lastOpId,o,b,n,_a());
  }
 function _D(c,m,a,b) {
   let d=c.menus.get(a,{});
   return b==0 ? 0 : (d.keys().hasAny(['rawRecipe']) && !d.hasPackage && m.inventoryType=='packaging' ? 0 : d.get('rawRecipe',d.get('recipe',{})).get(m.id,0))*b;
  }
 function _q(c,m,a,b) { return b==0 ? 0 : c.addons[a].recipe.get(m.id,0)*b; }
-function _df(m,o,c) {
+function _dg(m,o,c) {
   let b=o.lineMenuIds;
   let q=o.lineQtys;
   let a=o.addonKeys;
@@ -1463,7 +1463,7 @@ function _df(m,o,c) {
    _q(c,m,a.A4,n.A4)+_q(c,m,a.A5,n.A5)+_q(c,m,a.A6,n.A6)+_q(c,m,a.A7,n.A7)+
    _q(c,m,a.A8,n.A8)+_q(c,m,a.A9,n.A9)+_q(c,m,a.A10,n.A10);
  }
-function _dg(g,a) {
+function _dh(g,a) {
   let b=_a();
   let n=_c();
   let c=n.billPreparations;
@@ -1471,7 +1471,7 @@ function _dg(g,a) {
   let f=c.diff(b.get('billPreparations',{})).affectedKeys();
   let d=c[e];
   let h=get(_k()).data;
-  let i=get(_af(g,e,'0')).data;
+  let i=get(_ag(g,e,'0')).data;
   return h.status=='active' && h.generation==g && a==b.id && a in h.get('materialIds',h.catalog.summaryMaterials) && !b.deleted &&
    n.diff(b).affectedKeys().hasOnly(['billPreparations','billPreparationId']) && c is map && c.size()<=64 && f.hasOnly([e]) &&
    d.keys().hasOnly(['uid','catalogRevision','needed']) &&
@@ -1480,53 +1480,53 @@ function _dg(g,a) {
    // Operand structure is validated by the final immutable receipt; consumption
    // requires exact equality. Here only this mathematical result is certified.
 
-   _d(d.needed,0,1000000000) && _dp(b,i.billOperands,h.catalog,d.needed);
+   _d(d.needed,0,1000000000) && _dq(b,i.billOperands,h.catalog,d.needed);
  }
-function _dh(g,a) {
+function _di(g,a) {
   let b=_a();
   let n=_c();
   let c=n.billPreparationId;
   let d=b.billPreparations;
   let e=n.get('billPreparations',{});
-  return _m(g) && b.id==a && (d[c].uid==_b() || _di(g,c,d[c].uid)) &&
+  return _m(g) && b.id==a && (d[c].uid==_b() || _dj(g,c,d[c].uid)) &&
    n.diff(b).affectedKeys().hasOnly(['billPreparations','billPreparationId']) &&
    e.keys().toSet()==d.keys().removeAll([c]).toSet() && e.diff(d).affectedKeys().hasOnly([c]);
  }
-function _di(g,a,b) {
+function _dj(g,a,b) {
   let m=get(_z(g,a,'sale_set')).data;
   return m.uid==b && m.kind=='sale_set' && m.opId==a && m.state in ['expired','abandoned'] && request.time>=m.createdAt+duration.value(7,'d');
  }
-function _dj(m,o,c) {
+function _dk(m,o,c) {
   let d=m.billPreparations[o.opId];
   return d.uid==o.uid && d.catalogRevision==c ? d.needed : -1;
  }
-function _dk(b,n,a) {
+function _dl(b,n,a) {
   let c=b.billPreparations;
   let d=n.get('billPreparations',{});
   return d.keys().toSet()==c.keys().removeAll([a]).toSet() && d.diff(c).affectedKeys().hasOnly([a]);
  }
-function _dl(o,i) { return i>=4 || _dm(o,['lineMenuIds','lineQtys','addonKeys','addonCounts'][i]); }
-function _dm(o,a) { return o.billOperands[a]==o[a]; }
-function _dn(m,o) {
+function _dm(o,i) { return i>=4 || _dn(o,['lineMenuIds','lineQtys','addonKeys','addonCounts'][i]); }
+function _dn(o,a) { return o.billOperands[a]==o[a]; }
+function _do(m,o) {
   let p=o.get('packages',{});
-  return !(m.id in p) || _do(m,p[m.id]);
+  return !(m.id in p) || _dp(m,p[m.id]);
  }
-function _do(m,p) {
+function _dp(m,p) {
   return m.inventoryType=='packaging' && p is map && p.keys().hasOnly(['quantity','reason','note']) &&
    _d(p.quantity,0,1000000000) && p.reason in ['separate_bag','customer_declined','combined_packaging','package_unavailable','repacked','other'] &&
    p.note is string && p.note.size()<=1000 && (p.reason!='other' || p.note.size()>0);
  }
-function _dp(m,o,c,a) {
-  let b=_df(m,o,c);
+function _dq(m,o,c,a) {
+  let b=_dg(m,o,c);
   let d=o.get('packageSnapshots',{});
   let p=d.get(m.id,{});
-  return _dn(m,o) && a==(m.id in o.get('packages',{}) ? o.packages[m.id].quantity : b) &&
+  return _do(m,o) && a==(m.id in o.get('packages',{}) ? o.packages[m.id].quantity : b) &&
    (!(m.id in d) || m.inventoryType=='packaging' && p.keys().hasOnly(['name','unit','unitCost','baselineQuantity']) && p.name==m.get('name',m.id) && p.unit==m.get('unit','') && p.unitCost==m.unitCost && p.baselineQuantity==b);
  }
 allow read: if _n() && (_m(g));
-   function _dq() { let a=_c().get('lastOpKind',''); let b=_c();
-return (b.revision==_a().revision && (_dg(g,id) || _dh(g,id))) || (a=='sale_set' && _cG(g,id)) || (a=='stock_in' && _cH(g,id)) || (a=='package_stock_in' && _dc(g,id)) || (a=='cancel' && _cK(g,id)) || (a=='produce' && b.lastOpIndex<2 && _cL(g,id)) || (a=='produce' && b.lastOpIndex==2 && _cM(g,id)) || (a=='stock_count' && _cS(g,id)) || (a=='switch_lot' && _cN(g,id)) || (a=='material_archive' && _cX(g,id)) || (a=='material_metadata' && _cY(g,id)) || (a=='material_measure' && _da(g,id)) || (a=='material_details' && _dd(g,id)) || (a=='material_type' && _db(g,id)) || (a=='production_recipe' && _cU(g,id)); }
-allow update: if _l() && (_dq());
+   function _dr() { let a=_c().get('lastOpKind',''); let b=_c();
+return (b.revision==_a().revision && (_dh(g,id) || _di(g,id))) || (a=='sale_set' && _cH(g,id)) || (a=='stock_in' && _cI(g,id)) || (a=='package_stock_in' && _dd(g,id)) || (a=='cancel' && _cL(g,id)) || (a=='produce' && b.lastOpIndex<2 && _cM(g,id)) || (a=='produce' && b.lastOpIndex==2 && _cN(g,id)) || (a=='stock_count' && _cT(g,id)) || (a=='switch_lot' && _cO(g,id)) || (a=='material_archive' && _cY(g,id)) || (a=='material_metadata' && _cZ(g,id)) || (a=='material_measure' && _db(g,id)) || (a=='material_details' && _de(g,id)) || (a=='material_type' && _dc(g,id)) || (a=='production_recipe' && _cV(g,id)); }
+allow update: if _l() && (_dr());
 
 
 
@@ -1535,17 +1535,17 @@ allow update: if _l() && (_dq());
 
 
 
-allow create: if _l() && (_c().lastOpKind=='material_create' && _cW(g,id));
+allow create: if _l() && (_c().lastOpKind=='material_create' && _cX(g,id));
 
 
 
 
 
 
-   allow delete: if _l() && (_de(g,id));
+   allow delete: if _l() && (_df(g,id));
 }
 match /shops/greek-yogg/generations/{g}/display/{id} {
-function _dr(g,a) {
+function _ds(g,a) {
   let c=_g();
   let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(c.lastOpId)).data;
   let d=_aA(o);
@@ -1557,14 +1557,34 @@ function _dr(g,a) {
    n.diff(b).affectedKeys().hasOnly([d]) && n[d].keys().toSet()==e.keys().concat([o.entityId]).toSet() &&
    n[d].diff(e).affectedKeys().hasOnly([o.entityId]) && n[d][o.entityId]==o.display && _aB(o.display);
  }
-allow read: if _n() && (_m(g)); allow update: if _l() && (_dr(g,id));
+allow read: if _n() && (_m(g)); allow update: if _l() && (_ds(g,id));
+}
+match /shops/greek-yogg/generations/{g}/catalogImages/{id} {
+function _aX(g) {
+ let a=get(/databases/$(d0)/documents/shops/greek-yogg).data;
+ return a.status=='active' && a.generation==g && _M(a) && _aF(a);
+}
+function _dt(g,a) {
+ let n=_c();
+ let b=get(/databases/$(d0)/documents/shops/greek-yogg).data;
+ return _aX(g) && n.keys().hasAll(['kind','entityId','dataURL','revision','updatedAt','updatedBy']) &&
+  n.keys().hasOnly(['kind','entityId','dataURL','revision','updatedAt','updatedBy']) &&
+  n.kind in ['menus','materials'] && n.entityId is string && n.entityId.size()>0 && n.entityId.size()<=160 &&
+  a==n.kind+'_'+n.entityId && n.dataURL is string && n.dataURL.size()<=204823 &&
+  (n.dataURL=='' || n.dataURL.matches('^data:image/jpeg;base64,/9j/[A-Za-z0-9+/]*={0,2}$')) &&
+  n.revision is int && n.revision>0 && n.revision<=9007199254740991 &&
+  n.revision==(exists(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/catalogImages/$(a)) ? _a().revision+1 : 1) &&
+  n.updatedBy==_b() && n.updatedAt==request.time &&
+  (n.kind=='menus' ? n.entityId in b.catalog.menus : exists(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materials/$(n.entityId)));
+}
+allow read: if _n() && (_aX(g)); allow create,update: if _l() && (_dt(g,id));
 }
 match /shops/greek-yogg/generations/{g}/legacyRecords/{id} {
 
 allow read: if _n() && (_m(g));
 }
 match /shops/greek-yogg {
-function _ds() {
+function _du() {
       let a = _c();
       let o = getAfter(_r(_a().generation,a.lastOpId)).data;
       let b=_a().generation;
@@ -1575,13 +1595,13 @@ return c.status == 'active' && a.diff(c).affectedKeys().hasOnly(['returnMaterial
         o.ingredientCostCents == int(_aw(o,true) * 100.0 + 0.5) &&
         (d.size()>=7 ? (_j(b,o,0) && _j(b,o,1) && _j(b,o,2) && _j(b,o,3) &&
         _j(b,o,4) && _j(b,o,5) && _j(b,o,6)) : ((0>=d.size() || _j(b,o,0)) && (1>=d.size() || _j(b,o,1)) && (2>=d.size() || _j(b,o,2)) && (3>=d.size() || _j(b,o,3)) &&
-        (4>=d.size() || _j(b,o,4)) && (5>=d.size() || _j(b,o,5)) && (6>=d.size() || _j(b,o,6)))) &&  (d.size()<=15 || (d.size()>=16 ? (_j(b,o,15)) : ((15>=d.size() || _j(b,o,15))))) && _dO(b,o,c.catalogRevision);
+        (4>=d.size() || _j(b,o,4)) && (5>=d.size() || _j(b,o,5)) && (6>=d.size() || _j(b,o,6)))) &&  (d.size()<=15 || (d.size()>=16 ? (_j(b,o,15)) : ((15>=d.size() || _j(b,o,15))))) && _dQ(b,o,c.catalogRevision);
     }
 function _ar(a,b) {
       return a.isInUse != b.isInUse ? a.isInUse : a.expiryDay != b.expiryDay ? a.expiryDay < b.expiryDay :
         a.receiveDay != b.receiveDay ? a.receiveDay < b.receiveDay : a.ordinal < b.ordinal;
     }
-function _Z(m,l,i) {
+function _aa(m,l,i) {
       return i >= m.allocationIds.size() ? l.id == '_' : l.id == m.allocationIds[i] && (l.qty > 0 || l.isInUse) &&
         (l.qty == 0 || l.isInUse == (l.id == m.activeLotId));
     }
@@ -1589,23 +1609,23 @@ function _as(m) {
       let a = _av(m);
       return m.allocationIds is list && _d(m.allocationIds.size(),1,4) && m.allocationIds.toSet().size() == m.allocationIds.size() &&
         m.allocationIds.hasOnly(m.lotIds) && m.slotIds is list && m.slotIds.size() == 4 && m.slotIds[0:m.allocationIds.size()] == m.allocationIds &&
-        _Z(m,a[0],0) && _Z(m,a[1],1) && _Z(m,a[2],2) && _Z(m,a[3],3) &&
+        _aa(m,a[0],0) && _aa(m,a[1],1) && _aa(m,a[2],2) && _aa(m,a[3],3) &&
         m.stock == a[0].qty + a[1].qty + a[2].qty + a[3].qty &&
         (m.allocationIds.size() < 2 || _ar(a[0],a[1])) && (m.allocationIds.size() < 3 || _ar(a[1],a[2])) &&
         (m.allocationIds.size() < 4 || _ar(a[2],a[3]));
     }
-function _dt() {
+function _dv() {
       let a = _c();
       let o = getAfter(_f(_a().generation,a.lastOpId)).data;
       let b=_a();
 return b.status == 'active' && a.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
         a.revision == b.revision + 1 && o.kind == 'stock_in' && o.opId == a.lastOpId && o.uid == _b() && o.shopRevision == a.revision && _as(getAfter(_h(b.generation,o.materialId)).data);
     }
-function _aa(c,a,b,i) {
+function _ab(c,a,b,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];
       return i>=c.platformIds.size() || c.addonPrices[p].keys().toSet()==a.addonPrices[p].keys().toSet() && c.addonPrices[p].diff(a.addonPrices[p]).affectedKeys().hasOnly([b]);
     }
-function _du(c,a,o) {
+function _dw(c,a,o) {
    let b=c.get('counterIds',[]);
    let d=c.addons;
 return o.collection=='addons' && c.keys().toSet()==a.keys().concat(['recipeRegistryIds']).toSet() && o.entityId!='_' && o.entityId in c.addonIds &&
@@ -1613,9 +1633,9 @@ return o.collection=='addons' && c.keys().toSet()==a.keys().concat(['recipeRegis
     o.entitySnapshot==d[o.entityId] && c.diff(a).affectedKeys().hasOnly(['addons','addonPrices','menus','recipeRegistryIds']) &&
     d.keys().toSet()==a.addons.keys().toSet() && d.diff(a.addons).affectedKeys().hasOnly([o.entityId]) &&
     c.menus.keys().toSet()==a.menus.keys().toSet() && c.addonPrices.keys().toSet()==a.addonPrices.keys().toSet() &&
-    _aa(c,a,o.entityId,0) && _aa(c,a,o.entityId,1) && _aa(c,a,o.entityId,2) && _aa(c,a,o.entityId,3);
+    _ab(c,a,o.entityId,0) && _ab(c,a,o.entityId,1) && _ab(c,a,o.entityId,2) && _ab(c,a,o.entityId,3);
   }
-function _dv() {
+function _dx() {
       let n=_c();
       let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(_a().generation)/operations/$(n.lastOpId)).data;
       let a=n.catalog;
@@ -1624,15 +1644,15 @@ return b.status=='active' &&
         n.diff(b).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
         n.revision==b.revision+1 && n.catalogRevision==b.catalogRevision+1 &&
         o.kind=='catalog' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision && o.materialIds==a.summaryMaterials &&
-        _du(a,b.catalog,o) && a.recipeRegistryIds==b.get('materialIds',b.catalog.summaryMaterials) && _ad(b.generation,n.lastOpId,o);
+        _dw(a,b.catalog,o) && a.recipeRegistryIds==b.get('materialIds',b.catalog.summaryMaterials) && _ae(b.generation,n.lastOpId,o);
     }
-function _dw(c,d,e,f) {
+function _dy(c,d,e,f) {
       let a=f ? [] : _y(d.menus[e]);
       let b=_y(c.menus[e]);
       return (b.size()==0 || b[0] in a || _J(c,d,e,b[0],a,b)) &&
         (b.size()<2 || b[1] in a || _J(c,d,e,b[1],a,b));
     }
-function _dx() {
+function _dz() {
       let n=_c();
       let a=_a();
       let c=n.catalog;
@@ -1644,19 +1664,19 @@ let f=_a();
 return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
         n.revision==a.revision+1 && n.catalogRevision==a.catalogRevision+1 && o.sourceCatalogRevision==a.catalogRevision &&
         o.opId==n.lastOpId && o.kind=='menu' && o.uid==_b() && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
-        c.diff(b).affectedKeys().hasOnly(['recipeRegistryIds','menus','menuIds','groups']) && e.diff(b.menus).affectedKeys().hasOnly([d]) && _dw(c,b,d,o.create) &&
+        c.diff(b).affectedKeys().hasOnly(['recipeRegistryIds','menus','menuIds','groups']) && e.diff(b.menus).affectedKeys().hasOnly([d]) && _dy(c,b,d,o.create) &&
         o.create==!(d in b.menus) && c.menuIds.size()<=64 &&
         (o.create || !b.menus[d].keys().hasAny(['rawRecipe']) || e[d].keys().hasAll(['rawRecipe','hasPackage'])) &&
         c.menuIds==(o.create ? b.menuIds.concat([d]) : b.menuIds) &&
         e.keys().toSet()==(o.create ? b.menus.keys().concat([d]).toSet() : b.menus.keys().toSet()) &&
-        o.entitySnapshot==e[d] && e[d].revision==(o.create ? 1 : b.menus[d].revision+1) && n.catalog.recipeRegistryIds==f.get('materialIds',f.catalog.summaryMaterials) && _ad(f.generation,n.lastOpId,o);
+        o.entitySnapshot==e[d] && e[d].revision==(o.create ? 1 : b.menus[d].revision+1) && n.catalog.recipeRegistryIds==f.get('materialIds',f.catalog.summaryMaterials) && _ae(f.generation,n.lastOpId,o);
     }
-function _ab(c,a,b,i) {
+function _ac(c,a,b,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];
       return i>=c.platformIds.size() || c.addonPrices[p].keys().toSet()==a.addonPrices[p].keys().concat([b]).toSet() &&
         c.addonPrices[p].diff(a.addonPrices[p]).affectedKeys().hasOnly([b]);
     }
-function _dy() {
+function _dA() {
       let n=_c();
       let a=_a();
       let c=n.catalog;
@@ -1674,9 +1694,9 @@ return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['catalog','catalo
         (!b.keys().hasAny(['counterIds']) ? !c.keys().hasAny(['counterIds']) : k>=15 ? c.counterIds==b.counterIds : b.counterIds[k]=='_' && c.counterIds==b.counterIds[0:k].concat([d]).concat(k==14 ? [] : b.counterIds[(k+1):15])) &&
         e.keys().toSet()==b.addons.keys().concat([d]).toSet() && e.diff(b.addons).affectedKeys().hasOnly([d]) && o.entitySnapshot==e[d] &&
         c.addonPrices.keys().toSet()==b.addonPrices.keys().toSet() &&
-        _ab(c,b,d,0) && _ab(c,b,d,1) && _ab(c,b,d,2) && _ab(c,b,d,3) && n.catalog.recipeRegistryIds==f.get('materialIds',f.catalog.summaryMaterials) && _ad(f.generation,n.lastOpId,o);
+        _ac(c,b,d,0) && _ac(c,b,d,1) && _ac(c,b,d,2) && _ac(c,b,d,3) && n.catalog.recipeRegistryIds==f.get('materialIds',f.catalog.summaryMaterials) && _ae(f.generation,n.lastOpId,o);
     }
-function _dz() {
+function _dB() {
       let n=_c();
       let o=getAfter(_f(_a().generation,n.lastOpId)).data;
       let a=_a().generation;
@@ -1686,7 +1706,7 @@ return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['revision','lastO
         _i(a,o,0) && _i(a,o,1) && _i(a,o,2) && _i(a,o,3) &&
         _i(a,o,4) && _i(a,o,5) && _i(a,o,6) && _i(a,o,7) && _i(a,o,8);
     }
-function _dA() {
+function _dC() {
       let n=_c();
       let o=getAfter(_f(_a().generation,n.lastOpId)).data;
       let a=getAfter(_h(_a().generation,o.outputId)).data;
@@ -1694,7 +1714,7 @@ function _dA() {
 return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
         n.revision==b.revision+1 && o.kind=='produce' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision && _as(a);
     }
-function _dB() {
+function _dD() {
       let n=_c();
       let o=getAfter(_f(_a().generation,n.lastOpId)).data;
       let m=getAfter(_h(_a().generation,o.materialId)).data;
@@ -1702,7 +1722,7 @@ function _dB() {
 return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
         n.revision==a.revision+1 && o.kind=='switch_lot' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision && _L(m);
     }
-function _dC() {
+function _dE() {
       let n=_c();
       let o=getAfter(_f(_a().generation,n.lastOpId)).data;
       let a=_a().generation;
@@ -1712,7 +1732,7 @@ return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['revision','lastO
         _i(a,o,0) && _i(a,o,1) && _i(a,o,2) && _i(a,o,3) && _i(a,o,4) &&
         _i(a,o,5) && _i(a,o,6) && _i(a,o,7) && _i(a,o,8);
     }
-function _dD() {
+function _dF() {
       let a=_a();
       let n=_c();
       let c=n.catalog;
@@ -1728,16 +1748,16 @@ return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['catalog','catalo
         o.create==!(d in b.groups) && c.groupIds.size()<=64 && c.groupIds==(o.create ? b.groupIds.concat([d]) : b.groupIds) &&
         c.groups.keys().toSet()==(o.create ? b.groups.keys().concat([d]).toSet() : b.groups.keys().toSet()) &&
         o.entitySnapshot==e && e.id==d && e.revision==(o.create ? 1 : b.groups[d].revision+1) &&
-        e.menuIds==(o.create ? [] : b.groups[d].menuIds) && e.get('multiMenuIds',[])==(o.create ? [] : b.groups[d].get('multiMenuIds',[])) && (e.active || e.menuIds.size()==0) && n.catalog.recipeRegistryIds==f.get('materialIds',f.catalog.summaryMaterials) && _ad(f.generation,n.lastOpId,o);
+        e.menuIds==(o.create ? [] : b.groups[d].menuIds) && e.get('multiMenuIds',[])==(o.create ? [] : b.groups[d].get('multiMenuIds',[])) && (e.active || e.menuIds.size()==0) && n.catalog.recipeRegistryIds==f.get('materialIds',f.catalog.summaryMaterials) && _ae(f.generation,n.lastOpId,o);
     }
-function _ac(n,b,a,i,c,d,e) {
+function _ad(n,b,a,i,c,d,e) {
       let f=i<a.size() ? a[i] : '_';
       let g=f in d;
       let h=f in e;
       return i>=a.size() || (c in b.productionUsers[f])==g &&
         n.productionUsers[f]==(g && !h ? b.productionUsers[f].removeAll([c]) : !g && h ? b.productionUsers[f].concat([c]) : b.productionUsers[f]);
     }
-function _dE() {
+function _dG() {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(b.generation,n.lastOpId)).data;
@@ -1749,10 +1769,10 @@ function _dE() {
         n.revision==b.revision+1 && o.kind=='production_recipe' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision &&
         o.materialRevision==a.revision && c.revision==a.revision+1 && c.lastOpId==n.lastOpId && c.lastOpKind=='production_recipe' &&
         n.productionUsers.keys().toSet()==b.productionUsers.keys().toSet() && n.productionUsers.diff(b.productionUsers).affectedKeys().hasOnly(d.concat(e)) &&
-        _ac(n,b,d,0,o.materialId,d,e) && _ac(n,b,d,1,o.materialId,d,e) &&
-        _ac(n,b,e,0,o.materialId,d,e) && _ac(n,b,e,1,o.materialId,d,e);
+        _ad(n,b,d,0,o.materialId,d,e) && _ad(n,b,d,1,o.materialId,d,e) &&
+        _ad(n,b,e,0,o.materialId,d,e) && _ad(n,b,e,1,o.materialId,d,e);
     }
-function _dF() {
+function _dH() {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(b.generation,n.lastOpId)).data;
@@ -1763,7 +1783,7 @@ function _dF() {
         n.productionUsers.diff(b.productionUsers).affectedKeys().hasOnly([o.materialId]) && n.productionUsers.keys().toSet()==n.materialIds.toSet() && n.productionUsers[o.materialId]==[] &&
         !exists(_h(b.generation,o.materialId)) && m.lastOpId==n.lastOpId && m.lastOpKind=='material_create' && m.revision==1;
     }
-function _dG() {
+function _dI() {
       let n=_c();
       let o=getAfter(_f(_a().generation,n.lastOpId)).data;
       let m=getAfter(_h(_a().generation,o.materialId)).data;
@@ -1772,7 +1792,7 @@ return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['catalog','revisi
         n.catalog.diff(a.catalog).affectedKeys().hasOnly(['summaryMaterials']) && n.catalog.summaryMaterials==(o.deleted ? a.catalog.summaryMaterials.removeAll([o.materialId]) : a.catalog.summaryMaterials) && n.revision==a.revision+1 && o.kind=='material_archive' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision &&
         m.lastOpId==n.lastOpId && m.lastOpKind=='material_archive' && m.revision==o.materialRevision+1;
     }
-function _dH() {
+function _dJ() {
       let n=_c();
       let o=getAfter(_f(_a().generation,n.lastOpId)).data;
       let m=getAfter(_h(_a().generation,o.materialId)).data;
@@ -1781,7 +1801,7 @@ return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['revision','lastO
         n.revision==a.revision+1 && o.kind=='material_metadata' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision &&
         m.lastOpId==n.lastOpId && m.lastOpKind=='material_metadata' && m.revision==o.materialRevision+1;
     }
-function _dI() {
+function _dK() {
       let n=_c();
       let o=getAfter(_f(_a().generation,n.lastOpId)).data;
       let m=getAfter(_h(_a().generation,o.materialId)).data;
@@ -1790,7 +1810,7 @@ return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['revision','lastO
         n.revision==a.revision+1 && o.kind=='material_measure' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision &&
         m.lastOpId==n.lastOpId && m.lastOpKind=='material_measure' && m.revision==o.materialRevision+1;
     }
-function _dJ() {
+function _dL() {
   let b=_a();
   let n=_c();
   let o=getAfter(_f(b.generation,n.lastOpId)).data;
@@ -1801,7 +1821,7 @@ function _dJ() {
    o.kind=='material_type' && o.opId==n.lastOpId && o.uid==_b() && n.lastOpKind==o.kind && o.targetId in b.materialIds && o.materialIds==[o.targetId] &&
    m.lastOpId==o.opId && m.lastOpKind==o.kind && m.revision==o.targetRevision+1 && m.inventoryType==o.inventoryType && _aE(b.generation,o.opId,0);
  }
-function _dK() {
+function _dM() {
       let b=_a();
       let n=_c();
       let o=getAfter(_f(b.generation,n.lastOpId)).data;
@@ -1809,7 +1829,7 @@ function _dK() {
         n.revision==b.revision+1 && o.kind=='package_stock_in' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision &&
         _as(getAfter(_h(b.generation,o.materialId)).data);
     }
-function _dL() {
+function _dN() {
       let n=_c();
       let o=getAfter(_f(_a().generation,n.lastOpId)).data;
       let m=getAfter(_h(_a().generation,o.materialId)).data;
@@ -1818,14 +1838,14 @@ return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['revision','lastO
         n.revision==a.revision+1 && o.kind=='material_details' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision &&
         m.lastOpId==n.lastOpId && m.lastOpKind=='material_details' && m.revision==o.materialRevision+1;
     }
-function _dM() {
+function _dO() {
   let b=_a();
   let n=_c();
   let o=getAfter(_f(b.generation,n.lastOpId)).data;
   let m=get(_h(b.generation,o.materialId)).data;
-  return _ai(b.generation,n.lastOpId,o,b,n,m);
+  return _aj(b.generation,n.lastOpId,o,b,n,m);
  }
-function _dN() {
+function _dP() {
  let b=_a();
  let n=_c();
  let o=getAfter(_f(b.generation,n.lastOpId)).data;
@@ -1835,16 +1855,16 @@ function _dN() {
   o.kind=='history_clear' && o.opId==n.lastOpId && o.uid==_b() &&
   o.shopRevision==n.revision && o.clearedThroughRevision==n.revision;
 }
-function _dO(g,o,a) {
+function _dQ(g,o,a) {
   let d=getAfter(_aC(g,o.opId)).data;
   return d.opId==o.opId && d.uid==o.uid && d.catalogRevision==a && d.platformId==o.platformId &&
    d.addonKeys==o.addonKeys && d.materialIds==o.materialIds && d.billOperands==o.billOperands && d.lines==o.lines && (o.materialIds.size()>=3 || d.lineOptionQuantities==o.lineOptionQuantities);
  }
-function _ad(g,a,o) {
+function _ae(g,a,o) {
   return o.kind=='addon' || getAfter(_t(g,a,4)).data.opId==a && getAfter(_t(g,a,5)).data.opId==a &&
    getAfter(_t(g,a,6)).data.opId==a && getAfter(_t(g,a,7)).data.opId==a;
  }
-function _ae(c,b,r,i) {
+function _af(c,b,r,i) {
  let a=c.platforms;
 return i>=b.platformIds.size() || (
   _d(r[b.platformIds[i]],0,9999) &&
@@ -1852,7 +1872,7 @@ return i>=b.platformIds.size() || (
   a[b.platformIds[i]].gpBasisPoints==r[b.platformIds[i]] &&
   a[b.platformIds[i]].revision==b.platforms[b.platformIds[i]].revision+1);
 }
-function _dP() {
+function _dR() {
  let b=_a();
  let n=_c();
  let o=getAfter(_f(b.generation,n.lastOpId)).data;
@@ -1866,10 +1886,10 @@ return b.status=='active' &&
   c.platforms.diff(a.platforms).affectedKeys().hasOnly(a.platformIds) &&
   o.kind=='platform_gp' && o.opId==n.lastOpId && o.uid==_b() && o.shopRevision==n.revision &&
   a.platformIds.size()<=4 && o.rates.keys().toSet()==a.platformIds.toSet() &&
-  _ae(c,a,o.rates,0) && _ae(c,a,o.rates,1) &&
-  _ae(c,a,o.rates,2) && _ae(c,a,o.rates,3);
+  _af(c,a,o.rates,0) && _af(c,a,o.rates,1) &&
+  _af(c,a,o.rates,2) && _af(c,a,o.rates,3);
 }
-function _dQ(g,a,o,b,n) {
+function _dS(g,a,o,b,n) {
   return b.status=='active' && b.generation==g &&
    o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','sourceKind','sourceRevision','shopRevision']) &&
    o.schemaVersion==2 && o.kind=='command_abort' && o.status=='committed' && o.opId==a && o.uid==_b() && o.createdAt==request.time &&
@@ -1880,13 +1900,13 @@ function _dQ(g,a,o,b,n) {
    n.revision==b.revision+1 && n.lastOpId==a && n.lastOpKind=='command_abort' &&
    !exists(_f(g,a));
  }
-function _dR() {
+function _dT() {
   let b=_a();
   let n=_c();
   let o=getAfter(_f(b.generation,n.lastOpId)).data;
-  return _dQ(b.generation,n.lastOpId,o,b,n);
+  return _dS(b.generation,n.lastOpId,o,b,n);
  }
-function _dS() {
+function _dU() {
   let n=_c();
   let a=n.allowedEmails;
   let b=a.keys().join('|');
@@ -1900,9 +1920,9 @@ return _F(d) && a is map && a.size()>0 && a.size()<=50 && a.values().hasOnly([tr
    n.revision==d.revision+1 && n.revision is int && n.revision<=9007199254740991 &&
    n.lastOpKind=='access' && n.lastOpId is string && n.lastOpId.matches('^[A-Za-z0-9_-]{1,200}$');
  }
-allow get: if _ak(_a());
-  function _dT() { let a=_c().get('lastOpKind',''); return (a=='access' && _dS()) || (a=='sale_set' && _ds()) || (a=='stock_in' && _dt()) || (a=='package_stock_in' && _dK()) || (a=='produce' && _dA()) || (a=='cancel' && _dz()) || (a=='command_abort' && _dR()) || (a=='history_clear' && _dN()) || (a=='stock_count' && _dC()) || (a=='switch_lot' && _dB()) || (a=='material_create' && _dF()) || (a=='material_archive' && _dG()) || (a=='material_metadata' && _dH()) || (a=='material_measure' && _dI()) || (a=='material_details' && _dL()) || (a=='material_type' && _dJ()) || (a=='production_recipe' && _dE()) || (a=='menu' && _dx()) || (a=='addon' && _dy()) || (a=='group' && _dD()) || (a=='catalog' && _dv()) || (a=='material_delete' && _dM()) || (a=='platform_gp' && _F(_a()) && _dP()); }
-allow update: if _aY(_a()) && (_dT());
+allow get: if _M(_a());
+  function _dV() { let a=_c().get('lastOpKind',''); return (a=='access' && _dU()) || (a=='sale_set' && _du()) || (a=='stock_in' && _dv()) || (a=='package_stock_in' && _dM()) || (a=='produce' && _dC()) || (a=='cancel' && _dB()) || (a=='command_abort' && _dT()) || (a=='history_clear' && _dP()) || (a=='stock_count' && _dE()) || (a=='switch_lot' && _dD()) || (a=='material_create' && _dH()) || (a=='material_archive' && _dI()) || (a=='material_metadata' && _dJ()) || (a=='material_measure' && _dK()) || (a=='material_details' && _dN()) || (a=='material_type' && _dL()) || (a=='production_recipe' && _dG()) || (a=='menu' && _dz()) || (a=='addon' && _dA()) || (a=='group' && _dF()) || (a=='catalog' && _dx()) || (a=='material_delete' && _dO()) || (a=='platform_gp' && _F(_a()) && _dR()); }
+allow update: if _aF(_a()) && (_dV());
 
 
 

@@ -27,6 +27,7 @@
           </div>
         </div>
 
+        <CatalogImageEditor v-if="store.modals.materialEdit.isOpen" ref="imageEditor" v-model="form.image" kind="materials" :entity-id="form.id" :emoji="form.emoji" :disabled="!!actionPending"/>
         <fieldset class="space-y-2">
           <legend class="text-[11px] font-medium text-stone-700">ประเภทคลัง <span class="text-rose-500">*</span></legend>
           <div class="grid gap-2 sm:grid-cols-3">
@@ -465,11 +466,15 @@
 
 <script setup>
 import AppInput from '@/components/ui/AppInput.vue'
+import CatalogImageEditor from '@/components/images/CatalogImageEditor.vue'
 import Button from '@/components/ui/Button.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { ref, computed, watch, nextTick } from 'vue'
+const imageEditor=ref(null)
+const confirmedBusiness=ref('')
+const businessFingerprint=()=>JSON.stringify({...form.value,image:undefined})
 import { getTodayString } from '@/stores/posStore'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import MaterialUsage from '@/components/inventory/MaterialUsage.vue'
@@ -824,6 +829,7 @@ watch(() => form.value.yieldQty, (newYield) => {
 // Initialize form on open
 watch(() => store.modals.materialEdit.isOpen, (open) => {
   if (open) {
+    confirmedBusiness.value=''
     const id = store.modals.materialEdit.materialId
     const mat = id ? store.materials.find(m => m.id === id) : null
 
@@ -842,6 +848,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
 
       form.value = {
         id: mat.id,
+        image: mat.image || '',
         isDeleted: Boolean(mat.isDeleted),
         name: mat.name,
         category: mat.category,
@@ -867,6 +874,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
       initialStock.value = 0
       form.value = {
         id: '',
+        image: '',
         name: '',
         category: undefined,
         inventoryType: 'ingredient',
@@ -942,6 +950,10 @@ function close() {
 const submit=()=>runAction('save',performSubmit)
 async function performSubmit() {
   formError.value = ''
+  if(confirmedBusiness.value){
+    if(confirmedBusiness.value!==businessFingerprint()){formError.value='ข้อมูลวัตถุดิบถูกแก้เพิ่มหลังบันทึกแล้ว กรุณาคืนค่าหรือเปิดรายการใหม่ก่อนแก้ข้อมูลอื่น';return}
+    await savePictureAndClose();return
+  }
   if (form.value.hasSubRecipe && (!form.value.subRecipe.length ||
     !Number.isFinite(Number(form.value.yieldQty)) || Number(form.value.yieldQty) <= 0)) {
     formError.value = 'กรุณาระบุส่วนผสมและปริมาณผลผลิตให้มากกว่า 0'
@@ -976,7 +988,10 @@ async function performSubmit() {
     pCost = Number(form.value.packCost) >= 0 ? Number(form.value.packCost) : 0
   }
 
+  const previousIds=new Set(store.materials.map(material=>material.id))
+  try{imageEditor.value?.assertReady()}catch(e){formError.value=e.message;return}
   const result = await store.saveMaterial({
+    ...(!store.cloud?{image:form.value.image||''}:{}),
     id: form.value.id || undefined,
     name: form.value.name.trim(),
     category: form.value.category,
@@ -1001,8 +1016,18 @@ async function performSubmit() {
       : []
   })
 
-  if (result?.ok || result?.success) close()
+  if (result?.ok || result?.success) {
+    const savedId=form.value.id || store.materials.find(material=>!previousIds.has(material.id))?.id
+    form.value.id=savedId
+    initialStock.value=Number(form.value.stock)||0
+    confirmedBusiness.value=businessFingerprint()
+    await savePictureAndClose()
+  }
   else formError.value = result?.message || 'บันทึกไม่สำเร็จ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง'
+}
+async function savePictureAndClose(){
+  try{await imageEditor.value?.save(form.value.id)}catch(e){formError.value=`บันทึกข้อมูลวัตถุดิบแล้ว แต่รูปยังไม่สำเร็จ: ${e.message} · รูปที่เลือกยังอยู่ กดบันทึกเพื่อลองส่งเฉพาะรูปอีกครั้ง`;return}
+  close()
 }
 </script>
 

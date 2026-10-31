@@ -1,6 +1,6 @@
 <template>
  <article class="stock-management-row">
-  <button type="button" :data-material-details="material.id" class="stock-row-name" :aria-label="`ดูรายละเอียด ${material.name}`" @click="$emit('details',material.id)"><span class="stock-row-emoji" aria-hidden="true">{{ material.emoji }}</span><span><strong>{{ material.name }}</strong><span class="stock-row-meta"><StatusBadge :data-inventory-type="material.inventoryType" :label="getMaterialKindLabel(material)" tone="neutral"/><MaterialUsage compact :usage="usage"/></span><small v-if="trackingMode!=='none'&&material.lastStockInDate">{{ material.hasSubRecipe?'ผลิตล่าสุด':'รับล่าสุด' }} {{ formatDisplayDate(material.lastStockInDate) }}<template v-if="trackingMode==='expiry_and_receive'&&material.expiryDate"> · หมดอายุ {{ formatDisplayDate(material.expiryDate) }}</template></small></span></button>
+  <button type="button" :data-material-details="material.id" class="stock-row-name" :aria-label="`ดูรายละเอียด ${material.name}`" @click="$emit('details',material.id)"><span class="stock-row-emoji" aria-hidden="true"><EntityImage kind="materials" :entity-id="material.id" :image="material.image" :emoji="material.emoji"/></span><span><strong>{{ material.name }}</strong><span class="stock-row-meta"><StatusBadge :data-inventory-type="material.inventoryType" :label="getMaterialKindLabel(material)" tone="neutral"/><MaterialUsage compact :usage="usage"/></span><small v-if="trackingMode!=='none'&&material.lastStockInDate">{{ material.hasSubRecipe?'ผลิตล่าสุด':'รับล่าสุด' }} {{ formatDisplayDate(material.lastStockInDate) }}<template v-if="trackingMode==='expiry_and_receive'&&material.expiryDate"> · หมดอายุ {{ formatDisplayDate(material.expiryDate) }}</template></small></span></button>
   <div class="stock-row-quantity"><small>คงเหลือ</small><strong>{{ number(material.stock) }} <span>{{ material.unit }}</span></strong><small v-if="draftDiff" class="stock-row-draft">รอยืนยัน {{ draftDiff>0?'+':'' }}{{ number(draftDiff) }} {{ material.unit }}</small><small v-if="material.packSize>1">≈ {{ number(Number(material.stock||0)/material.packSize) }} {{ material.packUnit }}</small><StatusBadge :label="status" :tone="tone"/></div>
   <div class="stock-row-cost"><small>ต้นทุน / {{ material.packUnit||material.unit }}</small><strong>฿{{ number(packCost) }}</strong><small v-if="material.packSize>1||material.hasSubRecipe">฿{{ number(material.unitCost) }} / {{ material.unit }}</small></div>
   <div class="stock-row-value"><small>มูลค่าคงเหลือ</small><strong>฿{{ money(Math.max(0,Number(material.stock)||0)*Number(material.unitCost||0)) }}</strong><Button class="stock-row-lots" variant="quiet" size="compact" :aria-label="`ดูล็อต ${material.name}`" @click="$emit('details',material.id)">{{ lotCount }} ล็อต</Button></div>
@@ -8,6 +8,7 @@
  </article>
 </template>
 <script setup>
+import EntityImage from '@/components/images/EntityImage.vue'
 import {computed} from 'vue'
 import {isExpired,formatDisplayDate} from '@/stores/posStore'
 import {MoreHorizontal} from 'lucide-vue-next'

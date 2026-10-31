@@ -35,3 +35,10 @@ it.each([0,1])('rejects surplus order archives beyond the declared count %s',asy
  })
  await expect(planBackupRehearsal(text,target)).rejects.toThrow('INVALID_REHEARSAL_DATA')
 })
+
+it('rehearses image recovery while preserving older image-free backups',async()=>{
+ const text=await file(p=>{p.collections.catalogImages=[{id:'materials_M',data:encodeBackupValue({kind:'materials',entityId:'M',dataURL:'data:image/jpeg;base64,/9j/2Q==',revision:1})}];p.counts.catalogImages=1})
+ const plan=await planBackupRehearsal(text,target)
+ expect(plan.documents.find(d=>d.path.endsWith('/catalogImages/materials_M')).data.dataURL).toContain('data:image/jpeg')
+ expect((await planBackupRehearsal(await file(),target)).counts.materials).toBe(1)
+})

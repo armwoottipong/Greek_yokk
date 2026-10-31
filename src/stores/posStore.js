@@ -1775,8 +1775,10 @@ const posDefinition = {
           isActive: true
         })
       }
-      this.persistLocal()
+      const saved=this.persistLocal()
+      if(!saved.ok)return saved
       this.showToast(`บันทึกเมนู "${menuData.name}" สำเร็จ`, 'success')
+      return saved
     },
 
     deleteMenu(menuId) {
@@ -1926,7 +1928,8 @@ const posDefinition = {
           'รับเข้าจากหน้าจัดการวัตถุดิบ', clean.packCost, eventDates, false)
         if (result === false || result?.ok === false) return result
       } else if (requested < oldStock) this.stockAdjust(id, requested, 'แก้ไขยอดจากหน้าจัดการวัตถุดิบ', '', false)
-      this.persistLocal()
+      const saved=this.persistLocal()
+      if(!saved.ok)return saved
       this.showToast('บันทึกวัตถุดิบสำเร็จ', 'success')
       return {
         success: true

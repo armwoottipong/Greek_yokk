@@ -1,7 +1,7 @@
 <template>
  <header v-bind="{[`data-${entity}-header`]:''}" class="menu-header-panel">
   <Button :disabled="busy" class="menu-back" variant="quiet" @click="$emit('back')"><ArrowLeft :size="16" aria-hidden="true"/>{{ labels.back }}</Button>
-  <div v-if="selected" class="menu-header-identity"><span class="menu-header-emoji" aria-hidden="true">{{ selected.emoji }}</span><div>
+  <div v-if="selected" class="menu-header-identity"><span class="menu-header-emoji" aria-hidden="true"><EntityImage v-if="entity==='menu'" kind="menus" :entity-id="selected.id" :image="selected.image" :emoji="selected.emoji"/><template v-else>{{ selected.emoji }}</template></span><div>
    <h2 v-bind="{[`data-selected-${entity}-name`]:''}" tabindex="-1">{{ selected.name }}</h2>
    <p v-if="selected.description" class="menu-header-description">{{ selected.description }}</p>
    <div class="menu-header-meta"><StatusBadge :label="selected.isActive===false?'ปิดขาย':'เปิดขาย'" :tone="selected.isActive===false?'warning':'neutral'"/><span>{{ platformCount }} ช่องทางที่ตั้งราคา</span><span>{{ (selected.recipe||[]).length }} รายการในสูตร</span></div>
@@ -23,6 +23,7 @@
  </header>
 </template>
 <script setup>
+import EntityImage from '@/components/images/EntityImage.vue'
 import {computed,ref} from 'vue'
 import {ArrowLeft,Plus,Pencil,Trash2,MoreHorizontal} from 'lucide-vue-next'
 import DialogFrame from '../ui/DialogFrame.vue'

@@ -1,5 +1,6 @@
 import {createReportReader} from './reportReader.js'
 import {createBackupReader} from './backupReader.js'
+import {createCatalogImages} from './catalogImages.js'
 import {doc,collection,getDocFromServer,getDocsFromServer,query,orderBy,limit} from 'firebase/firestore'
 import {getFirebaseClient} from '../firebaseClient.js'
 import {createCommandJournal} from '../journal.js'
@@ -12,6 +13,7 @@ export function createCoreWorkspace({connection,getContext}){
  const journal=createCommandJournal(),transport=createCoreTransport({db,getContext}),commands=createCoreCommands({journal,transport,getContext})
  const reports=createReportReader({db,getContext})
  const backups=createBackupReader({db,getContext})
+ const images=createCatalogImages({db,getContext})
  let current
  const base=()=>{const c=getContext();return `shops/${c.shopId}/generations/${c.generation}`}
  async function load(){
@@ -45,5 +47,5 @@ export function createCoreWorkspace({connection,getContext}){
   if(!receipt||receipt.origin!=='legacy'||receipt.sourceLegacyId!==orderId)throw new Error('LEGACY_MIGRATION_REQUIRED')
   return receipt
  }
- return {...commands,load,orders,previewSale,previewInventory,previewCommand,history,legacyReceipt,backup:()=>backups.read(),report:range=>{if(!current)throw new Error('NOT_READY');return reports.read(range,{legacyOrderCount:current.display.legacyOrderCount??0})},close:()=>{reports.close();backups.close();return journal.close()}}
+ return {...commands,images,load,orders,previewSale,previewInventory,previewCommand,history,legacyReceipt,backup:()=>backups.read(),report:range=>{if(!current)throw new Error('NOT_READY');return reports.read(range,{legacyOrderCount:current.display.legacyOrderCount??0})},close:()=>{images.close();reports.close();backups.close();return journal.close()}}
 }

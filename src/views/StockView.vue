@@ -38,7 +38,7 @@
                 <!-- Material Info -->
                 <td class="py-3.5 px-4">
                 <div class="flex items-center gap-3 min-w-0">
-                  <span class="text-xl shrink-0">{{ mat.emoji }}</span>
+                  <span class="text-xl shrink-0"><EntityImage kind="materials" :entity-id="mat.id" :image="mat.image" :emoji="mat.emoji"/></span>
                   <div class="min-w-0 flex-1">
                     <div class="stock-table-name">
                       <Button variant="secondary" size="compact" type="button" :data-material-details="mat.id" :aria-label="`ดูรายละเอียด ${mat.name}`" class="text-left underline-offset-4 hover:underline focus-visible:underline" @click="detailMaterialId=mat.id">{{ mat.name }}</Button>
@@ -388,6 +388,7 @@
 </template>
 
 <script setup>
+import EntityImage from '@/components/images/EntityImage.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import Button from '@/components/ui/Button.vue'
 import StockDraftReview from '@/components/inventory/StockDraftReview.vue'

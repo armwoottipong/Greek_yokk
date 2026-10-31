@@ -32,7 +32,7 @@
  <PackageReviewModal :model="productModel"/>
  <DialogFrame :open="!!menu" id="cloud-custom-order" title="รายละเอียดสินค้า" presentation="drawer" width="520px" :busy="busy" @request-close="selectedMenu=''">
   <form v-if="menu" id="cloud-line-form" class="line-form" @submit.prevent="addLine">
-   <div class="product-detail"><div class="product-visual" aria-hidden="true">{{ data.display.menus?.[menu.id]?.emoji }}</div><div class="bowl-heading"><h3>{{ name('menus',menu.id) }}</h3><strong class="product-base-price">{{ money(menu.pricesCents[platformId]) }}</strong></div></div>
+   <div class="product-detail"><div class="product-visual" aria-hidden="true"><EntityImage kind="menus" :entity-id="menu.id" :emoji="data.display.menus?.[menu.id]?.emoji"/></div><div class="bowl-heading"><h3>{{ name('menus',menu.id) }}</h3><strong class="product-base-price">{{ money(menu.pricesCents[platformId]) }}</strong></div></div>
    <div class="bowl-groups"><section v-for="g in menuGroups" :key="g.id" class="bowl-options"><header><div><h4>{{ g.name }}</h4><p>เลือก {{ g.min===g.max?g.min:`${g.min}–${g.max}` }} อย่าง · {{ g.pricingMode==='included'?'รวมในราคา':'คิดเงินเพิ่ม' }}</p></div><span>{{ groupCount(g) }}/{{ g.max }}</span></header><div class="bowl-addon-grid"><div v-for="id in g.optionIds" :key="id" class="bowl-group-option"><button type="button" class="bowl-addon" :class="{'is-selected':choices[g.id][id]>0}" :aria-pressed="choices[g.id][id]>0" :disabled="locked||(!choices[g.id][id]&&groupCount(g)>=g.max)" @click="toggleChoice(g,id)"><span class="bowl-addon-emoji" aria-hidden="true">{{ data.display.addons?.[id]?.emoji }}</span><span class="bowl-addon-name"><strong>{{ name('addons',id) }}</strong></span><span class="bowl-addon-price">{{ optionPrice(g,id) }}</span><span class="bowl-addon-check"><Check v-if="choices[g.id][id]>0" :size="15"/><Plus v-else :size="15"/></span></button><div v-if="g.allowRepeat&&choices[g.id][id]>0" class="bowl-option-quantity"><AppQuantityInput v-model="choices[g.id][id]" :label="`${g.name} ${name('addons',id)} จำนวน`" :min="0" :max="g.max" :disabled="locked"/></div></div></div></section></div>
    <section class="product-note"><label class="field">หมายเหตุ<AppInput v-model="lineNote" maxlength="1000" placeholder="เช่น แยกท็อปปิ้ง" :disabled="locked"/></label></section>
    <p v-if="lineError" class="error" role="alert">{{ lineError }}</p>
@@ -44,7 +44,8 @@
 </template>
 
 <script setup>
-import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive} from 'vue'
+import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive,provide} from 'vue'
+import EntityImage from '@/components/images/EntityImage.vue'
 import Button from '@/components/ui/Button.vue'
 import CloudProductShell from './CloudProductShell.vue'
 import PosCatalog from '@/components/pos/PosCatalog.vue'
@@ -73,6 +74,7 @@ import {createCoreWorkspace} from './workspace.js'
 import {commandErrorMessage} from './commandErrors.js'
 import {maxSaleLines} from './model/limits.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
+provide('catalog-images',{watch:(...args)=>service.images.watch(...args),save:(...args)=>service.images.save(...args)})
 const role=computed(()=>shopRole(props.state.shop,props.state.user?.email)),operator=computed(()=>canOperate(role.value))
 const invitations=ref([]),presentUsers=ref([]),presenceClock=ref(Date.now())
 let shopAccess=null,presenceTimer=null

@@ -4,7 +4,7 @@ import {createBackupReader} from '../../src/cloud/core/backupReader.js'
 import {verifyBusinessBackup} from '../../src/cloud/core/businessBackup.js'
 function setup(){
  const context={projectId:'demo-test',shopId:'shop',generation:'g',uid:'u',online:true,ready:true},root={status:'active',generation:'g',revision:4,materialIds:['M']}
- const rows={materials:[{id:'M',stock:6,lotIds:['L'],lotQty:{L:6},billPreparations:{tmp:{needed:1}},billPreparationId:'tmp'}],display:[{id:'catalog',legacyOrderCount:1}],orders:[{id:'O',opId:'O'}],operations:[],legacyRecords:[{id:'header',kind:'header',index:0,json:'{}'},{id:'orders_0',kind:'orders',index:0,json:'{}'}]}
+ const rows={catalogImages:[],materials:[{id:'M',stock:6,lotIds:['L'],lotQty:{L:6},billPreparations:{tmp:{needed:1}},billPreparationId:'tmp'}],display:[{id:'catalog',legacyOrderCount:1}],orders:[{id:'O',opId:'O'}],operations:[],legacyRecords:[{id:'header',kind:'header',index:0,json:'{}'},{id:'orders_0',kind:'orders',index:0,json:'{}'}]}
  const sdk={doc:(_db,path)=>({path}),collection:(_db,path)=>({path}),query:(source,...clauses)=>({...source,clauses}),documentId:()=>'__name__',orderBy:(...x)=>({orderBy:x}),limit:n=>({limit:n}),startAfter:r=>({after:r.id}),getDocFromServer:vi.fn(async()=>({exists:()=>true,data:()=>structuredClone(root)})),getDocsFromServer:vi.fn(async ref=>({docs:rows[ref.path.split('/').at(-1)].map(row=>({id:row.id,data:()=>structuredClone(row)}))}))}
  return {context,root,rows,sdk,reader:createBackupReader({db:{},getContext:()=>context},sdk)}
 }
@@ -12,7 +12,7 @@ it('exports all business collections, explicitly omits transient cache and verif
  const h=setup(),r=await h.reader.read();expect(await verifyBusinessBackup(r.text)).toBe(true)
  const p=JSON.parse(r.text).payload;expect(p.revision).toBe(4);expect(p.counts).toMatchObject({materials:1,orders:1,legacyRecords:2})
  expect(r.text).not.toContain('"tmp"');expect(p.exclusions.materialFields).toContain('billPreparations')
- expect(h.sdk.getDocsFromServer).toHaveBeenCalledTimes(5)
+ expect(h.sdk.getDocsFromServer).toHaveBeenCalledTimes(6)
 })
 it('paginates every collection by document ID beyond 250 and never drops the last page',async()=>{
  const h=setup();let n=0;h.sdk.getDocsFromServer.mockImplementation(async ref=>{
@@ -36,7 +36,7 @@ it('fences remote commits, offline/context changes and closed readers',async()=>
 it('retries one raced snapshot and prevents a duplicate export from starting',async()=>{
  const h=setup();let n=0;h.sdk.getDocFromServer.mockImplementation(async()=>({exists:()=>true,data:()=>({...h.root,revision:n++===0?4:5})}))
  const first=h.reader.read();await expect(h.reader.read()).rejects.toThrow('BACKUP_IN_PROGRESS')
- expect((await first).revision).toBe(5);expect(h.sdk.getDocsFromServer).toHaveBeenCalledTimes(10)
+ expect((await first).revision).toBe(5);expect(h.sdk.getDocsFromServer).toHaveBeenCalledTimes(12)
 })
 it('never returns a partial file above the document limit',async()=>{
  const h=setup();h.sdk.getDocsFromServer.mockImplementation(async()=>({docs:Array.from({length:250},(_,i)=>({id:`M${i}`,data:()=>({value:i})}))}))
@@ -50,4 +50,12 @@ it('rejects missing archive header, interior gaps and damaged JSON',async()=>{
 it('rejects an archive order count that contradicts its declared manifest',async()=>{
  const h=setup();h.rows.display[0].legacyOrderCount=0
  await expect(h.reader.read()).rejects.toThrow('BACKUP_INCOMPLETE')
+})
+
+it('includes image documents in the verified backup without embedding them in shop data',async()=>{
+ const h=setup();h.rows.catalogImages=[{id:'materials_M',kind:'materials',entityId:'M',dataURL:'data:image/jpeg;base64,/9j/2Q==',revision:1}]
+ const r=await h.reader.read(),p=JSON.parse(r.text).payload
+ expect(p.counts.catalogImages).toBe(1)
+ expect(p.collections.catalogImages[0].id).toBe('materials_M')
+ expect(await verifyBusinessBackup(r.text)).toBe(true)
 })
