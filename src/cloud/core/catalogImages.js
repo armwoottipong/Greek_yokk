@@ -4,7 +4,7 @@ const sdkDefault={doc,onSnapshot,runTransaction,serverTimestamp}
 const fail=code=>Object.assign(new Error(code),{code})
 const identity=['projectId','shopId','generation','uid']
 export const imageKey=(kind,id)=>{
- if(!['menus','materials'].includes(kind)||typeof id!=='string'||!id||id.length>160||id.includes('/'))throw fail('INVALID_IMAGE_ENTITY')
+ if(!['menus','addons','materials'].includes(kind)||typeof id!=='string'||!id||id.length>160||id.includes('/'))throw fail('INVALID_IMAGE_ENTITY')
  return `${kind}_${id}`
 }
 export function createCatalogImages({db,getContext},sdk=sdkDefault){
@@ -25,7 +25,7 @@ export function createCatalogImages({db,getContext},sdk=sdkDefault){
     guard(s)
     const root=await t.get(sdk.doc(db,`shops/${s.shopId}`));guard(s)
     if(!root.exists()||root.data().status!=='active'||root.data().generation!==s.generation)throw fail('SHOP_NOT_READY')
-    if(kind==='menus'&&!root.data().catalog?.menus?.[id])throw fail('IMAGE_ENTITY_MISSING')
+    if(kind!=='materials'&&!root.data().catalog?.[kind]?.[id])throw fail('IMAGE_ENTITY_MISSING')
     if(kind==='materials'){const target=await t.get(sdk.doc(db,`shops/${s.shopId}/generations/${s.generation}/materials/${id}`));guard(s);if(!target.exists())throw fail('IMAGE_ENTITY_MISSING')}
     const ref=sdk.doc(db,path(s,key)),row=await t.get(ref);guard(s)
     if((row.exists()?row.data().revision:0)!==expectedRevision)throw fail('IMAGE_CONFLICT')

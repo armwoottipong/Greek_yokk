@@ -42,3 +42,7 @@ it('rehearses image recovery while preserving older image-free backups',async()=
  expect(plan.documents.find(d=>d.path.endsWith('/catalogImages/materials_M')).data.dataURL).toContain('data:image/jpeg')
  expect((await planBackupRehearsal(await file(),target)).counts.materials).toBe(1)
 })
+it('preserves Add-on pictures during backup recovery rehearsal',async()=>{
+ const text=await file(p=>{p.collections.catalogImages=[{id:'addons_A',data:encodeBackupValue({kind:'addons',entityId:'A',dataURL:'data:image/jpeg;base64,/9j/2Q==',revision:1})}];p.counts.catalogImages=1})
+ expect((await planBackupRehearsal(text,target)).documents.find(d=>d.path.endsWith('/catalogImages/addons_A')).data.kind).toBe('addons')
+})

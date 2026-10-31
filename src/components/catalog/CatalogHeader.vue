@@ -1,7 +1,7 @@
 <template>
  <header v-bind="{[`data-${entity}-header`]:''}" class="menu-header-panel">
   <Button :disabled="busy" class="menu-back" variant="quiet" @click="$emit('back')"><ArrowLeft :size="16" aria-hidden="true"/>{{ labels.back }}</Button>
-  <div v-if="selected" class="menu-header-identity"><span class="menu-header-emoji" aria-hidden="true"><EntityImage v-if="entity==='menu'" kind="menus" :entity-id="selected.id" :image="selected.image" :emoji="selected.emoji"/><template v-else>{{ selected.emoji }}</template></span><div>
+  <div v-if="selected" class="menu-header-identity menu-header-identity--selected"><span class="menu-header-emoji" aria-hidden="true"><EntityImage :kind="entity==='menu'?'menus':'addons'" :entity-id="selected.id" :image="selected.image" :emoji="selected.emoji"/></span><div>
    <h2 v-bind="{[`data-selected-${entity}-name`]:''}" tabindex="-1">{{ selected.name }}</h2>
    <p v-if="selected.description" class="menu-header-description">{{ selected.description }}</p>
    <div class="menu-header-meta"><StatusBadge :label="selected.isActive===false?'ปิดขาย':'เปิดขาย'" :tone="selected.isActive===false?'warning':'neutral'"/><span>{{ platformCount }} ช่องทางที่ตั้งราคา</span><span>{{ (selected.recipe||[]).length }} รายการในสูตร</span></div>
@@ -40,4 +40,5 @@ function run(action,value){moreOpen.value=false;emit(action,value)}
 .catalog-more-trigger{display:none}.catalog-more-actions{display:grid;gap:10px}
 @media(max-width:1199px){.menu-header-panel{grid-template-columns:minmax(0,1fr) auto;gap:12px}.menu-header-actions{display:none}.catalog-more-trigger{display:inline-flex;align-self:start}.menu-back{grid-column:1/-1}.menu-header-identity{grid-column:1}.catalog-more-trigger{grid-column:2}.menu-header-meta{gap:4px 12px}}
 @media(max-width:479px){.catalog-more-trigger{width:44px;min-height:44px;padding:0;font-size:0;gap:0}.catalog-more-trigger svg{flex-shrink:0}}
+@media(max-width:767px){.menu-header-identity{grid-column:1/-1}.catalog-more-trigger{position:absolute;right:16px;bottom:16px;width:44px;min-height:44px;padding:0;font-size:0;gap:0}.menu-header-meta{padding-right:56px;min-height:44px}}
 </style>

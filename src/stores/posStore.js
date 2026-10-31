@@ -1848,8 +1848,10 @@ const posDefinition = {
           isActive: true
         })
       }
-      this.persistLocal()
+      const saved=this.persistLocal()
+      if(!saved.ok)return saved
       this.showToast(`บันทึก Add-on "${addonData.name}" สำเร็จ`, 'success')
+      return saved
     },
 
     deleteAddon(addonId) {

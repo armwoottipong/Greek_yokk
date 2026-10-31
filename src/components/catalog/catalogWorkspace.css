@@ -22,20 +22,30 @@
 
 .menu-header-identity {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 16px;
   min-width: 0;
 }
 
+.menu-header-identity--selected {
+  display: grid;
+  grid-template-columns: clamp(112px, 10vw, 144px) minmax(0, 1fr);
+}
+
 .menu-header-identity>div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-width: 0;
 }
 
 .menu-header-emoji {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 100%;
+  height: auto;
+  align-self: start;
+  aspect-ratio: 1;
   overflow: hidden;
   border-radius: 12px;
   font-size: 36px;
@@ -281,12 +291,26 @@
   .menu-header-identity {
     gap: 12px;
   }
+  .menu-header-identity--selected {
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+  .menu-header-identity--selected>div {
+    display: contents;
+  }
+  .menu-header-identity--selected h2 {
+    display: flex;
+    align-items: center;
+    min-height: 112px;
+  }
+  .menu-header-identity--selected .menu-header-description,
+  .menu-header-identity--selected .menu-header-meta {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
   .menu-header-panel h2 {
     font-size: 1.125rem;
   }
   .menu-header-emoji {
-    width: 44px;
-    height: 44px;
     font-size: 28px;
   }
   .menu-header-meta {

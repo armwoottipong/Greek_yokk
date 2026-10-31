@@ -38,7 +38,7 @@ export async function planBackupRehearsal(text,target={}){
   rows[name]=source.map(row=>{if(!exact(row,['id','data'])||!id(row.id))throw invalid();const data=decodeRehearsalValue(row.data);if(!map(data))throw invalid();return {id:row.id,data}})
  }
  const registry=root.materialIds,materials=rows.materials,catalog=rows.display.find(r=>r.id==='catalog')?.data
- for(const row of rows.catalogImages||[]){const image=row.data;try{validateImage(image.dataURL)}catch{throw invalid()}if(!['menus','materials'].includes(image.kind)||!id(image.entityId)||row.id!==`${image.kind}_${image.entityId}`||!Number.isSafeInteger(image.revision)||image.revision<1)throw invalid()}
+ for(const row of rows.catalogImages||[]){const image=row.data;try{validateImage(image.dataURL)}catch{throw invalid()}if(!['menus','addons','materials'].includes(image.kind)||!id(image.entityId)||row.id!==`${image.kind}_${image.entityId}`||!Number.isSafeInteger(image.revision)||image.revision<1)throw invalid()}
  if(!Array.isArray(registry)||new Set(registry).size!==registry.length||registry.length!==materials.length||registry.some(key=>!materials.some(m=>m.id===key&&m.data.id===key))||!catalog)throw invalid()
  for(const {data:m} of materials)if(!Array.isArray(m.lotIds)||new Set(m.lotIds).size!==m.lotIds.length||!map(m.lotQty)||!Number.isSafeInteger(m.stock)||m.stock<0||m.lotIds.some(key=>!Number.isSafeInteger(m.lotQty[key])||m.lotQty[key]<0)||m.stock!==m.lotIds.reduce((n,key)=>n+m.lotQty[key],0)||Object.hasOwn(m,'billPreparations')||Object.hasOwn(m,'billPreparationId'))throw invalid()
  const declared=catalog.legacyOrderCount??0,archives=new Map(rows.legacyRecords.map(r=>[r.id,r.data])),groups=new Map()

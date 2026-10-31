@@ -45,7 +45,7 @@ it('saves all recipe rows without legacy linkage and preserves a zero platform p
   await wrapper.get(`[aria-label="ราคา ${store.platforms[0].name}"]`).setValue('0')
   await button('บันทึก Add-on').trigger('click')
   await flushPromises()
-  expect(save).toHaveBeenCalledWith({ id: store.addons[0].id, name: store.addons[0].name,  emoji: store.addons[0].emoji, prices: expect.objectContaining({ [store.platforms[0].id]: 0 }), recipe: [{ materialId: 'BOM-FOOD', qty: 25 }, { materialId: 'BOM-PACK', qty: 2 }] })
+  expect(save).toHaveBeenCalledWith({ id: store.addons[0].id, name: store.addons[0].name,  emoji: store.addons[0].emoji, image: '', prices: expect.objectContaining({ [store.platforms[0].id]: 0 }), recipe: [{ materialId: 'BOM-FOOD', qty: 25 }, { materialId: 'BOM-PACK', qty: 2 }] })
   const saved = JSON.parse(localStorage.getItem('GY_DATABASE_V3')).addons[0]
   expect(saved.recipe).toEqual([{ materialId: 'BOM-FOOD', qty: 25 }, { materialId: 'BOM-PACK', qty: 2 }])
   expect(saved).not.toHaveProperty('materialId')

@@ -40,3 +40,12 @@ it('rejects mismatched entity keys, nonexistent targets and inactive generations
  await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),root),{status:'maintenance'},{merge:true}))
  await assertFails(setDoc(doc(d,imagePath),picture()))
 })
+it('allows Add-on images only for existing catalog Add-ons with Manager/Admin permissions',async()=>{
+ await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),root),{catalog:{addons:{A:{name:'Option'}}}},{merge:true}))
+ const path=`${base}/catalogImages/addons_A`,value=picture({kind:'addons',entityId:'A'})
+ await assertSucceeds(setDoc(doc(db(),path),value))
+ await assertSucceeds(getDoc(doc(db(),path)))
+ await assertFails(setDoc(doc(db('viewer'),path),{...value,revision:2,updatedBy:'viewer'}))
+ await assertFails(getDoc(doc(db('viewer'),path)))
+ await assertFails(setDoc(doc(db(),`${base}/catalogImages/addons_NONE`),{...value,entityId:'NONE'}))
+})

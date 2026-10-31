@@ -76,7 +76,7 @@ export function normalizeDatabase(raw, {
       }
       const item = clone(record),
         id = field === 'orders' ? record.orderId : record.id
-      if (['menus','materials'].includes(field) && record.image !== undefined) {
+      if (['menus','addons','materials'].includes(field) && record.image !== undefined) {
         try { item.image=validateImage(record.image) } catch { fail(`${p}.image`, 'INVALID_IMAGE') }
       }
       if (field !== 'stockShortages') {

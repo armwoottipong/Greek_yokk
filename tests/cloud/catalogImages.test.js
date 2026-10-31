@@ -13,6 +13,13 @@ it('confirms image writes in a transaction without changing business documents',
  expect(result.revision).toBe(3);expect(h.transaction.set).toHaveBeenCalledTimes(1)
  expect(h.transaction.set.mock.calls[0][0].path).toBe('shops/greek-yogg/generations/g/catalogImages/materials_M')
 })
+it('stores an existing Add-on picture separately and refuses nonexistent Add-ons',async()=>{
+ const h=setup();h.rows.root.catalog={addons:{A:{name:'Option'}}}
+ const result=await h.service.save('addons','A','data:image/jpeg;base64,/9j/2Q==',2)
+ expect(result).toMatchObject({kind:'addons',entityId:'A',revision:3})
+ expect(h.transaction.set.mock.calls[0][0].path).toContain('/catalogImages/addons_A')
+ await expect(h.service.save('addons','NONE','',2)).rejects.toThrow('IMAGE_ENTITY_MISSING')
+})
 it('blocks disconnected and Viewer writes before contacting Firebase',async()=>{
  for(const change of [{online:false},{ready:false},{role:'viewer'}]){
   const h=setup();Object.assign(h.context,change)

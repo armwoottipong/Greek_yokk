@@ -3,6 +3,7 @@
   <div class="menu-editor">
    <section class="menu-editor-basics" aria-label="ข้อมูล Add-on">
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอน Add-on" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="addon-name" label="ชื่อ Add-on" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น สตรอว์เบอร์รีสด (30g)"/></FormField></div>
+    <CatalogImageEditor v-if="store.modals.addonEdit.isOpen" ref="imageEditor" v-model="form.image" kind="addons" :entity-id="form.id" :emoji="form.emoji" :disabled="!!actionPending"/>
    </section>
    <details v-smooth-disclosure class="menu-editor-section" data-addon-prices open><summary><span>ราคาบวกเพิ่มแต่ละช่องทาง</span><small>{{ store.platforms.length }} ช่องทาง</small></summary><div class="menu-editor-section-body">
     <div class="menu-editor-prices"><FormField v-for="p in store.platforms" :key="p.id" :label="p.name" :hint="p.gpPercent>0?'ค่าธรรมเนียมช่องทาง '+p.gpPercent+'%':undefined" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.prices[p.id]" type="number" min="0" step="any" :aria-label="`ราคา ${p.name}`" placeholder="ยังไม่ตั้งราคา"><template #prefix>฿</template></AppInput></FormField></div>
@@ -26,6 +27,7 @@
 </template>
 <script setup>
 import {parsePlatformPrice} from '@/domain/pricing'
+import CatalogImageEditor from '@/components/images/CatalogImageEditor.vue'
 import '@/components/catalog/menuFocus.css'
 import {MATERIAL_KIND_OPTIONS, getMaterialKind} from '@/domain/materialClassification'
 import FormField from '@/components/ui/FormField.vue'
@@ -43,6 +45,8 @@ import {useActionPending} from '@/composables/useActionPending'
 const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
 const nameError=ref('')
+const imageEditor=ref(null),initialBusiness=ref(''),confirmedBusiness=ref('')
+const businessFingerprint=()=>JSON.stringify({...form.value,image:undefined})
 const editCatalogRevision=ref(null)
 const recipeErrors = ref([])
 
@@ -83,12 +87,14 @@ watch(() => store.modals.addonEdit.isOpen, (open) => {
   if (open) {
     editCatalogRevision.value=store.catalogRevision
     nameError.value=''
+    confirmedBusiness.value=''
     recipeErrors.value = []
     const id = store.modals.addonEdit.addonId
     const addon = id ? store.addons.find(a => a.id === id) : null
 
     form.value = {
       id: addon ? addon.id : '',
+      image: addon?.image || '',
       name: addon ? addon.name : '',
       category: addon ? addon.category : 'ผลไม้สด',
       emoji: addon ? addon.emoji : '🍓',
@@ -104,6 +110,7 @@ watch(() => store.modals.addonEdit.isOpen, (open) => {
 
     nextTick(() => {
       saveSnapshot()
+      initialBusiness.value=businessFingerprint()
     })
   }
 })
@@ -125,6 +132,10 @@ function close() {
 const submit=()=>runAction('save',performSave)
 async function performSave() {
   nameError.value=''
+  if(confirmedBusiness.value){
+    if(confirmedBusiness.value!==businessFingerprint()){nameError.value='ข้อมูล Add-on ถูกแก้เพิ่มหลังบันทึกแล้ว กรุณาคืนค่าหรือเปิดรายการใหม่ก่อนแก้ข้อมูลอื่น';return}
+    await savePictureAndClose();return
+  }
   if (!form.value.name.trim()) {
     nameError.value='กรุณากรอกชื่อ Add-on ก่อนบันทึก'
     await nextTick()
@@ -153,9 +164,15 @@ async function performSave() {
 
   const ok = await confirmSave(form.value.name.trim())
   if (!ok) return
+  try{imageEditor.value?.assertReady()}catch(e){nameError.value=e.message;return}
+  if(store.cloud&&form.value.id&&initialBusiness.value===businessFingerprint()){
+    confirmedBusiness.value=businessFingerprint()
+    await savePictureAndClose();return
+  }
 
   const previousIds=new Set(store.addons.map(addon=>addon.id))
   const result = await store.saveAddon({
+    ...(!store.cloud?{image:form.value.image||''}:{}),
     ...(store.cloud?{expectedCatalogRevision:editCatalogRevision.value}:{}),
     id: form.value.id || undefined,
     name: form.value.name.trim(),
@@ -165,9 +182,16 @@ async function performSave() {
   })
 
   if (result?.ok || result?.success || (!store.cloud&&result===undefined)){
-    store.modals.addonEdit.savedAddonId=form.value.id || store.addons.find(addon=>!previousIds.has(addon.id))?.id || null
-    close()
+    form.value.id=form.value.id || store.addons.find(addon=>!previousIds.has(addon.id))?.id
+    editCatalogRevision.value=store.catalogRevision
+    confirmedBusiness.value=businessFingerprint()
+    await savePictureAndClose()
   } else nameError.value=result?.message||'บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลและลองอีกครั้ง'
+}
+async function savePictureAndClose(){
+  try{await imageEditor.value?.save(form.value.id)}catch(e){nameError.value=`บันทึกข้อมูล Add-on แล้ว แต่รูปยังไม่สำเร็จ: ${e.message} · รูปที่เลือกยังอยู่ กดบันทึกเพื่อลองส่งเฉพาะรูปอีกครั้ง`;return}
+  store.modals.addonEdit.savedAddonId=form.value.id || null
+  close()
 }
 </script>
 

@@ -7,7 +7,7 @@
     <div class="bowl-addon-grid">
      <div v-for="addon in groupOptions(group)" :key="addon.id" class="bowl-group-option">
       <button type="button" class="bowl-addon" :data-group-option="group.id" :class="{'is-selected':isGroupSelected(group.id,addon.id),'is-unavailable':isAddonOutOfStock(addon)}" :aria-pressed="isGroupSelected(group.id,addon.id)" :disabled="!isGroupSelected(group.id,addon.id) && groupCount(group.id)>=group.maxSelections" @click="toggleGroupAddon(group,addon)">
-       <span class="bowl-addon-emoji" aria-hidden="true">{{ addon.emoji }}</span><span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="isAddonOutOfStock(addon)">ของหมด · ยืนยันเลือกต่อได้</small></span><span class="bowl-addon-price font-number">{{ getAddonPrice(addon) === 0 ? 'รวมในราคา' : '+฿'+getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isGroupSelected(group.id,addon.id)" :size="15"/><Plus v-else :size="15"/></span>
+       <span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span><span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="isAddonOutOfStock(addon)">ของหมด · ยืนยันเลือกต่อได้</small></span><span class="bowl-addon-price font-number">{{ getAddonPrice(addon) === 0 ? 'รวมในราคา' : '+฿'+getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isGroupSelected(group.id,addon.id)" :size="15"/><Plus v-else :size="15"/></span>
       </button>
       <div v-if="group.allowRepeat && isGroupSelected(group.id,addon.id)" class="bowl-option-quantity"><span>จำนวน {{ addon.name }}</span><IconButton :label="`ลด ${group.name} ${addon.name}`" @click="adjustGroupQty(group,addon,-1)"><Minus :size="16" aria-hidden="true"/></IconButton><span class="font-number">{{ groupSelection(group.id,addon.id)?.selectionQty }}</span><IconButton :label="`เพิ่ม ${group.name} ${addon.name}`" :disabled="groupCount(group.id)>=group.maxSelections" @click="adjustGroupQty(group,addon,1)"><Plus :size="16" aria-hidden="true"/></IconButton></div>
      </div>
@@ -23,7 +23,7 @@
    <p v-else-if="!activeAddons.length" class="bowl-no-addons">ยังไม่มีท็อปปิ้งเพิ่มเติม เพิ่มชามนี้ลงตะกร้าได้เลย</p>
    <div v-else class="bowl-addon-grid">
     <button v-for="addon in activeAddons" :key="addon.id" type="button" class="bowl-addon" :class="{'is-selected':isAddonSelected(addon.id),'is-unavailable':isAddonOutOfStock(addon)}" :aria-pressed="isAddonSelected(addon.id)" @click="toggleAddon(addon)">
-     <span class="bowl-addon-emoji" aria-hidden="true">{{ addon.emoji }}</span>
+     <span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span>
      <span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="isAddonOutOfStock(addon)">ของหมด · ยืนยันเลือกต่อได้</small><small v-else-if="addon.recipe?.length">{{ addon.recipe.map(row => `${store.matMap[row.materialId]?.name || row.materialId} ${row.qty} ${getMatUnit(row.materialId)}`).join(' · ') }}</small><small v-else>ท็อปปิ้งสำเร็จรูป</small></span>
      <span class="bowl-addon-price font-number">+฿{{ getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isAddonSelected(addon.id)" :size="15"/><Plus v-else :size="15"/></span>
     </button>
