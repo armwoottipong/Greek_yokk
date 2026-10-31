@@ -12,9 +12,9 @@
     <FilterDropdown teleport id="stock-filters" title="กรองวัตถุดิบ" :open="filterOpen" :anchor="filterFromMore?moreButton?.$el:filterButton?.$el" :include-dates="false" :values="{role,kind,showDeleted}" :fields="fields" @close="filterOpen=false" @apply="$emit('apply-filters',$event)" />
     <DialogFrame id="stock-more-actions" title="จัดการคลังสต็อก" :open="moreOpen" presentation="sheet" compact @request-close="moreOpen=false">
       <div class="stock-more">
-        <Button data-stock-more-receive @click="run('receive')"><ArrowDownToLine :size="18" aria-hidden="true"/>รับเข้าสต็อก</Button>
-        <Button data-stock-more-stocktake variant="secondary" @click="run('stocktake')"><ClipboardCheck :size="18" aria-hidden="true"/>ตรวจนับ</Button>
-        <Button data-stock-more-filter variant="secondary" @click="openFilters(true)"><SlidersHorizontal :size="18" aria-hidden="true"/>ตัวกรอง<span v-if="filterCount">{{ filterCount }}</span></Button>
+        <Button class="stock-more-compact" data-stock-more-receive @click="run('receive')"><ArrowDownToLine :size="18" aria-hidden="true"/>รับเข้าสต็อก</Button>
+        <Button class="stock-more-compact" data-stock-more-stocktake variant="secondary" @click="run('stocktake')"><ClipboardCheck :size="18" aria-hidden="true"/>ตรวจนับ</Button>
+        <Button class="stock-more-compact" data-stock-more-filter variant="secondary" @click="openFilters(true)"><SlidersHorizontal :size="18" aria-hidden="true"/>ตัวกรอง<span v-if="filterCount">{{ filterCount }}</span></Button>
         <Button variant="secondary" @click="run('adjust')">ปรับยอดนับจริง</Button>
         <Button variant="secondary" @click="run('create')">เพิ่มวัตถุดิบใหม่</Button>
         <Button variant="quiet" @click="run('history')">ประวัติสต็อก</Button>
@@ -44,9 +44,9 @@ const fields=computed(()=>[
 function run(action){moreOpen.value=false;emit(action)}
 </script>
 <style scoped>
-.receive-short{display:none}.stock-toolbar{display:flex;align-items:end;gap:12px;flex-wrap:wrap;min-width:0}.stock-actions,.stock-search{display:flex;align-items:center;gap:8px;min-width:0}.stock-actions{order:2}.stock-search{flex:1;order:1}.stock-search>.app-search{flex:1;min-width:0;background:var(--bg-card)}.stock-actions>.ui-button,.stock-search>.ui-button{min-height:48px;white-space:nowrap}.stock-more{display:grid;gap:10px}@media(max-width:767px){.receive-full{display:none}.receive-short{display:inline}.stock-search{flex-basis:100%}.stock-actions{width:100%}.stock-actions>:first-child{flex:1}.stock-search>.ui-button{flex-shrink:0}}
+.receive-short{display:none}.stock-toolbar{display:flex;align-items:end;gap:12px;flex-wrap:wrap;min-width:0}.stock-actions,.stock-search{display:flex;align-items:center;gap:8px;min-width:0}.stock-actions{order:2}.stock-search{flex:1;order:1}.stock-search>.app-search{flex:1;min-width:0;background:var(--bg-card)}.stock-actions>.ui-button,.stock-search>.ui-button{min-height:48px;white-space:nowrap}.stock-more{display:grid;gap:10px}.stock-more>.stock-more-compact{display:none}@media(max-width:767px){.receive-full{display:none}.receive-short{display:inline}.stock-search{flex-basis:100%}.stock-actions{width:100%}.stock-actions>:first-child{flex:1}.stock-search>.ui-button{flex-shrink:0}}
 </style>
 <style scoped>
-@media(max-width:1199px){.stock-toolbar{flex-wrap:nowrap;align-items:center;gap:8px}.stock-search{flex-basis:auto}.stock-actions{width:auto;flex-shrink:0}.stock-actions>[data-stock-receive],.stock-actions>[data-stocktake-open],.stock-search>[data-stock-filter]{display:none}.stock-actions>[data-stock-more]{flex:0 0 auto}.stock-actions>[data-stock-more] span{white-space:nowrap}}
+@media(max-width:1199px){.stock-more>.stock-more-compact{display:inline-flex}.stock-toolbar{flex-wrap:nowrap;align-items:center;gap:8px}.stock-search{flex-basis:auto}.stock-actions{width:auto;flex-shrink:0}.stock-actions>[data-stock-receive],.stock-actions>[data-stocktake-open],.stock-search>[data-stock-filter]{display:none}.stock-actions>[data-stock-more]{flex:0 0 auto}.stock-actions>[data-stock-more] span{white-space:nowrap}}
 @media(max-width:479px){[data-stock-more]>span:not(.stock-filter-count){display:none}[data-stock-more]{position:relative;width:48px;padding-inline:0}.stock-filter-count{position:absolute;top:-4px;right:-4px;display:grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:var(--accent-brand);color:var(--bg-card);font-size:.6875rem}}
 </style>
