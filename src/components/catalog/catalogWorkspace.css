@@ -32,6 +32,12 @@
 }
 
 .menu-header-emoji {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 12px;
   font-size: 36px;
   line-height: 1.4;
   flex-shrink: 0;
@@ -146,6 +152,12 @@
 }
 
 .menu-list-emoji {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 10px;
   font-size: 24px;
   flex-shrink: 0;
 }
@@ -273,6 +285,8 @@
     font-size: 1.125rem;
   }
   .menu-header-emoji {
+    width: 44px;
+    height: 44px;
     font-size: 28px;
   }
   .menu-header-meta {

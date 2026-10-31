@@ -18,5 +18,5 @@ watch(source,()=>{failed.value=false})
 onUnmounted(()=>stop?.())
 </script>
 <style scoped>
-.entity-image{display:grid;place-items:center;aspect-ratio:1;width:100%;height:100%;overflow:hidden;border-radius:inherit;flex-shrink:0}.entity-image img{display:block;width:100%;height:100%;object-fit:cover}.entity-image>span{line-height:1}
+.entity-image{position:relative;display:grid;place-items:center;aspect-ratio:1;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;border-radius:inherit;flex-shrink:0}.entity-image img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover}.entity-image>span{line-height:1}
 </style>
