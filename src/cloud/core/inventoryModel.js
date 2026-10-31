@@ -126,12 +126,16 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   materialDeletionEligibility(id){return materialDeletionEligibility(virtual.value,id)},
   async softDeleteMaterial(id){
    if(state.commands.length)return error('กรุณาบันทึกหรือยกเลิกแบบร่างคลังก่อนจัดเก็บวัตถุดิบ')
-   const refs=declaredMaterialReferences(virtual.value,id),live=refs.filter(ref=>!ref.retired)
-   if(live.length)return error(`ยังจัดเก็บไม่ได้: มีสูตรอ้างอิง ${live.map(ref=>ref.name).join(', ')} กรุณานำวัตถุดิบออกจากสูตรก่อน`)
+   try{guard()}catch(e){return error(e.message)}
+   const material=this.matMap[id];if(!material)return error('ไม่พบวัตถุดิบ')
+   const refs=declaredMaterialReferences(virtual.value,id),revision=virtual.value.shop.revision
    const users=virtual.value.shop.productionUsers?.[id]||[]
    if(users.length)return error(`ยังจัดเก็บไม่ได้: ใช้ในสูตรผลิต ${users.map(key=>this.matMap[key]?.name||key).join(', ')}`)
-   if(refs.length&&!await this.confirmDialog({title:'นำสูตรของรายการที่ลบแล้วออก?',message:`${refs.map(ref=>ref.name).join(', ')} ยังมีสูตรอ้างอิง จะนำสูตรของรายการที่ลบแล้วออกจากการใช้งานเพื่อจัดเก็บวัตถุดิบ ประวัติบิลเดิมยังอยู่`,confirmText:'นำสูตรออกและจัดเก็บ',cancelText:'เก็บไว้'}))return {ok:false}
-   return mutate([...this.retiredMaterialCommands(id),{kind:'material_archive',payload:{materialId:id,deleted:true}}])
+   const affected=refs.length?`\n\nถอดเฉพาะวัตถุดิบนี้ออกจากสูตร:\n${refs.map(ref=>`${ref.collection==='menus'?'เมนู':'Add-on'} · ${ref.name}${ref.retired?' (ลบแล้ว)':''}`).join('\n')}`:'\n\nไม่มีสูตรเมนูหรือ Add-on อ้างอิงรายการนี้'
+   if(!await this.confirmDialog({title:`จัดเก็บ ${material.name}?`,message:`รายการจะถูกซ่อนจากคลังที่ใช้งาน${affected}\n\nราคา ตัวเลือก และวัตถุดิบอื่นยังคงเดิม ประวัติบิลและสต็อกเดิมยังอยู่`,confirmationValue:'ยืนยัน',confirmText:refs.length?'ถอดจากสูตรและจัดเก็บ':'จัดเก็บรายการ',cancelText:'เก็บไว้',type:'danger'}))return {ok:false}
+   if(!alive)return {ok:false}
+   if(virtual.value.shop.revision!==revision)return error('ข้อมูลร้านเปลี่ยนระหว่างยืนยัน กรุณาตรวจรายการสูตรและยืนยันจัดเก็บใหม่')
+   return mutate([...this.detachMaterialCommands(id),{kind:'material_archive',payload:{materialId:id,deleted:true}}])
   },
   async restoreMaterial(id){return mutate([{kind:'material_archive',payload:{materialId:id,deleted:false}}])},
   async deleteMaterialPermanently(id){const eligibility=this.materialDeletionEligibility(id);if(!eligibility.allowed)return error(`ยังลบไม่ได้: ${eligibility.blockers.join(' · ')}`);return mutate([{kind:'material_delete',payload:{materialId:id}}])},

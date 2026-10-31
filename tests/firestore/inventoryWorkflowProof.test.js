@@ -49,7 +49,7 @@ it('saves original editor, receiving, count, waste, lot switch and archive inten
   expect((await model.commitStockDrafts()).ok).toBe(true)
   const remote=(await b.snapshot()).materials.find(m=>m.id==='NEW')
   expect(remote.stock).toBe(10500);expect(remote.activeLotId).toBe(lots[1].id)
-  expect((await model.softDeleteMaterial('NEW')).ok).toBe(true)
+  const archive=model.softDeleteMaterial('NEW');expect(model.modals.confirm.confirmationValue).toBe('ยืนยัน');model.modals.confirm.onConfirm();expect((await archive).ok).toBe(true)
   expect((await b.snapshot()).materials.find(m=>m.id==='NEW').deleted).toBe(true)
   expect((await model.restoreMaterial('NEW')).ok).toBe(true)
   expect((await b.snapshot()).materials.find(m=>m.id==='NEW').deleted).toBe(false)
@@ -101,7 +101,7 @@ it('runs original-model deletion and history clearing through server receipts re
  await seed();const a=transport('device-a'),b=transport('device-b'),{model}=await inventory(a)
  try {
   expect((await model.saveMaterial({id:'EMPTY',name:'Empty',emoji:'',unit:'g',inventoryType:'ingredient',packSize:100,packCost:0,unitCost:0,stock:0,minAlert:0,packUnit:'bag',hasSubRecipe:false})).ok).toBe(true)
-  expect((await model.softDeleteMaterial('EMPTY')).ok).toBe(true)
+  const archive=model.softDeleteMaterial('EMPTY');expect(model.modals.confirm.confirmationValue).toBe('ยืนยัน');model.modals.confirm.onConfirm();expect((await archive).ok).toBe(true)
   expect((await model.deleteMaterialPermanently('EMPTY')).ok).toBe(true)
   expect(model.matMap.EMPTY).toBeUndefined();expect((await b.snapshot()).materials.some(m=>m.id==='EMPTY')).toBe(false)
   const before=(await b.snapshot()).materials

@@ -1,4 +1,5 @@
 import {toScaledExact} from '../conversion.js'
+import {detachMaterialCommands} from './catalogDetachment.js'
 const clone=v=>JSON.parse(JSON.stringify(v))
 const scaled=v=>{const result=toScaledExact(Number(v),100);if(!result.ok||result.value<0)throw new Error('กรุณาระบุจำนวนหรือราคาไม่ติดลบและมีทศนิยมไม่เกิน 2 ตำแหน่ง');return result.value}
 const metadata=(input,old={})=>({name:input.name?.trim()||old.name||'',emoji:input.emoji??old.emoji??'',category:input.category??old.category??'',description:input.description??old.description??'',deleted:false})
@@ -27,12 +28,7 @@ export function createCatalogBindings({snapshot,mutate,error}){
   return {input:canonical,display}
  }
  return {
-  retiredMaterialCommands(materialId){
-   const d=snapshot(),entries=[]
-   for(const [id,row] of Object.entries(d.shop.catalog.menus))if(row.active===false&&d.display.menus?.[id]?.deleted&&Object.hasOwn(row.rawRecipe||row.recipe,materialId))entries.push({kind:'menu',payload:menuPayload({id},true)})
-   for(const [id,row] of Object.entries(d.shop.catalog.addons))if(row.active===false&&d.display.addons?.[id]?.deleted&&Object.hasOwn(row.recipe,materialId))entries.push({kind:'addon',payload:{entityId:id,input:{...clone(row),recipe:{},materialIds:[]},display:{...metadata({name:d.display.addons[id].name||row.name||id},d.display.addons[id]),deleted:true}}})
-   return entries
-  },
+  detachMaterialCommands:materialId=>detachMaterialCommands(snapshot(),materialId),
   saveMenu:guarded(input=>mutate([{kind:'menu',payload:menuPayload(input)}])),
   deleteMenu:guarded(id=>{const data=snapshot(),old=data.shop.catalog.menus[id];if(!old)return error('ไม่พบเมนู');return mutate([{kind:'menu',payload:menuPayload({id,name:data.display.menus?.[id]?.name||old.name,hasAddons:false},true)}])}),
   saveAddon:guarded(input=>{version(input);const d=snapshot(),c=d.shop.catalog,id=input.id||`ADDON-${crypto.randomUUID()}`,old=c.addons[id];return mutate([{kind:'addon',payload:{entityId:id,input:{name:input.name.trim(),active:input.isActive??old?.active??true,pricesCents:money(input.prices,c),recipe:recipe(input.recipe,c,d.materials)},display:metadata(input,d.display.addons?.[id])}}])}),

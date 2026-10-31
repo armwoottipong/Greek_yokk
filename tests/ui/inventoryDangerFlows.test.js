@@ -19,6 +19,17 @@ it('consumes a confirm callback once even when callback leaves the dialog open',
  const store=createTestStore();const callback=vi.fn();store.modals.confirm={isOpen:true,title:'Test',onConfirm:callback}
  const w=mount(Confirm);w.vm.onConfirm();w.vm.onConfirm();expect(callback).toHaveBeenCalledOnce();w.unmount()
 })
+it('requires the typed phrase before confirmation and clears it for the next operation',async()=>{
+ const store=createTestStore(),callback=vi.fn();store.modals.confirm={isOpen:true,title:'จัดเก็บนม',confirmationValue:'ยืนยัน',onConfirm:callback}
+ const w=mount(Confirm);await flushPromises()
+ const confirm=()=>w.get('[data-confirm-submit]')
+ expect(confirm().attributes('disabled')).toBeDefined();w.vm.onConfirm();expect(callback).not.toHaveBeenCalled()
+ await w.get('input').setValue('ไม่ยืนยัน');expect(confirm().attributes('disabled')).toBeDefined()
+ await w.get('input').setValue('ยืนยัน');expect(confirm().attributes('disabled')).toBeUndefined()
+ await w.get('input').trigger('keydown',{key:'Enter'});expect(callback).toHaveBeenCalledOnce()
+ store.modals.confirm={isOpen:true,title:'จัดเก็บกล้วย',confirmationValue:'ยืนยัน',onConfirm:callback};await flushPromises()
+ expect(w.get('input').element.value).toBe('');expect(confirm().attributes('disabled')).toBeDefined();w.unmount()
+})
 it('uses app confirmation instead of native confirmation for unused materials',async()=>{
  const store=createTestStore();store.materials=[material('M',100)]
  const confirm=vi.spyOn(store,'confirmDialog').mockResolvedValue(false)

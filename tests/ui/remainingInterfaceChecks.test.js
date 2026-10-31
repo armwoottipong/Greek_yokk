@@ -16,9 +16,9 @@ for(const [Component,modal,id] of [[MenuEdit,'menuEdit','menu-name'],[AddonEdit,
  const store=createTestStore();const w=mount(Component,{attachTo:document.body})
  try{store.modals[modal]={isOpen:true};await flushPromises();await w.vm.submit();await flushPromises();expect(document.activeElement.id).toBe(id)}finally{w.unmount()}
 })
-it('keeps error toasts until explicit dismissal and provides an existing polite region',async()=>{
+it('allows manual error dismissal before automatic expiry and provides an existing polite region',async()=>{
  vi.useFakeTimers();const store=createTestStore();const w=mount(Toast)
- try{expect(w.get('[data-toast-announcer]').text()).toBe('');store.showToast('ลองบันทึกอีกครั้ง','error');await flushPromises();vi.advanceTimersByTime(60000);await flushPromises();expect(store.toasts).toHaveLength(1);await w.get('button[aria-label="ปิดข้อความแจ้งเตือน"]').trigger('click');expect(store.toasts).toHaveLength(0)}finally{w.unmount();vi.useRealTimers()}
+ try{expect(w.get('[data-toast-announcer]').text()).toBe('');store.showToast('ลองบันทึกอีกครั้ง','error');await flushPromises();vi.advanceTimersByTime(4000);await flushPromises();expect(store.toasts).toHaveLength(1);await w.get('button[aria-label="ปิดข้อความแจ้งเตือน"]').trigger('click');expect(store.toasts).toHaveLength(0)}finally{w.unmount();vi.useRealTimers()}
 })
 it('updates route context and gives keyboard users a skip path into main',async()=>{
  const store=createTestStore();const w=mount(App,{attachTo:document.body})

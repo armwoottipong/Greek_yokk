@@ -47,7 +47,7 @@ function pause(id,kind){const entry=timers.get(id);if(!entry)return;entry[kind]=
 function resume(id,kind){const entry=timers.get(id);if(!entry)return;entry[kind]=false;if(!entry.paused||entry.hover||entry.focus)return;entry.paused=false;schedule(id,entry)}
 watch(()=>store.toasts.map(t=>t.id),()=>{
  for(const [id,entry] of timers)if(!store.toasts.some(t=>t.id===id)){clearTimeout(entry.handle);timers.delete(id)}
- for(const toast of store.toasts)if(toast.type!=='error'&&!timers.has(toast.id)){const entry={remaining:5000,paused:false,hover:false,focus:false};timers.set(toast.id,entry);schedule(toast.id,entry)}
+ for(const toast of store.toasts)if(!timers.has(toast.id)){const entry={remaining:toast.type==='error'?8000:5000,paused:false,hover:false,focus:false};timers.set(toast.id,entry);schedule(toast.id,entry)}
 },{immediate:true})
 onUnmounted(()=>{for(const entry of timers.values())clearTimeout(entry.handle);timers.clear()})
 </script>
