@@ -292,15 +292,13 @@
     gap: 12px;
   }
   .menu-header-identity--selected {
-    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
   .menu-header-identity--selected>div {
     display: contents;
   }
   .menu-header-identity--selected h2 {
-    display: flex;
-    align-items: flex-end;
-    min-height: 112px;
+    min-height: 0;
   }
   .menu-header-identity--selected .menu-header-description,
   .menu-header-identity--selected .menu-header-meta {

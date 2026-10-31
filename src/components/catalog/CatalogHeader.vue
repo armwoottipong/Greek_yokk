@@ -40,5 +40,5 @@ function run(action,value){moreOpen.value=false;emit(action,value)}
 .menu-header-actions{display:none}.catalog-more-trigger{display:inline-flex;align-self:start}.catalog-more-actions{display:grid;gap:10px}
 @media(max-width:1199px){.menu-header-panel{grid-template-columns:minmax(0,1fr) auto;gap:12px}.menu-header-actions{display:none}.catalog-more-trigger{display:inline-flex;align-self:start}.menu-back{grid-column:1/-1}.menu-header-identity{grid-column:1}.catalog-more-trigger{grid-column:2}.menu-header-meta{gap:4px 12px}}
 @media(max-width:479px){.catalog-more-trigger{width:44px;min-height:44px;padding:0;font-size:0;gap:0}.catalog-more-trigger svg{flex-shrink:0}}
-@media(max-width:767px){.menu-header-identity{grid-column:1/-1}.catalog-more-trigger{position:absolute;right:16px;bottom:16px;width:44px;min-height:44px;padding:0;font-size:0;gap:0}.menu-header-meta{padding-right:56px;min-height:44px}}
+@media(max-width:767px){.menu-header-identity{grid-column:1/-1}.menu-header-identity:not(.menu-header-identity--selected){padding-right:56px}.catalog-more-trigger{position:absolute;right:16px;top:16px;width:44px;min-height:44px;padding:0;font-size:0;gap:0}}
 </style>
