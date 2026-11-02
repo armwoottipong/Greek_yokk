@@ -15,6 +15,7 @@
     <span class="menu-price-info-formula">ราคาแนะนำ = ราคาหน้าร้าน ÷ (1 − GP / 100) ปัดขึ้นเป็นสตางค์ · คิดเฉพาะ GP ที่ตั้งไว้</span>
    </span>
   </span>
+  <span v-if="open" class="menu-price-info-arrow" :class="{'is-above':above}" :style="arrowPosition" aria-hidden="true"/>
  </span>
 </template>
 <script setup>
@@ -23,6 +24,7 @@ import { Info } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import { recommendedPrice, netAfterGp } from '@/domain/pricing'
 import { topOverlayLayer } from '@/composables/overlayState'
+import {floatingInfoPlacement} from './floatingInfoPlacement'
 
 const props = defineProps({
  open: Boolean,
@@ -32,20 +34,15 @@ const props = defineProps({
  hasStorefront: Boolean
 })
 const emit = defineEmits(['toggle', 'close', 'apply'])
-const root = ref(null), trigger = ref(null), panel = ref(null), position = ref({})
+const root = ref(null), trigger = ref(null), panel = ref(null), position = ref({visibility:'hidden'}),arrowPosition=ref({visibility:'hidden'}),above=ref(false)
 const panelId = `menu-price-info-${useId()}`
 const suggestion = computed(() => recommendedPrice(props.hasStorefront ? props.storefrontPrice : undefined, props.platform.gpPercent ?? 0))
 const formatPrice = value => value === null ? '—' : value.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 function place() {
  if (!props.open || !trigger.value || !panel.value) return
- const anchor = trigger.value.getBoundingClientRect(), margin = 12
- const width = Math.min(300, window.innerWidth - margin * 2)
- const height = Math.min(panel.value.getBoundingClientRect().height, window.innerHeight - margin * 2)
- const below = anchor.bottom + 8
- const preferredTop = below + height <= window.innerHeight - margin ? below : anchor.top - height - 8
- const top = Math.max(margin, Math.min(preferredTop, window.innerHeight - height - margin))
- position.value = { zIndex: topOverlayLayer() + 10, width: `${width}px`, left: `${Math.max(margin, Math.min(anchor.right - width, window.innerWidth - width - margin))}px`, top: `${top}px`, maxHeight: `${window.innerHeight - margin * 2}px` }
+ const placement=floatingInfoPlacement(trigger.value,panel.value,300,topOverlayLayer()+10)
+ position.value=placement.panel;arrowPosition.value=placement.arrow;above.value=placement.above
 }
 function outside(event) { if (!root.value?.contains(event.target)) emit('close') }
 function leave(event) { if (event.relatedTarget && !root.value?.contains(event.relatedTarget)) emit('close') }
@@ -79,6 +76,7 @@ onUnmounted(detach)
 @media(hover:hover){.menu-price-info-trigger:hover{background:var(--accent-soft);color:var(--accent-brand)}}
 .menu-price-info-trigger:focus-visible{outline:2px solid var(--accent-brand);outline-offset:1px}
 .menu-price-info-panel{position:fixed;display:grid;gap:10px;width:min(300px,calc(100vw - 24px));max-height:calc(100vh - 24px);padding:16px;background:var(--bg-card);color:var(--text-muted);box-shadow:var(--shadow-popup);border-radius:14px;font-size:.8125rem;line-height:1.7;text-align:left;overflow:auto;overscroll-behavior:contain;overflow-wrap:anywhere}
+.menu-price-info-arrow{position:fixed;width:12px;height:12px;transform:rotate(45deg);background:var(--bg-card);border-top:1px solid var(--border-subtle);border-left:1px solid var(--border-subtle);pointer-events:none}.menu-price-info-arrow.is-above{border:0;border-right:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle)}
 .menu-price-info-panel strong{font-weight:500;color:var(--text-main);font-variant-numeric:tabular-nums}
 .menu-price-info-heading{font-size:.875rem}
 .menu-price-info-suggestion{display:grid;gap:12px;padding-top:12px;border-top:1px solid var(--border-subtle)}
