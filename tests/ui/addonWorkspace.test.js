@@ -4,7 +4,7 @@ import {createTestStore,material} from '../helpers/createStore'
 import Addon from '../../src/views/AddonView.vue'
 import Editor from '../../src/components/modals/AddonEditModal.vue'
 
-const showAnalysis=async w=>{await w.get('[data-addon-section="addons"]').trigger('click');await w.get('[data-catalog-analysis="addon"]').trigger('click');await flushPromises()}
+const showAnalysis=async w=>{await w.get('[data-addon-section="addons"]').trigger('click');document.querySelector('[data-catalog-analysis="addon"]').click();await flushPromises()}
 
 it('uses an active header, selectable list, all-platform analysis and recipe without a details popup',async()=>{
  const s=createTestStore();s.resetDemoData();const original=s.currentPlatformId,w=mount(Addon,{attachTo:document.body})

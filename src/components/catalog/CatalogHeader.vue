@@ -7,7 +7,7 @@
    <div class="menu-header-meta"><StatusBadge :label="selected.isActive===false?'ปิดขาย':'เปิดขาย'" :tone="selected.isActive===false?'warning':'neutral'"/><span>{{ platformCount }} ช่องทางที่ตั้งราคา</span><span>{{ (selected.recipe||[]).length }} รายการในสูตร</span></div>
   </div></div>
   <div v-else class="menu-header-identity"><div><h2>{{ labels.headerTitle }}</h2><p class="menu-header-description">{{ labels.description }}</p></div></div>
-  <div v-if="selected && entity==='menu'" id="menu-analysis-anchor" class="catalog-analysis-anchor"/>
+  <div v-if="selected" :id="`${entity}-analysis-anchor`" class="catalog-analysis-anchor"/>
   <Button v-bind="{[`data-${entity}-more`]:''}" class="catalog-more-trigger" variant="secondary" :disabled="busy" aria-haspopup="dialog" :aria-expanded="moreOpen" :aria-controls="`${entity}-header-actions`" @click="moreOpen=true"><MoreHorizontal :size="20" aria-hidden="true"/>เพิ่มเติม</Button>
   <div class="menu-header-actions">
    <Button data-catalog-add :disabled="busy" @click="$emit('add')"><Plus :size="16" aria-hidden="true"/>{{ labels.add }}</Button>

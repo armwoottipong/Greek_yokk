@@ -1,6 +1,6 @@
 <template>
  <div id="addon-details" class="addon-detail-workspace">
-  <CatalogAnalysisDialog entity="addon" :reset-key="addon.id"><section class="addon-analysis" aria-label="ข้อมูลวิเคราะห์ Add-on">
+  <CatalogAnalysisDialog entity="addon" :reset-key="addon.id" :trigger-target="analysisTriggerTarget"><section class="addon-analysis" aria-label="ข้อมูลวิเคราะห์ Add-on">
    <MenuPlatformOverview :menu="addon" :platforms="platforms" :cost="cost" unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="Add-on">
     <template #controls><AnalysisInfo entity="addon" :reset-key="addon.id">
      <span>เปรียบเทียบเมื่อคิดราคามาตรฐาน Add-on แยกตามช่องทาง · ไม่รวมราคาเมนูหลัก ราคาเฉพาะกลุ่ม หรือรายการที่รวมฟรีในเมนู</span>
@@ -27,7 +27,7 @@ import MenuPlatformOverview from './MenuPlatformOverview.vue'
 import CatalogAnalysisDialog from './CatalogAnalysisDialog.vue'
 import AnalysisInfo from './AnalysisInfo.vue'
 import Button from '../ui/Button.vue'
-const props=defineProps({addon:{type:Object,required:true},items:{type:Array,default:()=>[]},cost:{type:Number,default:null},platforms:{type:Array,default:()=>[]},usedGroups:{type:Array,default:()=>[]}})
+const props=defineProps({addon:{type:Object,required:true},items:{type:Array,default:()=>[]},cost:{type:Number,default:null},platforms:{type:Array,default:()=>[]},usedGroups:{type:Array,default:()=>[]},analysisTriggerTarget:String})
 defineEmits(['edit'])
 const groups=computed(()=>[{type:'ingredient',label:'วัตถุดิบ'},{type:'packaging',label:'บรรจุภัณฑ์'}].map(group=>{
  const items=props.items.filter(item=>(item.mat?.inventoryType==='packaging'?'packaging':'ingredient')===group.type)

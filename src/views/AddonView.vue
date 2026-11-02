@@ -4,7 +4,7 @@
   <template #after-header><AddonGroupManager id="addon-groups" v-show="activeSection==='groups'"/></template>
   <template #header><CatalogHeader :busy="!!actionPending||store.inventorySaving" :removing="!!actionPending" v-show="activeSection==='addons'" entity="addon" :selected="selectedAddon" :platform-count="configuredPlatformCount" @back="requestAction({type:'back'})" @add="requestAction({type:'new'})" @edit="requestAction({type:'edit',id:$event})" @delete="deleteAddon"/></template>
   <template #browser><CatalogBrowser v-model="searchQuery" entity="addon" :items="filteredAddons" :selected-id="selectedId" @select="requestAction({type:'select',id:$event})" @add="requestAction({type:'new'})"/></template>
-  <template v-if="selectedAddon"><AddonRecipeDetails :addon="selectedAddon" :items="detailedRecipeItems" :cost="selectedAddonCost" :platforms="store.platforms" :used-groups="selectedGroups" @edit="requestAction({type:'edit',id:selectedAddon.id,section:$event?.section})"/></template>
+  <template v-if="selectedAddon"><AddonRecipeDetails :addon="selectedAddon" :items="detailedRecipeItems" :cost="selectedAddonCost" :platforms="store.platforms" :used-groups="selectedGroups" analysis-trigger-target="#addon-analysis-anchor" @edit="requestAction({type:'edit',id:selectedAddon.id,section:$event?.section})"/></template>
   <CatalogEmptyState v-else entity="addon" @add="requestAction({type:'new'})"/>
  </CatalogWorkspace>
 </template>

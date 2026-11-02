@@ -9,14 +9,13 @@ it.each([[Menu,'menu'],[Addon,'addon']])('opens %s platform analysis on demand',
  const wrapper=mount(View,{attachTo:document.body})
  try{
   expect(document.querySelector('[data-menu-platform]')).toBeNull()
-  if(kind==='menu'){await new Promise(resolve=>setTimeout(resolve,0));await flushPromises()}
+  if(kind==='addon')await wrapper.get('[data-addon-section="addons"]').trigger('click')
+  await new Promise(resolve=>setTimeout(resolve,0));await flushPromises()
   const trigger=document.querySelector(`[data-catalog-analysis="${kind}"]`)
   expect(trigger).not.toBeNull()
-  if(kind==='menu'){
-   expect(trigger.closest('[data-menu-header]')).not.toBeNull()
-   expect(document.querySelector('#menu-recipe > .menu-recipe-panel')).not.toBeNull()
-   expect(document.querySelector('#menu-recipe > .catalog-analysis-action--ported')).not.toBeNull()
-  }
+  expect(trigger.closest(`[data-${kind}-header]`)).not.toBeNull()
+  expect(document.querySelector(kind==='menu'?'#menu-recipe > .menu-recipe-panel':'#addon-details > .addon-recipe-panel')).not.toBeNull()
+  expect(document.querySelector(`${kind==='menu'?'#menu-recipe':'#addon-details'} > .catalog-analysis-action--ported`)).not.toBeNull()
   trigger.click();await flushPromises()
   expect(document.querySelector('[role="dialog"] [data-menu-platform]')).not.toBeNull()
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('ภาพรวมทุกแพลตฟอร์ม')

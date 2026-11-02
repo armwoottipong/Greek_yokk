@@ -40,7 +40,7 @@ it('shows all platform financials for the active addon without changing checkout
  const store=createTestStore();store.resetDemoData();const original=store.currentPlatformId,w=mount(AddonView,{attachTo:document.body})
  try{
   await w.get('[data-addon-section="addons"]').trigger('click')
-  await w.get('[data-catalog-analysis="addon"]').trigger('click');await flushPromises()
+  document.querySelector('[data-catalog-analysis="addon"]').click();await flushPromises()
   expect(w.findAll('[data-addon-select]')).toHaveLength(store.addons.length)
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
   expect(w.find('[aria-label="ช่องทางที่แสดงราคา"]').exists()).toBe(false)
