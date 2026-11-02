@@ -9,8 +9,15 @@ it.each([[Menu,'menu'],[Addon,'addon']])('opens %s platform analysis on demand',
  const wrapper=mount(View,{attachTo:document.body})
  try{
   expect(document.querySelector('[data-menu-platform]')).toBeNull()
-  const trigger=wrapper.get(`[data-catalog-analysis="${kind}"]`)
-  await trigger.trigger('click');await flushPromises()
+  if(kind==='menu'){await new Promise(resolve=>setTimeout(resolve,0));await flushPromises()}
+  const trigger=document.querySelector(`[data-catalog-analysis="${kind}"]`)
+  expect(trigger).not.toBeNull()
+  if(kind==='menu'){
+   expect(trigger.closest('[data-menu-header]')).not.toBeNull()
+   expect(document.querySelector('#menu-recipe > .menu-recipe-panel')).not.toBeNull()
+   expect(document.querySelector('#menu-recipe > .catalog-analysis-action--ported')).not.toBeNull()
+  }
+  trigger.click();await flushPromises()
   expect(document.querySelector('[role="dialog"] [data-menu-platform]')).not.toBeNull()
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('ภาพรวมทุกแพลตฟอร์ม')
   document.querySelector('[role="dialog"] button[aria-label="ปิดหน้าต่าง"]').click();await flushPromises()

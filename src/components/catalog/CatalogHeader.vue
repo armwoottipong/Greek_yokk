@@ -7,6 +7,7 @@
    <div class="menu-header-meta"><StatusBadge :label="selected.isActive===false?'ปิดขาย':'เปิดขาย'" :tone="selected.isActive===false?'warning':'neutral'"/><span>{{ platformCount }} ช่องทางที่ตั้งราคา</span><span>{{ (selected.recipe||[]).length }} รายการในสูตร</span></div>
   </div></div>
   <div v-else class="menu-header-identity"><div><h2>{{ labels.headerTitle }}</h2><p class="menu-header-description">{{ labels.description }}</p></div></div>
+  <div v-if="selected && entity==='menu'" id="menu-analysis-anchor" class="catalog-analysis-anchor"/>
   <Button v-bind="{[`data-${entity}-more`]:''}" class="catalog-more-trigger" variant="secondary" :disabled="busy" aria-haspopup="dialog" :aria-expanded="moreOpen" :aria-controls="`${entity}-header-actions`" @click="moreOpen=true"><MoreHorizontal :size="20" aria-hidden="true"/>เพิ่มเติม</Button>
   <div class="menu-header-actions">
    <Button data-catalog-add :disabled="busy" @click="$emit('add')"><Plus :size="16" aria-hidden="true"/>{{ labels.add }}</Button>
@@ -38,7 +39,9 @@ function run(action,value){moreOpen.value=false;emit(action,value)}
 </script>
 <style scoped>
 .menu-header-actions{display:none}.catalog-more-trigger{display:inline-flex;align-self:start}.catalog-more-actions{display:grid;gap:10px}
+.catalog-analysis-anchor{position:absolute;right:24px;bottom:24px}
 @media(max-width:1199px){.menu-header-panel{grid-template-columns:minmax(0,1fr) auto;gap:12px}.menu-header-actions{display:none}.catalog-more-trigger{display:inline-flex;align-self:start}.menu-back{grid-column:1/-1}.menu-header-identity{grid-column:1}.catalog-more-trigger{grid-column:2}.menu-header-meta{gap:4px 12px}}
 @media(max-width:479px){.catalog-more-trigger{width:44px;min-height:44px;padding:0;font-size:0;gap:0}.catalog-more-trigger svg{flex-shrink:0}}
 @media(max-width:767px){.menu-header-identity{grid-column:1/-1}.menu-header-identity:not(.menu-header-identity--selected){padding-right:56px}.catalog-more-trigger{position:absolute;right:16px;top:16px;width:44px;min-height:44px;padding:0;font-size:0;gap:0}}
+@media(max-width:767px){.catalog-analysis-anchor{right:16px;bottom:16px}.menu-header-meta{padding-right:56px}}
 </style>

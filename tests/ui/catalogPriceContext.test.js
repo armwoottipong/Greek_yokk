@@ -17,7 +17,7 @@ it('shows every admin platform without changing checkout and removes stale platf
  const store=createTestStore();store.resetDemoData();const setPlatform=vi.spyOn(store,'setPlatform')
  const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
+  document.querySelector('[data-catalog-analysis="menu"]').click();await flushPromises()
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
   expect(setPlatform).not.toHaveBeenCalled()
   const removed=store.platforms[1].id

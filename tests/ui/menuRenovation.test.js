@@ -20,7 +20,7 @@ it('selects another menu without changing checkout channel or saved menu data',a
  const store=createTestStore();store.resetDemoData();const before=JSON.stringify(store.menus),platform=store.currentPlatformId,w=mount(Menu,{attachTo:document.body})
  try{
   await w.findAll('[data-menu-select]')[1].trigger('click');await flushPromises()
-  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
+  document.querySelector('[data-catalog-analysis="menu"]').click();await flushPromises()
   expect(w.get('[data-selected-menu-name]').text()).toContain(store.menus[1].name)
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
   expect(store.currentPlatformId).toBe(platform);expect(JSON.stringify(store.menus)).toBe(before)

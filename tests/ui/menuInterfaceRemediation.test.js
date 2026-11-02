@@ -100,7 +100,7 @@ it.each([['',10],[1,0]])('does not publish profit when a recipe row is indetermi
  const w=mount(Menu,{attachTo:document.body})
  try{
   expect(w.get('[data-menu-recipe-panel] .recipe-item b').text()).toContain('ยังไม่ทราบต้นทุน')
-  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
+  document.querySelector('[data-catalog-analysis="menu"]').click();await flushPromises()
   expect(document.querySelector('[data-menu-financial=cost]').textContent).toContain('ยังคำนวณไม่ได้')
   expect(document.querySelector('[data-menu-financial=profit]').textContent).toContain('ยังคำนวณไม่ได้')
   expect(document.querySelector('[data-platform-chart]')).toBeNull()
@@ -110,5 +110,5 @@ it('keeps financial analysis available when only excluded packaging has an unkno
  const s=createTestStore();s.resetDemoData();s.materials.push(material('BAD-PACK',100,{inventoryType:'packaging',unitCost:null}))
  s.menus[0].hasPackage=false;s.menus[0].recipe.push({materialId:'BAD-PACK',qty:1})
  const w=mount(Menu,{attachTo:document.body})
- try{await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises();expect(document.querySelector('[data-menu-financial=profit]').textContent).toContain('฿');expect(document.querySelector('[data-platform-chart]')).not.toBeNull()}finally{w.unmount()}
+ try{document.querySelector('[data-catalog-analysis="menu"]').click();await flushPromises();expect(document.querySelector('[data-menu-financial=profit]').textContent).toContain('฿');expect(document.querySelector('[data-platform-chart]')).not.toBeNull()}finally{w.unmount()}
 })

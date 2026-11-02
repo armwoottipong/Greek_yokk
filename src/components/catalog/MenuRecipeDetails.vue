@@ -1,6 +1,6 @@
 <template>
  <div id="menu-recipe" class="menu-detail-workspace">
-  <CatalogAnalysisDialog entity="menu" :reset-key="menu.id"><section class="menu-analysis-panel" aria-label="ข้อมูลวิเคราะห์เมนู">
+  <CatalogAnalysisDialog entity="menu" :reset-key="menu.id" :trigger-target="analysisTriggerTarget"><section class="menu-analysis-panel" aria-label="ข้อมูลวิเคราะห์เมนู">
    <section aria-label="รายรับ ต้นทุน และกำไร">
     <MenuPlatformOverview :menu="menu" :platforms="platforms" :cost="displayCost" :estimated="hasEstimates" :worst="worstView">
      <template #controls>
@@ -33,7 +33,7 @@ import MenuRecipePanel from './MenuRecipePanel.vue'
 import {computed,ref,watch} from 'vue'
 import IconButton from '../ui/IconButton.vue'
 import {ArrowLeftRight} from 'lucide-vue-next'
-const props=defineProps({menu:{type:Object,required:true},items:{type:Array,default:()=>[]},foodCost:Number,costEstimate:Object,platforms:Array,addonGroups:{type:Array,default:()=>[]}})
+const props=defineProps({menu:{type:Object,required:true},items:{type:Array,default:()=>[]},foodCost:Number,costEstimate:Object,platforms:Array,addonGroups:{type:Array,default:()=>[]},analysisTriggerTarget:String})
 const worstView=ref(false)
 watch(()=>props.menu.id,()=>{worstView.value=false})
 const hasEstimates=computed(()=>Boolean(props.costEstimate?.groups.length))

@@ -2,7 +2,7 @@
  <CatalogWorkspace ref="workbench" entity="menu" :mobile-detail="mobileDetail">
   <template #header><CatalogHeader :busy="!!actionPending||store.inventorySaving" :removing="!!actionPending" entity="menu" :selected="selectedMenu" :platform-count="pricedPlatformCount" @back="requestAction({type:'back'})" @add="requestAction({type:'new'})" @edit="requestAction({type:'edit',id:$event})" @delete="deleteMenu"/></template>
   <template #browser><CatalogBrowser v-model="searchQuery" entity="menu" :items="filteredMenus" :selected-id="selectedId" @select="requestAction({type:'select',id:$event})" @add="requestAction({type:'new'})"/></template>
-  <template v-if="selectedMenu"><MenuRecipeDetails :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :cost-estimate="selectedMenuCostEstimate" :platforms="store.platforms" :addon-groups="selectedGroups" @edit="requestAction({type:'edit',id:selectedMenu.id,section:$event?.section})"/></template>
+  <template v-if="selectedMenu"><MenuRecipeDetails :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :cost-estimate="selectedMenuCostEstimate" :platforms="store.platforms" :addon-groups="selectedGroups" analysis-trigger-target="#menu-analysis-anchor" @edit="requestAction({type:'edit',id:selectedMenu.id,section:$event?.section})"/></template>
   <CatalogEmptyState v-else entity="menu" @add="requestAction({type:'new'})"/>
  </CatalogWorkspace>
 </template>

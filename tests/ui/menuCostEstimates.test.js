@@ -17,7 +17,7 @@ it('shows average and worst-case profit after GP in menu details',async()=>{
  setup();const w=mount(Menu,{attachTo:document.body})
  try {
   await w.get('[data-catalog-details]').trigger('click');await flushPromises()
-  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
+  document.querySelector('[data-catalog-analysis="menu"]').click();await flushPromises()
   expect(document.querySelector('[data-menu-average-profit]').textContent).toContain('฿23.00')
   expect(document.querySelector('[data-menu-platform=PLAT02] [data-menu-financial=profit]').textContent).toContain('฿37.00')
   expect(document.querySelector('[data-menu-financial="cost"]').textContent).toContain('฿47.00')

@@ -33,7 +33,7 @@ it('shows a clear empty state when every platform price is missing or zero',asyn
  const store=createTestStore();store.resetDemoData();store.menus[0].prices={}
  const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-analysis="menu"]').trigger('click')
+  document.querySelector('[data-catalog-analysis="menu"]').click()
   await flushPromises()
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(0)
   expect(document.querySelector('.overview-empty').textContent).toContain('ยังไม่ได้ตั้งราคาขาย')

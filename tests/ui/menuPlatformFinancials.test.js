@@ -5,7 +5,7 @@ import Menu from '../../src/views/MenuView.vue'
 
 const row = id => document.querySelector(`[data-menu-platform="${id}"]`)
 const value = (id,key) => row(id).querySelector(`[data-menu-financial="${key}"]`).textContent
-const openAnalysis=async wrapper=>{await wrapper.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()}
+const openAnalysis=async()=>{document.querySelector('[data-catalog-analysis="menu"]').click();await flushPromises()}
 
 it('shows all platform financials immediately without choosing a platform or changing POS',async()=>{
  const store=createTestStore();store.resetDemoData()

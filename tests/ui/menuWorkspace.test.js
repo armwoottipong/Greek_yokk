@@ -10,7 +10,7 @@ it('selects menus in place and shows all channels plus recipe without a dialog o
   expect(w.get('[data-menu-select]').attributes('aria-pressed')).toBe('true')
   expect(w.find('[role=dialog]').exists()).toBe(false)
   expect(w.find('[data-platform-tab]').exists()).toBe(false)
-  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
+  document.querySelector('[data-catalog-analysis="menu"]').click();await flushPromises()
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(s.platforms.length)
   await w.findAll('[data-menu-select]')[1].trigger('click')
   expect(w.get('[data-selected-menu-name]').text()).toContain(s.menus[1].name)
