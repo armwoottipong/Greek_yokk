@@ -21,10 +21,10 @@
    <details v-smooth-disclosure class="menu-editor-section" data-menu-groups open><summary><span>กลุ่มตัวเลือก</span><small>{{ form.addonGroupIds?.length || 0 }} กลุ่ม</small></summary><div class="menu-editor-section-body menu-editor-options">
     <FormField id="menu-option-mode" label="รูปแบบตัวเลือก" v-slot="{controlId}"><AppSelect :id="controlId" :model-value="Array.isArray(form.addonGroupIds) ? 'groups' : 'legacy'" @update:model-value="form.addonGroupIds = $event === 'groups' ? [] : undefined"><option value="legacy">ใช้ Add-on ทั้งหมดตามเดิม</option><option value="groups">ใช้กลุ่มตัวเลือกที่กำหนด</option></AppSelect></FormField>
     <template v-if="Array.isArray(form.addonGroupIds)">
-     <p class="menu-editor-help">เลือกได้หลายกลุ่ม กำหนดรายการ จำนวน และราคาได้ที่หน้า Add-on หากไม่เลือกกลุ่ม เมนูนี้จะไม่มีตัวเลือก</p>
+     <p class="menu-editor-help">เลือกกลุ่มที่สร้างไว้แล้ว กลุ่มเดียวกันใช้ซ้ำได้หลายเมนู</p>
      <p v-if="!form.hasAddons" class="menu-editor-help">เปิด “อนุญาตให้เลือก Add-on” ในตัวเลือกการขาย เพื่อใช้กลุ่มที่เลือกไว้</p>
-     <AppCheckbox v-for="group in store.addonGroups" :key="group.id" :model-value="form.addonGroupIds.includes(group.id)" :label="group.name" @update:model-value="toggleGroup(group.id, $event)">{{ group.name }} · {{ group.pricingMode === 'included' ? 'รวมในราคา' : 'เพิ่มเงิน' }} · {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่' : 'ชนิด' }}</AppCheckbox>
-     <p v-if="!store.addonGroups.length" class="menu-editor-empty">ยังไม่มีกลุ่มตัวเลือก สร้างกลุ่มได้ที่หน้า Add-on</p>
+     <div data-menu-group-summary class="menu-group-summary"><p v-for="id in form.addonGroupIds" :key="id">{{ store.addonGroups.find(group=>group.id===id)?.name||'ไม่พบกลุ่มตัวเลือก' }}</p><p v-if="!form.addonGroupIds.length">ยังไม่เลือกกลุ่มตัวเลือก</p></div>
+     <Button variant="secondary" data-open-group-picker @click="openGroupPicker">เลือกตัวเลือกเสริม <span>{{ form.addonGroupIds.length }}/2 กลุ่ม</span></Button>
     </template>
    </div></details>
    <details v-smooth-disclosure class="menu-editor-section" data-menu-permissions><summary><span>ตัวเลือกการขาย</span><small>ท็อปปิ้งและบรรจุภัณฑ์</small></summary><div class="menu-editor-section-body menu-editor-options">
@@ -49,6 +49,16 @@
   </div>
   <template #footer><div class="menu-editor-footer"><Button variant="quiet" :disabled="!!actionPending" @click="requestClose(close)">ยกเลิก</Button><Button :loading="!!actionPending" @click="submit"><Check :size="18" aria-hidden="true"/>บันทึกข้อมูลเมนู</Button></div></template>
  </DialogFrame>
+ <DialogFrame :open="pickerOpen" id="menu-group-picker" title="เลือกตัวเลือกเสริม" description="เลือกกลุ่มให้เมนูนี้ได้สูงสุด 2 กลุ่มตามระบบปัจจุบัน" :presentation="mobile?'drawer':'dialog'" width="720px" @request-close="closePicker">
+  <div class="group-picker-list">
+   <label v-for="group in store.addonGroups" :key="group.id" class="group-picker-row" :data-picker-group="group.id"><span><strong>{{ group.name }}</strong><small>{{ group.pricingMode==='included'?'รวมในราคาเมนู':'คิดเงินเพิ่มตามตัวเลือก' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat?'ที่':'ชนิด' }} · {{ group.options.length }} ตัวเลือก</small></span><input type="checkbox" :checked="pickerIds.includes(group.id)" :disabled="!pickerIds.includes(group.id)&&pickerIds.length>=2" :aria-label="`เลือกกลุ่ม ${group.name}`" @change="togglePickerGroup(group.id,$event.target.checked)"/></label>
+   <p v-if="!store.addonGroups.length" class="menu-editor-empty">ยังไม่มีกลุ่มตัวเลือก สร้างกลุ่มแรกได้ด้านล่าง</p>
+   <p class="menu-editor-help">สถานะพักตัวเลือกเฉพาะกลุ่ม: ไม่พร้อมใช้งานในระบบปัจจุบัน</p>
+   <Button variant="quiet" data-create-group-from-menu @click="createGroupFromPicker"><Plus :size="16" aria-hidden="true"/>สร้างตัวเลือกเสริมใหม่</Button>
+  </div>
+  <template #footer><Button variant="quiet" @click="closePicker">ยกเลิก</Button><Button @click="finishPicker">เสร็จสิ้น</Button></template>
+ </DialogFrame>
+ <AddonGroupManager ref="groupCreator" v-show="false"/>
 </template>
 <script setup>
 import '@/components/catalog/menuFocus.css'
@@ -63,7 +73,8 @@ import Button from '@/components/ui/Button.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
-import { ref, computed, watch, nextTick } from 'vue'
+import AddonGroupManager from '@/components/catalog/AddonGroupManager.vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 
@@ -79,7 +90,11 @@ const initialBusiness=ref('')
 const businessFingerprint=()=>JSON.stringify({...form.value,image:undefined,baseRecipeRows:baseRecipeRows.value,packageRecipeRows:packageRecipeRows.value})
 const editCatalogRevision=ref(null)
 const openPriceInfo=ref(null)
-watch(() => store.modals.menuEdit.isOpen, () => { openPriceInfo.value = null })
+const pickerOpen=ref(false),pickerIds=ref([]),mobile=ref(false),groupCreator=ref(null)
+const syncViewport=()=>{mobile.value=window.innerWidth<768}
+onMounted(()=>{syncViewport();window.addEventListener('resize',syncViewport)})
+onUnmounted(()=>window.removeEventListener('resize',syncViewport))
+watch(() => store.modals.menuEdit.isOpen, open => { openPriceInfo.value = null;if(!open)pickerOpen.value=false })
 
 const form = ref({
   id: '',
@@ -206,8 +221,19 @@ function addBaseRecipeRow() {
   })
 }
 
-function toggleGroup(id, checked) {
-  form.value.addonGroupIds = checked ? [...form.value.addonGroupIds, id] : form.value.addonGroupIds.filter(value => value !== id)
+function openGroupPicker(){pickerIds.value=[...(form.value.addonGroupIds||[])];pickerOpen.value=true}
+function closePicker(){pickerOpen.value=false}
+function togglePickerGroup(id,checked){pickerIds.value=checked?pickerIds.value.includes(id)?pickerIds.value:pickerIds.value.length<2?[...pickerIds.value,id]:pickerIds.value:pickerIds.value.filter(value=>value!==id)}
+function finishPicker(){form.value.addonGroupIds=[...pickerIds.value];closePicker()}
+async function createGroupFromPicker(){
+ pickerOpen.value=false
+ const id=await groupCreator.value?.openNew()
+ if(id){
+  editCatalogRevision.value=store.catalogRevision
+  if(pickerIds.value.length<2)togglePickerGroup(id,true)
+  else store.showToast('สร้างกลุ่มแล้ว แต่เมนูนี้เลือกได้สูงสุด 2 กลุ่ม กรุณายกเลิกกลุ่มเดิมก่อน', 'info')
+ }
+ if(store.modals.menuEdit.isOpen)pickerOpen.value=true
 }
 
 function removeBaseRecipeRow(idx) {
@@ -325,6 +351,10 @@ async function savePictureAndClose(){
   close()
 }
 </script>
+
+<style scoped>
+.menu-group-summary{display:flex;flex-wrap:wrap;gap:8px}.menu-group-summary p{padding:8px 12px;border-radius:10px;background:var(--bg-soft);font-size:.8125rem}.group-picker-list{display:grid;gap:12px}.group-picker-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px;border:1px solid var(--border-subtle);border-radius:14px;cursor:pointer}.group-picker-row span{display:grid;gap:4px;min-width:0}.group-picker-row strong{font-size:.9375rem}.group-picker-row small{color:var(--text-muted);font-size:.8125rem;line-height:1.6}.group-picker-row input{width:22px;height:22px;accent-color:var(--accent-brand);flex-shrink:0}.group-picker-row:has(input:disabled){opacity:.55;cursor:not-allowed}
+</style>
 
 
 

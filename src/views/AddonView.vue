@@ -22,7 +22,7 @@ import AddonGroupManager from '@/components/catalog/AddonGroupManager.vue'
 import {useActionPending} from '@/composables/useActionPending'
 const {pending:actionPending,run:runAction}=useActionPending()
 const store=useInventoryStore()
-const searchQuery=ref(''),selectedId=ref(store.addons[0]?.id||null),mobileDetail=ref(false),activeSection=ref('addons')
+const searchQuery=ref(''),selectedId=ref(store.addons[0]?.id||null),mobileDetail=ref(false),activeSection=ref('groups')
 const workbench=ref(null),pendingHeadingFocus=ref(false)
 let pendingNewAddonIds=null
 watch(()=>store.modals.addonEdit.isOpen,open=>{

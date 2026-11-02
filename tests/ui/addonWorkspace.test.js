@@ -4,14 +4,17 @@ import {createTestStore,material} from '../helpers/createStore'
 import Addon from '../../src/views/AddonView.vue'
 import Editor from '../../src/components/modals/AddonEditModal.vue'
 
+const showAnalysis=async w=>{await w.get('[data-addon-section="addons"]').trigger('click');await w.get('[data-catalog-analysis="addon"]').trigger('click');await flushPromises()}
+
 it('uses an active header, selectable list, all-platform analysis and recipe without a details popup',async()=>{
- const s=createTestStore();s.resetDemoData();const original=s.currentPlatformId,w=mount(Addon)
+ const s=createTestStore();s.resetDemoData();const original=s.currentPlatformId,w=mount(Addon,{attachTo:document.body})
  try{
+  await showAnalysis(w)
   expect(w.get('[data-addon-header] [data-selected-addon-name]').text()).toBe(s.addons[0].name)
   expect(w.findAll('[data-addon-select]')).toHaveLength(s.addons.length)
-  expect(w.findAll('[data-menu-platform]')).toHaveLength(s.platforms.length)
+  expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(s.platforms.length)
   expect(w.find('[aria-label="ช่องทางที่แสดงราคา"]').exists()).toBe(false)
-  expect(w.find('[role=dialog]').exists()).toBe(false)
+  expect(document.querySelector('[role=dialog]')).not.toBeNull()
   await w.findAll('[data-addon-select]')[1].trigger('click')
   expect(w.get('[data-selected-addon-name]').text()).toBe(s.addons[1].name)
   expect(w.find('[data-addon-recipe-panel]').exists()).toBe(true)
@@ -22,34 +25,36 @@ it('uses an active header, selectable list, all-platform analysis and recipe wit
 })
 it.each([undefined,null,'',' ',0,'0',-1,'invalid'])('hides unpriced addon platforms in every chart mode (price=%s)',async price=>{
  const s=createTestStore();s.resetDemoData();s.addons[0].prices={PLAT01:price,PLAT02:20}
- const w=mount(Addon)
+ const w=mount(Addon,{attachTo:document.body})
  try{
+  await showAnalysis(w)
   for(const label of ['แท่ง','วงกลม','เส้น']){
-   await w.findAll('button').find(b=>b.text()===label).trigger('click')
-   expect(w.find('[data-menu-platform=PLAT01]').exists()).toBe(false)
-   expect(w.findAll('[data-menu-platform]')).toHaveLength(1)
-   expect(w.get('[data-menu-platform=PLAT02] [data-menu-financial=price]').text()).toContain('฿20.00')
+   [...document.querySelectorAll('[role="dialog"] button')].find(b=>b.textContent===label).click();await flushPromises()
+   expect(document.querySelector('[data-menu-platform=PLAT01]')).toBeNull()
+   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(1)
+   expect(document.querySelector('[data-menu-platform=PLAT02] [data-menu-financial=price]').textContent).toContain('฿20.00')
    expect(w.get('[data-addon-header]').text()).toContain('1 ช่องทางที่ตั้งราคา')
-   if(label==='เส้น')expect(w.get('.line-platform-key').text()).not.toContain(s.platforms.find(p=>p.id==='PLAT01').name)
-   expect(w.text()).not.toMatch(/NaN|Infinity/)
+   if(label==='เส้น')expect(document.querySelector('.line-platform-key').textContent).not.toContain(s.platforms.find(p=>p.id==='PLAT01').name)
+   expect(document.querySelector('[role="dialog"]').textContent).not.toMatch(/NaN|Infinity/)
   }
  }finally{w.unmount()}
 })
-it('shows the price-setting empty state when an addon has no positive platform prices',()=>{
+it('shows the price-setting empty state when an addon has no positive platform prices',async()=>{
  const s=createTestStore();s.resetDemoData();s.addons[0].prices={PLAT01:0,PLAT02:''}
- const w=mount(Addon)
+ const w=mount(Addon,{attachTo:document.body})
  try{
-  expect(w.findAll('[data-menu-platform]')).toHaveLength(0)
-  expect(w.find('[aria-label="รูปแบบกราฟ"]').exists()).toBe(false)
-  expect(w.find('.overview-legend').exists()).toBe(false)
-  expect(w.get('.overview-empty').text()).toContain('แก้ไขAdd-on')
+  await showAnalysis(w)
+  expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(0)
+  expect(document.querySelector('[aria-label="รูปแบบกราฟ"]')).toBeNull()
+  expect(document.querySelector('.overview-legend')).toBeNull()
+  expect(document.querySelector('.overview-empty').textContent).toContain('แก้ไขAdd-on')
   expect(w.get('[data-addon-header]').text()).toContain('0 ช่องทางที่ตั้งราคา')
  }finally{w.unmount()}
 })
-it('does not invent zero material cost in the recipe or analysis',()=>{
+it('does not invent zero material cost in the recipe or analysis',async()=>{
  const s=createTestStore();s.resetDemoData();s.materials.push(material('UNKNOWN',100,{unitCost:null}));s.addons[0].recipe=[{materialId:'UNKNOWN',qty:10}]
- const w=mount(Addon)
- try{expect(w.get('[data-addon-recipe-panel]').text()).toContain('ยังไม่ทราบต้นทุน');expect(w.get('[data-menu-financial=cost]').text()).toContain('ยังคำนวณไม่ได้')}finally{w.unmount()}
+ const w=mount(Addon,{attachTo:document.body})
+ try{await showAnalysis(w);expect(w.get('[data-addon-recipe-panel]').text()).toContain('ยังไม่ทราบต้นทุน');expect(document.querySelector('[data-menu-financial=cost]').textContent).toContain('ยังคำนวณไม่ได้')}finally{w.unmount()}
 })
 it('preserves active selection and search between groups and the directory',async()=>{
  const s=createTestStore();s.resetDemoData();const w=mount(Addon)
@@ -125,15 +130,16 @@ it('returns keyboard focus to the selected addon when going back to the list',as
 })
 
 it('uses Dashboard chart controls and places addon calculation notes in the shared info tooltip',async()=>{
- const s=createTestStore();s.resetDemoData();const w=mount(Addon)
+ const s=createTestStore();s.resetDemoData();const w=mount(Addon,{attachTo:document.body})
  try{
-  expect(w.get('.dashboard-segments').findAll('button')).toHaveLength(3)
+  await showAnalysis(w)
+  expect(document.querySelectorAll('.dashboard-segments button')).toHaveLength(3)
   expect(w.text()).not.toContain('ไม่รวมราคาเมนูหลัก')
-  const info=w.get('[data-addon-analysis-info]')
-  await info.trigger('click')
-  expect(w.get('[role="tooltip"]').text()).toContain('ไม่รวมราคาเมนูหลัก ราคาเฉพาะกลุ่ม หรือรายการที่รวมฟรีในเมนู')
-  expect(w.get('[role="tooltip"]').text()).toContain('ยังไม่หักค่าเช่า')
-  await info.trigger('keydown',{key:'Escape'})
-  expect(w.find('[role="tooltip"]').exists()).toBe(false)
+  const info=document.querySelector('[data-addon-analysis-info]')
+  info.click();await flushPromises()
+  expect(document.querySelector('[role="tooltip"]').textContent).toContain('ไม่รวมราคาเมนูหลัก ราคาเฉพาะกลุ่ม หรือรายการที่รวมฟรีในเมนู')
+  expect(document.querySelector('[role="tooltip"]').textContent).toContain('ยังไม่หักค่าเช่า')
+  info.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await flushPromises()
+  expect(document.querySelector('[role="tooltip"]')).toBeNull()
  }finally{w.unmount()}
 })

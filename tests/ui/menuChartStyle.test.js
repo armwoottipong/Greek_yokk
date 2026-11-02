@@ -4,8 +4,9 @@ import {createTestStore} from '../helpers/createStore'
 import Menu from '../../src/views/MenuView.vue'
 
 it('uses Dashboard segments and keeps bar geometry stable while highlighting and opening its shared tooltip',async()=>{
- const s=createTestStore();s.resetDemoData();const w=mount(Menu)
+ const s=createTestStore();s.resetDemoData();const w=mount(Menu,{attachTo:document.body,global:{stubs:{teleport:true}}})
  try{
+  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
   expect(w.get('.dashboard-segments[aria-label="รูปแบบกราฟ"]').findAll('button')).toHaveLength(3)
   const mark=w.get('[data-platform-chart] [data-chart-segment]'),width=mark.attributes('style')
   await mark.trigger('mouseenter');expect(mark.classes()).toContain('is-active');expect(mark.attributes('style')).toBe(width)
@@ -16,8 +17,9 @@ it('uses Dashboard segments and keeps bar geometry stable while highlighting and
  }finally{w.unmount()}
 })
 it.each([['วงกลม','[data-platform-donut] .dashboard-donut-slice'],['เส้น','[data-platform-lines] .dashboard-chart-point']])('uses Dashboard chart marks and tooltip for %s',async(label,selector)=>{
- const s=createTestStore();s.resetDemoData();const before=JSON.stringify(s.menus),w=mount(Menu)
+ const s=createTestStore();s.resetDemoData();const before=JSON.stringify(s.menus),w=mount(Menu,{attachTo:document.body,global:{stubs:{teleport:true}}})
  try{
+  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
   await w.get('.dashboard-segments').findAll('button').find(b=>b.text()===label).trigger('click')
   const mark=w.get(selector)
   await mark.trigger('focus');expect(mark.classes()).toContain('is-active')

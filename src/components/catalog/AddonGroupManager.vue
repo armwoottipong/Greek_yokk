@@ -3,8 +3,8 @@
   <header class="group-heading"><div><h3>กลุ่มตัวเลือก</h3><p>สร้างชุดผลไม้หรือของเสริม แล้วนำไปใช้กับหลายเมนูได้</p></div><Button :disabled="!!actionPending||store.inventorySaving" @click="edit()"><Plus :size="16" aria-hidden="true"/>เพิ่มกลุ่มตัวเลือก</Button></header>
   <div v-if="!store.addonGroups.length" class="group-empty"><strong>จัด Add-on เป็นชุดให้เลือก</strong><p>เช่น ผลไม้ฟรี 3 ชนิด หรือเพิ่มพิเศษ สร้างกลุ่มแล้วนำไปใช้กับหลายเมนูได้</p></div>
   <article v-for="group in store.addonGroups" :key="group.id" class="group-row">
-   <div><strong>{{ group.name }}</strong><p>{{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่ · เลือกซ้ำได้' : 'ชนิด' }}</p><small>{{ group.options.map(o => store.addons.find(a => a.id === o.addonId)?.name || 'ไม่พบรายการ').join(' · ') }}</small><div class="group-usage"><span>{{ group.options.length }} Add-on</span><span>ใช้ใน {{ store.menus.filter(m => m.addonGroupIds?.includes(group.id)).length }} เมนู</span></div></div>
-   <div class="group-actions"><Button variant="quiet" :aria-label="`แก้ไขกลุ่ม ${group.name}`" :disabled="!!actionPending||store.inventorySaving" @click="edit(group)">แก้ไข</Button><Button variant="quiet" :aria-label="`ลบกลุ่ม ${group.name}`" :loading="actionPending==='delete-'+group.id" :disabled="!!actionPending||store.inventorySaving" @click="remove(group)">ลบ</Button></div>
+   <div class="group-card-head"><button type="button" class="group-expand" :aria-expanded="expandedGroups.has(group.id)" :aria-controls="`group-options-${group.id}`" @click="toggleExpanded(group.id)"><span><strong>{{ group.name }}</strong><small>ใช้กับ {{ store.menus.filter(m => m.addonGroupIds?.includes(group.id)).length }} เมนู · {{ group.options.length }} ตัวเลือก</small></span><ChevronDown :size="18" :class="{'is-open':expandedGroups.has(group.id)}" aria-hidden="true"/></button><Button variant="quiet" :aria-label="`แก้ไขกลุ่ม ${group.name}`" :disabled="!!actionPending||store.inventorySaving" @click="edit(group)">แก้ไข</Button></div>
+   <div v-if="expandedGroups.has(group.id)" :id="`group-options-${group.id}`" data-group-options class="group-card-body"><p>{{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่ · เลือกซ้ำได้' : 'ชนิด' }}</p><div v-for="option in group.options" :key="option.addonId" class="group-preview-option"><span>{{ store.addons.find(a=>a.id===option.addonId)?.name||'ไม่พบ Add-on' }}</span><small>{{ group.pricingMode==='included'?'ฟรี':option.prices?'กำหนดราคาเฉพาะกลุ่ม':'ใช้ราคา Add-on' }}</small></div><p class="group-placeholder">พักตัวเลือกเฉพาะกลุ่ม · ไม่พร้อมใช้งาน</p><Button variant="quiet" :aria-label="`ลบกลุ่ม ${group.name}`" :loading="actionPending==='delete-'+group.id" :disabled="!!actionPending||store.inventorySaving" @click="remove(group)">ลบกลุ่ม</Button></div>
   </article>
   <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="กำหนดรายการ จำนวนที่เลือก และราคาที่ใช้ในกลุ่มนี้" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
    <div class="group-form">
@@ -24,6 +24,7 @@
       </template>
      </div>
     </section>
+    <p class="group-placeholder" role="note">สถานะ “ไม่พร้อมใช้งาน” ของตัวเลือกในกลุ่ม: ยังไม่เปิดใช้</p>
     <p v-if="error" role="alert" class="group-error">{{ error }}</p>
    </div>
    <template #footer><Button variant="quiet" :disabled="!!actionPending" @click="requestEditorClose">ยกเลิก</Button><Button :loading="actionPending==='save'" @click="save"><Check :size="18" aria-hidden="true"/>บันทึกกลุ่มตัวเลือก</Button></template>
@@ -32,7 +33,7 @@
 </template>
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import { Plus, Check } from 'lucide-vue-next'
+import { Plus, Check, ChevronDown } from 'lucide-vue-next'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
@@ -48,8 +49,11 @@ import {useActionPending} from '@/composables/useActionPending'
 const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore(), open = ref(false), error = ref(''), search = ref('')
 const draft = ref({}),editCatalogRevision=ref(null)
+let creationResolver=null
 const fieldErrors = ref({})
 const optionsSection = ref(null)
+const expandedGroups=ref(new Set())
+function toggleExpanded(id){const next=new Set(expandedGroups.value);if(next.has(id))next.delete(id);else next.add(id);expandedGroups.value=next}
 const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const filteredAddons = computed(() => store.addons.filter(a => a.name.toLowerCase().includes(search.value.trim().toLowerCase())))
 const optionFor = id => draft.value.options?.find(o => o.addonId === id)
@@ -59,7 +63,9 @@ async function edit(group) {
   error.value = ''; fieldErrors.value = {}; search.value = ''; open.value = true
   await nextTick(); saveSnapshot()
 }
-function close() { open.value = false }
+function close(savedId=null) { open.value = false;creationResolver?.(savedId);creationResolver=null }
+async function openNew() { await edit();return new Promise(resolve=>{creationResolver=resolve}) }
+defineExpose({openNew})
 function requestEditorClose() { if(actionPending.value)return; if (open.value) return requestClose(close) }
 function toggleOption(id, checked) {
   if (checked) draft.value.options.push({ addonId: id })
@@ -92,8 +98,9 @@ async function performSave() {
     else optionsSection.value?.focus()
     return
   }
+  const previousIds=new Set(store.addonGroups.map(group=>group.id))
   const result = await store.saveAddonGroup({...data,...(store.cloud?{expectedCatalogRevision:editCatalogRevision.value}:{})})
-  if (result.ok) { saveSnapshot(); close() }
+  if (result.ok) { saveSnapshot(); close(data.id||store.addonGroups.find(group=>!previousIds.has(group.id))?.id||null) }
   else {
     error.value = result.message || 'บันทึกไม่สำเร็จ กรุณาลองใหม่'
     await nextTick()
@@ -106,7 +113,7 @@ async function performRemove(group) {
 }
 </script>
 <style scoped>
-.option-groups{--addon-text-secondary:#705C50;display:grid;gap:16px;min-width:0}.group-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}.group-heading h3{font-size:1rem;font-weight:600}.group-heading p,.group-row p,.group-row small,.group-help{font-size:.8125rem;line-height:1.7;color:var(--addon-text-secondary)}.group-heading p{margin-top:4px}.group-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;background:var(--bg-card);border-radius:12px}.group-row>div:first-child{min-width:0}.group-row strong,.group-row small{display:block;overflow-wrap:anywhere}.group-row strong{font-size:.9375rem}.group-actions{display:flex;flex-shrink:0;gap:4px}.group-form{display:grid;gap:20px}.group-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.group-options{display:grid;gap:12px}.group-options h4{font-size:.9375rem;font-weight:600}.group-option{display:grid;gap:12px;padding:16px;background:var(--bg-soft);border-radius:12px}.group-error{font-size:.875rem;color:var(--state-danger);line-height:1.7}.group-option :deep(.app-checkbox-content){flex-wrap:wrap;overflow-wrap:anywhere}.group-heading>.ui-button{flex-shrink:0}
+.option-groups{--addon-text-secondary:#705C50;display:grid;gap:16px;min-width:0}.group-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}.group-heading h3{font-size:1rem;font-weight:600}.group-heading p,.group-row p,.group-row small,.group-help{font-size:.8125rem;line-height:1.7;color:var(--addon-text-secondary)}.group-heading p{margin-top:4px}.group-row{display:grid;gap:0;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:16px;overflow:hidden}.group-card-head{display:flex;align-items:center;gap:8px;padding:8px 12px}.group-expand{display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;flex:1;padding:12px;text-align:left}.group-expand svg{flex-shrink:0;transition:transform .15s}.group-expand svg.is-open{transform:rotate(180deg)}.group-expand:focus-visible{outline:2px solid var(--accent-brand);outline-offset:-2px}.group-row strong,.group-row small{display:block;overflow-wrap:anywhere}.group-row strong{font-size:.9375rem}.group-card-body{display:grid;gap:10px;padding:16px 24px;border-top:1px solid var(--border-subtle)}.group-preview-option{display:flex;justify-content:space-between;gap:16px;padding:8px 0}.group-placeholder{padding:10px 12px;background:var(--bg-soft);border-radius:10px}.group-form{display:grid;gap:20px}.group-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.group-options{display:grid;gap:12px}.group-options h4{font-size:.9375rem;font-weight:600}.group-option{display:grid;gap:12px;padding:16px;background:var(--bg-soft);border-radius:12px}.group-error{font-size:.875rem;color:var(--state-danger);line-height:1.7}.group-option :deep(.app-checkbox-content){flex-wrap:wrap;overflow-wrap:anywhere}.group-heading>.ui-button{flex-shrink:0}
 @media(max-width:600px){.group-heading,.group-row{align-items:flex-start;flex-direction:column}.group-actions{align-self:flex-end}.group-fields{gap:12px}}
 @media(max-width:359px){.group-fields{grid-template-columns:minmax(0,1fr)}}
 

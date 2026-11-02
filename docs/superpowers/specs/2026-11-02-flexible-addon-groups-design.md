@@ -1,8 +1,12 @@
 # Flexible Add-on Groups and Focused Catalog UI
 
 **Date:** 2026-11-02
-**Status:** Approved design; implementation pending
+**Status:** Long-term design; first release scope revised by user
 **Scope:** Add-on group management, menu assignment, availability, POS selection, and catalog analysis presentation
+
+## First release scope revision (2026-11-02)
+
+The user chose to ship the reference-inspired UI on the existing Firebase capability first. This release changes the management presentation: group-first Add-on cards, a menu group picker that can create a group and return, and on-demand all-platform analysis in a desktop dialog or mobile drawer. Existing pricing, selection and recipe-based stock deduction remain in force. A menu remains limited to **two groups** in the current cloud validation. Group-scoped availability is labeled **“ไม่พร้อมใช้งาน”** as a placeholder and cannot be changed or enforced yet. The six-group and availability sections below describe future work and are not release claims for this UI package. No Firebase Rules or cloud protocol changes are included in this release.
 
 ## Intent
 

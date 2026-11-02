@@ -1,11 +1,12 @@
 import {it,expect} from 'vitest'
-import {mount} from '@vue/test-utils'
+import {mount,flushPromises} from '@vue/test-utils'
 import Details from '../../src/components/catalog/MenuRecipeDetails.vue'
 
 const props={menu:{id:'M1',name:'Bowl',prices:{P1:100},recipe:[]},platforms:[{id:'P1',name:'หน้าร้าน',gpPercent:0}],foodCost:20}
 it('keeps calculation notes behind the header info and dismisses them with Escape or outside input',async()=>{
- const w=mount(Details,{props,attachTo:document.body})
+ const w=mount(Details,{props,attachTo:document.body,global:{stubs:{teleport:true}}})
  try{
+  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
   const button=w.get('[data-menu-analysis-info]')
   expect(w.find('[role="tooltip"]').exists()).toBe(false)
   expect(w.text()).not.toContain('ยังไม่หักค่าเช่า')
@@ -26,8 +27,9 @@ it('keeps calculation notes behind the header info and dismisses them with Escap
  }finally{w.unmount()}
 })
 it('opens notes on hover and closes them when leaving or selecting another menu',async()=>{
- const w=mount(Details,{props})
+ const w=mount(Details,{props,global:{stubs:{teleport:true}}})
  try{
+  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
   const info=w.get('.menu-analysis-info')
   await info.trigger('mouseenter')
   expect(w.find('[role="tooltip"]').exists()).toBe(true)

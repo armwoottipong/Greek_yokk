@@ -5,12 +5,13 @@ import Menu from '../../src/views/MenuView.vue'
 
 const row = id => document.querySelector(`[data-menu-platform="${id}"]`)
 const value = (id,key) => row(id).querySelector(`[data-menu-financial="${key}"]`).textContent
+const openAnalysis=async wrapper=>{await wrapper.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()}
 
 it('shows all platform financials immediately without choosing a platform or changing POS',async()=>{
  const store=createTestStore();store.resetDemoData()
  const original=store.currentPlatformId,before=JSON.stringify(store.menus),w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
+  await w.get('[data-catalog-details]').trigger('click');await flushPromises();await openAnalysis(w)
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
   expect(document.querySelector('#menu-recipe button[data-platform-price]')).toBeNull()
   expect(value('PLAT01','price')).toContain('฿69.00')
@@ -29,7 +30,7 @@ it('shows all platform financials immediately without choosing a platform or cha
 it('updates each platform reactively and labels loss without drawing negative bar segments',async()=>{
  const store=createTestStore();store.resetDemoData();const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
+  await w.get('[data-catalog-details]').trigger('click');await flushPromises();await openAnalysis(w)
   store.platforms.find(p=>p.id==='PLAT02').gpPercent=20;await flushPromises()
   expect(value('PLAT02','gp')).toContain('฿19.00');expect(value('PLAT02','net')).toContain('฿76.00')
   store.menus[0].prices.PLAT02=10;await flushPromises()
@@ -46,12 +47,13 @@ it.each([undefined,null,'',0,'0'])('hides unpriced platforms (%s) from reports a
  const store=createTestStore();store.resetDemoData();store.menus[0].prices.PLAT02=price
  const w=mount(Menu,{attachTo:document.body})
  try{
+  await openAnalysis(w)
   for(const label of ['แท่ง','วงกลม','เส้น']){
-   const button=w.findAll('button').find(b=>b.text()===label)
-   await button.trigger('click');await flushPromises()
+   const button=[...document.querySelectorAll('[role="dialog"] button')].find(b=>b.textContent===label)
+   button.click();await flushPromises()
    expect(row('PLAT02')).toBeNull()
-   expect(w.find('[data-line-platform="PLAT02"]').exists()).toBe(false)
-   if(label==='เส้น')expect(w.get('.line-platform-key').text()).not.toContain(store.platforms[1].name)
+   expect(document.querySelector('[data-line-platform="PLAT02"]')).toBeNull()
+   if(label==='เส้น')expect(document.querySelector('.line-platform-key').textContent).not.toContain(store.platforms[1].name)
    expect(value('PLAT01','profit')).toContain('฿43.60')
   }
   store.menus[0].prices.PLAT02=95;await flushPromises()
@@ -64,7 +66,7 @@ it('keeps invalid GP unavailable while valid platforms still show their own char
  const store=createTestStore();store.resetDemoData();store.platforms[1].gpPercent=101
  const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
+  await w.get('[data-catalog-details]').trigger('click');await flushPromises();await openAnalysis(w)
   expect(value('PLAT02','gp')).toContain('ยังคำนวณไม่ได้')
   expect(row('PLAT02').querySelector('[data-platform-chart]')).toBeNull()
   expect(row('PLAT02').textContent).toContain('ตรวจ GP')
@@ -76,7 +78,7 @@ it('uses one money scale so equal costs occupy equal widths across different pri
  const store=createTestStore();store.resetDemoData();store.platforms=store.platforms.slice(0,2)
  const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
+  await w.get('[data-catalog-details]').trigger('click');await flushPromises();await openAnalysis(w)
   const costs=['PLAT01','PLAT02'].map(id=>parseFloat(row(id).querySelector('.segment-cost').style.width))
   expect(costs[0]).toBeCloseTo(26.736842,4)
   expect(costs[1]).toBeCloseTo(26.736842,4)
@@ -89,7 +91,7 @@ it('does not draw a profit chart when a recipe material has no known cost',async
  store.materials.find(m=>m.id===materialId).unitCost=null
  const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
+  await w.get('[data-catalog-details]').trigger('click');await flushPromises();await openAnalysis(w)
   expect(value('PLAT01','cost')).toContain('ยังคำนวณไม่ได้')
   expect(value('PLAT01','profit')).toContain('ยังคำนวณไม่ได้')
   expect(row('PLAT01').querySelector('[data-platform-chart]')).toBeNull()
@@ -101,8 +103,8 @@ it('switches between bar, donut and line without filtering platforms or mutating
  const store=createTestStore();store.resetDemoData();const before=JSON.stringify(store.menus)
  const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
-  const sheet=()=>document.getElementById('menu-recipe')
+  await w.get('[data-catalog-details]').trigger('click');await flushPromises();await openAnalysis(w)
+  const sheet=()=>document.querySelector('[role="dialog"]')
   const mode=label=>[...sheet().querySelectorAll('button')].find(b=>b.textContent===label)
   expect(mode('แท่ง').getAttribute('aria-pressed')).toBe('true')
   mode('วงกลม').click();await flushPromises()
@@ -122,8 +124,8 @@ it('plots a negative profit below zero and leaves unknown platform profits unplo
  const store=createTestStore();store.resetDemoData();store.menus[0].prices.PLAT02=10;delete store.menus[0].prices.PLAT03
  const w=mount(Menu,{attachTo:document.body})
  try{
-  await w.get('[data-catalog-details]').trigger('click');await flushPromises()
-  const sheet=document.getElementById('menu-recipe')
+  await w.get('[data-catalog-details]').trigger('click');await flushPromises();await openAnalysis(w)
+  const sheet=document.querySelector('[role="dialog"]')
   ;[...sheet.querySelectorAll('button')].find(b=>b.textContent==='เส้น').click();await flushPromises()
   const zero=Number(sheet.querySelector('[data-zero-baseline]').getAttribute('y1'))
   const point=sheet.querySelector('[data-line-series="profit"][data-line-platform="PLAT02"]')

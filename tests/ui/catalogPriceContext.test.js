@@ -15,14 +15,15 @@ it('keeps filter drafts separate and resets to all categories and first platform
 })
 it('shows every admin platform without changing checkout and removes stale platform rows',async()=>{
  const store=createTestStore();store.resetDemoData();const setPlatform=vi.spyOn(store,'setPlatform')
- const w=mount(Menu)
+ const w=mount(Menu,{attachTo:document.body})
  try{
-  expect(w.findAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
+  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
+  expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
   expect(setPlatform).not.toHaveBeenCalled()
   const removed=store.platforms[1].id
   store.platforms.splice(1,1);await flushPromises()
-  expect(w.find(`[data-menu-platform="${removed}"]`).exists()).toBe(false)
-  expect(w.findAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
+  expect(document.querySelector(`[data-menu-platform="${removed}"]`)).toBeNull()
+  expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
   expect(setPlatform).not.toHaveBeenCalled()
  }finally{w.unmount()}
 })

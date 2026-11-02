@@ -33,15 +33,16 @@ it('shows a clear empty state when every platform price is missing or zero',asyn
  const store=createTestStore();store.resetDemoData();store.menus[0].prices={}
  const w=mount(Menu,{attachTo:document.body})
  try{
+  await w.get('[data-catalog-analysis="menu"]').trigger('click')
   await flushPromises()
-  expect(w.findAll('[data-menu-platform]')).toHaveLength(0)
-  expect(w.get('.overview-empty').text()).toContain('ยังไม่ได้ตั้งราคาขาย')
-  expect(w.findAll('.platform-metrics')).toHaveLength(0)
+  expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(0)
+  expect(document.querySelector('.overview-empty').textContent).toContain('ยังไม่ได้ตั้งราคาขาย')
+  expect(document.querySelectorAll('.platform-metrics')).toHaveLength(0)
   store.menus[0].prices.PLAT01=0;await flushPromises()
-  expect(w.findAll('[data-menu-platform]')).toHaveLength(0)
-  expect(w.find('[aria-label="รูปแบบกราฟ"]').exists()).toBe(false)
-  expect(w.findAll('[data-line-platform]')).toHaveLength(0)
-  expect(w.text()).not.toMatch(/NaN|Infinity/)
+  expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(0)
+  expect(document.querySelector('[aria-label="รูปแบบกราฟ"]')).toBeNull()
+  expect(document.querySelectorAll('[data-line-platform]')).toHaveLength(0)
+  expect(document.querySelector('[role="dialog"]').textContent).not.toMatch(/NaN|Infinity/)
  }finally{w.unmount()}
 })
 it('uses a constrained confirmation frame for long messages with cancel-first focus',async()=>{

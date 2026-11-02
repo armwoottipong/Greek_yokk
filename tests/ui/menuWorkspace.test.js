@@ -1,5 +1,5 @@
 import {it,expect} from 'vitest'
-import {mount} from '@vue/test-utils'
+import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore} from '../helpers/createStore'
 import Menu from '../../src/views/MenuView.vue'
 
@@ -10,7 +10,8 @@ it('selects menus in place and shows all channels plus recipe without a dialog o
   expect(w.get('[data-menu-select]').attributes('aria-pressed')).toBe('true')
   expect(w.find('[role=dialog]').exists()).toBe(false)
   expect(w.find('[data-platform-tab]').exists()).toBe(false)
-  expect(w.findAll('[data-menu-platform]')).toHaveLength(s.platforms.length)
+  await w.get('[data-catalog-analysis="menu"]').trigger('click');await flushPromises()
+  expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(s.platforms.length)
   await w.findAll('[data-menu-select]')[1].trigger('click')
   expect(w.get('[data-selected-menu-name]').text()).toContain(s.menus[1].name)
   expect(w.get('[data-menu-recipe-panel]').text()).toContain('วัตถุดิบ')

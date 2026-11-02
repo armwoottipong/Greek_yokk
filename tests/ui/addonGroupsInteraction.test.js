@@ -58,6 +58,7 @@ it('creates and reopens a reusable group in the Add-on workspace', async () => {
   const s = setup(), w = mount(AddonView, { global: { stubs: { teleport: true } } })
   try {
     await w.findAll('button').find(b => b.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
+    expect(w.get('[role="note"]').text()).toContain('ไม่พร้อมใช้งาน')
     await w.get('#addon-group-name').setValue('ฟรี 1 ชนิด')
     await w.get('#addon-group-min').setValue(1)
     await w.get('#addon-group-max').setValue(1)
@@ -71,6 +72,66 @@ it('creates and reopens a reusable group in the Add-on workspace', async () => {
     await flushPromises()
     expect(confirm).not.toHaveBeenCalled()
   } finally { w.unmount() }
+})
+it('opens the Add-on workspace on collapsible option groups', async () => {
+  const s=setup(),w=mount(AddonView)
+  try{
+    expect(w.get('[data-addon-section="groups"]').attributes('aria-pressed')).toBe('true')
+    expect(w.find('[data-picker-group="G"]').exists()).toBe(false)
+    const expand=w.get('[aria-controls="group-options-G"]')
+    expect(expand.attributes('aria-expanded')).toBe('false')
+    await expand.trigger('click')
+    expect(expand.attributes('aria-expanded')).toBe('true')
+    expect(w.get('[data-group-options]').text()).toContain(s.addons[0].name)
+    expect(w.get('[data-group-options]').text()).toContain('ไม่พร้อมใช้งาน')
+  }finally{w.unmount()}
+})
+it('selects at most two existing groups in the menu picker',async()=>{
+  const s=setup(),copy=()=>JSON.parse(JSON.stringify(s.addonGroups[0]));s.addonGroups.push({...copy(),id:'H',name:'ท็อปปิ้ง'}, {...copy(),id:'I',name:'ผลไม้พิเศษ'})
+  const w=mount(MenuEdit,{attachTo:document.body})
+  try{
+    s.modals.menuEdit={isOpen:true,menuId:s.menus[0].id};await flushPromises()
+    await w.get('[data-open-group-picker]').trigger('click');await flushPromises()
+    const row=id=>document.querySelector(`[data-picker-group="${id}"] input`)
+    expect(document.querySelector('#menu-group-picker')).not.toBeNull()
+    row('H').click();await flushPromises()
+    expect(row('I').disabled).toBe(true)
+    ;[...document.querySelectorAll('#menu-group-picker button')].find(button=>button.textContent.includes('เสร็จสิ้น')).click();await flushPromises()
+    expect(w.get('[data-menu-group-summary]').text()).toContain('ท็อปปิ้ง')
+    expect(w.get('[data-menu-group-summary]').text()).not.toContain('ผลไม้พิเศษ')
+  }finally{w.unmount()}
+})
+
+it('returns to the menu picker with a newly created group selected',async()=>{
+ const s=setup(),w=mount(MenuEdit,{attachTo:document.body,global:{stubs:{teleport:true}}})
+ try{
+  s.modals.menuEdit={isOpen:true,menuId:s.menus[0].id};await flushPromises()
+  await w.get('[data-open-group-picker]').trigger('click');await flushPromises()
+  document.querySelector('[data-create-group-from-menu]').click();await flushPromises()
+  expect(document.querySelector('#addon-group-editor')).not.toBeNull()
+  const group=w.getComponent(GroupManager)
+  await group.get('#addon-group-name').setValue('รับช้อนหรือไม่')
+  await group.get('#addon-group-min').setValue(1)
+  await group.get('#addon-group-max').setValue(1)
+  await group.get('[data-group-addon] input').setValue(true)
+  await group.findAll('button').find(b=>b.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click');await flushPromises()
+  const created=s.addonGroups.find(g=>g.name==='รับช้อนหรือไม่')
+  expect(created).toBeTruthy()
+  expect(document.querySelector(`#menu-group-picker [data-picker-group="${created.id}"] input`).checked).toBe(true)
+  ;[...document.querySelectorAll('#menu-group-picker button')].find(button=>button.textContent.includes('เสร็จสิ้น')).click();await flushPromises()
+  expect(w.get('[data-menu-group-summary]').text()).toContain('รับช้อนหรือไม่')
+ }finally{w.unmount()}
+})
+
+it('uses a drawer for the menu group picker on narrow screens',async()=>{
+ const original=window.innerWidth
+ Object.defineProperty(window,'innerWidth',{configurable:true,value:390})
+ const s=setup(),w=mount(MenuEdit,{attachTo:document.body})
+ try{
+  s.modals.menuEdit={isOpen:true,menuId:s.menus[0].id};await flushPromises()
+  await w.get('[data-open-group-picker]').trigger('click');await flushPromises()
+  expect(document.querySelector('#menu-group-picker').classList.contains('dialog-frame-shell--drawer')).toBe(true)
+ }finally{w.unmount();Object.defineProperty(window,'innerWidth',{configurable:true,value:original})}
 })
 
 it('keeps the group editor outside the inert application so its fields accept input', async () => {

@@ -37,10 +37,12 @@ it('associates group validation with the invalid input and focuses it without sa
 })
 
 it('shows all platform financials for the active addon without changing checkout channel',async()=>{
- const store=createTestStore();store.resetDemoData();const original=store.currentPlatformId,w=mount(AddonView)
+ const store=createTestStore();store.resetDemoData();const original=store.currentPlatformId,w=mount(AddonView,{attachTo:document.body})
  try{
+  await w.get('[data-addon-section="addons"]').trigger('click')
+  await w.get('[data-catalog-analysis="addon"]').trigger('click');await flushPromises()
   expect(w.findAll('[data-addon-select]')).toHaveLength(store.addons.length)
-  expect(w.findAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
+  expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
   expect(w.find('[aria-label="ช่องทางที่แสดงราคา"]').exists()).toBe(false)
   await w.get('[aria-label="ค้นหา Add-on"]').setValue('not found')
   expect(w.findAll('[data-addon-select]')).toHaveLength(0)
