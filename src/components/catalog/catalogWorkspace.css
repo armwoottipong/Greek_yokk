@@ -32,15 +32,17 @@
   grid-template-columns: clamp(112px, 10vw, 144px) minmax(0, 1fr);
 }
 
-.menu-header-identity--selected>div {
-  justify-content: space-between;
-}
-
 .menu-header-identity>div {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   min-width: 0;
+}
+
+.menu-header-identity--selected>div {
+  align-self: stretch;
+  min-height: clamp(112px, 10vw, 144px);
+  justify-content: space-between;
 }
 
 .menu-header-emoji {
@@ -64,6 +66,11 @@
   overflow-wrap: anywhere;
 }
 
+.menu-header-identity--selected h2 {
+  font-size: clamp(1.5rem, 1.8vw, 1.75rem);
+  line-height: 1.3;
+}
+
 .menu-header-description {
   font-size: .8125rem;
   line-height: 1.7;
@@ -78,7 +85,7 @@
   gap: 8px 16px;
   flex-wrap: wrap;
   margin-top: 12px;
-  font-size: .75rem;
+  font-size: .8125rem;
   line-height: 1.7;
   color: var(--workbench-muted);
   font-variant-numeric: tabular-nums;
