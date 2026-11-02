@@ -32,6 +32,10 @@
   grid-template-columns: clamp(112px, 10vw, 144px) minmax(0, 1fr);
 }
 
+.menu-header-identity--selected>div {
+  justify-content: space-between;
+}
+
 .menu-header-identity>div {
   display: flex;
   flex-direction: column;
@@ -54,7 +58,7 @@
 }
 
 .menu-header-panel h2 {
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-weight: 600;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -290,6 +294,9 @@
   }
   .menu-workbench {
     gap: 20px;
+  }
+  .menu-workbench:not(.is-mobile-detail)>.menu-header-panel {
+    display: none !important;
   }
   .menu-header-panel {
     padding: 16px;
