@@ -57,6 +57,7 @@ it('caps repeated portions and removes a choice when its quantity reaches zero',
 it('creates and reopens a reusable group in the Add-on workspace', async () => {
   const s = setup(), w = mount(AddonView, { global: { stubs: { teleport: true } } })
   try {
+    await w.get('[data-addon-section="groups"]').trigger('click')
     await w.findAll('button').find(b => b.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
     expect(w.get('[role="note"]').text()).toContain('ไม่พร้อมใช้งาน')
     await w.get('#addon-group-name').setValue('ฟรี 1 ชนิด')
@@ -73,9 +74,12 @@ it('creates and reopens a reusable group in the Add-on workspace', async () => {
     expect(confirm).not.toHaveBeenCalled()
   } finally { w.unmount() }
 })
-it('opens the Add-on workspace on collapsible option groups', async () => {
+it('opens the Add-on workspace on the Add-on directory, then shows collapsible option groups', async () => {
   const s=setup(),w=mount(AddonView)
   try{
+    expect(w.get('[data-addon-section="addons"]').attributes('aria-pressed')).toBe('true')
+    expect(w.get('[aria-label="รายการ Add-on"]').isVisible()).toBe(true)
+    await w.get('[data-addon-section="groups"]').trigger('click')
     expect(w.get('[data-addon-section="groups"]').attributes('aria-pressed')).toBe('true')
     expect(w.find('[data-picker-group="G"]').exists()).toBe(false)
     const expand=w.get('[aria-controls="group-options-G"]')
@@ -139,6 +143,7 @@ it('keeps the group editor outside the inert application so its fields accept in
   const host = document.createElement('div'); host.id = 'app'; document.body.append(host)
   const w = mount(AddonView, { attachTo: host })
   try {
+    await w.get('[data-addon-section="groups"]').trigger('click')
     await w.findAll('button').find(b => b.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
     await flushPromises()
     const input = document.getElementById('addon-group-name')
