@@ -27,7 +27,6 @@ it('sorts displayed numbers and dates without changing inventory or detaching lo
   expect(ids()).toEqual(['TEN','TWO','NONE'])
   await wrapper.get('.stock-date-select select').setValue('')
   expect(ids()).toEqual(['TEN','TWO','NONE'])
-  await wrapper.get('[data-sort="value"]').trigger('click')
   store.materials[0].stock=1
   await flushPromises()
   expect(ids()).toEqual(['TEN','TWO','NONE'])

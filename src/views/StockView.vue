@@ -11,7 +11,7 @@
     <div class="desktop-material-table stock-table-surface">
       <div class="stock-table-scroll">
         <table class="stock-inventory-table w-full min-w-[1280px] table-fixed text-left text-xs">
-          <colgroup><col class="w-[23%]"/><col class="w-[13%]"/><col class="w-[10%]"/><col class="w-[15%]"/><col class="w-[11%]"/><col class="w-[12%]"/><col class="w-[8%]"/><col class="w-[8%]"/></colgroup>
+          <colgroup><col class="w-[26%]"/><col class="w-[15%]"/><col class="w-[12%]"/><col class="w-[18%]"/><col class="w-[13%]"/><col class="w-[8%]"/><col class="w-[8%]"/></colgroup>
           <thead>
             <tr class="border-b border-stone-200/80 bg-stone-50/70 text-[11px] font-semibold text-stone-600 tracking-wider">
               <th scope="col" :aria-sort="ariaSort('name')" class="py-3.5 px-4 text-left whitespace-nowrap"><TableSortButton label="วัตถุดิบ / สินค้า" data-sort="name" :direction="sortDirection('name')" @sort="toggleStockSort('name')"/></th>
@@ -19,7 +19,6 @@
               <th scope="col" :aria-sort="ariaSort('kind')" class="py-3.5 px-4 text-left whitespace-nowrap"><TableSortButton label="ประเภท" data-sort="kind" :direction="sortDirection('kind')" @sort="toggleStockSort('kind')"/></th>
               <th scope="col" :aria-sort="ariaSort('stock')" class="py-3.5 px-4 text-center whitespace-nowrap"><TableSortButton label="คงเหลือในคลัง" data-sort="stock" :direction="sortDirection('stock')" @sort="toggleStockSort('stock')"/></th>
               <th scope="col" :aria-sort="ariaSort('cost')" class="py-3.5 px-4 text-right whitespace-nowrap"><TableSortButton label="ต้นทุน/หน่วย" data-sort="cost" :direction="sortDirection('cost')" @sort="toggleStockSort('cost')"/></th>
-              <th scope="col" :aria-sort="ariaSort('value')" class="py-3.5 px-4 text-right whitespace-nowrap"><TableSortButton label="มูลค่าสต็อกคงเหลือ" data-sort="value" :direction="sortDirection('value')" @sort="toggleStockSort('value')"/></th>
               <th scope="col" :aria-sort="ariaSort('status')" class="py-3.5 px-4 text-center whitespace-nowrap"><TableSortButton label="สถานะ" data-sort="status" :direction="sortDirection('status')" @sort="toggleStockSort('status')"/></th>
               <th class="py-3.5 px-4 text-center whitespace-nowrap">การจัดการ</th>
             </tr>
@@ -164,13 +163,6 @@
                 </div>
               </td>
 
-              <!-- Total Item Stock Valuation -->
-              <td class="py-3.5 px-4 tabular-nums text-right">
-                <div class="font-bold font-number text-amber-950 text-xs tabular-nums truncate">
-                  ฿{{ (Math.max(0, mat.stock) * (mat.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
-                </div>
-              </td>
-
               <!-- Status Badge (Clean single badge, no countdown clutter) -->
               <td class="py-3.5 px-4 text-center">
                 <span
@@ -222,14 +214,14 @@
 
             <!-- Expanded Sub-lots Rows (Smooth Grid-Row Expansion & Exact Column Alignment) -->
             <tr v-if="hasMultipleLots(mat)" class="border-0">
-              <td colspan="8" class="p-0 border-0">
+              <td colspan="7" class="p-0 border-0">
                 <div
                   :id="`stock-lots-${mat.id}`" class="accordion-grid overflow-hidden"
                   :class="{ 'is-expanded': isExpanded(mat.id) }"
                 >
                   <div class="accordion-content">
                     <table class="stock-inventory-table w-full min-w-[1280px] table-fixed text-left text-xs">
-                      <colgroup><col class="w-[23%]"/><col class="w-[13%]"/><col class="w-[10%]"/><col class="w-[15%]"/><col class="w-[11%]"/><col class="w-[12%]"/><col class="w-[8%]"/><col class="w-[8%]"/></colgroup>
+                      <colgroup><col class="w-[26%]"/><col class="w-[15%]"/><col class="w-[12%]"/><col class="w-[18%]"/><col class="w-[13%]"/><col class="w-[8%]"/><col class="w-[8%]"/></colgroup>
                       <tbody class="divide-y divide-stone-100 bg-[#FBF5EA] border-t border-stone-200/60 border-b border-stone-200/60">
                         <tr
                           v-for="(lot, lIdx) in getDisplayLots(mat)"
@@ -280,11 +272,6 @@
                             <div v-if="mat.packSize > 1" class="text-[12px] text-stone-500 tabular-nums mt-0.5">
                               (≈ ฿{{ Number(lot.unitCost || mat.unitCost || 0).toFixed(2) }}/{{ mat.unit }})
                             </div>
-                          </td>
-
-                          <!-- 6. Total Valuation of this lot -->
-                          <td class="py-3 px-4 tabular-nums font-number text-xs font-bold text-amber-950 text-right">
-                            ฿{{ Math.round(lot.qty * (lot.unitCost || mat.unitCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                           </td>
 
                           <!-- 7. Status & Switch Lot Action -->
@@ -352,7 +339,7 @@
 
             <!-- Empty Row -->
             <tr v-if="filteredMaterials.length === 0">
-              <td colspan="8" class="py-12 text-center text-stone-500">
+              <td colspan="7" class="py-12 text-center text-stone-500">
                 <div class="text-3xl mb-2">🔍</div>
                 <p class="text-xs font-medium">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก</p>
               </td>
