@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :open="store.modals.packageReview.isOpen" :busy="!!store.packageLocked" id="PackageReviewModal" title="บรรจุภัณฑ์ของออเดอร์" description="การปรับมีผลเฉพาะออเดอร์นี้" presentation="sheet" :teleport="false" initial-focus="#package-add" @request-close="close">
+ <DialogFrame :open="store.modals.packageReview.isOpen" id="PackageReviewModal" title="บรรจุภัณฑ์ของออเดอร์" description="การปรับมีผลเฉพาะออเดอร์นี้" presentation="sheet" :teleport="!!store.cloud" initial-focus="#package-add" @request-close="close">
   <fieldset class="package-review" :disabled="!!store.packageLocked">
    <div class="package-add"><FormField id="package-add" label="เพิ่มบรรจุภัณฑ์" v-slot="{controlId}"><AppSelect :id="controlId" v-model="addId" aria-label="เพิ่มบรรจุภัณฑ์"><option value="">เลือกบรรจุภัณฑ์</option><option v-for="item in addable" :key="item.id" :value="item.id">{{ item.name }} ({{ item.unit }})</option></AppSelect></FormField><Button variant="secondary" :disabled="!addId" @click="addPackage"><Plus :size="16" aria-hidden="true"/>เพิ่ม</Button></div>
    <p v-if="planIssues.length" class="package-error" role="alert">มี Package ที่ใช้ไม่ได้ กรุณาคืนค่ารายการที่มีปัญหาก่อนชำระเงิน</p>
@@ -16,7 +16,7 @@
     <div class="package-row-footer"><details v-if="row.sources.length" class="package-sources"><summary>ดูที่มาจากสูตร</summary><p>{{ row.sources.map(source=>`${source.sourceName} ${source.qty}`).join(', ') }}</p></details><div class="package-row-actions"><Button v-if="hasAdjustment(row.materialId)" variant="quiet" size="compact" :data-reset-package="row.materialId" @click="reset(row.materialId)">คืนค่า</Button><Button v-if="!row.invalid" variant="secondary" size="compact" :data-save-package="row.materialId" @click="save(row)">บันทึกการปรับ</Button></div></div>
    </article>
   </fieldset>
-  <template #footer><Button v-if="store.packageAdjustments.length" variant="quiet" data-reset-all-packages @click="resetAll">คืนค่าทั้งหมด</Button><Button @click="close">เสร็จสิ้น</Button></template>
+  <template #footer><Button v-if="store.packageAdjustments.length" variant="quiet" data-reset-all-packages :disabled="!!store.packageLocked" @click="resetAll">คืนค่าทั้งหมด</Button><Button @click="close">เสร็จสิ้น</Button></template>
  </DialogFrame>
 </template>
 <script setup>
@@ -44,7 +44,7 @@ function save(row){const result=store.savePackageAdjustment({materialId:row.mate
 function addPackage(){if(!addId.value)return;const material=store.materials.find(item=>item.id===addId.value);store.savePackageAdjustment({materialId:addId.value,requestedQty:1,reason:'separate_bag',note:''});addId.value='';nextTick(sync)}
 function reset(id){store.resetPackageAdjustment(id);nextTick(sync)}
 function resetAll(){store.resetPackageAdjustments();nextTick(sync)}
-function close(){if(!store.packageLocked)store.modals.packageReview.isOpen=false}
+function close(){store.modals.packageReview.isOpen=false}
 </script>
 <style scoped>
 .package-review{display:grid;gap:14px;min-width:0}.package-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;padding-bottom:14px;border-bottom:1px solid var(--border-subtle)}.package-review :deep(.app-select){width:100%}.package-review :deep(.app-select-trigger){min-height:48px;border-radius:12px;font-size:.8125rem;padding:12px}.package-add>.ui-button{min-height:48px;padding-inline:14px}

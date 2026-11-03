@@ -1,7 +1,8 @@
 <template>
-  <ModalShell labelled-by="ActivityLogModal-title" :open="store.modals.activityLog?.isOpen"
+  <ModalShell labelled-by="ActivityLogModal-title" :open="present"
     class="history-shell fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-stone-900/40" @request-close="close">
-    <section class="history-modal bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90dvh] flex flex-col overflow-hidden">
+    <Transition name="history-panel" appear @after-leave="finishLeave">
+    <section v-if="store.modals.activityLog?.isOpen" class="history-modal bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90dvh] flex flex-col overflow-hidden">
       <header class="px-4 py-4 sm:px-5 border-b border-stone-100 flex items-start justify-between gap-3 shrink-0">
         <div class="min-w-0">
           <h3 id="ActivityLogModal-title" class="font-semibold text-base text-stone-900 break-words">{{ historyTitle }}</h3>
@@ -49,6 +50,7 @@
         </div>
       </footer>
     </section>
+    </Transition>
   </ModalShell>
   <FilterDropdown id="history-filters" title="ตัวกรองประวัติ" :open="showFilterPopover && store.modals.activityLog?.isOpen" :anchor="filterButton" :values="filterValues" :fields="filterFields" @close="showFilterPopover = false" @apply="applyFilters" />
   <DialogFrame id="history-more-actions" title="จัดการประวัติ" :open="moreOpen&&store.modals.activityLog?.isOpen" presentation="sheet" compact @request-close="moreOpen=false">
@@ -77,6 +79,8 @@ import {
 import {useActionPending} from '@/composables/useActionPending'
 const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
+const present=ref(!!store.modals.activityLog?.isOpen)
+function finishLeave(){if(!store.modals.activityLog?.isOpen)present.value=false}
 const emit=defineEmits(['open-orders'])
 function openOrders(){close();emit('open-orders')}
 const ordersById = computed(() => new Map((store.orders || []).map(order => [order.orderId, order])))
@@ -195,6 +199,7 @@ const availableActionOptions = computed(() => {
 // Watch modal open
 watch(() => store.modals.activityLog?.isOpen, (open) => {
   if (open) {
+    present.value=true
     showFilterPopover.value = false
     selectedActionFilter.value = 'all'
     selectedMaterialId.value = 'all'
@@ -429,4 +434,6 @@ input.history-control.pl-9 { padding-left:36px; padding-right:36px; }
 .history-list { scrollbar-gutter:stable; }
 .history-button,.history-icon-button{min-height:44px;min-width:44px}.history-modal summary,.history-modal details button{min-height:44px}
 @media(max-width:767px){.history-shell{align-items:flex-end;padding:0}.history-modal{width:100%;max-width:none;max-height:calc(100dvh - 12px);border-radius:24px 24px 0 0}.history-modal footer{padding-bottom:max(12px,env(safe-area-inset-bottom))}}
+@media(prefers-reduced-motion:no-preference){.history-panel-enter-active{transition:opacity 200ms ease,transform 200ms cubic-bezier(.2,.8,.3,1)}.history-panel-leave-active{transition:opacity 160ms ease,transform 160ms ease}.history-panel-enter-from,.history-panel-leave-to{opacity:0;transform:translateY(12px)}}
+@media(prefers-reduced-motion:no-preference) and (max-width:767px){.history-panel-enter-from,.history-panel-leave-to{transform:translateY(100%)}}
 </style>
