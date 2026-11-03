@@ -11,7 +11,7 @@ vi.mock('firebase/firestore', () => ({
 }))
 
 import { collection, getDocFromServer, getDocsFromServer, limit, orderBy, query } from 'firebase/firestore'
-import { loadInventoryHistory, projectInventoryHistory } from '../../src/cloud/core/inventoryHistory.js'
+import { loadInventoryHistory, projectInventoryHistory,projectPageHistory } from '../../src/cloud/core/inventoryHistory.js'
 
 const materials = [
   { id: 'MILK', name: 'นมสด', emoji: '🥛', unit: 'ml' },
@@ -77,6 +77,22 @@ describe('projectInventoryHistory', () => {
     expect(logs).toHaveLength(1)
     expect(logs[0].id).toBe('same:stock_in')
   })
+})
+
+it('projects page-specific menu, Add-on, POS and settings receipts alongside stock history',()=>{
+ const rows=projectPageHistory({materials,display:{menus:{MENU:{name:'โยเกิร์ตผลไม้'}},addons:{ADD:{name:'น้ำผึ้ง'}}},operations:[
+  {opId:'MENU-OP',kind:'menu',entityId:'MENU',entitySnapshot:{name:'โยเกิร์ตผลไม้'},create:true,createdAt:'2026-10-20T10:00:00Z'},
+  {opId:'ADD-OP',kind:'addon',entityId:'ADD',entitySnapshot:{name:'น้ำผึ้ง',active:true},createdAt:'2026-10-20T11:00:00Z'},
+  {opId:'GROUP-OP',kind:'group',entityId:'GROUP',entitySnapshot:{name:'ผลไม้ฟรี'},create:true,createdAt:'2026-10-20T12:00:00Z'},
+  {opId:'GP-OP',kind:'platform_gp',rates:{GRAB:2500},createdAt:'2026-10-20T13:00:00Z'},
+  {opId:'PLATFORM-OP',kind:'platform',entityId:'GRAB',entitySnapshot:{name:'Grab'},create:true,createdAt:'2026-10-20T13:30:00Z'},
+  {opId:'CANCEL-OP',kind:'cancel',orderId:'SALE',createdAt:'2026-10-20T15:00:00Z'},
+ ],orders:[{opId:'SALE',kind:'sale_set',status:'cancelled',subtotalCents:12900,lines:[{menuId:'MENU',qty:2}],createdAt:'2026-10-20T14:00:00Z',inventory:[]}]})
+ expect(rows.filter(row=>row.module==='menu')).toMatchObject([{id:'MENU-OP:page',action:'create',targetName:'โยเกิร์ตผลไม้'}])
+ expect(rows.filter(row=>row.module==='addon').map(row=>row.targetName)).toEqual(['ผลไม้ฟรี','น้ำผึ้ง'])
+ expect(rows.filter(row=>row.module==='system')).toMatchObject([{id:'PLATFORM-OP:page',title:'เพิ่มช่องทางขาย'},{id:'GP-OP:page',title:'แก้ไขอัตรา GP'}])
+ expect(rows.filter(row=>row.module==='pos').map(row=>row.action)).toEqual(['order_cancel','order_complete'])
+ expect(rows.find(row=>row.id==='SALE:bill')).toMatchObject({billTotal:129,billLines:['โยเกิร์ตผลไม้ × 2'],cancelled:true})
 })
 
 describe('loadInventoryHistory', () => {

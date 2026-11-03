@@ -4,7 +4,7 @@
   <div :inert="mobileMenuOpen ? true : undefined" class="header-page-title"><h2>{{ pageTitle.title }}<small v-if="pageTitle.badge">{{ pageTitle.badge }}</small></h2><p>{{ pageTitle.subtitle }}</p></div>
   <div :inert="mobileMenuOpen ? true : undefined" class="header-quick-actions">
    <Button v-if="store.lowStockMaterials.length" size="compact" variant="quiet" :aria-label="'วัตถุดิบใกล้หมด '+store.lowStockMaterials.length+' รายการ'" @click="store.switchTab('stock')"><Package :size="16" aria-hidden="true"/><span>{{ store.lowStockMaterials.length }}</span></Button>
-   <Button size="compact" variant="quiet" aria-label="ประวัติกิจกรรม" @click="store.openActivityLog('all')"><History :size="17" aria-hidden="true"/><span class="header-action-label">ประวัติ</span></Button>
+   <Button size="compact" variant="quiet" :aria-label="historyLabel" @click="store.openActivityLog(historyModule)"><History :size="17" aria-hidden="true"/><span class="header-action-label">ประวัติ</span></Button>
    <Button v-if="store.gasApiUrl" size="compact" variant="quiet" :loading="store.isSyncing" aria-label="สำรองข้อมูลไป Google Sheets" @click="store.syncWithGas()"><CloudSync :size="17" aria-hidden="true"/><span class="header-action-label">สำรองข้อมูล</span></Button>
    <button ref="moreButton" data-header-more class="header-more" type="button" aria-label="คำสั่งระบบเพิ่มเติม" aria-haspopup="dialog" :aria-expanded="actionsOpen" aria-controls="header-system-actions" @click="openActions"><MoreHorizontal :size="21" aria-hidden="true"/></button>
   </div>
@@ -43,6 +43,8 @@ import Button from '@/components/ui/Button.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 
 const store = usePosStore()
+const historyModule=computed(()=>({dashboard:'all',pos:'pos',menu:'menu',addon:'addon',stock:'stock',settings:'system'})[store.currentTab]||'all')
+const historyLabel=computed(()=>({all:'ประวัติทั้งระบบ',pos:'ยอดขายและบิล',menu:'ประวัติการจัดการเมนู',addon:'ประวัติการจัดการ Add-on',stock:'ประวัติสต็อก',system:'ประวัติระบบและการตั้งค่า'})[historyModule.value])
 const props=defineProps({mobileMenuOpen:Boolean})
 const emit=defineEmits(['toggle-menu','request-close-navigation'])
 const actionsOpen=ref(false),moreButton=ref(null)

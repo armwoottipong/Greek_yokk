@@ -229,12 +229,48 @@ export function projectInventoryHistory({ operations = [], orders = [], sourceOr
   })
 }
 
+// Page histories reuse the stock log presentation while keeping stock entries intact.
+export function projectPageHistory(input = {}) {
+  const {operations = [], orders = [], display = {}, clearedThroughRevision = 0} = input
+  const stock = projectInventoryHistory(input)
+  const visible = row => !clearedThroughRevision || row.shopRevision > clearedThroughRevision
+  const pageEntries = operations.filter(visible).flatMap(operation => {
+    const id = operation.opId || operation.id || 'operation'
+    const kind = operation.kind
+    const collection = kind === 'catalog' ? operation.collection : null
+    const module = kind === 'menu' || collection === 'menus' ? 'menu'
+      : kind === 'addon' || kind === 'group' || collection === 'addons' ? 'addon'
+        : kind === 'platform_gp' || kind === 'platform' || collection === 'platforms' || kind === 'command_abort' ? 'system' : null
+    if (kind === 'cancel') {
+      return [entry({module:'pos'}, {id:`${id}:bill-return`,timestamp:operation.createdAt,action:'order_cancel',title:'คืนบิลขาย',targetId:operation.orderId,targetName:`บิล ${operation.orderId}`,description:`คืนบิล ${operation.orderId}`,user:operation.uid||''})]
+    }
+    if (!module) return []
+    const entityId = operation.entityId || operation.entitySnapshot?.id || ''
+    const group = kind === 'group'
+    const name = operation.entitySnapshot?.name || display?.[group?'groups':module==='menu'?'menus':module==='addon'?'addons':'platforms']?.[entityId]?.name || entityId
+    const action=operation.entitySnapshot?.active===false?'delete':operation.create||kind==='addon'?'create':'edit'
+    const title = module === 'menu' ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดขาย':'แก้ไข'}เมนู`
+      : group ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'}กลุ่มตัวเลือก`
+        : module === 'addon' ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'} Add-on`
+          : kind === 'platform_gp' ? 'แก้ไขอัตรา GP' : kind === 'command_abort' ? 'หยุดคำสั่งที่ค้าง' : `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'}ช่องทางขาย`
+    return [entry({module}, {id:`${id}:page`,timestamp:operation.createdAt,action,title,targetId:entityId,targetName:name||'',description:name?`${title} ${name}`:title,user:operation.uid||''})]
+  })
+  for (const order of orders.filter(visible)) {
+    if (order.kind !== 'sale_set' || order.origin === 'legacy') continue
+    const id = order.opId || order.orderId || 'order'
+    const amount = Number(order.subtotalCents||0)/100
+    const lines = (order.lines||[]).map(line=>`${display?.menus?.[line.menuId]?.name||line.menuId} × ${line.qty}`)
+    pageEntries.push(entry({module:'pos',billLines:lines,billTotal:amount,cancelled:order.status==='cancelled'}, {id:`${id}:bill`,timestamp:order.createdAt,action:'order_complete',title:'ขายสำเร็จ',targetId:id,targetName:`บิล ${id}`,description:`ยอดขาย ฿${amount.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}${lines.length?` · ${lines.join(', ')}`:''}`,user:order.uid||''}))
+  }
+  return [...stock,...pageEntries].sort((a,b)=>(new Date(b.timestamp||0).getTime()||0)-(new Date(a.timestamp||0).getTime()||0))
+}
+
 function decodeLegacyRecord(document) {
   if (!document.id.startsWith('activityLogs_')) return null
   return { id: document.id, json: document.data()?.json }
 }
 
-export async function loadInventoryHistory({ db, shopId, generation, materials = [], display, clearedThroughRevision = 0 } = {}) {
+export async function loadInventoryHistory({ db, shopId, generation, materials = [], display, clearedThroughRevision = 0, includePageHistory = false } = {}) {
   if (!db || !shopId || !generation) throw new Error('INVALID_HISTORY_SCOPE')
   const root = `shops/${shopId}/generations/${generation}`
   const [operationSnapshot, orderSnapshot, legacySnapshot] = await Promise.all([
@@ -254,7 +290,7 @@ export async function loadInventoryHistory({ db, shopId, generation, materials =
   }
   const legacyLogs = legacySnapshot.docs.map(decodeLegacyRecord).filter(Boolean)
   return {
-    logs: projectInventoryHistory({ operations, orders, sourceOrders, legacyLogs, materials, display, clearedThroughRevision }),
+    logs: (includePageHistory?projectPageHistory:projectInventoryHistory)({ operations, orders, sourceOrders, legacyLogs, materials, display, clearedThroughRevision }),
     truncated: operationSnapshot.size >= HISTORY_LIMIT || orderSnapshot.size >= HISTORY_LIMIT,
   }
 }

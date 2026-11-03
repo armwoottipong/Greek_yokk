@@ -33,6 +33,11 @@
           <button v-else-if="Array.isArray(order.inventoryAllocations)" type="button" class="history-undo" @click="$emit('undo', order.orderId)"><Undo2 :size="16" aria-hidden="true" />ย้อนกลับออเดอร์</button>
           <p v-else class="text-stone-500">ออเดอร์เก่านี้ไม่มีข้อมูลการตัดล็อต จึงย้อนกลับอัตโนมัติไม่ได้</p>
         </template>
+        <template v-else-if="log.billLines">
+          <p v-for="(line,index) in log.billLines" :key="index">{{ line }}</p>
+          <p class="font-semibold tabular-nums text-stone-900">ยอดขาย ฿{{ number(log.billTotal) }}</p>
+          <p v-if="log.cancelled" role="status" class="font-medium text-stone-700">คืนบิลแล้ว</p>
+        </template>
         <p v-else class="text-stone-500">ไม่พบข้อมูลออเดอร์สำหรับย้อนกลับ</p>
       </div>
     </div>
@@ -44,9 +49,9 @@ import {ChevronDown, Undo2} from 'lucide-vue-next'
 import {formatThaiDate} from '@/stores/posStore'
 const props=defineProps({log:{type:Object,required:true},itemMode:Boolean,order:{type:Object,default:null}})
 defineEmits(['undo'])
-const isReversed=computed(()=>props.log.action === 'order_cancel' || (props.log.action === 'order_complete' && props.order?.status === 'cancelled'))
+const isReversed=computed(()=>props.log.action === 'order_cancel' || (props.log.action === 'order_complete' && (props.order?.status === 'cancelled'||props.log.cancelled)))
 const labels={stock_in:'รับเข้า',adjust:'ตรวจนับ',stock_adjust_add:'ปรับเพิ่ม',stock_adjust_reduce:'ปรับลด',produce:'ผลิต',produce_batch:'ผลิต',produce_deduct:'ตัดวัตถุดิบผลิต',sale_deduct:'ตัดขาย',order_complete:'ขาย',waste:'ของเสีย',switch_lot:'สลับล็อต',create:'เพิ่มรายการ',edit:'แก้ไข',delete:'ลบรายการ',sync:'ซิงค์ข้อมูล'}
-const shortTitle=computed(()=>labels[props.log.action] || props.log.title || 'กิจกรรม')
+const shortTitle=computed(()=>['menu','addon','system'].includes(props.log.module)?props.log.title||labels[props.log.action]||'กิจกรรม':labels[props.log.action]||props.log.title||'กิจกรรม')
 const number=value=>Number(value).toLocaleString('th-TH',{maximumFractionDigits:4})
 const valid=value=>value != null && value !== '' && Number.isFinite(Number(value))
 const hasTransition=computed(()=>valid(props.log.beforeStock)&&valid(props.log.afterStock))

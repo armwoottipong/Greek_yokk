@@ -21,6 +21,16 @@ it.each([{}, {module:'stock'}, {targetMaterialId:'M'}])('uses compact expandable
  expect(row.text()).toContain(log.user)
  wrapper.unmount()
 })
+it.each([['menu','ประวัติการจัดการเมนู'],['addon','ประวัติการจัดการ Add-on'],['pos','ยอดขายและบิล'],['system','ประวัติระบบและการตั้งค่า']])('keeps %s history within its own page',async(module,title)=>{
+ const wrapper=open({module})
+ state.store.activityLogs=[{...log,id:'MATCH',module,action:'edit'},{...log,id:'OTHER',module:'stock'}]
+ await nextTick()
+ expect(wrapper.get('#ActivityLogModal-title').text()).toBe(title)
+ expect(wrapper.vm.filteredLogs.map(row=>row.id)).toEqual(['MATCH'])
+ wrapper.vm.resetFilters()
+ expect(wrapper.vm.filteredLogs.map(row=>row.id)).toEqual(['MATCH'])
+ wrapper.unmount()
+})
 it('shortens technical activity titles without losing the original record',async()=>{
  const wrapper=open()
  state.store.activityLogs[0].title='รับเข้าสต็อก (Stock In)'

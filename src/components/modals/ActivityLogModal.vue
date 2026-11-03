@@ -1,11 +1,11 @@
 <template>
   <ModalShell labelled-by="ActivityLogModal-title" :open="store.modals.activityLog?.isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-stone-900/40" @request-close="close">
+    class="history-shell fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-stone-900/40" @request-close="close">
     <section class="history-modal bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90dvh] flex flex-col overflow-hidden">
       <header class="px-4 py-4 sm:px-5 border-b border-stone-100 flex items-start justify-between gap-3 shrink-0">
         <div class="min-w-0">
-          <h3 id="ActivityLogModal-title" class="font-semibold text-base text-stone-900 break-words">{{ isItemMode ? activeTargetMaterial?.name : isStockMode ? 'ประวัติสต็อก' : 'ประวัติกิจกรรม' }}</h3>
-          <p class="mt-1 text-xs text-stone-500">{{ isItemMode ? `คงเหลือ ${formatNum(activeTargetMaterial?.stock)} ${activeTargetMaterial?.unit || ''}` : 'รับเข้า ผลิต ขาย และการเปลี่ยนแปลงในระบบ' }}</p>
+          <h3 id="ActivityLogModal-title" class="font-semibold text-base text-stone-900 break-words">{{ historyTitle }}</h3>
+          <p class="mt-1 text-xs text-stone-500">{{ isItemMode ? `คงเหลือ ${formatNum(activeTargetMaterial?.stock)} ${activeTargetMaterial?.unit || ''}` : historyDescription }}</p>
         </div>
         <button type="button" @click="close" aria-label="ปิดประวัติ" class="history-icon-button"><X class="h-4 w-4" /></button>
       </header>
@@ -43,6 +43,7 @@
       <footer class="px-4 py-3 sm:px-5 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <button type="button" @click="exportCsv" :disabled="!filteredLogs.length" class="history-button"><Download class="h-4 w-4" />ส่งออก CSV</button>
         <div class="flex items-center gap-3">
+          <button v-if="store.cloud&&store.modals.activityLog?.module==='pos'" type="button" class="history-button" @click="openOrders">เปิดหน้าบิลขายและคืนบิล</button>
           <button v-if="!isItemMode" type="button" class="history-button" aria-label="จัดการประวัติ" aria-haspopup="dialog" aria-controls="history-more-actions" :aria-expanded="moreOpen" @click="moreOpen=true"><MoreHorizontal class="h-4 w-4" aria-hidden="true"/>เพิ่มเติม</button>
           <button type="button" @click="close" class="history-button !bg-brand-600 !border-brand-600 !text-white hover:!bg-stone-800 px-5">ปิด</button>
         </div>
@@ -51,7 +52,7 @@
   </ModalShell>
   <FilterDropdown id="history-filters" title="ตัวกรองประวัติ" :open="showFilterPopover && store.modals.activityLog?.isOpen" :anchor="filterButton" :values="filterValues" :fields="filterFields" @close="showFilterPopover = false" @apply="applyFilters" />
   <DialogFrame id="history-more-actions" title="จัดการประวัติ" :open="moreOpen&&store.modals.activityLog?.isOpen" presentation="sheet" compact @request-close="moreOpen=false">
-   <Button variant="danger" :loading="!!actionPending" :disabled="!!actionPending||store.historyLoading||!(store.activityLogs||[]).length" @click="moreOpen=false;confirmClearLogs()">ล้างประวัติทั้งหมด</Button>
+   <Button variant="danger" :loading="!!actionPending" :disabled="!!actionPending||store.historyLoading||!(store.activityLogs||[]).length" @click="moreOpen=false;confirmClearLogs()">ล้างประวัติทุกหน้า</Button>
   </DialogFrame>
 </template>
 
@@ -76,6 +77,8 @@ import {
 import {useActionPending} from '@/composables/useActionPending'
 const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
+const emit=defineEmits(['open-orders'])
+function openOrders(){close();emit('open-orders')}
 const ordersById = computed(() => new Map((store.orders || []).map(order => [order.orderId, order])))
 async function confirmUndoOrder(orderId) {
   const confirmed = await store.confirmDialog({
@@ -135,15 +138,18 @@ const isStockMode = computed(() => {
 })
 
 const isGlobalMode = computed(() => {
-  return !isItemMode.value && !isStockMode.value
+  return !isItemMode.value && (!store.modals.activityLog?.module || store.modals.activityLog.module === 'all')
 })
+const historyTitle=computed(()=>isItemMode.value?activeTargetMaterial.value?.name:({all:'ประวัติทั้งระบบ',stock:'ประวัติสต็อก',pos:'ยอดขายและบิล',menu:'ประวัติการจัดการเมนู',addon:'ประวัติการจัดการ Add-on',system:'ประวัติระบบและการตั้งค่า'})[store.modals.activityLog?.module||'all']||'ประวัติกิจกรรม')
+const historyDescription=computed(()=>({all:'รับเข้า ผลิต ขาย และการเปลี่ยนแปลงในระบบ',stock:'รับเข้า ผลิต ปรับยอด และตัดสต็อก',pos:'ยอดขายและการคืนบิล',menu:'การเพิ่มและแก้ไขเมนู',addon:'การจัดการ Add-on และกลุ่มตัวเลือก',system:'การเปลี่ยนแปลงค่าระบบ'})[store.modals.activityLog?.module||'all']||'รายการเคลื่อนไหว')
 
 // Options
 const moduleOptions = [
   { id: 'all', label: 'ทั้งหมด', icon: '📋' },
   { id: 'stock', label: 'คลังสต็อก', icon: '📦' },
   { id: 'pos', label: 'แคชเชียร์/POS', icon: '🛒' },
-  { id: 'menu', label: 'เมนู/ท็อปปิ้ง', icon: '🍽️' },
+  { id: 'menu', label: 'เมนู', icon: '🍽️' },
+  { id: 'addon', label: 'Add-on และกลุ่มตัวเลือก', icon: '🥣' },
   { id: 'system', label: 'ระบบ/การตั้งค่า', icon: '⚙️' }
 ]
 
@@ -160,6 +166,15 @@ const availableActionOptions = computed(() => {
     ]
   }
 
+  if(!isGlobalMode.value){
+    const actions=store.modals.activityLog?.module==='pos'
+      ? [['order_complete','ขายสำเร็จ'],['order_cancel','คืนบิล']]
+      : store.modals.activityLog?.module==='system'
+        ? [['edit','แก้ไขค่า'],['sync','ซิงค์ข้อมูล']]
+        : [['create','เพิ่มรายการ'],['edit','แก้ไขรายการ'],['delete','ลบรายการ']]
+    return [{id:'all',label:'ทุกกิจกรรม'},...actions.map(([id,label])=>({id,label}))]
+  }
+
   // Global mode actions
   return [
     { id: 'all', label: 'ทุกกิจกรรม', icon: '✨' },
@@ -169,6 +184,9 @@ const availableActionOptions = computed(() => {
     { id: 'sale_deduct', label: 'ตัดขาย', icon: '🛍️' },
     { id: 'order_complete', label: 'ขายหน้าร้าน', icon: '🧾' },
     { id: 'order_cancel', label: 'ย้อนกลับออเดอร์', icon: '🧾' },
+    { id: 'create', label: 'เพิ่มรายการ', icon: '➕' },
+    { id: 'edit', label: 'แก้ไขรายการ', icon: '✏️' },
+    { id: 'delete', label: 'ลบรายการ', icon: '🗑️' },
     { id: 'waste', label: 'ของเสีย', icon: '🗑️' },
     { id: 'switch_lot', label: 'สลับล็อต', icon: '⚡' }
   ]
@@ -225,11 +243,11 @@ const hasActiveFilter = computed(() => {
   if (isStockMode.value) {
     return selectedActionFilter.value !== 'all' || selectedMaterialId.value !== 'all' || filterStartDate.value !== null || filterEndDate.value !== null
   }
-  return activeModule.value !== 'all' || selectedActionFilter.value !== 'all' || filterStartDate.value !== null || filterEndDate.value !== null
+  return (isGlobalMode.value&&activeModule.value !== 'all') || selectedActionFilter.value !== 'all' || filterStartDate.value !== null || filterEndDate.value !== null
 })
 
 function resetFilters() {
-  activeModule.value = 'all'
+  activeModule.value = isGlobalMode.value?'all':store.modals.activityLog?.module||'all'
   selectedActionFilter.value = 'all'
   selectedMaterialId.value = 'all'
   filterStartDate.value = null
@@ -261,14 +279,8 @@ const filteredLogs = computed(() => {
       list = list.filter(l => l.targetId === selectedMaterialId.value || l.materialId === selectedMaterialId.value)
     }
   } else {
-    // Global Mode
-    if (activeModule.value !== 'all') {
-      if (activeModule.value === 'menu') {
-        list = list.filter(l => l.module === 'menu' || l.module === 'addon')
-      } else {
-        list = list.filter(l => l.module === activeModule.value)
-      }
-    }
+    const module=isGlobalMode.value?activeModule.value:store.modals.activityLog?.module
+    if(module&&module!=='all')list=list.filter(l=>l.module===module)
   }
 
   // 2. Action Type Filter
@@ -416,4 +428,5 @@ async function performClearLogs() {
 input.history-control.pl-9 { padding-left:36px; padding-right:36px; }
 .history-list { scrollbar-gutter:stable; }
 .history-button,.history-icon-button{min-height:44px;min-width:44px}.history-modal summary,.history-modal details button{min-height:44px}
+@media(max-width:767px){.history-shell{align-items:flex-end;padding:0}.history-modal{width:100%;max-width:none;max-height:calc(100dvh - 12px);border-radius:24px 24px 0 0}.history-modal footer{padding-bottom:max(12px,env(safe-area-inset-bottom))}}
 </style>

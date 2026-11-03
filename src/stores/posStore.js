@@ -1755,10 +1755,11 @@ const posDefinition = {
         gpPercent: Object.hasOwn(rates, platform.id) ? Number(rates[platform.id]) : platform.gpPercent
       }))
       const result = this.commitDatabase(candidate, { preserveDraft: true })
-      if (result.ok) this.showToast('บันทึกอัตรา GP แล้ว ราคาเมนูเดิมยังคงเดิม', 'success')
+      if (result.ok) {this.addActivityLog({module:'system',action:'edit',title:'แก้ไขอัตรา GP',description:'บันทึกอัตรา GP ของช่องทางขาย'});this.showToast('บันทึกอัตรา GP แล้ว ราคาเมนูเดิมยังคงเดิม', 'success')}
       return result
     },
     saveMenu(menuData) {
+      const creating=!menuData.id
       if (menuData.id) {
         const idx = this.menus.findIndex(m => m.id === menuData.id)
         if (idx >= 0) {
@@ -1777,6 +1778,8 @@ const posDefinition = {
       }
       const saved=this.persistLocal()
       if(!saved.ok)return saved
+      const menu=this.menus.find(m=>m.id===menuData.id)||this.menus.at(-1)
+      this.addActivityLog({module:'menu',action:creating?'create':'edit',title:creating?'เพิ่มเมนู':'แก้ไขเมนู',targetId:menu.id,targetName:menu.name,description:`${creating?'เพิ่ม':'แก้ไข'}เมนู ${menu.name}`})
       this.showToast(`บันทึกเมนู "${menuData.name}" สำเร็จ`, 'success')
       return saved
     },
@@ -1787,6 +1790,7 @@ const posDefinition = {
         const name = this.menus[idx].name
         this.menus.splice(idx, 1)
         this.persistLocal()
+        this.addActivityLog({module:'menu',action:'delete',title:'ลบเมนู',targetId:menuId,targetName:name,description:`ลบเมนู ${name}`})
         this.showToast(`ลบเมนู "${name}" แล้ว`, 'info')
       }
     },
@@ -1796,6 +1800,7 @@ const posDefinition = {
       if (menu) {
         menu.isActive = !menu.isActive
         this.persistLocal()
+        this.addActivityLog({module:'menu',action:'edit',title:menu.isActive?'เปิดขายเมนู':'ปิดขายเมนู',targetId:menu.id,targetName:menu.name})
       }
     },
 
@@ -1819,7 +1824,7 @@ const posDefinition = {
       if (index < 0) candidate.addonGroups.push(group)
       else candidate.addonGroups[index] = group
       const result = this.commitDatabase(candidate, { preserveDraft: true })
-      if (result.ok) this.showToast(`บันทึกกลุ่ม "${group.name}" แล้ว`, 'success')
+      if (result.ok) {this.addActivityLog({module:'addon',action:index<0?'create':'edit',title:index<0?'เพิ่มกลุ่มตัวเลือก':'แก้ไขกลุ่มตัวเลือก',targetId:id,targetName:group.name});this.showToast(`บันทึกกลุ่ม "${group.name}" แล้ว`, 'success')}
       return result
     },
     deleteAddonGroup(id) {
@@ -1829,9 +1834,13 @@ const posDefinition = {
       }
       const candidate = this.databaseSnapshot()
       candidate.addonGroups = candidate.addonGroups.filter(g => g.id !== id)
-      return this.commitDatabase(candidate, { preserveDraft: true })
+      const name=this.addonGroups.find(g=>g.id===id)?.name||id
+      const result=this.commitDatabase(candidate, { preserveDraft: true })
+      if(result.ok)this.addActivityLog({module:'addon',action:'delete',title:'ลบกลุ่มตัวเลือก',targetId:id,targetName:name})
+      return result
     },
     saveAddon(addonData) {
+      const creating=!addonData.id
       if (addonData.id) {
         const idx = this.addons.findIndex(a => a.id === addonData.id)
         if (idx >= 0) {
@@ -1850,6 +1859,8 @@ const posDefinition = {
       }
       const saved=this.persistLocal()
       if(!saved.ok)return saved
+      const addon=this.addons.find(a=>a.id===addonData.id)||this.addons.at(-1)
+      this.addActivityLog({module:'addon',action:creating?'create':'edit',title:creating?'เพิ่ม Add-on':'แก้ไข Add-on',targetId:addon.id,targetName:addon.name})
       this.showToast(`บันทึก Add-on "${addonData.name}" สำเร็จ`, 'success')
       return saved
     },
@@ -1864,6 +1875,7 @@ const posDefinition = {
         const name = this.addons[idx].name
         this.addons.splice(idx, 1)
         this.persistLocal()
+        this.addActivityLog({module:'addon',action:'delete',title:'ลบ Add-on',targetId:addonId,targetName:name})
         this.showToast(`ลบ Add-on "${name}" แล้ว`, 'info')
       }
     },

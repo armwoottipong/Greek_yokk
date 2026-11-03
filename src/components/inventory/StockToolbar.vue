@@ -17,7 +17,6 @@
         <Button class="stock-more-compact" data-stock-more-filter variant="secondary" @click="openFilters(true)"><SlidersHorizontal :size="18" aria-hidden="true"/>ตัวกรอง<span v-if="filterCount">{{ filterCount }}</span></Button>
         <Button variant="secondary" @click="run('adjust')">ปรับยอดนับจริง</Button>
         <Button variant="secondary" @click="run('create')">เพิ่มวัตถุดิบใหม่</Button>
-        <Button variant="quiet" @click="run('history')">ประวัติสต็อก</Button>
       </div>
     </DialogFrame>
   </section>
@@ -31,7 +30,7 @@ import FilterDropdown from '../ui/FilterDropdown.vue'
 import DialogFrame from '../ui/DialogFrame.vue'
 import { MATERIAL_ROLE_OPTIONS } from '@/domain/materialClassification'
 const props=defineProps({search:{type:String,default:''},role:String,kind:String,showDeleted:Boolean,kinds:Array,deletedCount:Number})
-const emit=defineEmits(['update:search','apply-filters','receive','stocktake','adjust','create','history'])
+const emit=defineEmits(['update:search','apply-filters','receive','stocktake','adjust','create'])
 const filterOpen=ref(false),moreOpen=ref(false),filterButton=ref(null)
 const moreButton=ref(null),filterFromMore=ref(false)
 function openFilters(fromMore){filterFromMore.value=fromMore;moreOpen.value=false;filterOpen.value=true}

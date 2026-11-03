@@ -11,7 +11,7 @@
     <StocktakeModal />
     <WasteModal />
     <MaterialEditModal />
-    <ActivityLogModal />
+    <ActivityLogModal @open-orders="$emit('open-orders')" />
     <ConfirmModal />
     <LotDepletionModal />
     <EmojiPickerPopover />
@@ -49,6 +49,7 @@ const props = defineProps({
   storageKey: { type: String, required: true },
   readHistory: { type: Function, default: null },
 })
+defineEmits(['open-orders'])
 
 const visited=reactive({menu:false,addon:false})
 watch(()=>props.currentTab,tab=>{if(tab==='menu'||tab==='addon')visited[tab]=true},{immediate:true})

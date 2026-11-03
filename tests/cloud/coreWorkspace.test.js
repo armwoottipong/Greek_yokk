@@ -170,7 +170,9 @@ it('produces through the original modal then confirms cancellation before sendin
  await w.get('#stock-draft-review .draft-review-actions .ui-button--secondary').trigger('click');await flushPromises()
  await w.get('[data-save-stock-drafts]').trigger('click');await flushPromises()
  expect(h.execute.mock.calls.at(-1)[0]).toMatchObject({kind:'produce',payload:{materialId:output.id,input:{qtyQ:500}}})
- await w.get('button[aria-label="ประวัติบิลขายและคืนบิล"]').trigger('click');await flushPromises()
+ await w.get('.brand-navigation button[title="แคชเชียร์ (POS)"]').trigger('click');await flushPromises()
+ await w.get('button[aria-label="ยอดขายและบิล"]').trigger('click');await flushPromises()
+ await w.findAll('button').find(b=>b.text()==='เปิดหน้าบิลขายและคืนบิล').trigger('click');await flushPromises()
  await w.get('.order-list button').trigger('click');await flushPromises()
  expect(h.execute.mock.calls.filter(([c])=>c.kind==='cancel')).toHaveLength(0)
  await w.get('#cloud-cancel-order .ui-button--primary').trigger('click');await flushPromises()
@@ -207,7 +209,8 @@ it('keeps checkout locked and spinning until the post-write server reload finish
 it('holds the same visible cancellation button through the receipt and order reload',async()=>{
  h.orders.mockResolvedValue([{opId:'BILL',status:'committed',subtotalCents:6900,platformId:'P',lines:[{menuId:'M',qty:1}]}])
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
- await w.get('button[aria-label="ประวัติบิลขายและคืนบิล"]').trigger('click');await flushPromises()
+ await w.get('button[aria-label="ยอดขายและบิล"]').trigger('click');await flushPromises()
+ await w.findAll('button').find(b=>b.text()==='เปิดหน้าบิลขายและคืนบิล').trigger('click');await flushPromises()
  await w.get('.order-list button').trigger('click');await flushPromises()
  let resolve;h.orders.mockImplementationOnce(()=>new Promise(r=>{resolve=r}))
  const button=()=>w.get('#cloud-cancel-order .ui-button--primary')
@@ -235,7 +238,8 @@ it('spins on stop-pending-sale and suppresses duplicates until server data has r
 
 it('keeps manual reload spinning through the orders read and shares an in-flight reload',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
- await w.get('button[aria-label="ประวัติบิลขายและคืนบิล"]').trigger('click');await flushPromises()
+ await w.get('button[aria-label="ยอดขายและบิล"]').trigger('click');await flushPromises()
+ await w.findAll('button').find(b=>b.text()==='เปิดหน้าบิลขายและคืนบิล').trigger('click');await flushPromises()
  let resolve;h.orders.mockImplementationOnce(()=>new Promise(r=>{resolve=r}));const before=h.orders.mock.calls.length
  const button=()=>w.get('button[aria-label="โหลดข้อมูลล่าสุด"]')
  await button().trigger('click');await flushPromises()
@@ -300,7 +304,8 @@ it('looks up a historical receipt directly even when newer orders fill the lates
  h.history.mockResolvedValue([{orderId:'OLD',status:'committed',subtotal:39,platformName:'Original'}])
  h.legacyReceipt.mockResolvedValue({opId:'LEGACY-OLD',origin:'legacy',sourceLegacyId:'OLD',status:'committed',lines:[],subtotalCents:3900})
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
- await w.get('[aria-label="ประวัติบิลขายและคืนบิล"]').trigger('click');await flushPromises()
+ await w.get('[aria-label="ยอดขายและบิล"]').trigger('click');await flushPromises()
+ await w.findAll('button').find(b=>b.text()==='เปิดหน้าบิลขายและคืนบิล').trigger('click');await flushPromises()
  const details=w.get('details');details.element.open=true;await details.trigger('toggle');await flushPromises()
  await w.get('[data-legacy-return="OLD"]').trigger('click');await flushPromises()
  expect(h.legacyReceipt).toHaveBeenCalledWith('OLD');expect(w.text()).toContain('ยืนยันคืนเงินและคืนสต็อก');expect(h.execute).not.toHaveBeenCalled()
@@ -311,7 +316,7 @@ it('mounts only dashboard for viewer and cannot navigate to sales or settings',a
  const viewer={...state,shop:{...state.shop,userRoles:{'u@example.com':'viewer'}}}
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:viewer},global:{stubs:{teleport:true}}});await flushPromises()
  expect(w.find('[data-checkout]').exists()).toBe(false);expect(w.find('[aria-controls="settings-access"]').exists()).toBe(false)
- expect(w.find('[aria-label="ประวัติบิลขายและคืนบิล"]').exists()).toBe(false)
+ expect(w.find('[aria-label="ประวัติทั้งระบบ"]').exists()).toBe(false)
  expect(w.findComponent({name:'CloudStockWorkspace'}).exists()).toBe(false);expect(w.text()).not.toContain('จัดการคลัง');expect(w.text()).not.toContain('ไปหน้าแคชเชียร์')
  w.unmount()
 })

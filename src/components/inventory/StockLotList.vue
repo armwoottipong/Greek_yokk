@@ -3,10 +3,11 @@
   <h4>ล็อตในคลัง</h4>
   <p v-if="trackingMode==='none'" class="lot-help">รายการนี้ไม่ติดตามวันที่</p>
   <p v-if="!lots.length" class="lot-help">ยังไม่มีล็อตในคลัง</p>
-  <article v-for="lot in lots" :key="lot.id" class="lot-card">
-   <div class="lot-heading"><strong>{{ lot.id }}</strong><StatusBadge :label="lot.isInUse?'กำลังใช้':'ล็อตสำรอง'" :tone="lot.isInUse?'success':'neutral'" /></div>
+  <article v-for="(lot,index) in lots" :key="lot.id" class="lot-card">
+   <div class="lot-heading"><strong>ล็อตที่ {{ index+1 }}</strong><StatusBadge :label="lot.isInUse?'กำลังใช้':'ล็อตสำรอง'" :tone="lot.isInUse?'success':'neutral'" /></div>
    <p class="lot-quantity">{{ Number(lot.qty||0).toLocaleString('th-TH') }} {{ unit }}</p>
    <p class="lot-value">มูลค่าคงเหลือ ฿{{ (Math.max(0,Number(lot.qty)||0)*Number(lot.unitCost||fallbackUnitCost||0)).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}) }}</p>
+   <p class="lot-id">รหัสอ้างอิง {{ lot.id }}</p>
    <dl v-if="trackingMode!=='none'" class="lot-dates"><div><dt>{{ originLabel }}</dt><dd>{{ lot.receiveDate?formatDisplayDate(lot.receiveDate):'ไม่ระบุวันที่' }}</dd></div><div v-if="trackingMode!=='receive_only'"><dt>หมดอายุ</dt><dd>{{ lot.expiryDate?formatDisplayDate(lot.expiryDate):'ไม่ระบุวันที่' }}</dd></div></dl>
    <StatusBadge v-if="trackingMode!=='none' && lot.expiryDate && isExpired({expiryDate:lot.expiryDate})" label="หมดอายุแล้ว" tone="error" />
    <div v-if="!archived" class="lot-actions">
@@ -27,4 +28,5 @@ defineEmits(['adjust','waste','switch'])
 <style scoped>
 .lot-section h4{font-weight:600;margin:20px 0 12px}.lot-card{padding:16px;background:var(--bg-soft);border-radius:var(--surface-radius);margin:10px 0}.lot-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.lot-heading strong{font-size:12px;overflow-wrap:anywhere;min-width:0}.lot-quantity{font-size:18px;font-weight:600;margin:10px 0;font-variant-numeric:tabular-nums}.lot-dates{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px}.lot-dates dt,.lot-help{color:var(--text-muted)}.lot-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .lot-value{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;margin:-4px 0 12px}
+.lot-id{font-size:11px;color:var(--text-muted);overflow-wrap:anywhere;margin:-6px 0 12px}
 </style>
