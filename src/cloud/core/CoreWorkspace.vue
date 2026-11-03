@@ -12,7 +12,7 @@
     <CartPanel :model="productModel" :presentation="split?'panel':'page'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
      <template #review>
       <div class="cart-cloud-review">
-       <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ · จำนวนเมนูเดียวกันรวมเป็นรายการเดียวได้</p>
+       <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ · เมนู ตัวเลือก และหมายเหตุที่เหมือนกันจะรวมจำนวน</p>
        <section v-if="shortages.length" class="shortage"><h3>สต็อกไม่พอ</h3><p v-for="[id,q] in shortages" :key="id">{{ materialName(id) }} ขาด {{ amount(q) }} {{ material(id)?.unit }}</p><label><input v-model="approveShortage" type="checkbox" :disabled="locked"> ยืนยันขายตามจำนวนที่ขาดข้างต้น</label></section>
        <p v-if="previewError" class="error" role="alert">{{ previewError }}</p>
        <div v-if="pendingCommand"><strong>ยังไม่ทราบผลการบันทึก</strong><p>ตรวจผลด้วยคำสั่งเดิมก่อนเริ่มบิลใหม่</p><Button :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="quiet" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลและเก็บตะกร้า</Button></div>
@@ -37,7 +37,7 @@
    <section class="product-note"><label class="field">หมายเหตุ<AppInput v-model="lineNote" maxlength="1000" placeholder="เช่น แยกท็อปปิ้ง" :disabled="locked"/></label></section>
    <p v-if="lineError" class="error" role="alert">{{ lineError }}</p>
   </form>
-  <template v-if="menu" #footer><div class="custom-order-footer"><div class="bowl-total"><span>จำนวนชาม</span><strong>{{ quantity }} ชาม</strong></div><AppQuantityInput v-model="quantity" label="จำนวนชาม" :min="1" :max="1000000" :disabled="locked"/><div class="custom-order-footer-actions"><Button type="submit" form="cloud-line-form" data-add-line :disabled="locked||cart.length>=saleLimit">เพิ่มลงตะกร้า</Button></div><p class="muted">หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ</p></div></template>
+  <template v-if="menu" #footer><div class="custom-order-footer"><div class="bowl-total"><span>จำนวนชาม</span><strong>{{ quantity }} ชาม</strong></div><AppQuantityInput v-model="quantity" label="จำนวนชาม" :min="1" :max="1000000" :disabled="locked"/><div class="custom-order-footer-actions"><Button type="submit" form="cloud-line-form" data-add-line :disabled="locked||(cart.length>=saleLimit&&!canMergeLine)">เพิ่มลงตะกร้า</Button></div><p class="muted">หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ</p></div></template>
  </DialogFrame>
  <DialogFrame :open="!!cancelId" id="cloud-cancel-order" title="ยืนยันคืนบิล" :busy="busy" @request-close="cancelId=''"><p>ยืนยันคืนเงินและคืนสต็อกบิลนี้ตามล็อตเดิม?</p><p v-if="error" class="error" role="alert">{{ error }}</p><template #footer><Button variant="secondary" :disabled="busy" @click="cancelId=''">เก็บบิลไว้</Button><Button :disabled="locked||!ready" :loading="activeAction==='cancel'" @click="cancelOrder(cancelId)">ยืนยันคืนบิล</Button></template></DialogFrame>
  <DialogFrame :open="clearConfirm" id="cloud-clear-cart" title="ล้างตะกร้านี้?" @request-close="answerClear(false)"><p>รายการสินค้า ท็อปปิ้ง และหมายเหตุที่ยังไม่ได้ชำระจะถูกล้าง</p><template #footer><Button variant="secondary" @click="answerClear(false)">เก็บออเดอร์ไว้</Button><Button variant="danger" @click="answerClear(true)">ล้างตะกร้า</Button></template></DialogFrame>
@@ -45,6 +45,7 @@
 
 <script setup>
 import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive,provide} from 'vue'
+import {sameCartPreparation} from './cartLineIdentity.js'
 import EntityImage from '@/components/images/EntityImage.vue'
 import Button from '@/components/ui/Button.vue'
 import CloudProductShell from './CloudProductShell.vue'
@@ -180,13 +181,22 @@ function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g.id===
 function selectMenu(id){if(locked.value)return;selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
 function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
-function addLine(){
- if(locked.value||!menu.value||cart.value.length>=saleLimit.value)return
- try{
- const line={menuId:menu.value.id,qty:quantity.value,note:lineNote.value}
+function draftLine(){
+ const line={menuId:menu.value.id,qty:quantity.value,note:lineNote.value.trim()}
  if(menu.value.groupIds?.length)line.selections=menuGroups.value.flatMap(g=>g.optionIds.filter(id=>choices.value[g.id][id]>0).map(id=>({groupId:g.id,id,selectionQty:choices.value[g.id][id]})))
  else line.optionIds=menuGroups.value.flatMap(g=>g.optionIds.flatMap(id=>{const q=choices.value[g.id][id]||0;if(!Number.isSafeInteger(q)||q<0||q>(g.allowRepeat?g.max:1))throw new Error('Invalid selection');return Array(q).fill(id)}))
- service.previewSale({platformId:platformId.value,lines:[...plain(cart.value),line]});cart.value.push(line);error.value='';lineError.value='';message.value='';selectedMenu.value='';if(!split.value)cartOpen.value=true}catch(e){lineError.value=explain(e)}
+ return line
+}
+const canMergeLine=computed(()=>{try{return !!menu.value&&cart.value.some(existing=>sameCartPreparation(existing,draftLine()))}catch{return false}})
+function addLine(){
+ if(locked.value||!menu.value)return
+ try{
+ const line=draftLine(),existingIndex=cart.value.findIndex(existing=>sameCartPreparation(existing,line))
+ if(existingIndex<0&&cart.value.length>=saleLimit.value)return
+ const next=plain(cart.value)
+ if(existingIndex>=0)next[existingIndex].qty+=line.qty
+ else next.push(line)
+ service.previewSale({platformId:platformId.value,lines:next});cart.value=next;error.value='';lineError.value='';message.value='';selectedMenu.value='';if(!split.value)cartOpen.value=true}catch(e){lineError.value=explain(e)}
 }
 function explain(e){const known=commandErrorMessage(e);if(known)return known;const code=e?.code||e?.message||'';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SALE_MATERIAL_LIMIT')return 'บิลนี้ใช้วัตถุดิบรวมเกิน 16 รายการ กรุณาแบ่งเป็นหลายบิล';if(code==='RECIPE_MATERIAL_LIMIT')return 'หนึ่งสูตรใช้วัตถุดิบได้ไม่เกิน 16 รายการ';if(code==='PREPARATION_LIMIT')return 'มีคำสั่งค้างหลายรายการ กรุณาตรวจและจัดการคำสั่งค้างก่อนลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
 let refreshTask=null

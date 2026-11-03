@@ -68,9 +68,27 @@ it('shows the four-line limit for a sixteen-material shop and prevents creating 
  const d=await h.load();d.shop.catalog.summaryMaterials.push('M15');h.load.mockResolvedValue(d)
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  await w.get('[data-pos-menu="M"]').trigger('click')
- for(let i=0;i<4;i++){if(i)await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')}
+ for(let i=0;i<4;i++){if(i)await w.get('[data-pos-menu="M"]').trigger('click');await w.get('input[placeholder="เช่น แยกท็อปปิ้ง"]').setValue(`แยก ${i}`);await w.get('form.line-form').trigger('submit')}
  await w.get('[data-pos-menu="M"]').trigger('click')
- expect(w.findAll('[data-cart-line]')).toHaveLength(4);expect(w.text()).toContain('สูงสุด 4 รายการ');expect(w.get('[data-add-line]').attributes('disabled')).toBeDefined();w.unmount()
+ expect(w.findAll('[data-cart-line]')).toHaveLength(4);expect(w.text()).toContain('สูงสุด 4 รายการ');expect(w.get('[data-add-line]').attributes('disabled')).toBeDefined()
+ await w.get('input[placeholder="เช่น แยกท็อปปิ้ง"]').setValue('แยก 0')
+ expect(w.get('[data-add-line]').attributes('disabled')).toBeUndefined()
+ await w.get('form.line-form').trigger('submit')
+ expect(w.findAll('[data-cart-line]')).toHaveLength(4)
+ expect(w.findAll('[data-cart-line]')[0].get('.cart-quantity span').text()).toBe('2')
+ w.unmount()
+})
+it('combines identical prepared items but keeps different notes on separate bill lines',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
+ const add=async note=>{await w.get('[data-pos-menu="M"]').trigger('click');if(note)await w.get('input[placeholder="เช่น แยกท็อปปิ้ง"]').setValue(note);await w.get('form.line-form').trigger('submit')}
+ await add('');await add('');await add('แยกน้ำผึ้ง');await add(' แยกน้ำผึ้ง ');await add('ไม่ใส่น้ำผึ้ง')
+ const lines=w.findAll('[data-cart-line]')
+ expect(lines).toHaveLength(3)
+ expect(lines.map(line=>line.get('.cart-quantity span').text())).toEqual(['2','2','1'])
+ expect(lines[0].text()).not.toContain('หมายเหตุ:')
+ expect(lines[1].text()).toContain('แยกน้ำผึ้ง')
+ expect(lines[2].text()).toContain('ไม่ใส่น้ำผึ้ง')
+ w.unmount()
 })
 it('opens the trial workspace, retains cart after uncertain results, and only clears after a server receipt',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
