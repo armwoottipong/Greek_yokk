@@ -1,6 +1,6 @@
 <template>
  <article class="stock-management-row">
-  <button type="button" :data-material-details="material.id" class="stock-row-name" :aria-label="`ดูรายละเอียด ${material.name}`" @click="$emit('details',material.id)"><span class="stock-row-emoji" aria-hidden="true"><EntityImage kind="materials" :entity-id="material.id" :image="material.image" :emoji="material.emoji"/></span><span><strong>{{ material.name }}</strong><span class="stock-row-meta"><StatusBadge :data-inventory-type="material.inventoryType" :label="getMaterialKindLabel(material)" tone="neutral"/><MaterialUsage compact :usage="usage"/></span><small v-if="trackingMode!=='none'&&material.lastStockInDate">{{ material.hasSubRecipe?'ผลิตล่าสุด':'รับล่าสุด' }} {{ formatDisplayDate(material.lastStockInDate) }}<template v-if="trackingMode==='expiry_and_receive'&&material.expiryDate"> · หมดอายุ {{ formatDisplayDate(material.expiryDate) }}</template></small><span class="stock-row-mobile-summary"><span class="stock-row-mobile-line"><span>คงเหลือ <b>{{ number(material.stock) }} {{ material.unit }}</b></span><span>ต้นทุน <b>฿{{ number(packCost) }}</b></span></span><span class="stock-row-mobile-line stock-row-mobile-secondary"><span>ประมาณ <b>{{ material.packSize>1?`≈ ${number(Number(material.stock||0)/material.packSize)} ${material.packUnit}`:'—' }}</b></span><span>ราคา <b>฿{{ number(material.unitCost) }}/{{ material.unit }}</b></span></span></span></span></button>
+  <button type="button" :data-material-details="material.id" class="stock-row-name" :aria-label="`ดูรายละเอียด ${material.name}`" @click="$emit('details',material.id)"><span class="stock-row-emoji" aria-hidden="true"><EntityImage kind="materials" :entity-id="material.id" :image="material.image" :emoji="material.emoji"/></span><span><strong>{{ material.name }}</strong><span class="stock-row-meta"><StatusBadge :data-inventory-type="material.inventoryType" :label="getMaterialKindLabel(material)" tone="neutral"/><MaterialUsage compact :usage="usage"/></span><small v-if="trackingMode!=='none'&&material.lastStockInDate">{{ material.hasSubRecipe?'ผลิตล่าสุด':'รับล่าสุด' }} {{ formatDisplayDate(material.lastStockInDate) }}<template v-if="trackingMode==='expiry_and_receive'&&material.expiryDate"> · หมดอายุ {{ formatDisplayDate(material.expiryDate) }}</template></small><span class="stock-row-mobile-summary"><span>คงเหลือ <b>{{ number(material.stock) }} {{ material.unit }}</b></span><span>ต้นทุน/หน่วย <b>฿{{ number(material.unitCost) }}/{{ material.unit }}</b></span></span></span></button>
   <div class="stock-row-quantity"><small>คงเหลือ</small><strong>{{ number(material.stock) }} <span>{{ material.unit }}</span></strong><small v-if="draftDiff" class="stock-row-draft">รอยืนยัน {{ draftDiff>0?'+':'' }}{{ number(draftDiff) }} {{ material.unit }}</small><small v-if="material.packSize>1">≈ {{ number(Number(material.stock||0)/material.packSize) }} {{ material.packUnit }}</small><StatusBadge :label="status" :tone="tone"/></div>
   <div class="stock-row-cost"><small>ต้นทุน / {{ material.packUnit||material.unit }}</small><strong>฿{{ number(packCost) }}</strong><small v-if="material.packSize>1||material.hasSubRecipe">฿{{ number(material.unitCost) }} / {{ material.unit }}</small></div>
   <div class="stock-row-value"><Button class="stock-row-lots" variant="quiet" size="compact" :aria-label="`ดูล็อต ${material.name}`" @click="$emit('details',material.id)">{{ lotCount }} ล็อต</Button></div>
@@ -34,17 +34,15 @@ const number=value=>Number(value||0).toLocaleString('th-TH',{maximumFractionDigi
  .stock-management-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:14px 12px;align-items:center}
  .stock-row-name{grid-column:1;grid-row:1;gap:10px;padding-right:0;min-width:0;align-items:flex-start}
  .stock-row-emoji{width:48px;height:48px;font-size:26px}
- .stock-row-name strong{font-size:.875rem;line-height:1.35}
+ .stock-row-name strong{font-size:.875rem;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .stock-row-meta,.stock-row-name small,.stock-row-quantity,.stock-row-cost,.stock-row-value{display:none}
- .stock-row-mobile-summary{display:grid;gap:2px;min-width:0;text-align:left;font-size:.75rem;line-height:1.35;color:var(--text-muted);cursor:pointer}
- .stock-row-mobile-line{display:flex;flex-wrap:wrap;gap:2px 10px}
- .stock-row-mobile-line>span{white-space:nowrap}
- .stock-row-mobile-line b{font-weight:600;color:var(--text-main);font-variant-numeric:tabular-nums}
- .stock-row-mobile-secondary{font-size:.6875rem}
+ .stock-row-mobile-summary{display:flex;justify-content:space-between;gap:4px;min-width:0;text-align:left;font-size:.6875rem;line-height:1.35;color:var(--text-muted);cursor:pointer}
+ .stock-row-mobile-summary>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .stock-row-mobile-summary b{font-weight:600;color:var(--text-main);font-variant-numeric:tabular-nums}
  .stock-row-actions{grid-column:2;grid-row:1;align-self:center;gap:2px}
- .stock-row-receive{display:inline-flex}
+ .stock-row-receive{display:none}
  .stock-row-actions :deep(.ui-button){min-width:0;padding:6px 8px;font-size:.75rem}
  .stock-row-actions :deep(.ui-icon-button){width:36px;height:36px}
 }
-@media(max-width:479px){.stock-management-row{gap:8px;padding:12px 10px}.stock-row-name{gap:8px}.stock-row-emoji{width:44px;height:44px}.stock-row-mobile-line{gap:2px 7px}.stock-row-actions :deep(.ui-icon-button){width:32px;height:32px}}
+@media(max-width:479px){.stock-management-row{gap:8px;padding:12px 10px}.stock-row-name{gap:8px}.stock-row-emoji{width:44px;height:44px}.stock-row-actions :deep(.ui-icon-button){width:32px;height:32px}}
 </style>

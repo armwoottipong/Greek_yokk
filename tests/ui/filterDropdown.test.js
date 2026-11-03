@@ -15,3 +15,14 @@ it('supports caller-defined filter fields and emits changes only on Apply',async
  expect(wrapper.emitted('close')).toHaveLength(1)
  wrapper.unmount()
 })
+it('uses the mobile drawer layout instead of anchor coordinates',async()=>{
+ const width=window.innerWidth
+ Object.defineProperty(window,'innerWidth',{configurable:true,value:390})
+ const anchor=document.createElement('button')
+ vi.spyOn(anchor,'getBoundingClientRect').mockReturnValue({right:600,top:80,bottom:120})
+ const wrapper=mount(FilterDropdown,{props:{id:'mobile-filter',open:true,anchor,values:{status:'all'},includeDates:false}})
+ try{
+  expect(wrapper.get('.filter-shell').exists()).toBe(true)
+  expect(wrapper.get('[data-filter-dropdown]').attributes('style')).toBeUndefined()
+ }finally{wrapper.unmount();Object.defineProperty(window,'innerWidth',{configurable:true,value:width})}
+})

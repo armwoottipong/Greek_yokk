@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body" :disabled="!teleport">
-  <ModalShell :id="id" :labelled-by="`${id}-title`" :open="open" class="fixed inset-0 z-[60]" @request-close="$emit('close')">
+  <ModalShell :id="id" :labelled-by="`${id}-title`" :open="open" class="filter-shell fixed inset-0 z-[60]" @request-close="$emit('close')">
     <section data-filter-dropdown :style="position" class="filter-panel">
       <header class="filter-header">
         <div class="filter-heading"><SlidersHorizontal aria-hidden="true" :size="16" /><h3 :id="`${id}-title`">{{ title }}</h3></div>
@@ -58,6 +58,7 @@ const draft=ref({})
 const position=ref({})
 const presets=[{days:1,label:'วันนี้'},{days:7,label:'7 วัน'},{days:30,label:'30 วัน'},{days:0,label:'ทั้งหมด'}]
 function positionPanel(){
+  if(window.innerWidth<=767){position.value={};return}
   if(!props.anchor) return
   const anchor=props.anchor.getBoundingClientRect(),margin=window.innerWidth<640?4:8
   const width=Math.min(window.innerWidth>=640?560:380,window.innerWidth-margin*2)
@@ -109,6 +110,17 @@ button:focus-visible,select:focus-visible{outline:2px solid var(--accent-brand);
 @media(max-width:360px){.filter-body{padding:12px 8px}.filter-footer{padding:9px}.filter-apply>svg{display:none}}
 @media(min-width:640px){.filter-body{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px}.filter-config{padding-right:16px;border-right:0}.filter-fields{grid-template-columns:1fr;gap:14px;margin-bottom:24px}.filter-presets{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}}
 .filter-body.without-dates{display:block}.without-dates .filter-config{padding:0;border:0}.without-dates .filter-fields{margin-bottom:0}
+@media(max-width:767px){
+ .filter-shell{background:#35252266}
+ .filter-panel{inset:auto 0 0;width:100%;max-height:min(85dvh,720px);border-radius:24px 24px 0 0;box-shadow:var(--overlay-shadow)}
+ .filter-header{padding:16px 16px 8px}
+ .filter-heading h3{font-size:1rem}
+ .filter-body{display:block;padding:12px 16px;overscroll-behavior:contain}
+ .filter-config{padding:0}
+ .filter-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .filter-footer{padding:12px 16px max(12px,env(safe-area-inset-bottom));gap:12px}
+ .filter-apply{min-height:44px}
+}
 </style>
 
 
