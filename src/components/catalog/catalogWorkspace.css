@@ -42,7 +42,8 @@
 .menu-header-identity--selected>div {
   align-self: stretch;
   min-height: clamp(112px, 10vw, 144px);
-  justify-content: space-between;
+  justify-content: center;
+  gap: 8px;
 }
 
 .menu-header-emoji {
@@ -67,8 +68,22 @@
 }
 
 .menu-header-identity--selected h2 {
-  font-size: clamp(1.95rem, 2.34vw, 2.275rem);
+  font-size: clamp(2.34rem, 2.808vw, 2.73rem);
   line-height: 1.2;
+}
+
+.menu-header-identity--selected .menu-header-description {
+  margin-top: 0;
+  font-size: .975rem;
+}
+
+.menu-header-identity--selected .menu-header-meta {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.menu-header-identity--selected .menu-header-meta .ui-status {
+  font-size: 1.05rem;
 }
 
 .menu-header-description {
@@ -316,14 +331,15 @@
     gap: 12px;
   }
   .menu-header-identity--selected {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 88px minmax(0, 1fr);
   }
   .menu-header-identity--selected>div {
     display: contents;
   }
   .menu-header-identity--selected h2 {
+    grid-column: 2;
     min-height: 0;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
   }
   .menu-header-identity--selected .menu-header-description,
   .menu-header-identity--selected .menu-header-meta {
