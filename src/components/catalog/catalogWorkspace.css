@@ -110,6 +110,10 @@
   font-size: .875rem;
 }
 
+.menu-meta-short {
+  display: none;
+}
+
 .menu-header-actions {
   display: flex;
   gap: 8px;
@@ -353,7 +357,21 @@
     font-size: 28px;
   }
   .menu-header-meta {
-    gap: 8px 12px;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .menu-header-identity--selected .menu-header-meta,
+  .menu-header-identity--selected .menu-header-meta .ui-status {
+    font-size: .8125rem;
+  }
+  .menu-header-meta > span {
+    white-space: nowrap;
+  }
+  .menu-meta-long {
+    display: none;
+  }
+  .menu-meta-short {
+    display: inline;
   }
   .menu-header-actions {
     display: grid;
