@@ -4,7 +4,7 @@
   <div v-if="selected" class="menu-header-identity menu-header-identity--selected"><span class="menu-header-emoji" aria-hidden="true"><EntityImage :kind="entity==='menu'?'menus':'addons'" :entity-id="selected.id" :image="selected.image" :emoji="selected.emoji"/></span><div>
    <h2 v-bind="{[`data-selected-${entity}-name`]:''}" tabindex="-1">{{ selected.name }}</h2>
    <p v-if="selected.description" class="menu-header-description">{{ selected.description }}</p>
-   <div class="menu-header-meta"><StatusBadge :label="selected.isActive===false?'ปิดขาย':'เปิดขาย'" :tone="selected.isActive===false?'warning':'neutral'"/><span>{{ platformCount }} <span class="menu-meta-long">ช่องทางที่ตั้งราคา</span><span class="menu-meta-short">ช่องทาง</span></span><span>{{ (selected.recipe||[]).length }} <span class="menu-meta-long">รายการในสูตร</span><span class="menu-meta-short">รายการ</span></span></div>
+   <div class="menu-header-meta"><StatusBadge :label="selected.isActive===false?'ปิดขาย':'เปิดขาย'" :tone="selected.isActive===false?'danger':'success'"/><span>{{ platformCount }} <span class="menu-meta-long">ช่องทางที่ตั้งราคา</span><span class="menu-meta-short">ช่องทาง</span></span><span>{{ (selected.recipe||[]).length }} <span class="menu-meta-long">รายการในสูตร</span><span class="menu-meta-short">รายการ</span></span></div>
   </div></div>
   <div v-else class="menu-header-identity"><div><h2>{{ labels.headerTitle }}</h2><p class="menu-header-description">{{ labels.description }}</p></div></div>
   <div v-if="selected" :id="`${entity}-analysis-anchor`" class="catalog-analysis-anchor"/>
