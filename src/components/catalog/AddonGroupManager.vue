@@ -24,9 +24,6 @@
      </div>
     </header>
     <div class="group-table-scroll" role="region" aria-label="เลื่อนดูรายการตัวเลือก" tabindex="0">
-    <div class="group-item group-column-header" aria-hidden="true">
-     <span>ตัวเลือก</span><span>ราคา</span><span>สถานะ</span><span>เปิดขาย</span>
-    </div>
     <ul class="group-items-list" data-group-options>
      <li v-for="option in selectedGroup.options" :key="option.addonId" class="group-item">
       <span class="group-item-image"><EntityImage kind="addons" :entity-id="option.addonId" :image="addonMap.get(option.addonId)?.image" :emoji="addonMap.get(option.addonId)?.emoji"/></span>
@@ -273,9 +270,6 @@ async function performRemove(group) {
 .group-items-header h4{font-weight:600;overflow-wrap:anywhere}
 .group-items-list{list-style:none;margin:0;padding:0}
 .group-item{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(4rem,1fr) minmax(6rem,1fr) 3.5rem;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border-subtle)}
-.group-column-header{position:sticky;top:0;z-index:1;background:var(--bg-soft);font-size:.8125rem;font-weight:600}
-.group-column-header span:first-child{grid-column:span 2}
-.group-column-header span:last-child{text-align:center}
 .group-item-price{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 .group-item>.app-checkbox{justify-self:center}
 .group-item-image{display:grid;place-items:center;width:48px;height:48px;border-radius:10px;background:var(--bg-soft);overflow:hidden}
@@ -296,7 +290,6 @@ async function performRemove(group) {
  .group-directory-button{width:auto;min-height:44px;border:0;border-radius:8px;flex-shrink:0}
  .group-items-actions{flex-shrink:1}
  .group-item{grid-template-columns:40px minmax(0,1fr) auto;gap:8px}
- .group-column-header{display:none}
  .group-item-image{width:40px;height:40px;grid-row:span 3}
  .group-item-price,.group-item-status{grid-column:2}
  .group-item>.app-checkbox{grid-column:3;grid-row:1 / span 3}
@@ -305,6 +298,5 @@ async function performRemove(group) {
  .option-groups{gap:8px}
  .option-groups>.group-heading p{display:none}
  .group-directory-header,.group-items-header{min-height:52px;padding-block:4px}
- .group-column-header{padding-block:8px}
 }
 </style>
