@@ -12,6 +12,12 @@
     </button>
     </div>
    </nav>
+   <div class="group-mobile-picker">
+    <span class="group-mobile-label">กลุ่มตัวเลือก</span>
+    <AppSelect :model-value="selectedGroup?.id" aria-label="เลือกกลุ่มตัวเลือก" @update:model-value="selectedGroupId = $event">
+     <option v-for="group in store.addonGroups" :key="group.id" :value="group.id">{{ group.name }} · {{ group.options.length }} รายการ</option>
+    </AppSelect>
+   </div>
    <section v-if="selectedGroup" class="group-items" aria-label="รายการในกลุ่มที่เลือก">
     <header class="group-items-header">
      <div>
@@ -104,6 +110,7 @@ import AppInput from '@/components/ui/AppInput.vue'
 import EntityImage from '@/components/images/EntityImage.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppSearch from '@/components/ui/AppSearch.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 
 import {useActionPending} from '@/composables/useActionPending'
 const {pending:actionPending,run:runAction}=useActionPending()
@@ -282,12 +289,15 @@ async function performRemove(group) {
 .group-stock-controls,.group-price-fields[open]{display:grid;gap:12px}
 .group-price-fields summary{cursor:pointer;font-weight:600}
 .option-groups{container-type:inline-size;grid-template-rows:auto minmax(0,1fr)}
+.group-mobile-picker{display:none}
 @container(max-width:680px){
  .group-workspace{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
- .group-directory{border-inline-end:0;border-bottom:1px solid var(--border-subtle)}
- .group-directory-list{display:flex;gap:6px;padding:8px;white-space:nowrap}
- .group-directory-header{display:none}
- .group-directory-button{width:auto;min-height:44px;border:0;border-radius:8px;flex-shrink:0}
+ .group-directory{display:none}
+ .group-mobile-picker{display:grid;gap:4px;padding:10px 12px;border-bottom:1px solid var(--border-subtle)}
+ .group-mobile-label{font-size:.75rem;font-weight:600;color:var(--text-muted)}
+ .group-mobile-picker :deep(.app-select-trigger){min-height:44px;background:var(--bg-soft)}
+ .group-items-header{min-height:52px;padding:8px 12px}
+ .group-items-header h4{display:none}
  .group-items-actions{flex-shrink:1}
  .group-item{grid-template-columns:40px minmax(0,1fr) auto;gap:8px}
  .group-item-image{width:40px;height:40px;grid-row:span 3}
