@@ -29,7 +29,7 @@
       </button>
     </nav>
     <div class="settings-content">
-    <CloudAccessPanel v-if="store.cloud && visitedSections.has('access')" v-show="activeSettingsSection==='access'" :emails="store.allowedEmails||{}" :roles="store.userRoles||{}" :invitations="store.invitations||[]" :account="store.account" :blocked="store.settingsBlocked" :save-emails="store.saveAllowedEmails"/>
+    <CloudAccessPanel v-if="store.cloud && visitedSections.has('access')" v-show="activeSettingsSection==='access'" :emails="store.allowedEmails||{}" :roles="store.userRoles||{}" :invitations="store.invitations||[]" :account="store.account" :blocked="store.settingsBlocked" :save-emails="store.saveAllowedEmails" @saved="store.showToast($event, 'success')"/>
     <CloudRecoveryPanel v-if="store.cloud && visitedSections.has('recovery')" v-show="activeSettingsSection==='recovery'" :project-id="store.projectId" :shop-id="store.shopId" :blocked="store.settingsBlocked"/>
     <div v-if="store.cloud" id="settings-backup" v-show="activeSettingsSection==='backup'" class="editorial-card p-4 sm:p-6 space-y-4">
       <h3>สำรองข้อมูล Firebase</h3>
@@ -130,7 +130,7 @@
         <div class="settings-gp-fields">
           <FormField v-for="plat in store.platforms" :key="plat.id" :id="`gp-${plat.id}`"
             :label="plat.name" :error="gpErrors[plat.id]" v-slot="{controlId,describedBy,invalid}">
-            <AppInput :id="controlId" v-model="gpDraft[plat.id]" type="number" min="0" max="100" :step="store.cloud ? '0.01' : 'any'" @update:model-value="gpSaved=false"
+            <AppInput :id="controlId" v-model="gpDraft[plat.id]" type="number" min="0" max="100" :step="store.cloud ? '0.01' : 'any'"
               :disabled="gpSaving || store.settingsBlocked"
               :aria-label="`GP ${plat.name}`" :aria-describedby="describedBy" :aria-invalid="invalid">
               <template #suffix>%</template>
@@ -141,7 +141,6 @@
         <p v-if="store.cloud" class="settings-gp-help">รองรับทศนิยมไม่เกิน 2 ตำแหน่ง · บันทึก GP ของทุกช่องทางพร้อมกัน</p>
         <p v-if="gpSaveError" data-gp-save-error role="alert" class="settings-gp-error">{{ gpSaveError }}</p>
         <p v-if="gpConflict" role="alert">ข้อมูลร้านเปลี่ยนแล้ว กรุณาโหลดค่าใหม่และตรวจ GP อีกครั้งก่อนบันทึก</p>
-        <p v-if="gpSaved" role="status">บันทึก GP สำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว</p>
         <div class="settings-gp-actions"><Button type="submit" :loading="gpSaving" :disabled="!gpDirty || gpConflict || store.settingsBlocked || Object.keys(gpErrors).length > 0">บันทึก GP</Button><Button v-if="store.cloud" variant="secondary" :disabled="gpSaving || store.settingsBlocked" @click="resetGpDraft">โหลดค่าปัจจุบัน</Button></div>
       </form>
     </div>
@@ -312,10 +311,10 @@ const gasUrlInput = ref(store.gasApiUrl)
 const fileInput = ref(null)
 const gpDraft = ref({})
 const gpSaveError = ref('')
-const gpSaving=ref(false),gpSaved=ref(false),gpConflict=ref(false),gpRevision=ref(null)
+const gpSaving=ref(false),gpConflict=ref(false),gpRevision=ref(null)
 function resetGpDraft(){
   gpDraft.value = Object.fromEntries(store.platforms.map(p => [p.id, p.gpPercent]))
-  gpSaveError.value = '';gpConflict.value=false;gpSaved.value=false;gpRevision.value=store.revision
+  gpSaveError.value = '';gpConflict.value=false;gpRevision.value=store.revision
 }
 resetGpDraft()
 watch(() => JSON.stringify(store.platforms.map(p => [p.id, p.gpPercent])), () => {
@@ -330,11 +329,11 @@ watch(()=>store.revision,()=>{if(!store.cloud||gpSaving.value)return;if(gpDirty.
 async function saveGpRates() {
   gpSaveError.value = ''
   if (gpSaving.value || store.settingsBlocked || gpConflict.value || Object.keys(gpErrors.value).length || !gpDirty.value) return
-  gpSaving.value=true;gpSaved.value=false
+  gpSaving.value=true
   try{
     const result = await store.savePlatformGpRates({...gpDraft.value},gpRevision.value)
     if (!result.ok) gpSaveError.value = result.message || 'ยังยืนยันการบันทึกไม่ได้ กรุณาตรวจคำสั่งค้างก่อนลองใหม่'
-    else if(store.cloud){resetGpDraft();gpSaved.value=true}
+    else if(store.cloud)resetGpDraft()
   }catch{gpSaveError.value='ยังยืนยันการบันทึกไม่ได้ กรุณาตรวจคำสั่งค้างก่อนลองใหม่'}
   finally{gpSaving.value=false;if(store.cloud&&gpDirty.value&&gpRevision.value!==store.revision)gpConflict.value=true}
 }

@@ -2,7 +2,6 @@
  <CloudProductShell :model="productModel" :title="pageTitle" :history-label="historyLabel" :loading="loading||reloading" :busy="busy" :online="online" @history="openPageHistory" @reload="reloadEverything" @sign-out="$emit('sign-out')">
   <p v-if="data?.display.trial" class="trial-banner"><strong>ข้อมูลทดสอบ — ยังไม่ใช่ยอดร้านปัจจุบัน</strong><br>จากไฟล์สำรอง {{ sourceDate }} · <a :href="localUrl">เปิดระบบเดิม</a></p>
   <p v-if="!state.serverReady||!online" class="connection-warning" role="status">ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว กรุณาเชื่อมต่อก่อนบันทึก</p>
-  <p v-if="message" class="notice" role="status" aria-live="polite">{{ message }}</p>
   <p v-if="error" class="error" role="alert">{{ error }}</p>
   <section v-if="pendingCommand&&operator" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>{{ pendingLabel }} · เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนบันทึกรายการใหม่ เพื่อไม่บันทึกซ้ำ</p><p v-if="pendingCause">{{ explain({code:pendingCause}) }}</p><details><summary>รายละเอียดรายการรอตรวจผล</summary><p>รหัสรายการ: {{ pendingCommand.opId }}</p><p v-if="pendingCause">รหัสสาเหตุ: {{ pendingCause }}</p></details><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button><Button v-else-if="pendingCommand.payload?.expectedRevision!==undefined" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='stop'" @click="stopPending">หยุดรายการที่ยังไม่สำเร็จและเก็บแบบร่าง</Button></section>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
@@ -89,7 +88,7 @@ defineEmits(['sign-out'])
 const activeAction=ref(''),reloading=ref(false)
 const pendingCause=ref('')
 const pendingLabel=computed(()=>({sale:'บันทึกยอดขาย',cancel:'คืนบิล',inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ตรวจนับสต็อก',menu:'บันทึกเมนู',addon:'บันทึก Add-on',group:'บันทึกกลุ่มตัวเลือก',material_archive:'จัดเก็บวัตถุดิบ',material_delete:'ลบวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ'}[pendingCommand.value?.kind]||'บันทึกข้อมูลร้าน'))
-const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),message=ref(''),tab=ref(operator.value?'sale':'dashboard'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
+const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),tab=ref(operator.value?'sale':'dashboard'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
 const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
 const legacyLookup=ref(''),legacySources=new Map()
@@ -132,7 +131,7 @@ const historyLabel=computed(()=>({all:'ประวัติทั้งระ�
 function openPageHistory(){void inventoryWorkspace.value?.model.openActivityLog(historyModule.value)}
 const productModel=reactive({cloud:true,modals:{receipt:receiptState,packageReview:packageReviewState},get role(){return role.value},get availableTabs(){return roleTabs(role.value)},get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab:navigate,get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get materials(){return data.value?.materials.map(m=>({...m,isDeleted:m.deleted}))||[]},get packageLocked(){return locked.value||!ready.value},get packageAdjustments(){return packageAdjustments.value},get cartPackagePlan(){return projectCloudPackages(data.value,cart.value,packageAdjustments.value)},savePackageAdjustment,resetPackageAdjustment(id){if(!locked.value)packageAdjustments.value=packageAdjustments.value.filter(a=>a.materialId!==id)},resetPackageAdjustments(){if(!locked.value)packageAdjustments.value=[]},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value){cart.value=[];packageAdjustments.value=[]}},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
 Object.defineProperty(productModel,'activeUsers',{get:()=>activeUsers.value})
-const settingsModel=reactive({cloud:true,
+const settingsModel=reactive({cloud:true,showToast,
  get allowedEmails(){return props.state.shop?.allowedEmails||{}},
  get invitations(){return invitations.value},
  get userRoles(){return props.state.shop?.userRoles||{}},
@@ -196,7 +195,7 @@ function addLine(){
  const next=plain(cart.value)
  if(existingIndex>=0)next[existingIndex].qty+=line.qty
  else next.push(line)
- service.previewSale({platformId:platformId.value,lines:next});cart.value=next;error.value='';lineError.value='';message.value='';selectedMenu.value='';if(!split.value)cartOpen.value=true}catch(e){lineError.value=explain(e)}
+ service.previewSale({platformId:platformId.value,lines:next});cart.value=next;error.value='';lineError.value='';selectedMenu.value='';if(!split.value)cartOpen.value=true}catch(e){lineError.value=explain(e)}
 }
 function explain(e){const known=commandErrorMessage(e);if(known)return known;const code=e?.code||e?.message||'';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SALE_MATERIAL_LIMIT')return 'บิลนี้ใช้วัตถุดิบรวมเกิน 16 รายการ กรุณาแบ่งเป็นหลายบิล';if(code==='RECIPE_MATERIAL_LIMIT')return 'หนึ่งสูตรใช้วัตถุดิบได้ไม่เกิน 16 รายการ';if(code==='PREPARATION_LIMIT')return 'มีคำสั่งค้างหลายรายการ กรุณาตรวจและจัดการคำสั่งค้างก่อนลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
 let refreshTask=null
@@ -240,21 +239,31 @@ async function send(command,action=command.kind){
   if(!result.ok&&command.payload.expectedRevision!==undefined&&result.outcome!=='not_submitted'&&service.rejectStaleInventory){const resolved=await service.rejectStaleInventory();if(resolved.ok&&resolved.value)result=resolved}
   if(result.ok){await reloadAfterWrite();refreshed=true;if(!disposed)finish(result.value)}
   else if(result.outcome==='not_submitted'||result.outcome==='blocked'&&!previous){
-   pendingCommand.value=null;storedCommand=null;pendingCause.value='';message.value='ยังไม่ได้ส่งข้อมูล เก็บตะกร้าหรือแบบร่างไว้แล้ว';error.value=explain(result);save();await updatePending()
+   pendingCommand.value=null;storedCommand=null;pendingCause.value='';error.value=explain(result);save();await updatePending()
+   if(!inventoryWorkspace.value?.model.inventorySaving)showToast('ยังไม่ได้ส่งข้อมูล เก็บตะกร้าหรือแบบร่างไว้แล้ว')
   }else{
-   pendingCause.value=result.causeCode||result.code;message.value='ยังไม่ทราบผลการบันทึก กรุณาตรวจผลและลองคำสั่งเดิมต่อ';error.value=result.code==='PENDING_RESULT'?'':explain(result);save()
+   pendingCause.value=result.causeCode||result.code;error.value=result.code==='PENDING_RESULT'?'':explain(result);save()
   }
   return result
- }catch(e){if(!disposed){pendingCause.value=e.code||e.message;message.value='ยังไม่ทราบผลการบันทึก';error.value=explain(e);save()}return {ok:false,code:'PENDING_RESULT',outcome:'uncertain'}}
+ }catch(e){if(!disposed){pendingCause.value=e.code||e.message;error.value=explain(e);save()}return {ok:false,code:'PENDING_RESULT',outcome:'uncertain'}}
  finally{try{if(!disposed&&!refreshed)await reloadEverything()}finally{busy.value=false;activeAction.value=''}}
 }
+function showToast(message, type='info'){
+ inventoryWorkspace.value?.model.showToast(message,type)
+}
+
 function finish(value){
  pendingCause.value=''
  inventoryWorkspace.value?.acknowledge(value)
  if(value.kind==='cancel'){const orderId=value.result?.orderId;const old=data.value?.orders.find(o=>o.opId===orderId),sourceId=old?.sourceLegacyId||legacySources.get(orderId);if(sourceId){const row=legacyOrders.value.find(o=>o.orderId===sourceId);if(row)row.status='cancelled';legacySources.delete(orderId)}}
- if(value.rejected){pendingCommand.value=null;storedCommand=null;save();message.value='';error.value=value.code==='NOT_SUBMITTED'?'รายการนี้ยังไม่ได้ส่ง สามารถตรวจและบันทึกแบบร่างใหม่ได้':'หยุดรายการที่ยังไม่สำเร็จแล้ว กรุณาตรวจแบบร่างกับยอดล่าสุดก่อนบันทึก';return}
+ if(value.rejected){pendingCommand.value=null;storedCommand=null;save();error.value=value.code==='NOT_SUBMITTED'?'รายการนี้ยังไม่ได้ส่ง สามารถตรวจและบันทึกแบบร่างใหม่ได้':'หยุดรายการที่ยังไม่สำเร็จแล้ว กรุณาตรวจแบบร่างกับยอดล่าสุดก่อนบันทึก';return}
   if(value.kind==='sale'&&!value.abandoned&&value.opId===cartCommandId){cart.value=[];packageAdjustments.value=[];packageReviewState.isOpen=false;cartOpen.value=false;receiptState.order=projectReceipt({...value.result,opId:value.opId},data.value);receiptState.isOpen=true}
- cancelId.value='';pendingCommand.value=null;storedCommand=null;cartCommandId=null;approveShortage.value=false;save();message.value=value.abandoned?'หยุดบิลแล้ว ตะกร้ายังอยู่':'บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว'
+ cancelId.value='';pendingCommand.value=null;storedCommand=null;cartCommandId=null;approveShortage.value=false;save()
+ if(!inventoryWorkspace.value?.model.inventorySaving){
+  if(value.abandoned)showToast('หยุดบิลแล้ว ตะกร้ายังอยู่')
+  else if(value.kind==='platform_gp')showToast('บันทึก GP สำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว','success')
+  else showToast('บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว','success')
+ }
 }
 function checkout(){if(!canCheckout.value)return;cartCommandId=crypto.randomUUID();void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value),subtotalCents:preview.value.subtotalCents,approvedShortages:Object.fromEntries(shortages.value)}})}
 async function retry(){if(!pendingCommand.value)return;await send(plain(pendingCommand.value),'retry')}
@@ -273,7 +282,7 @@ function cancelOrder(orderId){if(!locked.value&&ready.value)void send({opId:cryp
 async function reviewLegacy(order){
  if(locked.value||!ready.value||legacyLookup.value)return
  legacyLookup.value=order.orderId
- try{const receipt=await service.legacyReceipt(order.orderId);if(disposed)return;if(receipt.status==='cancelled'){order.status='cancelled';message.value='บิลนี้คืนแล้ว';return}legacySources.set(receipt.opId,receipt.sourceLegacyId);data.value={...data.value,orders:[receipt,...data.value.orders.filter(o=>o.opId!==receipt.opId)]};cancelId.value=receipt.opId}
+ try{const receipt=await service.legacyReceipt(order.orderId);if(disposed)return;if(receipt.status==='cancelled'){order.status='cancelled';showToast('บิลนี้คืนแล้ว');return}legacySources.set(receipt.opId,receipt.sourceLegacyId);data.value={...data.value,orders:[receipt,...data.value.orders.filter(o=>o.opId!==receipt.opId)]};cancelId.value=receipt.opId}
  catch(e){error.value=e.message==='LEGACY_MIGRATION_REQUIRED'?'บิลนี้ยังไม่ผ่านการแปลงหลักฐานล็อต กรุณาใช้เครื่องมือเจ้าของก่อนคืนบิล':explain(e)}finally{legacyLookup.value=''}
 }
 async function loadHistory(e){if(e.target.open&&!legacyOrders.value.length)try{legacyOrders.value=(await service.history()).filter(o=>!data.value.orders.some(n=>n.sourceLegacyId===o.orderId))}catch{error.value='โหลดประวัติเดิมไม่ได้ กรุณาเชื่อมต่อแล้วลองใหม่'}}
@@ -305,7 +314,7 @@ watch(tab,value=>{if(value==='orders')void loadOrders();if(value==='dashboard')r
 watch(()=>data.value?.shop.catalogRevision,(revision,previous)=>{
  if(previous===undefined||revision===previous)return
  approveShortage.value=false
- message.value='ข้อมูลเมนู ราคา หรือสูตรเปลี่ยนแล้ว กรุณาตรวจตะกร้าและตัวเลือกก่อนยืนยันอีกครั้ง'
+ showToast('ข้อมูลเมนู ราคา หรือสูตรเปลี่ยนแล้ว กรุณาตรวจตะกร้าและตัวเลือกก่อนยืนยันอีกครั้ง')
  if(selectedMenu.value){
   if(!menu.value?.active){selectedMenu.value='';return}
   choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))

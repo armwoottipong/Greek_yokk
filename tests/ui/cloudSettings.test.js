@@ -17,7 +17,7 @@ it('holds one save in flight, shows the spinner and awaits confirmation',async()
  expect(m.savePlatformGpRates).toHaveBeenCalledTimes(1);expect(m.savePlatformGpRates).toHaveBeenCalledWith({p1:25.5},6)
  expect(wrapper.get('[data-gp-settings] button[type="submit"]').attributes('aria-busy')).toBe('true');expect(wrapper.get('[data-gp-settings] input').element.disabled).toBe(true)
  m.platforms[0].gpPercent=25.5;m.revision=7;resolve({ok:true});await flushPromises()
- expect(wrapper.text()).toContain('บันทึก GP สำเร็จ');expect(wrapper.get('[data-gp-settings] button[type="submit"]').element.disabled).toBe(true)
+ expect(wrapper.get('[data-gp-settings] button[type="submit"]').element.disabled).toBe(true)
 })
 it('preserves a dirty draft on remote change and requires explicit reload',async()=>{
  const m=await setup();await wrapper.get('[data-gp-settings] input').setValue('20');m.platforms[0].gpPercent=35;m.revision=7;await flushPromises()

@@ -4,15 +4,15 @@
   <div class="access-current"><span class="access-avatar" aria-hidden="true">{{ account?.slice(0,1).toUpperCase() }}</span><div><small>บัญชีที่กำลังใช้งาน</small><strong>{{ account }}</strong></div></div>
   <form class="access-add-form" @submit.prevent="addEmail" novalidate>
    <label for="shop-add-email">เพิ่มผู้ใช้งาน</label>
-   <div class="access-add-controls"><input id="shop-add-email" v-model="newEmail" type="email" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="name@gmail.com" :disabled="busy||blocked||changed" :aria-invalid="!!error" aria-describedby="access-help access-error" @input="error='';saved=false"><select v-model="newRole" aria-label="สิทธิ์ของผู้ใช้ใหม่" :disabled="busy||blocked||changed"><option v-for="role in ROLES" :key="role" :value="role">{{ ROLE_LABELS[role] }}</option></select><Button type="submit" variant="secondary" :disabled="busy||blocked||changed||!newEmail.trim()||draft.length>=50"><Plus :size="16"/>เพิ่มอีเมล</Button></div>
+   <div class="access-add-controls"><input id="shop-add-email" v-model="newEmail" type="email" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="name@gmail.com" :disabled="busy||blocked||changed" :aria-invalid="!!error" aria-describedby="access-help access-error" @input="error=''"><select v-model="newRole" aria-label="สิทธิ์ของผู้ใช้ใหม่" :disabled="busy||blocked||changed"><option v-for="role in ROLES" :key="role" :value="role">{{ ROLE_LABELS[role] }}</option></select><Button type="submit" variant="secondary" :disabled="busy||blocked||changed||!newEmail.trim()||draft.length>=50"><Plus :size="16"/>เพิ่มอีเมล</Button></div>
    <p id="access-help">เมื่อบันทึกรายชื่อ ผู้ใช้เข้าได้ทันทีด้วย Google บัญชีนั้น อีเมลแจ้งสิทธิ์มีลิงก์เข้าระบบ ไม่ต้องกดยอมรับ</p>
   </form>
   <div class="access-list-heading"><h4>อีเมลที่อนุญาต</h4><span>{{ draft.length }} / 50 บัญชี</span></div>
-  <div class="access-list-region" role="region" aria-label="รายชื่ออีเมลที่อนุญาต" tabindex="0"><ul class="access-email-list"><li v-for="email in draft" :key="email"><div class="access-email"><Mail :size="18" aria-hidden="true"/><span>{{ email }}</span><small v-if="email===account?.toLowerCase()">คุณ</small><small v-else-if="!baseline[email]">เพิ่มใหม่</small><small v-else-if="invitationStatus(email)">{{ invitationStatus(email) }}</small></div><select v-model="draftRoles[email]" :aria-label="`สิทธิ์ ${email}`" :disabled="busy||blocked||changed||email===OWNER_EMAIL||email===account?.toLowerCase()" @change="saved=false"><option v-for="role in ROLES" :key="role" :value="role">{{ ROLE_LABELS[role] }}</option></select><button type="button" class="access-remove" :aria-label="`นำ ${email} ออก`" :disabled="busy||blocked||changed||(email===OWNER_EMAIL||email===account?.toLowerCase())" :title="email===OWNER_EMAIL?'บัญชีเจ้าของร้าน ไม่สามารถนำออกได้':email===account?.toLowerCase()?'เก็บบัญชีที่กำลังใช้งานไว้เสมอ':'นำออกจากรายชื่อ'" @click="removeEmail(email)"><Trash2 :size="17"/></button></li></ul></div>
+  <div class="access-list-region" role="region" aria-label="รายชื่ออีเมลที่อนุญาต" tabindex="0"><ul class="access-email-list"><li v-for="email in draft" :key="email"><div class="access-email"><Mail :size="18" aria-hidden="true"/><span>{{ email }}</span><small v-if="email===account?.toLowerCase()">คุณ</small><small v-else-if="!baseline[email]">เพิ่มใหม่</small><small v-else-if="invitationStatus(email)">{{ invitationStatus(email) }}</small></div><select v-model="draftRoles[email]" :aria-label="`สิทธิ์ ${email}`" :disabled="busy||blocked||changed||email===OWNER_EMAIL||email===account?.toLowerCase()"><option v-for="role in ROLES" :key="role" :value="role">{{ ROLE_LABELS[role] }}</option></select><button type="button" class="access-remove" :aria-label="`นำ ${email} ออก`" :disabled="busy||blocked||changed||(email===OWNER_EMAIL||email===account?.toLowerCase())" :title="email===OWNER_EMAIL?'บัญชีเจ้าของร้าน ไม่สามารถนำออกได้':email===account?.toLowerCase()?'เก็บบัญชีที่กำลังใช้งานไว้เสมอ':'นำออกจากรายชื่อ'" @click="removeEmail(email)"><Trash2 :size="17"/></button></li></ul></div>
   <p class="access-self-note">Viewer ดูได้เฉพาะ Dashboard · Manager ใช้งานได้ยกเว้น Settings · Admin จัดการได้ทั้งหมด บัญชีเจ้าของและบัญชีที่กำลังใช้จะถูกเก็บไว้เสมอ</p>
   <p v-if="changed" role="status">รายชื่อบนเซิร์ฟเวอร์เปลี่ยนแล้ว กรุณาโหลดรายชื่อปัจจุบันก่อนบันทึก</p>
   <p id="access-error" :role="error?'alert':undefined">{{ error }}</p>
-  <p v-if="saved" role="status">บันทึกผู้ใช้และสิทธิ์แล้ว · ผู้ใช้เข้าได้ทันที ไม่ต้องรออีเมล บัญชีที่นำออกจะเข้าร้านไม่ได้</p>
+
   <footer class="access-actions"><span v-if="dirty" class="access-draft-note">มีการแก้ไขที่ยังไม่บันทึก</span><div><Button :loading="busy" :disabled="blocked||busy||changed||!dirty" @click="save">บันทึกรายชื่อ</Button><Button v-if="dirty||changed" variant="secondary" :disabled="busy" @click="reset">{{ changed ? 'โหลดรายชื่อปัจจุบัน' : 'ยกเลิกการแก้ไข' }}</Button></div></footer>
  </section>
 </template>
@@ -23,32 +23,33 @@ import Button from '@/components/ui/Button.vue'
 import {OWNER_EMAIL,ROLES,ROLE_LABELS,roleMap} from '@/cloud/roles.js'
 import {allowedEmailMap} from '@/cloud/shopAccess.js'
 const props=defineProps({emails:{type:Object,default:()=>({})},roles:{type:Object,default:()=>({})},invitations:{type:Array,default:()=>[]},account:String,blocked:Boolean,saveEmails:{type:Function,required:true}})
-const draft=ref([]),draftRoles=ref({}),baselineRoles=ref({}),newRole=ref('viewer'),newEmail=ref(''),baseline=ref({}),busy=ref(false),error=ref(''),saved=ref(false)
+const emit=defineEmits(['saved'])
+const draft=ref([]),draftRoles=ref({}),baselineRoles=ref({}),newRole=ref('viewer'),newEmail=ref(''),baseline=ref({}),busy=ref(false),error=ref('')
 const signature=value=>JSON.stringify(Object.entries(value||{}).sort(([a],[b])=>a.localeCompare(b)))
 const draftMap=computed(()=>Object.fromEntries(draft.value.map(e=>[e,true])))
 function invitationStatus(email){return {pending:'รอส่งอีเมลแจ้งสิทธิ์',processing:'กำลังส่งอีเมลแจ้งสิทธิ์',sent:'ส่งอีเมลแจ้งสิทธิ์แล้ว',unknown:'ต้องตรวจผลการส่ง',cancelled:'ยกเลิกการส่งอีเมล'}[props.invitations.find(row=>row.email===email)?.status]||''}
 const dirty=computed(()=>signature(draftMap.value)!==signature(baseline.value)||signature(roleMap(draftMap.value,draftRoles.value))!==signature(roleMap(baseline.value,baselineRoles.value)))
 const changed=computed(()=>signature(props.emails)!==signature(baseline.value)||signature(props.roles)!==signature(baselineRoles.value))
-function reset(){baseline.value={...props.emails};draft.value=Object.keys(props.emails).sort();baselineRoles.value={...props.roles};draftRoles.value=roleMap(props.emails,props.roles);newEmail.value='';error.value='';saved.value=false}
+function reset(){baseline.value={...props.emails};draft.value=Object.keys(props.emails).sort();baselineRoles.value={...props.roles};draftRoles.value=roleMap(props.emails,props.roles);newEmail.value='';error.value=''}
 watch(()=>props.emails,(_,old)=>{if(!old)reset()},{immediate:true})
 function addEmail(){
  if(busy.value||props.blocked||changed.value)return
- error.value='';saved.value=false
+ error.value=''
  const email=newEmail.value.trim().toLowerCase()
  if(draft.value.includes(email)){error.value='อีเมลนี้อยู่ในรายชื่อแล้ว';return}
  try{allowedEmailMap([...draft.value,email])}catch{error.value='กรุณาระบุอีเมล Google ให้ถูกต้อง และไม่เกิน 50 บัญชี';return}
  draft.value=[...draft.value,email].sort();draftRoles.value={...draftRoles.value,[email]:email===OWNER_EMAIL?'admin':newRole.value};newEmail.value=''
 }
-function removeEmail(email){if(busy.value||props.blocked||changed.value||(email===OWNER_EMAIL||email===props.account?.toLowerCase()))return;draft.value=draft.value.filter(e=>e!==email);saved.value=false;error.value=''}
+function removeEmail(email){if(busy.value||props.blocked||changed.value||(email===OWNER_EMAIL||email===props.account?.toLowerCase()))return;draft.value=draft.value.filter(e=>e!==email);error.value=''}
 async function save(){
  if(busy.value||props.blocked||changed.value||!dirty.value)return
- error.value='';saved.value=false
+ error.value=''
  if(newEmail.value.trim()){error.value='กรุณากดเพิ่มอีเมลที่กรอกไว้ก่อนบันทึกรายชื่อ';return}
  let emails
  try{emails=Object.keys(allowedEmailMap(draft.value));if(!emails.includes(props.account?.toLowerCase()))throw new Error('KEEP_CURRENT_EMAIL')}
  catch(e){error.value=e.message==='KEEP_CURRENT_EMAIL'?'กรุณาเก็บอีเมลที่กำลังใช้อยู่ในรายชื่อ':'กรุณาระบุอีเมลให้ถูกต้อง ไม่ซ้ำกัน และไม่เกิน 50 อีเมล';return}
  busy.value=true
- try{const roles=roleMap(draftMap.value,draftRoles.value);const map=await props.saveEmails(emails,baseline.value,roles,baselineRoles.value);baseline.value={...map};baselineRoles.value={...roles};draftRoles.value={...roles};draft.value=Object.keys(map).sort();saved.value=true}
+ try{const roles=roleMap(draftMap.value,draftRoles.value);const map=await props.saveEmails(emails,baseline.value,roles,baselineRoles.value);baseline.value={...map};baselineRoles.value={...roles};draftRoles.value={...roles};draft.value=Object.keys(map).sort();emit('saved','บันทึกผู้ใช้และสิทธิ์แล้ว · ผู้ใช้เข้าได้ทันที')}
  catch(e){error.value=e.message==='ACCESS_CONFLICT'?'รายชื่อเปลี่ยนจากเครื่องอื่นแล้ว กรุณาโหลดรายชื่อปัจจุบันและตรวจใหม่':'บันทึกไม่สำเร็จ กรุณาตรวจการเชื่อมต่อแล้วลองใหม่'}
  finally{busy.value=false}
 }

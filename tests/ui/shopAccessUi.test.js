@@ -22,7 +22,7 @@ it('keeps the current account allowed, validates additions and prevents duplicat
  await addEmail('staff@example.com');await saveButton().trigger('click');await saveButton().trigger('click')
  expect(saveEmails).toHaveBeenCalledTimes(1);expect(saveEmails).toHaveBeenCalledWith(['owner@example.com','staff@example.com'],{'owner@example.com':true},{'owner@example.com':'viewer','staff@example.com':'viewer'},{})
  expect(wrapper.get('input').element.disabled).toBe(true)
- resolve({'owner@example.com':true,'staff@example.com':true});await flushPromises();expect(wrapper.text()).toContain('บันทึกผู้ใช้และสิทธิ์แล้ว')
+ resolve({'owner@example.com':true,'staff@example.com':true});await flushPromises();expect(wrapper.emitted('saved')?.[0][0]).toContain('บันทึกผู้ใช้และสิทธิ์แล้ว')
 })
 it('retains a draft when another device changes permissions and requires reload before save',async()=>{
  const saveEmails=vi.fn();wrapper=mount(AccessPanel,{props:{account:'owner@example.com',emails:{'owner@example.com':true},saveEmails}})

@@ -100,7 +100,7 @@ it('opens the trial workspace, retains cart after uncertain results, and only cl
  await w.get('[data-checkout]').trigger('click');await flushPromises()
  expect(w.findAll('[data-cart-line]')).toHaveLength(1);expect(w.text()).toContain('ยังไม่ทราบผล')
  await w.get('[data-retry-command]').trigger('click');await flushPromises()
- expect(w.findAll('[data-cart-line]')).toHaveLength(0);expect(w.text()).toContain('บันทึกสำเร็จ');w.unmount()
+ expect(w.findAll('[data-cart-line]')).toHaveLength(0);expect(w.find('.notice').exists()).toBe(false);expect(w.get('.ui-toasts').text()).toContain('บันทึกสำเร็จ');w.unmount()
 })
 it('keeps the cart while server readiness is lost and disables checkout',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
