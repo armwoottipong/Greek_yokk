@@ -1,7 +1,7 @@
 <template>
  <DialogFrame :open="store.modals.customOrder.isOpen && Boolean(selectedMenu)" id="CustomOrderModal" title="รายละเอียดสินค้า" presentation="drawer" width="520px" :teleport="false" @request-close="requestClose">
   <div class="product-detail"><div class="product-visual" aria-hidden="true"><EntityImage kind="menus" :entity-id="selectedMenu.id" :image="selectedMenu.image" :emoji="selectedMenu.emoji"/></div><div class="bowl-heading"><h3>{{ selectedMenu.name }}</h3><p>{{ selectedMenu.description }}</p><strong class="product-base-price font-number">฿{{ basePrice }}</strong></div></div>
-  <div v-if="selectedMenu.hasAddons !== false && Array.isArray(selectedMenu.addonGroupIds)" class="bowl-groups">
+  <div v-if="groups.length" class="bowl-groups">
    <section v-for="group in groups" :key="group.id" class="bowl-options" :aria-label="group.name">
     <header><div><h4>{{ group.name }}</h4><p>{{ groupRule(group) }} · {{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }}</p></div><span aria-live="polite">{{ groupCount(group.id) }}/{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่' : 'ชนิด' }}</span></header>
     <div class="bowl-addon-grid">
@@ -17,17 +17,6 @@
    </section>
    <p v-if="!selectionCheck.ok" class="bowl-group-hint" role="status">{{ selectionCheck.message }}</p>
   </div>
-  <section v-else-if="selectedMenu.hasAddons" class="bowl-options" aria-label="ตัวเลือก">
-   <header><div><h4>ตัวเลือก</h4><p>ราคาบน {{ store.currentPlatform.name }}</p></div><span>{{ selectedAddons.length ? 'เลือกแล้ว '+selectedAddons.length+' รายการ' : 'เลือกได้ตามชอบ' }}</span></header>
-   <p v-if="!activeAddons.length" class="bowl-no-addons">ยังไม่มีตัวเลือก เพิ่มชามนี้ลงตะกร้าได้เลย</p>
-   <div v-else class="bowl-addon-grid">
-    <button v-for="addon in activeAddons" :key="addon.id" type="button" class="bowl-addon" :class="{'is-selected':isAddonSelected(addon.id),'is-unavailable':isAddonOutOfStock(addon)}" :aria-pressed="isAddonSelected(addon.id)" @click="toggleAddon(addon)">
-     <span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span>
-     <span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="isAddonOutOfStock(addon)">ของหมด · ยืนยันเลือกต่อได้</small><small v-else-if="addon.recipe?.length">{{ addon.recipe.map(row => `${store.matMap[row.materialId]?.name || row.materialId} ${row.qty} ${getMatUnit(row.materialId)}`).join(' · ') }}</small><small v-else>ท็อปปิ้งสำเร็จรูป</small></span>
-     <span class="bowl-addon-price font-number">+฿{{ getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isAddonSelected(addon.id)" :size="15"/><Plus v-else :size="15"/></span>
-    </button>
-   </div>
-  </section>
   <details class="selection-financial"><summary>ต้นทุนและกำไรจากตัวเลือกจริง · {{ qty }} ชาม</summary><p>ใช้สูตรที่เลือกและต้นทุนวัตถุดิบปัจจุบัน รวมบรรจุภัณฑ์ตามสูตร ยอดในตะกร้าอาจเปลี่ยนเมื่อปรับ Package</p><dl><div><dt>รายรับหลังหัก GP</dt><dd>{{ financialMoney(selectionFinancial.netRevenue) }}</dd></div><div data-pos-selection-cost><dt>ต้นทุนตามรายการที่เลือก</dt><dd>{{ financialMoney(selectionFinancial.cost) }}</dd></div><div data-pos-selection-profit><dt>กำไรขั้นต้นหลังหัก GP</dt><dd>{{ financialMoney(selectionFinancial.profit) }}</dd></div></dl><p v-if="!selectionCheck.ok">เลือกตัวเลือกให้ครบก่อน ยอดนี้ยังไม่ใช่รายการที่พร้อมขาย</p></details>
   <FormField id="product-item-note" label="หมายเหตุรายการนี้" hint="หมายเหตุนี้ใช้กับจำนวนที่เลือกในรายการนี้" class="product-note" v-slot="{controlId,describedBy}"><textarea :id="controlId" v-model="itemNote" :aria-describedby="describedBy" aria-label="หมายเหตุรายการนี้" rows="3" placeholder="เช่น ไม่ใส่น้ำผึ้ง แยกท็อปปิ้ง หรือไม่รับช้อน"/></FormField>
   <template #footer><div class="custom-order-footer">
@@ -100,32 +89,6 @@ watch(() => store.modals.customOrder.isOpen, (open) => {
 function getAddonPrice(addon) {
   const platId = store.currentPlatformId
   return (addon.prices && addon.prices[platId] !== undefined) ? Number(addon.prices[platId]) : 0
-}
-
-function getMatUnit(matId) {
-  const mat = store.matMap[matId]
-  return mat ? mat.unit : 'ไม่ระบุหน่วย'
-}
-
-function isAddonOutOfStock(addon) {
-  return (addon.recipe || []).some(row => {
-    const mat = store.matMap[row.materialId]
-    if (!mat || mat.isDeleted || mat.isArchived) return true
-    return mat.stock < Number(row.qty) * qty.value
-  })
-}
-
-function isAddonSelected(addonId) {
-  return selectedAddons.value.some(a => a.id === addonId)
-}
-
-function toggleAddon(addon) {
-  const idx = selectedAddons.value.findIndex(a => a.id === addon.id)
-  if (idx >= 0) {
-    selectedAddons.value.splice(idx, 1)
-  } else {
-    selectedAddons.value.push(addon)
-  }
 }
 
 const financialMoney = value => value === null ? 'ยังคำนวณไม่ได้' : `${value < 0 ? '-' : ''}฿${Math.abs(value).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}`

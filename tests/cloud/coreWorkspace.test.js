@@ -14,6 +14,22 @@ beforeEach(()=>{
  h.preview.mockReturnValue({subtotalCents:6900,approvedShortages:{}})
  h.load.mockResolvedValue({shop:{generation:'g1',revision:1,catalog:{summaryMaterials:Array.from({length:15},(_,i)=>`M${i}`),menus:{M:{id:'M',active:true,pricesCents:{P:6900},optionIds:[],min:0,max:0}},groups:{},platforms:{P:{active:true}},platformIds:['P']}},materials:[],display:{trial:true,sourceDate:'2026-10-20',menus:{M:{name:'โยเกิร์ต'}},addons:{},platforms:{P:{name:'หน้าร้าน'}}},orders:[]})
 })
+it('does not expose the legacy option list when a menu has no groups', async () => {
+ const data = await h.load()
+ Object.assign(data.shop.catalog.menus.M, { optionIds: ['A'], max: 1 })
+ data.shop.catalog.addons = { A: { name: 'Legacy option', active: true, recipe: {}, pricesCents: { P: 500 } } }
+ data.shop.catalog.addonPrices = { P: { A: 500 } }
+ data.shop.catalog.menus.M.priceMode = 'addon'
+ data.display.addons.A = { name: 'Legacy option' }
+ const wrapper = mount(CoreWorkspace, { props: { connection: { config: { projectId: 'demo' }, shopId: 'shop' }, state }, global: { stubs: { teleport: true } } })
+ try {
+  await flushPromises()
+  await wrapper.get('[data-pos-menu="M"]').trigger('click')
+  expect(wrapper.get('form.line-form').findAll('.bowl-addon')).toHaveLength(0)
+  await wrapper.get('form.line-form').trigger('submit')
+  expect(h.preview.mock.lastCall[0].lines[0].optionIds).toEqual([])
+ } finally { wrapper.unmount() }
+})
 it('retries journal initialization on manual reload and enables recovery without a page refresh',async()=>{
  const key=JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u'])
  sessionStorage.setItem(key,JSON.stringify({command:{opId:'OLD',kind:'sale',payload:{}}}))

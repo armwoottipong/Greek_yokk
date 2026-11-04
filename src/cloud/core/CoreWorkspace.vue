@@ -110,7 +110,12 @@ const saleLimit=computed(()=>data.value?maxSaleLines(data.value.shop):0)
 const menus=computed(()=>Object.values(data.value?.shop.catalog.menus||{}).filter(m=>m.active))
 const platformIds=computed(()=>data.value?.shop.catalog.platformIds.filter(id=>data.value.shop.catalog.platforms[id].active)||[])
 const menu=computed(()=>data.value?.shop.catalog.menus[selectedMenu.value])
-const menuGroups=computed(()=>{const m=menu.value,c=data.value?.shop.catalog;if(!m)return [];if(m.groupIds?.length)return m.groupIds.map(id=>c.groups[id]);if(m.groupId)return [c.groups[m.groupId]];return m.optionIds?.length?[{...m,id:'legacy',name:'ท็อปปิ้ง',allowRepeat:false}]:[]})
+const menuGroups = computed(() => {
+ const current = menu.value
+ const groups = data.value?.shop.catalog.groups
+ const ids = current?.groupIds?.length ? current.groupIds : current?.groupId ? [current.groupId] : []
+ return ids.map(id => groups[id])
+})
 const sourceDate=computed(()=>String(data.value?.display.sourceDate||'ไม่ระบุวันที่').slice(0,10))
 const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return {};assertOptionAvailability(cart.value);return {order:service.previewSale({platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value)})}}catch(e){return {error:explain(e)}}})
 const preview=computed(()=>previewResult.value.order),previewError=computed(()=>previewResult.value.error)
@@ -173,7 +178,6 @@ const availabilityMaterials = computed(() => (data.value?.materials || []).map(m
  id: material.id, stock: material.stock / 100, minAlert: (material.minAlertQ || 0) / 100, isDeleted: material.deleted
 })))
 function availability(group, id, qty = quantity.value) {
- if (group.id === 'legacy') return 'ready'
  const policy = groupAvailability(data.value, group)
  return optionAvailability(policy, { paused: policy.pausedIds?.has(id) }, availabilityAddons.value.get(id), availabilityMaterials.value, qty)
 }
@@ -204,7 +208,7 @@ function material(id){return data.value?.materials.find(m=>m.id===id)}
 function materialName(id){return material(id)?.name||id}
 function name(kind,id){return data.value?.display[kind]?.[id]?.name||id}
 function orderDate(o){return o.createdAt?.toDate?o.createdAt.toDate().toLocaleString('th-TH'):''}
-function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g.id==='legacy'?null:g,id,platformId.value);return cents===0?'รวมในราคา':`+${money(cents)}`}
+function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g,id,platformId.value);return cents===0?'รวมในราคา':`+${money(cents)}`}
 function selectMenu(id){if(locked.value)return;selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
 function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}

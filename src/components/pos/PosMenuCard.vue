@@ -4,7 +4,7 @@
   <h4>{{ menu.name }}</h4>
   <p v-if="menu.description">{{ menu.description }}</p>
   <span v-if="outOfStock" class="pos-menu-state">ของหมด · ยืนยันขายต่อได้</span>
-  <span v-else-if="menu.hasAddons" class="pos-menu-state">เลือกท็อปปิ้งได้</span>
+  <span v-else-if="menu.hasAddons !== false && menu.addonGroupIds?.length" class="pos-menu-state">เลือกท็อปปิ้งได้</span>
   <span class="pos-menu-price"><strong class="font-number">฿{{ money(price) }}</strong><span v-if="!cartQuantity">เลือกสินค้า<Plus :size="15" aria-hidden="true"/></span></span>
   <span v-if="cartQuantity" data-menu-cart-count class="pos-menu-cart-count font-number" aria-hidden="true">{{ cartQuantity }}</span>
  </button>

@@ -2,7 +2,7 @@ import {receiptPackagePlan,receiptExpectedPackageShortage} from './packageReceip
 // Read-only views of canonical cloud quantities and prices for the original UI.
 export function projectMenus(data){
  const c=data?.shop.catalog
- return Object.values(c?.menus||{}).filter(m=>m.active).map(m=>({id:m.id,...data.display.menus?.[m.id],name:data.display.menus?.[m.id]?.name||m.id,isActive:true,hasAddons:!!(m.groupIds?.length||m.groupId||m.optionIds?.length),prices:Object.fromEntries(Object.entries(m.pricesCents).map(([id,v])=>[id,v/100]))}))
+ return Object.values(c?.menus||{}).filter(m=>m.active).map(m=>({id:m.id,...data.display.menus?.[m.id],name:data.display.menus?.[m.id]?.name||m.id,isActive:true,hasAddons:!!(m.groupIds?.length||m.groupId||m.optionIds?.length),addonGroupIds:m.groupIds?.length?m.groupIds:m.groupId?[m.groupId]:[],prices:Object.fromEntries(Object.entries(m.pricesCents).map(([id,v])=>[id,v/100]))}))
 }
 export function optionCents(data,menu,group,id,platform){
  const c=data.shop.catalog

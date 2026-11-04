@@ -11,6 +11,20 @@ it('opens product details even without addons before adding anything',async()=>{
  try{await w.get(`[data-pos-menu="${menu.id}"]`).trigger('click');expect(store.cart).toHaveLength(0);expect(store.modals.customOrder.menuId).toBe(menu.id)}finally{w.unmount()}
 })
 
+it('does not offer ungrouped catalog options for a menu saved in the old format',async()=>{
+ const store=createTestStore();store.resetDemoData()
+ const menu=store.menus[0]
+ menu.hasAddons=true
+ delete menu.addonGroupIds
+ const wrapper=mount(Custom)
+ try{
+  store.modals.customOrder={isOpen:true,menuId:menu.id}
+  await flushPromises()
+  expect(wrapper.findAll('.bowl-addon')).toHaveLength(0)
+  expect(wrapper.findAll('button').find(button=>button.text().includes('เพิ่มลงตะกร้า')).attributes('disabled')).toBeUndefined()
+ }finally{wrapper.unmount()}
+})
+
 it('counts every cart line for the menu badge and removes it when the cart is cleared',async()=>{
  const store=createTestStore();store.resetDemoData();const menu=store.menus[0]
  store.executeAddToCart(menu,[],2,false,'แยกน้ำผึ้ง');store.executeAddToCart(menu,[store.addons[0]],3,false,'ไม่ใส่ช้อน')

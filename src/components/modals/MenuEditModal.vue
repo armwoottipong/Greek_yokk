@@ -24,7 +24,7 @@
     <ul v-if="selectedGroups.length" data-menu-group-summary class="menu-group-summary">
      <li v-for="group in selectedGroups" :key="group.id"><strong>{{ group.name }}</strong><small v-if="group.pricingMode">{{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }}</small></li>
     </ul>
-    <p v-else class="menu-editor-help">{{ form.id && form.addonGroupIds === undefined && form.hasAddons ? 'กำลังใช้รายการเดิม เลือกกลุ่มเพื่อเปลี่ยนตัวเลือกของเมนูนี้' : 'ยังไม่ได้เลือกกลุ่ม' }}</p>
+    <p v-else class="menu-editor-help">ยังไม่ได้เลือกกลุ่ม</p>
     <Button variant="secondary" data-open-group-picker @click="openGroupPicker">{{ selectedGroups.length ? 'จัดการกลุ่มตัวเลือก' : 'เลือกกลุ่มตัวเลือก' }}</Button>
    </div></details>
    <details v-smooth-disclosure class="menu-editor-section" data-menu-permissions><summary><span>ตัวเลือกการขาย</span><small>การตัดบรรจุภัณฑ์</small></summary><div class="menu-editor-section-body menu-editor-options">
