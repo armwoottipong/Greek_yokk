@@ -2,7 +2,7 @@
  <div class="product-shell">
   <a class="skip-content" href="#cloud-main" @click.prevent="focusMain">ข้ามไปเนื้อหาหลัก</a>
   <Sidebar :model="model" :items="items" :mobile-open="mobileOpen" @close="closeMenu"/>
-  <div class="product-main">
+  <div class="product-main" :class="{ 'product-main--stock': model.currentTab === 'stock' }">
    <header class="brand-page-header">
     <button id="mobile-menu-toggle" ref="toggle" class="mobile-menu-toggle" :aria-expanded="mobileOpen" aria-controls="main-sidebar" :aria-label="mobileOpen?'ปิดเมนูหลัก':'เปิดเมนูหลัก'" @click="mobileOpen=!mobileOpen"><Menu v-if="!mobileOpen" :size="22"/><X v-else :size="22"/></button>
     <div class="header-page-title" :inert="mobileOpen||undefined"><h2>{{ title }}</h2><p>{{ model.connected?'ข้อมูลร้านจาก Firebase · ใช้ร่วมกันทุกเครื่อง':'ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว ยังบันทึกไม่ได้' }}</p></div>
@@ -31,8 +31,21 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
 </style>
 <style scoped>
 .product-content--stock {
+  --stock-page-inset: 24px;
   background: var(--bg-card);
-  border-block-start: 1px solid var(--border-subtle);
+  padding-inline: var(--stock-page-inset);
+}
+
+@media (min-width: 768px) {
+  .product-main--stock {
+    border-inline-start: 1px solid var(--border-subtle);
+  }
+}
+
+@media (max-width: 767px) {
+  .product-content--stock {
+    --stock-page-inset: 16px;
+  }
 }
 
 .product-content--stock :deep(.menu-workspace) {
@@ -42,9 +55,8 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
 .product-content--stock :deep(.stock-summary) {
   background: transparent;
   border: 0;
-  border-block-end: 1px solid var(--border-subtle);
   border-radius: 0;
-  padding: 0 0 16px;
+  padding: 0;
 }
 
 .product-content--stock :deep(.stock-search > .app-search) {
@@ -54,8 +66,12 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
 .product-content--stock :deep(.stock-table-surface),
 .product-content--stock :deep(.adaptive-material-list .menu-directory-list) {
   background: transparent;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border: 0;
+  border-radius: 0;
+}
+
+.product-content--stock :deep(.stock-table-surface) {
+  margin-inline: calc(-1 * var(--stock-page-inset));
 }
 
 .product-content--stock :deep(.stock-table-surface .stock-inventory-table) {
