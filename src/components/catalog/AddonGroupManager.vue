@@ -290,6 +290,22 @@ async function performRemove(group) {
 .group-price-fields summary{cursor:pointer;font-weight:600}
 .option-groups{container-type:inline-size;grid-template-rows:auto minmax(0,1fr)}
 .group-mobile-picker{display:none}
+@container(min-width:681px){
+ .group-workspace{--group-row-height:72px}
+ .group-directory-header,.group-items-header,.group-directory-button,.group-item{
+  height:var(--group-row-height);
+  min-height:0;
+  padding-block:0;
+ }
+ .group-directory-header{border-bottom:0}
+ .group-directory-button{border-top:1px solid var(--border-subtle);border-bottom:0}
+ .group-directory-button strong,.group-items-header h4,.group-item-name button{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+ }
+}
 @container(max-width:680px){
  .group-workspace{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
  .group-directory{display:none}
@@ -307,6 +323,6 @@ async function performRemove(group) {
 @media(max-height:430px){
  .option-groups{gap:8px}
  .option-groups>.group-heading p{display:none}
- .group-directory-header,.group-items-header{min-height:52px;padding-block:4px}
+ .group-workspace{--group-row-height:52px}
 }
 </style>
