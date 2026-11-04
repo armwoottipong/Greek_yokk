@@ -1,5 +1,5 @@
 <template>
- <AddonGroupManager />
+ <AddonGroupManager class="h-full" />
 </template>
 
 <script setup>

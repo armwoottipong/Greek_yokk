@@ -1,5 +1,5 @@
 <template>
- <div>
+ <div :class="{ 'flex-1 min-h-0': currentTab === 'addon' }">
   <StockView v-show="currentTab==='stock'" />
   <MenuView v-if="visited.menu" v-show="currentTab==='menu'" />
   <AddonView v-if="visited.addon" v-show="currentTab==='addon'" />

@@ -5,10 +5,12 @@
   <div v-else class="group-workspace">
    <nav class="group-directory" aria-label="รายชื่อกลุ่มตัวเลือก">
     <div class="group-directory-header"><span>กลุ่มตัวเลือก</span><span>จำนวน</span></div>
+    <div class="group-directory-list">
     <button v-for="group in store.addonGroups" :key="group.id" type="button" class="group-directory-button"
      :aria-pressed="selectedGroup?.id === group.id" @click="selectedGroupId = group.id">
      <strong>{{ group.name }}</strong><span>{{ group.options.length }}</span>
     </button>
+    </div>
    </nav>
    <section v-if="selectedGroup" class="group-items" aria-label="รายการในกลุ่มที่เลือก">
     <header class="group-items-header">
@@ -16,8 +18,12 @@
       <h4>{{ selectedGroup.name }}</h4>
       <p>เลือก {{ selectedGroup.minSelections }}–{{ selectedGroup.maxSelections }} {{ selectedGroup.allowRepeat ? 'ที่ · เลือกซ้ำได้' : 'ชนิด' }}</p>
      </div>
-     <Button variant="secondary" :disabled="!!actionPending || store.inventorySaving" :aria-label="`แก้ไขกลุ่ม ${selectedGroup.name}`" @click="edit(selectedGroup)">แก้ไขกลุ่ม</Button>
+     <div class="group-items-actions">
+      <Button variant="secondary" :disabled="!!actionPending || store.inventorySaving" :aria-label="`แก้ไขกลุ่ม ${selectedGroup.name}`" @click="edit(selectedGroup)">แก้ไขกลุ่ม</Button>
+      <Button variant="quiet" :disabled="!!actionPending || store.inventorySaving" @click="remove(selectedGroup)">ลบกลุ่ม</Button>
+     </div>
     </header>
+    <div class="group-table-scroll" role="region" aria-label="เลื่อนดูรายการตัวเลือก" tabindex="0">
     <div class="group-item group-column-header" aria-hidden="true">
      <span>ตัวเลือก</span><span>ราคา</span><span>สถานะ</span><span>เปิดขาย</span>
     </div>
@@ -35,8 +41,8 @@
        @update:model-value="setOptionActive(selectedGroup, option.addonId, $event)"><span class="sr-only">เปิดขายในกลุ่มนี้</span></AppCheckbox>
      </li>
     </ul>
+    </div>
     <p v-if="statusError" class="group-error" role="alert">{{ statusError }}</p>
-    <footer class="group-items-footer"><Button variant="quiet" :disabled="!!actionPending || store.inventorySaving" @click="remove(selectedGroup)">ลบกลุ่ม</Button></footer>
    </section>
   </div>
   <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="กำหนดรายการ จำนวนที่เลือก และราคาที่ใช้ในกลุ่มนี้" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
@@ -252,18 +258,22 @@ async function performRemove(group) {
 .group-price-analysis dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 
 @media(max-width:767px){.group-form :deep(.app-input input){font-size:1rem}}
-.group-workspace{display:grid;grid-template-columns:minmax(12rem,1fr) minmax(0,3fr);border:1px solid var(--border-subtle);border-radius:16px;background:var(--bg-card);overflow:hidden}
+.group-workspace{display:grid;grid-template-columns:minmax(12rem,1fr) minmax(0,3fr);grid-template-rows:minmax(0,1fr);min-height:0;border:1px solid var(--border-subtle);border-radius:16px;background:var(--bg-card);overflow:hidden}
+.group-directory,.group-items{display:flex;flex-direction:column;min-width:0;min-height:0}
 .group-directory{border-inline-end:1px solid var(--border-subtle)}
-.group-directory-header{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:72px;padding:12px 16px;border-bottom:1px solid var(--border-subtle);font-size:.8125rem;font-weight:600}
+.group-directory-list,.group-table-scroll{min-height:0;overflow:auto;overscroll-behavior:contain}
+.group-table-scroll{flex:1}
+.group-table-scroll:focus-visible{outline:2px solid var(--accent-brand);outline-offset:-2px}
+.group-directory-header{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:72px;padding:12px 16px;flex-shrink:0;border-bottom:1px solid var(--border-subtle);font-size:.8125rem;font-weight:600}
 .group-directory-button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:52px;padding:12px 16px;text-align:start;border-bottom:1px solid var(--border-subtle);overflow-wrap:anywhere}
 .group-directory-button[aria-pressed=true]{background:var(--bg-soft);color:var(--accent-brand)}
 .group-directory-button span,.group-item small,.group-items-header p{color:var(--text-muted);font-size:.8125rem}
-.group-items-header,.group-items-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px}
-.group-items-header{min-height:72px}
+.group-items-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:72px;padding:12px 16px;flex-shrink:0}
+.group-items-actions{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
 .group-items-header h4{font-weight:600;overflow-wrap:anywhere}
 .group-items-list{list-style:none;margin:0;padding:0}
 .group-item{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(4rem,1fr) minmax(6rem,1fr) 3.5rem;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border-subtle)}
-.group-column-header{background:var(--bg-soft);font-size:.8125rem;font-weight:600}
+.group-column-header{position:sticky;top:0;z-index:1;background:var(--bg-soft);font-size:.8125rem;font-weight:600}
 .group-column-header span:first-child{grid-column:span 2}
 .group-column-header span:last-child{text-align:center}
 .group-item-price{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
@@ -277,16 +287,24 @@ async function performRemove(group) {
 .group-item-status[data-status=low],.group-item-status[data-status=out]{color:var(--state-danger)}
 .group-stock-controls,.group-price-fields[open]{display:grid;gap:12px}
 .group-price-fields summary{cursor:pointer;font-weight:600}
-.option-groups{container-type:inline-size}
+.option-groups{container-type:inline-size;grid-template-rows:auto minmax(0,1fr)}
 @container(max-width:680px){
- .group-workspace{grid-template-columns:minmax(0,1fr)}
- .group-directory{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border-inline-end:0;border-bottom:1px solid var(--border-subtle)}
+ .group-workspace{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+ .group-directory{border-inline-end:0;border-bottom:1px solid var(--border-subtle)}
+ .group-directory-list{display:flex;gap:6px;padding:8px;white-space:nowrap}
  .group-directory-header{display:none}
- .group-directory-button{width:auto;min-height:44px;border:0;border-radius:8px}
+ .group-directory-button{width:auto;min-height:44px;border:0;border-radius:8px;flex-shrink:0}
+ .group-items-actions{flex-shrink:1}
  .group-item{grid-template-columns:40px minmax(0,1fr) auto;gap:8px}
  .group-column-header{display:none}
  .group-item-image{width:40px;height:40px;grid-row:span 3}
  .group-item-price,.group-item-status{grid-column:2}
  .group-item>.app-checkbox{grid-column:3;grid-row:1 / span 3}
+}
+@media(max-height:430px){
+ .option-groups{gap:8px}
+ .option-groups>.group-heading p{display:none}
+ .group-directory-header,.group-items-header{min-height:52px;padding-block:4px}
+ .group-column-header{padding-block:8px}
 }
 </style>
