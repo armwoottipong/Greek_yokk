@@ -1,23 +1,8 @@
 import {it,expect} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore} from '../helpers/createStore'
-import AddonView from '../../src/views/AddonView.vue'
+import AddonView from '../../src/components/catalog/OptionCatalog.vue'
 import GroupManager from '../../src/components/catalog/AddonGroupManager.vue'
-
-it('keeps search and active addon when moving between addons and reusable groups',async()=>{
- const store=createTestStore();store.resetDemoData()
- const w=mount(AddonView)
- try {
-  await w.get('[aria-label="ค้นหาตัวเลือกเสริม"]').setValue(store.addons[0].name)
-  await w.get('[data-addon-section="groups"]').trigger('click')
-  expect(w.get('[data-addon-section="groups"]').attributes('aria-pressed')).toBe('true')
-  expect(w.findComponent(GroupManager).isVisible()).toBe(true)
-  expect(w.get('[aria-label="รายการตัวเลือกเสริม"]').isVisible()).toBe(false)
-  await w.get('[data-addon-section="addons"]').trigger('click')
-  expect(w.get('[aria-label="ค้นหาตัวเลือกเสริม"]').element.value).toBe(store.addons[0].name)
-  expect(w.findAll('[data-addon-details]')).toHaveLength(1)
- }finally{w.unmount()}
-})
 
 it('associates group validation with the invalid input and focuses it without saving',async()=>{
  const store=createTestStore();store.resetDemoData()
@@ -39,7 +24,6 @@ it('associates group validation with the invalid input and focuses it without sa
 it('shows all platform financials for the active addon without changing checkout channel',async()=>{
  const store=createTestStore();store.resetDemoData();const original=store.currentPlatformId,w=mount(AddonView,{attachTo:document.body})
  try{
-  await w.get('[data-addon-section="addons"]').trigger('click')
   document.querySelector('[data-catalog-analysis="addon"]').click();await flushPromises()
   expect(w.findAll('[data-addon-select]')).toHaveLength(store.addons.length)
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(store.platforms.length)

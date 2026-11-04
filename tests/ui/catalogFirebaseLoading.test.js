@@ -1,6 +1,6 @@
 import {it,expect,vi} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
-import AddonView from '../../src/views/AddonView.vue'
+import AddonView from '../../src/components/catalog/OptionCatalog.vue'
 import MenuEdit from '../../src/components/modals/MenuEditModal.vue'
 import AddonEdit from '../../src/components/modals/AddonEditModal.vue'
 import {createTestStore} from '../helpers/createStore'

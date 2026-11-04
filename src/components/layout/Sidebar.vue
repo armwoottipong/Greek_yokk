@@ -126,7 +126,7 @@ const navItems = computed(() => props.items || [
   { id: 'dashboard', label: 'ภาพรวม & งบต้นทุน', icon: LayoutDashboard },
   { id: 'pos', label: 'แคชเชียร์ (POS)', icon: ShoppingBag, badge: store.cart.length > 0 ? store.cart.reduce((s, i) => s + i.qty, 0) : null, badgeColor: 'bg-amber-600 text-white' },
   { id: 'menu', label: 'จัดการเมนู', icon: UtensilsCrossed, badge: `${store.menus.length} รายการ`, badgeColor: 'bg-stone-100 text-stone-600' },
-  { id: 'addon', label: 'จัดการตัวเลือกเสริม', icon: Sparkles, badge: `${store.addons.length} รายการ`, badgeColor: 'bg-stone-100 text-stone-600' },
+  { id: 'addon', label: 'จัดการกลุ่มตัวเลือก', icon: Sparkles, badge: `${store.addonGroups?.length || 0} กลุ่ม`, badgeColor: 'bg-stone-100 text-stone-600' },
   { id: 'stock', label: 'คลังวัตถุดิบ & Package', icon: Package, alert: store.lowStockMaterials.length > 0 },
   { id: 'settings', label: 'ตั้งค่า & ระบบ API', icon: Settings }
 ].filter(item=>!props.model?.role||props.model.availableTabs.includes(item.id)).map(item => ({...item, disabled: !!props.model && !props.model.availableTabs.includes(item.id)})))

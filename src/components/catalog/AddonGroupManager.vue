@@ -12,11 +12,17 @@
     <div class="group-fields"><FormField id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
     <AppCheckbox v-model="draft.allowRepeat" variant="switch" label="เลือกชนิดเดิมซ้ำได้">เลือกชนิดเดิมซ้ำได้ · นับจำนวนเป็นที่</AppCheckbox>
     <FormField id="addon-group-pricing" label="การคิดราคา" v-slot="{controlId}"><AppSelect :id="controlId" v-model="draft.pricingMode"><option value="included">รวมในราคาเมนู · ไม่บวกเพิ่ม</option><option value="extra">คิดเงินเพิ่มตามตัวเลือก</option></AppSelect></FormField>
-    <section ref="optionsSection" tabindex="-1" class="group-options" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p><h4>เลือกตัวเลือกเสริมที่ใช้ในกลุ่มนี้</h4><p class="group-help">แต่ละรายการใช้สูตรและปริมาณต่อที่ที่กำหนดไว้</p><AppSearch v-model="search" label="ค้นหาตัวเลือกเสริมในกลุ่ม" placeholder="ค้นหาตัวเลือกเสริม"/>
-     <p v-if="!store.addons.length" class="group-help">เพิ่มรายการตัวเลือกเสริมก่อน แล้วกลับมาเลือกเข้ากลุ่ม</p>
-     <p v-else-if="!filteredAddons.length" class="group-help">ไม่พบรายการ ลองค้นหาด้วยชื่ออื่น</p>
+    <section ref="optionsSection" tabindex="-1" class="group-options" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p>
+     <div class="group-heading">
+      <h4>รายการในกลุ่ม</h4>
+      <Button variant="secondary" data-group-add-option :disabled="!!actionPending || store.inventorySaving" @click="addOption"><Plus :size="16" aria-hidden="true"/>เพิ่มตัวเลือก</Button>
+     </div>
+     <p v-if="!store.addons.length" class="group-help">เพิ่มตัวเลือกเพื่อกำหนดสูตรและราคาของรายการแรกในกลุ่มนี้</p>
+     <AppSearch v-if="store.addons.length" v-model="search" label="ค้นหาตัวเลือก" placeholder="ค้นหาตัวเลือก"/>
+     <p v-if="store.addons.length && !filteredAddons.length" class="group-help">ไม่พบรายการ ลองค้นหาด้วยชื่ออื่น</p>
      <div v-for="addon in filteredAddons" :key="addon.id" class="group-option" data-group-addon>
       <AppCheckbox :model-value="Boolean(optionFor(addon.id))" :label="addon.name" @update:model-value="toggleOption(addon.id, $event)">{{ addon.emoji }} {{ addon.name }} <small v-if="addon.isActive === false">(ปิดขาย)</small></AppCheckbox>
+      <Button variant="quiet" size="compact" :aria-label="`ดูสูตรและราคาของ ${addon.name}`" @click="detailId = addon.id">สูตรและราคา</Button>
       <template v-if="optionFor(addon.id) && draft.pricingMode === 'extra'">
        <AppCheckbox :model-value="optionFor(addon.id).prices !== undefined" :label="`กำหนดราคาเฉพาะกลุ่ม ${addon.name}`" @update:model-value="setCustomPrices(addon, $event)">กำหนดราคาเฉพาะกลุ่ม</AppCheckbox>
        <div v-if="optionFor(addon.id).prices !== undefined" class="group-fields"><FormField v-for="platform in store.platforms" :key="platform.id" :id="`group-price-${addon.id}-${platform.id}`" :label="platform.name" v-slot="{controlId}"><AppInput :id="controlId" v-model="optionFor(addon.id).prices[platform.id]" type="number" min="0" step="any"><template #prefix>฿</template></AppInput></FormField></div>
@@ -38,10 +44,13 @@
    </div>
    <template #footer><Button variant="quiet" :disabled="!!actionPending" @click="requestEditorClose">ยกเลิก</Button><Button :loading="actionPending==='save'" @click="save"><Check :size="18" aria-hidden="true"/>บันทึกกลุ่มตัวเลือก</Button></template>
   </DialogFrame>
+  <DialogFrame id="group-option-details" :open="open && !!detailId" title="สูตรและราคาของตัวเลือก" width="960px" @request-close="detailId = null">
+   <OptionCatalog v-if="detailId" :key="detailId" :option-id="detailId" @removed="optionRemoved"/>
+  </DialogFrame>
  </section>
 </template>
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch, defineAsyncComponent } from 'vue'
 import { Plus, Check, ChevronDown } from 'lucide-vue-next'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
@@ -58,8 +67,11 @@ import AppSearch from '@/components/ui/AppSearch.vue'
 
 import {useActionPending} from '@/composables/useActionPending'
 const {pending:actionPending,run:runAction}=useActionPending()
+const OptionCatalog = defineAsyncComponent(() => import('./OptionCatalog.vue'))
 const store = useInventoryStore(), open = ref(false), error = ref(''), search = ref('')
 const draft = ref({}),editCatalogRevision=ref(null)
+const detailId = ref(null)
+let optionEditRevision = null
 let creationResolver=null
 const fieldErrors = ref({})
 const optionsSection = ref(null)
@@ -68,6 +80,32 @@ function toggleExpanded(id){const next=new Set(expandedGroups.value);if(next.has
 const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const filteredAddons = computed(() => store.addons.filter(a => a.name.toLowerCase().includes(search.value.trim().toLowerCase())))
 const optionFor = id => draft.value.options?.find(o => o.addonId === id)
+function addOption() {
+  store.modals.addonEdit = { isOpen: true, addonId: null, savedAddonId: null }
+}
+function optionRemoved(id) {
+  toggleOption(id, false)
+  detailId.value = null
+  if (store.catalogRevision === editCatalogRevision.value + 1) {
+    editCatalogRevision.value = store.catalogRevision
+  }
+}
+watch(() => store.modals.addonEdit?.isOpen, isOpen => {
+  if (!open.value) return
+  if (isOpen) {
+    optionEditRevision = store.catalogRevision
+    return
+  }
+  const savedId = store.modals.addonEdit.savedAddonId
+  if (!savedId) return
+  if (optionEditRevision === editCatalogRevision.value && store.catalogRevision === optionEditRevision + 1) {
+    editCatalogRevision.value = store.catalogRevision
+  }
+  if (!detailId.value && !optionFor(savedId)) {
+    search.value = ''
+    toggleOption(savedId, true)
+  }
+})
 const baht = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
 const analysisMoney = value => value === null ? 'คำนวณไม่ได้' : baht.format(value)
 function priceAnalysis(addon) {

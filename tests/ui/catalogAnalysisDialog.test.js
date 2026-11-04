@@ -2,14 +2,13 @@ import {it,expect} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore} from '../helpers/createStore'
 import Menu from '../../src/views/MenuView.vue'
-import Addon from '../../src/views/AddonView.vue'
+import Addon from '../../src/components/catalog/OptionCatalog.vue'
 
 it.each([[Menu,'menu'],[Addon,'addon']])('opens %s platform analysis on demand',async(View,kind)=>{
  const store=createTestStore();store.resetDemoData()
  const wrapper=mount(View,{attachTo:document.body})
  try{
   expect(document.querySelector('[data-menu-platform]')).toBeNull()
-  if(kind==='addon')await wrapper.get('[data-addon-section="addons"]').trigger('click')
   await new Promise(resolve=>setTimeout(resolve,0));await flushPromises()
   const trigger=document.querySelector(`[data-catalog-analysis="${kind}"]`)
   expect(trigger).not.toBeNull()

@@ -2,7 +2,7 @@ import {it,expect,vi} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore,material} from '../helpers/createStore'
 import Menu from '../../src/views/MenuView.vue'
-import Addon from '../../src/views/AddonView.vue'
+import Addon from '../../src/components/catalog/OptionCatalog.vue'
 it('opens menu detail without mutation, handles broken recipe and hands off the exact edit ID',async()=>{
  const store=createTestStore();store.resetDemoData();const menu=store.menus[0];menu.recipe=[{materialId:'MISSING',qty:0}]
  const before=JSON.stringify(store.menus)

@@ -1,10 +1,12 @@
 import { it, expect, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { h } from 'vue'
 import { createTestStore, material } from '../helpers/createStore'
 import { loadDatabase } from '../../src/services/localDatabase'
 import Custom from '../../src/components/modals/CustomOrderModal.vue'
 import MenuEdit from '../../src/components/modals/MenuEditModal.vue'
 import AddonView from '../../src/views/AddonView.vue'
+import AddonEdit from '../../src/components/modals/AddonEditModal.vue'
 import GroupManager from '../../src/components/catalog/AddonGroupManager.vue'
 import Frame from '../../src/components/ui/DialogFrame.vue'
 
@@ -14,6 +16,38 @@ function setup() {
   s.menus[0].addonGroupIds = ['G']
   return s
 }
+it('creates and selects an option from the group without losing its draft', async () => {
+  const s = setup()
+  vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
+  const wrapper = mount({ render: () => h('div', [h(AddonView), h(AddonEdit)]) }, {
+    global: { stubs: { teleport: true } }
+  })
+  const workspace = wrapper.getComponent(AddonView)
+  const editor = wrapper.getComponent(AddonEdit)
+  try {
+    await workspace.findAll('button').find(button => button.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
+    await workspace.get('#addon-group-name').setValue('กลุ่มใหม่')
+    await workspace.get('[data-group-add-option]').trigger('click')
+    await editor.get('#addon-name').setValue('ตัวเลือกใหม่')
+    await editor.vm.submit()
+    await flushPromises()
+    const created = s.addons.find(option => option.name === 'ตัวเลือกใหม่')
+    expect(created).toBeDefined()
+    expect(workspace.get('#addon-group-name').element.value).toBe('กลุ่มใหม่')
+    expect(workspace.get('[aria-label="ตัวเลือกใหม่"]').element.checked).toBe(true)
+    await workspace.get('[aria-label="ดูสูตรและราคาของ ตัวเลือกใหม่"]').trigger('click')
+    await vi.dynamicImportSettled()
+    const details = workspace.get('#group-option-details')
+    expect(details.get('[data-selected-addon-name]').text()).toBe('ตัวเลือกใหม่')
+    expect(details.find('[data-addon-select]').exists()).toBe(false)
+    await details.get('[aria-label="ปิดหน้าต่าง"]').trigger('click')
+    await workspace.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
+    await flushPromises()
+    expect(loadDatabase(localStorage).value.addonGroups.find(group => group.name === 'กลุ่มใหม่')?.options).toEqual([{ addonId: created.id }])
+  } finally {
+    wrapper.unmount()
+  }
+})
 it('requires complete group choices, caps kinds and adds free selections', async () => {
   const s = setup(), w = mount(Custom)
   try {
@@ -121,7 +155,6 @@ it('caps repeated portions and removes a choice when its quantity reaches zero',
 it('creates and reopens a reusable group in the option workspace', async () => {
   const s = setup(), w = mount(AddonView, { global: { stubs: { teleport: true } } })
   try {
-    await w.get('[data-addon-section="groups"]').trigger('click')
     await w.findAll('button').find(b => b.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
     expect(w.get('[role="note"]').text()).toContain('ไม่พร้อมใช้งาน')
     await w.get('#addon-group-name').setValue('ฟรี 1 ชนิด')
@@ -138,13 +171,11 @@ it('creates and reopens a reusable group in the option workspace', async () => {
     expect(confirm).not.toHaveBeenCalled()
   } finally { w.unmount() }
 })
-it('opens the option workspace on the option directory, then shows collapsible option groups', async () => {
+it('opens directly on the groups with no separate option directory', async () => {
   const s=setup(),w=mount(AddonView)
   try{
-    expect(w.get('[data-addon-section="addons"]').attributes('aria-pressed')).toBe('true')
-    expect(w.get('[aria-label="รายการตัวเลือกเสริม"]').isVisible()).toBe(true)
-    await w.get('[data-addon-section="groups"]').trigger('click')
-    expect(w.get('[data-addon-section="groups"]').attributes('aria-pressed')).toBe('true')
+    expect(w.find('[data-addon-section]').exists()).toBe(false)
+    expect(w.find('[aria-label="รายการตัวเลือกเสริม"]').exists()).toBe(false)
     expect(w.find('[data-picker-group="G"]').exists()).toBe(false)
     const expand=w.get('[aria-controls="group-options-G"]')
     expect(expand.attributes('aria-expanded')).toBe('false')
@@ -211,7 +242,6 @@ it('keeps the group editor outside the inert application so its fields accept in
   const host = document.createElement('div'); host.id = 'app'; document.body.append(host)
   const w = mount(AddonView, { attachTo: host })
   try {
-    await w.get('[data-addon-section="groups"]').trigger('click')
     await w.findAll('button').find(b => b.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
     await flushPromises()
     const input = document.getElementById('addon-group-name')

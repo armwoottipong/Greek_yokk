@@ -133,7 +133,7 @@ it('uses the original product navigation, catalogue and cart without creating a 
  const before=Object.keys(localStorage).sort()
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  expect(w.find('.brand-sidebar').exists()).toBe(true)
- expect(w.findAll('.brand-navigation button').map(b=>b.find('div span').text())).toEqual(['ภาพรวม & งบต้นทุน','แคชเชียร์ (POS)','จัดการเมนู','จัดการตัวเลือกเสริม','คลังวัตถุดิบ & Package','ตั้งค่า & ระบบ API'])
+ expect(w.findAll('.brand-navigation button').map(b=>b.find('div span').text())).toEqual(['ภาพรวม & งบต้นทุน','แคชเชียร์ (POS)','จัดการเมนู','จัดการกลุ่มตัวเลือก','คลังวัตถุดิบ & Package','ตั้งค่า & ระบบ API'])
  expect(w.find('.brand-navigation button[title^="จัดการเมนู"] .font-number').text()).toBe('1 รายการ')
  expect(w.find('.brand-sidebar').text()).toContain('สถานะคลัง & ต้นทุน')
  expect(w.find('.brand-sidebar').text()).not.toContain('Firebase')

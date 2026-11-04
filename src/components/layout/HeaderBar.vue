@@ -115,8 +115,8 @@ const pageTitle = computed(() => {
       }
     case 'addon':
       return {
-        title: 'ท็อปปิ้ง',
-        subtitle: 'รายการท็อปปิ้งเสริม ราคาบวกเพิ่ม และการผูกตัดวัตถุดิบ'
+        title: 'กลุ่มตัวเลือก',
+        subtitle: 'จัดกลุ่ม กำหนดราคาและสูตรตัดสต็อก แล้วนำไปใช้กับเมนู'
       }
     case 'stock':
       return {

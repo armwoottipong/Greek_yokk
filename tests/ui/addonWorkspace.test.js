@@ -1,15 +1,15 @@
 import {it,expect,vi} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore,material} from '../helpers/createStore'
-import Addon from '../../src/views/AddonView.vue'
+import Addon from '../../src/components/catalog/OptionCatalog.vue'
 import Editor from '../../src/components/modals/AddonEditModal.vue'
 
-const showAnalysis=async w=>{await w.get('[data-addon-section="addons"]').trigger('click');document.querySelector('[data-catalog-analysis="addon"]').click();await flushPromises()}
+const showAnalysis=async ()=>{document.querySelector('[data-catalog-analysis="addon"]').click();await flushPromises()}
 
 it('uses an active header, selectable list, all-platform analysis and recipe without a details popup',async()=>{
  const s=createTestStore();s.resetDemoData();const original=s.currentPlatformId,w=mount(Addon,{attachTo:document.body})
  try{
-  await showAnalysis(w)
+  await showAnalysis()
   expect(w.get('[data-addon-header] [data-selected-addon-name]').text()).toBe(s.addons[0].name)
   expect(w.findAll('[data-addon-select]')).toHaveLength(s.addons.length)
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(s.platforms.length)
@@ -27,7 +27,7 @@ it.each([undefined,null,'',' ',0,'0',-1,'invalid'])('hides unpriced addon platfo
  const s=createTestStore();s.resetDemoData();s.addons[0].prices={PLAT01:price,PLAT02:20}
  const w=mount(Addon,{attachTo:document.body})
  try{
-  await showAnalysis(w)
+  await showAnalysis()
   for(const label of ['แท่ง','วงกลม','เส้น']){
    [...document.querySelectorAll('[role="dialog"] button')].find(b=>b.textContent===label).click();await flushPromises()
    expect(document.querySelector('[data-menu-platform=PLAT01]')).toBeNull()
@@ -43,7 +43,7 @@ it('shows the price-setting empty state when an addon has no positive platform p
  const s=createTestStore();s.resetDemoData();s.addons[0].prices={PLAT01:0,PLAT02:''}
  const w=mount(Addon,{attachTo:document.body})
  try{
-  await showAnalysis(w)
+  await showAnalysis()
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(0)
   expect(document.querySelector('[aria-label="รูปแบบกราฟ"]')).toBeNull()
   expect(document.querySelector('.overview-legend')).toBeNull()
@@ -54,18 +54,7 @@ it('shows the price-setting empty state when an addon has no positive platform p
 it('does not invent zero material cost in the recipe or analysis',async()=>{
  const s=createTestStore();s.resetDemoData();s.materials.push(material('UNKNOWN',100,{unitCost:null}));s.addons[0].recipe=[{materialId:'UNKNOWN',qty:10}]
  const w=mount(Addon,{attachTo:document.body})
- try{await showAnalysis(w);expect(w.get('[data-addon-recipe-panel]').text()).toContain('ยังไม่ทราบต้นทุน');expect(document.querySelector('[data-menu-financial=cost]').textContent).toContain('ยังคำนวณไม่ได้')}finally{w.unmount()}
-})
-it('preserves active selection and search between groups and the directory',async()=>{
- const s=createTestStore();s.resetDemoData();const w=mount(Addon)
- try{
-  await w.findAll('[data-addon-select]')[1].trigger('click')
-  await w.get('[aria-label="ค้นหาตัวเลือกเสริม"]').setValue(s.addons[1].name)
-  await w.get('[data-addon-section=groups]').trigger('click')
-  await w.get('[data-addon-section=addons]').trigger('click')
-  expect(w.get('[data-selected-addon-name]').text()).toBe(s.addons[1].name)
-  expect(w.get('[aria-label="ค้นหาตัวเลือกเสริม"]').element.value).toBe(s.addons[1].name)
- }finally{w.unmount()}
+ try{await showAnalysis();expect(w.get('[data-addon-recipe-panel]').text()).toContain('ยังไม่ทราบต้นทุน');expect(document.querySelector('[data-menu-financial=cost]').textContent).toContain('ยังคำนวณไม่ได้')}finally{w.unmount()}
 })
 it('exposes direct trash deletion with exact confirmation',async()=>{
  const s=createTestStore();s.resetDemoData();const confirm=vi.spyOn(s,'confirmDialog').mockResolvedValue(false),w=mount(Addon)
@@ -132,7 +121,7 @@ it('returns keyboard focus to the selected addon when going back to the list',as
 it('uses Dashboard chart controls and places addon calculation notes in the shared info tooltip',async()=>{
  const s=createTestStore();s.resetDemoData();const w=mount(Addon,{attachTo:document.body})
  try{
-  await showAnalysis(w)
+  await showAnalysis()
   expect(document.querySelectorAll('.dashboard-segments button')).toHaveLength(3)
   expect(w.text()).not.toContain('ไม่รวมราคาเมนูหลัก')
   const info=document.querySelector('[data-addon-analysis-info]')
