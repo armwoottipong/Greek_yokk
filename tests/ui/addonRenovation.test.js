@@ -8,13 +8,13 @@ it('keeps search and active addon when moving between addons and reusable groups
  const store=createTestStore();store.resetDemoData()
  const w=mount(AddonView)
  try {
-  await w.get('[aria-label="ค้นหา Add-on"]').setValue(store.addons[0].name)
+  await w.get('[aria-label="ค้นหาตัวเลือกเสริม"]').setValue(store.addons[0].name)
   await w.get('[data-addon-section="groups"]').trigger('click')
   expect(w.get('[data-addon-section="groups"]').attributes('aria-pressed')).toBe('true')
   expect(w.findComponent(GroupManager).isVisible()).toBe(true)
-  expect(w.get('[aria-label="รายการ Add-on"]').isVisible()).toBe(false)
+  expect(w.get('[aria-label="รายการตัวเลือกเสริม"]').isVisible()).toBe(false)
   await w.get('[data-addon-section="addons"]').trigger('click')
-  expect(w.get('[aria-label="ค้นหา Add-on"]').element.value).toBe(store.addons[0].name)
+  expect(w.get('[aria-label="ค้นหาตัวเลือกเสริม"]').element.value).toBe(store.addons[0].name)
   expect(w.findAll('[data-addon-details]')).toHaveLength(1)
  }finally{w.unmount()}
 })
@@ -44,9 +44,9 @@ it('shows all platform financials for the active addon without changing checkout
   expect(w.findAll('[data-addon-select]')).toHaveLength(store.addons.length)
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(store.platforms.length)
   expect(w.find('[aria-label="ช่องทางที่แสดงราคา"]').exists()).toBe(false)
-  await w.get('[aria-label="ค้นหา Add-on"]').setValue('not found')
+  await w.get('[aria-label="ค้นหาตัวเลือกเสริม"]').setValue('not found')
   expect(w.findAll('[data-addon-select]')).toHaveLength(0)
-  await w.get('[aria-label="ล้างค้นหา Add-on"]').trigger('click')
+  await w.get('[aria-label="ล้างค้นหาตัวเลือกเสริม"]').trigger('click')
   expect(w.findAll('[data-addon-select]')).toHaveLength(store.addons.length)
   expect(store.currentPlatformId).toBe(original)
  }finally{w.unmount()}

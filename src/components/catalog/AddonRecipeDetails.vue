@@ -1,15 +1,15 @@
 <template>
  <div id="addon-details" class="addon-detail-workspace">
-  <CatalogAnalysisDialog entity="addon" :reset-key="addon.id" :trigger-target="analysisTriggerTarget"><section class="addon-analysis" aria-label="ข้อมูลวิเคราะห์ Add-on">
-   <MenuPlatformOverview :menu="addon" :platforms="platforms" :cost="cost" unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="Add-on">
+  <CatalogAnalysisDialog entity="addon" :reset-key="addon.id" :trigger-target="analysisTriggerTarget"><section class="addon-analysis" aria-label="ข้อมูลวิเคราะห์ตัวเลือกเสริม">
+   <MenuPlatformOverview :menu="addon" :platforms="platforms" :cost="cost" unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="ตัวเลือกเสริม">
     <template #controls><AnalysisInfo entity="addon" :reset-key="addon.id">
-     <span>เปรียบเทียบเมื่อคิดราคามาตรฐาน Add-on แยกตามช่องทาง · ไม่รวมราคาเมนูหลัก ราคาเฉพาะกลุ่ม หรือรายการที่รวมฟรีในเมนู</span>
+     <span>เปรียบเทียบราคาตั้งต้นของตัวเลือกเสริมแยกตามช่องทาง · ไม่รวมราคาเมนูหลัก ราคาเฉพาะกลุ่ม หรือรายการที่รวมฟรีในเมนู</span>
      <span>สัดส่วนใต้ตัวเลขเทียบกับราคาขาย ส่วนอัตรากำไรเทียบกับรายรับหลัง GP</span>
      <span>ยังไม่หักค่าเช่า ค่าแรง และค่าใช้จ่ายอื่น</span>
     </AnalysisInfo></template>
    </MenuPlatformOverview>
   </section></CatalogAnalysisDialog>
-  <aside data-addon-recipe-panel class="addon-recipe-panel" aria-label="สูตรและวัตถุดิบ Add-on">
+  <aside data-addon-recipe-panel class="addon-recipe-panel" aria-label="สูตรและวัตถุดิบตัวเลือกเสริม">
    <header><div><h3>สูตรและวัตถุดิบ</h3><p>ปริมาณที่ใช้ต่อ 1 ที่</p></div><Button variant="quiet" size="compact" @click="$emit('edit',{section:'recipe'})">แก้ไขสูตร</Button></header>
    <p v-if="!items.length" class="recipe-help">ไม่ตัดวัตถุดิบหรือบรรจุภัณฑ์</p>
    <section v-for="group in groups" :key="group.type" :data-addon-ingredients="group.type==='ingredient'?'':undefined" :data-addon-packaging="group.type==='packaging'?'':undefined" class="recipe-group">
@@ -17,7 +17,7 @@
     <p class="recipe-help">{{ group.cost===null?'ยังไม่ทราบต้นทุน':`ต้นทุนประมาณ ${money(group.cost)}` }}</p>
     <article v-for="(item,index) in group.items" :key="index" class="recipe-item"><div><strong>{{ item.mat?.name||'ไม่พบวัตถุดิบ' }}</strong><p>{{ item.qty }} {{ item.mat?.unit||'' }}</p><small v-if="!item.mat">รหัส {{ item.materialId }} · แก้ไขสูตรเพื่อเลือกรายการใหม่</small><small v-else-if="item.mat.isDeleted||item.mat.isArchived">ถูกจัดเก็บ กรุณาแก้ไขสูตร</small><small v-else-if="item.servingsAvailable!==null">สต็อกพอ {{ item.servingsAvailable }} ที่</small><small v-else>ยังไม่ระบุปริมาณที่ใช้</small></div><b>{{ item.cost===null?'ยังไม่ทราบต้นทุน':money(item.cost) }}</b></article>
    </section>
-   <section class="recipe-group"><h4>กลุ่มที่ใช้ Add-on นี้ <span>{{ usedGroups.length }} กลุ่ม</span></h4><p v-if="!usedGroups.length" class="recipe-help">ยังไม่ถูกใช้ในกลุ่มตัวเลือก</p><article v-for="group in usedGroups" :key="group.id" class="recipe-item"><div><strong>{{ group.name }}</strong><p>{{ group.pricingMode==='included'?'รวมในราคาเมนู':'คิดเงินเพิ่ม' }}</p></div></article></section>
+   <section class="recipe-group"><h4>กลุ่มที่ใช้ตัวเลือกเสริมนี้ <span>{{ usedGroups.length }} กลุ่ม</span></h4><p v-if="!usedGroups.length" class="recipe-help">ยังไม่ถูกใช้ในกลุ่มตัวเลือก</p><article v-for="group in usedGroups" :key="group.id" class="recipe-item"><div><strong>{{ group.name }}</strong><p>{{ group.pricingMode==='included'?'รวมในราคาเมนู':'คิดเงินเพิ่ม' }}</p></div></article></section>
   </aside>
  </div>
 </template>

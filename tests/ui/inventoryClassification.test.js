@@ -26,7 +26,7 @@ it('filters by type and overlapping recipe roles immediately without producing',
   s.menus=[];s.addons=[{id:'A',name:'Extra raw',recipe:[{materialId:'RAW',qty:2}]}]
   const w=mount(Stock)
   expect(w.get('.menu-directory-list').text()).toContain('ใช้ในการผลิต')
-  expect(w.get('.menu-directory-list').text()).toContain('ใช้ใน Add-on')
+  expect(w.get('.menu-directory-list').text()).toContain('ใช้ในตัวเลือกเสริม')
   w.vm.applyStockFilters({kind:'normal',role:'addon',showDeleted:false});await flushPromises()
   expect(w.findAll('.menu-directory-list [data-material-details]').map(x=>x.attributes('data-material-details'))).toEqual(['RAW'])
   s.addons[0].recipe=[];await flushPromises()

@@ -16,7 +16,7 @@ export function materialDeletionEligibility(data,id){
  if(data.shop.catalog.summaryMaterials.includes(id))blockers.push('ยังเป็นวัตถุดิบใช้งานของระบบ กรุณาจัดเก็บก่อน')
  if(data.shop.returnMaterials?.[id])blockers.push('มีประวัติขายที่ต้องเก็บวัตถุดิบไว้รองรับการคืนบิล สามารถจัดเก็บแทนได้')
  const references=declaredMaterialReferences(data,id)
- for(const ref of references)blockers.push(`อยู่ในสูตร${ref.collection==='menus'?'เมนู':' Add-on'} ${ref.name}${ref.retired?' (ลบแล้ว)':''}`)
+ for(const ref of references)blockers.push(`อยู่ในสูตร${ref.collection==='menus'?'เมนู':' ตัวเลือกเสริม'} ${ref.name}${ref.retired?' (ลบแล้ว)':''}`)
  for(const source of data.shop.productionUsers?.[id]||[])blockers.push(`ใช้ในสูตรผลิต ${data.materials.find(m=>m.id===source)?.name||source}`)
  if(Object.keys(material.productionRecipe||{}).length)blockers.push('รายการนี้มีสูตรผลิต กรุณานำสูตรออกก่อนลบถาวร')
  return {allowed:blockers.length===0,blockers,references}

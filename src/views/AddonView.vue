@@ -1,6 +1,6 @@
 <template>
  <CatalogWorkspace ref="workbench" entity="addon" :mobile-detail="mobileDetail" class="addon-workspace" :active="activeSection==='addons'" directory-id="addon-directory">
-  <template #before><nav class="addon-sections" aria-label="ส่วนจัดการ Add-on"><button type="button" data-addon-section="addons" :aria-pressed="activeSection==='addons'" aria-controls="addon-directory" @click="activeSection='addons'">รายการ Add-on <span>{{ store.addons.length }}</span></button><button type="button" data-addon-section="groups" :aria-pressed="activeSection==='groups'" aria-controls="addon-groups" @click="activeSection='groups'">กลุ่มตัวเลือก <span>{{ store.addonGroups.length }}</span></button></nav></template>
+  <template #before><nav class="addon-sections" aria-label="ส่วนจัดการตัวเลือกเสริม"><button type="button" data-addon-section="addons" :aria-pressed="activeSection==='addons'" aria-controls="addon-directory" @click="activeSection='addons'">รายการตัวเลือกเสริม <span>{{ store.addons.length }}</span></button><button type="button" data-addon-section="groups" :aria-pressed="activeSection==='groups'" aria-controls="addon-groups" @click="activeSection='groups'">กลุ่มตัวเลือก <span>{{ store.addonGroups.length }}</span></button></nav></template>
   <template #after-header><AddonGroupManager id="addon-groups" v-show="activeSection==='groups'"/></template>
   <template #header><CatalogHeader :busy="!!actionPending||store.inventorySaving" :removing="!!actionPending" v-show="activeSection==='addons'" entity="addon" :selected="selectedAddon" :platform-count="configuredPlatformCount" @back="requestAction({type:'back'})" @add="requestAction({type:'new'})" @edit="requestAction({type:'edit',id:$event})" @delete="deleteAddon"/></template>
   <template #browser><CatalogBrowser v-model="searchQuery" entity="addon" :items="filteredAddons" :selected-id="selectedId" @select="requestAction({type:'select',id:$event})" @add="requestAction({type:'new'})"/></template>
@@ -63,7 +63,7 @@ function requestAction(action){
 }
 const deleteAddon=menu=>runAction('delete',()=>performDelete(menu))
 async function performDelete(menu){
- if(await store.confirmDialog({title:'ลบ Add-on?',message:store.cloud?menu.name+' · นำออกจากรายการใช้งาน โดยเก็บบิลและหลักฐานเดิมไว้':menu.name+' · '+menu.id+' · การลบนี้ไม่สามารถย้อนกลับได้',confirmText:'ลบ Add-on',cancelText:'ยกเลิก',type:'danger'})){
+ if(await store.confirmDialog({title:'ลบตัวเลือกเสริม?',message:store.cloud?menu.name+' · นำออกจากรายการใช้งาน โดยเก็บบิลและหลักฐานเดิมไว้':menu.name+' · '+menu.id+' · การลบนี้ไม่สามารถย้อนกลับได้',confirmText:'ลบตัวเลือกเสริม',cancelText:'ยกเลิก',type:'danger'})){
   const result=await store.deleteAddon(menu.id)
   if(result!==false&&result?.ok!==false&&result?.success!==false)pendingHeadingFocus.value=true
  }

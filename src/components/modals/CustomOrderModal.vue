@@ -12,7 +12,7 @@
       <div v-if="group.allowRepeat && isGroupSelected(group.id,addon.id)" class="bowl-option-quantity"><span>จำนวน {{ addon.name }}</span><IconButton :label="`ลด ${group.name} ${addon.name}`" @click="adjustGroupQty(group,addon,-1)"><Minus :size="16" aria-hidden="true"/></IconButton><span class="font-number">{{ groupSelection(group.id,addon.id)?.selectionQty }}</span><IconButton :label="`เพิ่ม ${group.name} ${addon.name}`" :disabled="groupCount(group.id)>=group.maxSelections" @click="adjustGroupQty(group,addon,1)"><Plus :size="16" aria-hidden="true"/></IconButton></div>
      </div>
     </div>
-    <p v-if="!groupOptions(group).length" class="bowl-no-addons">ยังไม่มีตัวเลือกที่เปิดขาย กรุณาตรวจรายการ Add-on</p>
+    <p v-if="!groupOptions(group).length" class="bowl-no-addons">ยังไม่มีตัวเลือกที่เปิดขาย กรุณาตรวจรายการตัวเลือกเสริม</p>
     <p v-else-if="groupCount(group.id)>=group.maxSelections" class="bowl-group-hint">เลือกครบจำนวนสูงสุดแล้ว ยกเลิกตัวเลือกเดิมเพื่อเปลี่ยนได้</p>
    </section>
    <p v-if="!selectionCheck.ok" class="bowl-group-hint" role="status">{{ selectionCheck.message }}</p>

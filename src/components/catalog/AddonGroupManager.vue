@@ -1,10 +1,10 @@
 <template>
  <section class="option-groups" aria-label="กลุ่มตัวเลือก">
   <header class="group-heading"><div><h3>กลุ่มตัวเลือก</h3><p>สร้างชุดผลไม้หรือของเสริม แล้วนำไปใช้กับหลายเมนูได้</p></div><Button :disabled="!!actionPending||store.inventorySaving" @click="edit()"><Plus :size="16" aria-hidden="true"/>เพิ่มกลุ่มตัวเลือก</Button></header>
-  <div v-if="!store.addonGroups.length" class="group-empty"><strong>จัด Add-on เป็นชุดให้เลือก</strong><p>เช่น ผลไม้ฟรี 3 ชนิด หรือเพิ่มพิเศษ สร้างกลุ่มแล้วนำไปใช้กับหลายเมนูได้</p></div>
+  <div v-if="!store.addonGroups.length" class="group-empty"><strong>จัดตัวเลือกเสริมเป็นชุดให้เลือก</strong><p>เช่น ผลไม้ฟรี 3 ชนิด หรือเพิ่มพิเศษ สร้างกลุ่มแล้วนำไปใช้กับหลายเมนูได้</p></div>
   <article v-for="group in store.addonGroups" :key="group.id" class="group-row">
    <div class="group-card-head"><button type="button" class="group-expand" :aria-expanded="expandedGroups.has(group.id)" :aria-controls="`group-options-${group.id}`" @click="toggleExpanded(group.id)"><span><strong>{{ group.name }}</strong><small>ใช้กับ {{ store.menus.filter(m => m.addonGroupIds?.includes(group.id)).length }} เมนู · {{ group.options.length }} ตัวเลือก</small></span><ChevronDown :size="18" :class="{'is-open':expandedGroups.has(group.id)}" aria-hidden="true"/></button><Button variant="quiet" :aria-label="`แก้ไขกลุ่ม ${group.name}`" :disabled="!!actionPending||store.inventorySaving" @click="edit(group)">แก้ไข</Button></div>
-   <div v-if="expandedGroups.has(group.id)" :id="`group-options-${group.id}`" data-group-options class="group-card-body"><p>{{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่ · เลือกซ้ำได้' : 'ชนิด' }}</p><div v-for="option in group.options" :key="option.addonId" class="group-preview-option"><span>{{ store.addons.find(a=>a.id===option.addonId)?.name||'ไม่พบ Add-on' }}</span><small>{{ group.pricingMode==='included'?'ฟรี':option.prices?'กำหนดราคาเฉพาะกลุ่ม':'ใช้ราคา Add-on' }}</small></div><p class="group-placeholder">พักตัวเลือกเฉพาะกลุ่ม · ไม่พร้อมใช้งาน</p><Button variant="quiet" :aria-label="`ลบกลุ่ม ${group.name}`" :loading="actionPending==='delete-'+group.id" :disabled="!!actionPending||store.inventorySaving" @click="remove(group)">ลบกลุ่ม</Button></div>
+   <div v-if="expandedGroups.has(group.id)" :id="`group-options-${group.id}`" data-group-options class="group-card-body"><p>{{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่ · เลือกซ้ำได้' : 'ชนิด' }}</p><div v-for="option in group.options" :key="option.addonId" class="group-preview-option"><span>{{ store.addons.find(a=>a.id===option.addonId)?.name||'ไม่พบตัวเลือกเสริม' }}</span><small>{{ group.pricingMode==='included'?'ฟรี':option.prices?'กำหนดราคาเฉพาะกลุ่ม':'ใช้ราคาตั้งต้น' }}</small></div><p class="group-placeholder">พักตัวเลือกเฉพาะกลุ่ม · ไม่พร้อมใช้งาน</p><Button variant="quiet" :aria-label="`ลบกลุ่ม ${group.name}`" :loading="actionPending==='delete-'+group.id" :disabled="!!actionPending||store.inventorySaving" @click="remove(group)">ลบกลุ่ม</Button></div>
   </article>
   <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="กำหนดรายการ จำนวนที่เลือก และราคาที่ใช้ในกลุ่มนี้" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
    <div class="group-form">
@@ -12,15 +12,15 @@
     <div class="group-fields"><FormField id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
     <AppCheckbox v-model="draft.allowRepeat" variant="switch" label="เลือกชนิดเดิมซ้ำได้">เลือกชนิดเดิมซ้ำได้ · นับจำนวนเป็นที่</AppCheckbox>
     <FormField id="addon-group-pricing" label="การคิดราคา" v-slot="{controlId}"><AppSelect :id="controlId" v-model="draft.pricingMode"><option value="included">รวมในราคาเมนู · ไม่บวกเพิ่ม</option><option value="extra">คิดเงินเพิ่มตามตัวเลือก</option></AppSelect></FormField>
-    <section ref="optionsSection" tabindex="-1" class="group-options" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p><h4>เลือก Add-on ที่ใช้ในกลุ่มนี้</h4><p class="group-help">สูตรและปริมาณต่อที่ใช้จากรายการ Add-on ด้านล่าง</p><AppSearch v-model="search" label="ค้นหา Add-on ในกลุ่ม" placeholder="ค้นหา Add-on"/>
-     <p v-if="!store.addons.length" class="group-help">เพิ่มรายการ Add-on ก่อน แล้วกลับมาเลือกเข้ากลุ่ม</p>
+    <section ref="optionsSection" tabindex="-1" class="group-options" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p><h4>เลือกตัวเลือกเสริมที่ใช้ในกลุ่มนี้</h4><p class="group-help">แต่ละรายการใช้สูตรและปริมาณต่อที่ที่กำหนดไว้</p><AppSearch v-model="search" label="ค้นหาตัวเลือกเสริมในกลุ่ม" placeholder="ค้นหาตัวเลือกเสริม"/>
+     <p v-if="!store.addons.length" class="group-help">เพิ่มรายการตัวเลือกเสริมก่อน แล้วกลับมาเลือกเข้ากลุ่ม</p>
      <p v-else-if="!filteredAddons.length" class="group-help">ไม่พบรายการ ลองค้นหาด้วยชื่ออื่น</p>
      <div v-for="addon in filteredAddons" :key="addon.id" class="group-option" data-group-addon>
       <AppCheckbox :model-value="Boolean(optionFor(addon.id))" :label="addon.name" @update:model-value="toggleOption(addon.id, $event)">{{ addon.emoji }} {{ addon.name }} <small v-if="addon.isActive === false">(ปิดขาย)</small></AppCheckbox>
       <template v-if="optionFor(addon.id) && draft.pricingMode === 'extra'">
        <AppCheckbox :model-value="optionFor(addon.id).prices !== undefined" :label="`กำหนดราคาเฉพาะกลุ่ม ${addon.name}`" @update:model-value="setCustomPrices(addon, $event)">กำหนดราคาเฉพาะกลุ่ม</AppCheckbox>
        <div v-if="optionFor(addon.id).prices !== undefined" class="group-fields"><FormField v-for="platform in store.platforms" :key="platform.id" :id="`group-price-${addon.id}-${platform.id}`" :label="platform.name" v-slot="{controlId}"><AppInput :id="controlId" v-model="optionFor(addon.id).prices[platform.id]" type="number" min="0" step="any"><template #prefix>฿</template></AppInput></FormField></div>
-       <p v-else class="group-help">ใช้ราคาจากรายการ Add-on ตามช่องทางขาย</p>
+       <p v-else class="group-help">ใช้ราคาตั้งต้นตามช่องทางขาย</p>
        <details class="group-price-analysis" data-group-price-analysis>
         <summary>วิเคราะห์ต้นทุนกำไรต่อที่</summary>
         <dl v-for="{ platform, cost, netRevenue, profit } in priceAnalysis(addon)" :key="platform.id">
@@ -108,8 +108,8 @@ async function performSave() {
   if (!data.name?.trim()) fieldErrors.value.name = 'กรอกชื่อกลุ่มตัวเลือก'
   if (!Number.isSafeInteger(data.minSelections) || data.minSelections < 0) fieldErrors.value.minSelections = 'กรอกจำนวนเต็มตั้งแต่ 0'
   if (!Number.isSafeInteger(data.maxSelections) || data.maxSelections < 1 || data.maxSelections < data.minSelections) fieldErrors.value.maxSelections = 'กรอกจำนวนเต็มตั้งแต่ 1 และไม่น้อยกว่าจำนวนขั้นต่ำ'
-  if (!data.options.length) fieldErrors.value.options = 'เลือก Add-on อย่างน้อย 1 รายการ'
-  else if (!data.allowRepeat && data.minSelections > data.options.length) fieldErrors.value.minSelections = 'ลดจำนวนขั้นต่ำ หรือเพิ่มชนิด Add-on ให้เพียงพอ'
+  if (!data.options.length) fieldErrors.value.options = 'เลือกตัวเลือกเสริมอย่างน้อย 1 รายการ'
+  else if (!data.allowRepeat && data.minSelections > data.options.length) fieldErrors.value.minSelections = 'ลดจำนวนขั้นต่ำ หรือเพิ่มชนิดตัวเลือกเสริมให้เพียงพอ'
   if (Object.keys(fieldErrors.value).length) {
     await nextTick()
     const key = ['name', 'minSelections', 'maxSelections'].find(key => fieldErrors.value[key])

@@ -21,7 +21,7 @@ it('keeps sidebar image height in sync when the panel header grows and shrinks',
  }
  expect(document.documentElement.style.getPropertyValue('--sidebar-header-height')).toBe('')
 })
-it.each([['dashboard','all','ประวัติทั้งระบบ'],['pos','pos','ยอดขายและบิล'],['menu','menu','ประวัติการจัดการเมนู'],['addon','addon','ประวัติการจัดการ Add-on'],['stock','stock','ประวัติสต็อก'],['settings','system','ประวัติระบบและการตั้งค่า']])('opens %s history from the page header',async(tab,module,label)=>{
+it.each([['dashboard','all','ประวัติทั้งระบบ'],['pos','pos','ยอดขายและบิล'],['menu','menu','ประวัติการจัดการเมนู'],['addon','addon','ประวัติการจัดการตัวเลือกเสริม'],['stock','stock','ประวัติสต็อก'],['settings','system','ประวัติระบบและการตั้งค่า']])('opens %s history from the page header',async(tab,module,label)=>{
  const store=createTestStore()
  store.currentTab=tab
  const open=vi.spyOn(store,'openActivityLog')

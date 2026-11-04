@@ -9,11 +9,11 @@ export function groupError(group, addons) {
   if (typeof group.name !== 'string' || !group.name.trim()) return 'กรุณาระบุชื่อกลุ่มตัวเลือก'
   if (!Number.isSafeInteger(group.minSelections) || !Number.isSafeInteger(group.maxSelections) || group.minSelections < 0 || group.maxSelections < 1 || group.minSelections > group.maxSelections) return 'กำหนดจำนวนขั้นต่ำและสูงสุดเป็นจำนวนเต็ม โดยสูงสุดต้องไม่น้อยกว่าขั้นต่ำ'
   if (typeof group.allowRepeat !== 'boolean' || !['included', 'extra'].includes(group.pricingMode)) return 'กติกากลุ่มตัวเลือกไม่ถูกต้อง'
-  if (!Array.isArray(group.options) || !group.options.length) return 'เลือก Add-on อย่างน้อย 1 รายการ'
+  if (!Array.isArray(group.options) || !group.options.length) return 'เลือกตัวเลือกเสริมอย่างน้อย 1 รายการ'
   const ids = new Set()
   for (const option of group.options) {
-    if (!option || !addons.some(a => a.id === option.addonId)) return 'ไม่พบ Add-on ที่เลือก กรุณาเลือกรายการใหม่'
-    if (ids.has(option.addonId)) return 'มี Add-on ซ้ำในกลุ่ม'
+    if (!option || !addons.some(a => a.id === option.addonId)) return 'ไม่พบตัวเลือกเสริมที่เลือก กรุณาเลือกรายการใหม่'
+    if (ids.has(option.addonId)) return 'มีตัวเลือกเสริมซ้ำในกลุ่ม'
     ids.add(option.addonId)
     if (option.prices !== undefined && (!option.prices || typeof option.prices !== 'object' || Array.isArray(option.prices) || Object.values(option.prices).some(p => typeof p !== 'number' || !Number.isFinite(p) || p < 0))) return 'ราคาบวกเพิ่มต้องเป็นตัวเลขตั้งแต่ 0'
   }

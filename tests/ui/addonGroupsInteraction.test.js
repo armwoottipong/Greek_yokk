@@ -118,7 +118,7 @@ it('caps repeated portions and removes a choice when its quantity reaches zero',
     expect(w.findAll('[data-group-option="G"]')[0].attributes('aria-pressed')).toBe('false')
   } finally { w.unmount() }
 })
-it('creates and reopens a reusable group in the Add-on workspace', async () => {
+it('creates and reopens a reusable group in the option workspace', async () => {
   const s = setup(), w = mount(AddonView, { global: { stubs: { teleport: true } } })
   try {
     await w.get('[data-addon-section="groups"]').trigger('click')
@@ -138,11 +138,11 @@ it('creates and reopens a reusable group in the Add-on workspace', async () => {
     expect(confirm).not.toHaveBeenCalled()
   } finally { w.unmount() }
 })
-it('opens the Add-on workspace on the Add-on directory, then shows collapsible option groups', async () => {
+it('opens the option workspace on the option directory, then shows collapsible option groups', async () => {
   const s=setup(),w=mount(AddonView)
   try{
     expect(w.get('[data-addon-section="addons"]').attributes('aria-pressed')).toBe('true')
-    expect(w.get('[aria-label="รายการ Add-on"]').isVisible()).toBe(true)
+    expect(w.get('[aria-label="รายการตัวเลือกเสริม"]').isVisible()).toBe(true)
     await w.get('[data-addon-section="groups"]').trigger('click')
     expect(w.get('[data-addon-section="groups"]').attributes('aria-pressed')).toBe('true')
     expect(w.find('[data-picker-group="G"]').exists()).toBe(false)

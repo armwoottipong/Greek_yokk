@@ -36,7 +36,7 @@
               <span class="text-xs font-medium text-stone-800">{{ kind.label }}</span>
             </label>
           </div>
-          <p id="material-inventory-type-help" class="text-[11px] text-stone-500 leading-relaxed">วัตถุดิบที่มีการผลิตกำหนดสูตรได้ วัตถุดิบทุกบทบาทเลือกใช้ในเมนูหรือ Add-on ได้ บรรจุภัณฑ์แยกต้นทุนใน Package</p>
+          <p id="material-inventory-type-help" class="text-[11px] text-stone-500 leading-relaxed">วัตถุดิบที่มีการผลิตกำหนดสูตรได้ วัตถุดิบทุกบทบาทเลือกใช้ในเมนูหรือตัวเลือกเสริมได้ บรรจุภัณฑ์แยกต้นทุนใน Package</p>
         </fieldset>
 
         <!-- Unit Selection (Strictly 3 choices: ml, g, ชิ้น) -->

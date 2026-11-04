@@ -946,7 +946,7 @@ const posDefinition = {
           0
         let itemUnitPrice = menuPrice
 
-        // Add-ons price
+        // ตัวเลือกเสริมs price
         if (item.selectedAddons && item.selectedAddons.length > 0) {
           item.selectedAddons.forEach(addon => {
             const addPrice = selectionPrice(addon, plat.id)
@@ -1657,7 +1657,7 @@ const posDefinition = {
       }
 
       if (inUseCount > 0) {
-        const itemTypeLabel = type === 'menu' ? 'เมนู' : type === 'material' ? 'วัตถุดิบ' : 'Add-on'
+        const itemTypeLabel = type === 'menu' ? 'เมนู' : type === 'material' ? 'วัตถุดิบ' : 'ตัวเลือกเสริม'
         this.showToast(
           `ไม่สามารถลบหมวดหมู่ "${cat.name}" ได้ เนื่องจากมี ${inUseCount} ${itemTypeLabel} ใช้งานอยู่`,
           'error')
@@ -1862,14 +1862,14 @@ const posDefinition = {
       const saved=this.persistLocal()
       if(!saved.ok)return saved
       const addon=this.addons.find(a=>a.id===addonData.id)||this.addons.at(-1)
-      this.addActivityLog({module:'addon',action:creating?'create':'edit',title:creating?'เพิ่ม Add-on':'แก้ไข Add-on',targetId:addon.id,targetName:addon.name})
-      this.showToast(`บันทึก Add-on "${addonData.name}" สำเร็จ`, 'success')
+      this.addActivityLog({module:'addon',action:creating?'create':'edit',title:creating?'เพิ่มตัวเลือกเสริม':'แก้ไขตัวเลือกเสริม',targetId:addon.id,targetName:addon.name})
+      this.showToast(`บันทึกตัวเลือกเสริม "${addonData.name}" สำเร็จ`, 'success')
       return saved
     },
 
     deleteAddon(addonId) {
       if (this.addonGroups.some(g => g.options.some(o => o.addonId === addonId))) {
-        this.showToast('Add-on นี้อยู่ในกลุ่มตัวเลือก กรุณานำออกจากกลุ่มก่อนลบ', 'error')
+        this.showToast('ตัวเลือกเสริมนี้อยู่ในกลุ่มตัวเลือก กรุณานำออกจากกลุ่มก่อนลบ', 'error')
         return { ok: false }
       }
       const idx = this.addons.findIndex(a => a.id === addonId)
@@ -1877,8 +1877,8 @@ const posDefinition = {
         const name = this.addons[idx].name
         this.addons.splice(idx, 1)
         this.persistLocal()
-        this.addActivityLog({module:'addon',action:'delete',title:'ลบ Add-on',targetId:addonId,targetName:name})
-        this.showToast(`ลบ Add-on "${name}" แล้ว`, 'info')
+        this.addActivityLog({module:'addon',action:'delete',title:'ลบตัวเลือกเสริม',targetId:addonId,targetName:name})
+        this.showToast(`ลบตัวเลือกเสริม "${name}" แล้ว`, 'info')
       }
     },
 

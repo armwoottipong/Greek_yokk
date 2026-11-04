@@ -408,7 +408,7 @@ function handleImportFile(event) {
 async function confirmClearAll() {
   const ok = await store.confirmDialog({
     title: 'ยืนยันล้างข้อมูลทั้งหมดออก?',
-    message: 'เมนู, วัตถุดิบ, สต็อก, Add-on และประวัติคำสั่งซื้อทั้งหมดจะถูกล้าง\n\n(คุณสามารถกด "โหลด Demo" เพื่อนำชุดข้อมูลตัวอย่างกลับมาได้ทุกเมื่อ)',
+    message: 'เมนู, วัตถุดิบ, สต็อก, ตัวเลือกเสริมและประวัติคำสั่งซื้อทั้งหมดจะถูกล้าง\n\n(คุณสามารถกด "โหลด Demo" เพื่อนำชุดข้อมูลตัวอย่างกลับมาได้ทุกเมื่อ)',
     confirmText: 'ล้างข้อมูลทั้งหมด',
     cancelText: 'ยกเลิก',
     type: 'danger'

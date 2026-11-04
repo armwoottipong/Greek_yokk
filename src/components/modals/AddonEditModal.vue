@@ -1,15 +1,15 @@
 <template>
- <DialogFrame :busy="!!actionPending" :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไข Add-on':'เพิ่ม Add-on ใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่" width="720px" :teleport="false" :initial-focus="store.modals.addonEdit.initialSection==='recipe'?'[data-addon-recipe] button:not(:disabled)':'#addon-name'" @request-close="requestClose(close)">
+ <DialogFrame :busy="!!actionPending" :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไขตัวเลือกเสริม':'เพิ่มตัวเลือกเสริมใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่" width="720px" :teleport="false" :initial-focus="store.modals.addonEdit.initialSection==='recipe'?'[data-addon-recipe] button:not(:disabled)':'#addon-name'" @request-close="requestClose(close)">
   <div class="menu-editor">
-   <section class="menu-editor-basics" aria-label="ข้อมูล Add-on">
-    <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอน Add-on" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="addon-name" label="ชื่อ Add-on" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น สตรอว์เบอร์รีสด (30g)"/></FormField></div>
+   <section class="menu-editor-basics" aria-label="ข้อมูลตัวเลือกเสริม">
+    <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอนตัวเลือกเสริม" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="addon-name" label="ชื่อตัวเลือกเสริม" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น สตรอว์เบอร์รีสด (30g)"/></FormField></div>
     <CatalogImageEditor v-if="store.modals.addonEdit.isOpen" ref="imageEditor" v-model="form.image" kind="addons" :entity-id="form.id" :emoji="form.emoji" :disabled="!!actionPending"/>
    </section>
    <details v-smooth-disclosure class="menu-editor-section" data-addon-prices open><summary><span>ราคาบวกเพิ่มแต่ละช่องทาง</span><small>{{ store.platforms.length }} ช่องทาง</small></summary><div class="menu-editor-section-body">
     <div class="menu-editor-prices"><FormField v-for="p in store.platforms" :key="p.id" :label="p.name" :hint="p.gpPercent>0?'ค่าธรรมเนียมช่องทาง '+p.gpPercent+'%':undefined" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.prices[p.id]" type="number" min="0" step="any" :aria-label="`ราคา ${p.name}`" placeholder="ยังไม่ตั้งราคา"><template #prefix>฿</template></AppInput></FormField></div>
    </div></details>
    <details v-smooth-disclosure class="menu-editor-section" data-addon-recipe open><summary><span>สูตรวัตถุดิบและบรรจุภัณฑ์</span><small>{{ form.recipe.length }} รายการ</small></summary><div class="menu-editor-section-body">
-    <p class="menu-editor-help">ปริมาณที่ตัดต่อ Add-on 1 ที่ เลือกวัตถุดิบหรือบรรจุภัณฑ์ได้ในช่องเดียวกัน</p>
+    <p class="menu-editor-help">ปริมาณที่ตัดต่อตัวเลือกเสริม 1 ที่ เลือกวัตถุดิบหรือบรรจุภัณฑ์ได้ในช่องเดียวกัน</p>
     <p v-if="!form.recipe.length" class="menu-editor-empty">ไม่ตัดวัตถุดิบหรือบรรจุภัณฑ์ · เพิ่มรายการเพื่อกำหนดสูตร</p>
     <div class="menu-editor-recipe-list"><div v-for="(row,idx) in form.recipe" :key="idx" data-addon-recipe-row>
      <p v-if="!isAvailableMaterial(row.materialId)" role="status" class="stock-form-error">ไม่พบวัตถุดิบหรือรายการถูกจัดเก็บ ({{ row.materialId || 'ยังไม่เลือก' }}) กรุณาเลือกใหม่หรือลบรายการ</p>
@@ -22,7 +22,7 @@
     <Button variant="secondary" size="compact" @click="addRecipeRow"><Plus :size="16" aria-hidden="true"/>เพิ่มรายการในสูตร</Button>
    </div></details>
   </div>
-  <template #footer><div class="menu-editor-footer"><Button variant="quiet" :disabled="!!actionPending" @click="requestClose(close)">ยกเลิก</Button><Button :loading="!!actionPending" @click="submit"><Check :size="18" aria-hidden="true"/>บันทึก Add-on</Button></div></template>
+  <template #footer><div class="menu-editor-footer"><Button variant="quiet" :disabled="!!actionPending" @click="requestClose(close)">ยกเลิก</Button><Button :loading="!!actionPending" @click="submit"><Check :size="18" aria-hidden="true"/>บันทึกตัวเลือกเสริม</Button></div></template>
  </DialogFrame>
 </template>
 <script setup>
@@ -133,11 +133,11 @@ const submit=()=>runAction('save',performSave)
 async function performSave() {
   nameError.value=''
   if(confirmedBusiness.value){
-    if(confirmedBusiness.value!==businessFingerprint()){nameError.value='ข้อมูล Add-on ถูกแก้เพิ่มหลังบันทึกแล้ว กรุณาคืนค่าหรือเปิดรายการใหม่ก่อนแก้ข้อมูลอื่น';return}
+    if(confirmedBusiness.value!==businessFingerprint()){nameError.value='ข้อมูลตัวเลือกเสริมถูกแก้เพิ่มหลังบันทึกแล้ว กรุณาคืนค่าหรือเปิดรายการใหม่ก่อนแก้ข้อมูลอื่น';return}
     await savePictureAndClose();return
   }
   if (!form.value.name.trim()) {
-    nameError.value='กรุณากรอกชื่อ Add-on ก่อนบันทึก'
+    nameError.value='กรุณากรอกชื่อตัวเลือกเสริมก่อนบันทึก'
     await nextTick()
     document.getElementById('addon-name')?.focus()
     return
@@ -189,7 +189,7 @@ async function performSave() {
   } else nameError.value=result?.message||'บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลและลองอีกครั้ง'
 }
 async function savePictureAndClose(){
-  try{await imageEditor.value?.save(form.value.id)}catch(e){nameError.value=`บันทึกข้อมูล Add-on แล้ว แต่รูปยังไม่สำเร็จ: ${e.message} · รูปที่เลือกยังอยู่ กดบันทึกเพื่อลองส่งเฉพาะรูปอีกครั้ง`;return}
+  try{await imageEditor.value?.save(form.value.id)}catch(e){nameError.value=`บันทึกข้อมูลตัวเลือกเสริมแล้ว แต่รูปยังไม่สำเร็จ: ${e.message} · รูปที่เลือกยังอยู่ กดบันทึกเพื่อลองส่งเฉพาะรูปอีกครั้ง`;return}
   store.modals.addonEdit.savedAddonId=form.value.id || null
   close()
 }

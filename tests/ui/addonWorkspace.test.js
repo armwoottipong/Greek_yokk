@@ -47,7 +47,7 @@ it('shows the price-setting empty state when an addon has no positive platform p
   expect(document.querySelectorAll('[data-menu-platform]')).toHaveLength(0)
   expect(document.querySelector('[aria-label="รูปแบบกราฟ"]')).toBeNull()
   expect(document.querySelector('.overview-legend')).toBeNull()
-  expect(document.querySelector('.overview-empty').textContent).toContain('แก้ไขAdd-on')
+  expect(document.querySelector('.overview-empty').textContent).toContain('แก้ไขตัวเลือกเสริม')
   expect(w.get('[data-addon-header]').text()).toContain('0 ช่องทางที่ตั้งราคา')
  }finally{w.unmount()}
 })
@@ -60,17 +60,17 @@ it('preserves active selection and search between groups and the directory',asyn
  const s=createTestStore();s.resetDemoData();const w=mount(Addon)
  try{
   await w.findAll('[data-addon-select]')[1].trigger('click')
-  await w.get('[aria-label="ค้นหา Add-on"]').setValue(s.addons[1].name)
+  await w.get('[aria-label="ค้นหาตัวเลือกเสริม"]').setValue(s.addons[1].name)
   await w.get('[data-addon-section=groups]').trigger('click')
   await w.get('[data-addon-section=addons]').trigger('click')
   expect(w.get('[data-selected-addon-name]').text()).toBe(s.addons[1].name)
-  expect(w.get('[aria-label="ค้นหา Add-on"]').element.value).toBe(s.addons[1].name)
+  expect(w.get('[aria-label="ค้นหาตัวเลือกเสริม"]').element.value).toBe(s.addons[1].name)
  }finally{w.unmount()}
 })
 it('exposes direct trash deletion with exact confirmation',async()=>{
  const s=createTestStore();s.resetDemoData();const confirm=vi.spyOn(s,'confirmDialog').mockResolvedValue(false),w=mount(Addon)
  try{
-  expect(w.get('[data-addon-header] button[data-addon-delete]').attributes('aria-label')).toBe('ลบ Add-on')
+  expect(w.get('[data-addon-header] button[data-addon-delete]').attributes('aria-label')).toBe('ลบตัวเลือกเสริม')
   expect(w.get('[data-addon-more]').attributes('aria-haspopup')).toBe('dialog')
   await w.get('[data-addon-delete]').trigger('click');await flushPromises()
   expect(confirm).toHaveBeenCalledWith(expect.objectContaining({message:expect.stringContaining(s.addons[0].id),type:'danger'}))
@@ -113,7 +113,7 @@ it('keeps the add action and empty state usable with no addons or platforms',asy
  try{
   expect(w.find('[data-addon-edit]').exists()).toBe(false)
   expect(w.get('[data-addon-more]').attributes('aria-haspopup')).toBe('dialog')
-  expect(w.get('[data-addon-header]').text()).toContain('จัดการ Add-on')
+  expect(w.get('[data-addon-header]').text()).toContain('จัดการตัวเลือกเสริม')
   await w.get('[data-catalog-add]').trigger('click')
   expect(s.modals.addonEdit).toMatchObject({isOpen:true,addonId:null})
  }finally{w.unmount()}

@@ -5,7 +5,7 @@ export const MATERIAL_KIND_OPTIONS = [
 ]
 export const MATERIAL_ROLE_OPTIONS = [
   { id: 'production', label: 'ใช้ในการผลิต' },
-  { id: 'addon', label: 'ใช้ใน Add-on' },
+  { id: 'addon', label: 'ใช้ในตัวเลือกเสริม' },
   { id: 'menu', label: 'ใช้ในเมนู' }
 ]
 export function getMaterialKind(material) {

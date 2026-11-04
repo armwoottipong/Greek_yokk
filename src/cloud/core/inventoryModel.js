@@ -13,7 +13,7 @@ const day=value=>value?Math.floor(Date.parse(`${value}T00:00:00Z`)/86400000):999
 const view=m=>{const p=projectMaterial(m);return {...p,yieldQty:m.productionRecipe?.yieldQ/100||0,subRecipe:m.productionRecipe?.inputIds?.map((materialId,i)=>({materialId,qty:m.productionRecipe.quantities[i]/100}))||[]}}
 const snapshot=data=>clone({shop:data.shop,materials:data.materials,display:data.display})
 const apply=(before,plan)=>({...before,shop:plan.nextShop,display:plan.displayChange?{...before.display,[plan.displayChange.collection]:{...before.display[plan.displayChange.collection],[plan.displayChange.entityId]:plan.displayChange.value}}:before.display,materials:[...before.materials.filter(m=>!(plan.removedMaterialIds||[]).includes(m.id)).map(m=>plan.nextMaterials.find(n=>n.id===m.id)||m),...plan.nextMaterials.filter(m=>!before.materials.some(b=>b.id===m.id))]})
-const names={inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ปรับยอดนับจริง',switch_lot:'สลับล็อตใช้งาน',material_create:'เพิ่มวัตถุดิบ',material_archive:'จัดเก็บวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ',material_measure:'แก้หน่วยและต้นทุน',material_details:'แก้รายละเอียดวัตถุดิบ',material_type:'แก้ประเภทวัตถุดิบ',production_recipe:'แก้สูตรผลิต',material_delete:'ลบวัตถุดิบถาวร',history_clear:'ล้างหน้าประวัติ',menu:'บันทึกเมนู',addon:'บันทึก Add-on',group:'บันทึกกลุ่มตัวเลือก'}
+const names={inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ปรับยอดนับจริง',switch_lot:'สลับล็อตใช้งาน',material_create:'เพิ่มวัตถุดิบ',material_archive:'จัดเก็บวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ',material_measure:'แก้หน่วยและต้นทุน',material_details:'แก้รายละเอียดวัตถุดิบ',material_type:'แก้ประเภทวัตถุดิบ',production_recipe:'แก้สูตรผลิต',material_delete:'ลบวัตถุดิบถาวร',history_clear:'ล้างหน้าประวัติ',menu:'บันทึกเมนู',addon:'บันทึกตัวเลือกเสริม',group:'บันทึกกลุ่มตัวเลือก'}
 export function createInventoryModel({getData,execute,loadServer,isReady,isBlocked,storageKey,readHistory=async()=>({logs:[]})}){
  let alive=true,historyRequest=0
  const latest=shallowRef(snapshot(getData())),virtual=shallowRef(latest.value)
@@ -131,7 +131,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
    const refs=declaredMaterialReferences(virtual.value,id),revision=virtual.value.shop.revision
    const users=virtual.value.shop.productionUsers?.[id]||[]
    if(users.length)return error(`ยังจัดเก็บไม่ได้: ใช้ในสูตรผลิต ${users.map(key=>this.matMap[key]?.name||key).join(', ')}`)
-   const affected=refs.length?`\n\nถอดเฉพาะวัตถุดิบนี้ออกจากสูตร:\n${refs.map(ref=>`${ref.collection==='menus'?'เมนู':'Add-on'} · ${ref.name}${ref.retired?' (ลบแล้ว)':''}`).join('\n')}`:'\n\nไม่มีสูตรเมนูหรือ Add-on อ้างอิงรายการนี้'
+   const affected=refs.length?`\n\nถอดเฉพาะวัตถุดิบนี้ออกจากสูตร:\n${refs.map(ref=>`${ref.collection==='menus'?'เมนู':'ตัวเลือกเสริม'} · ${ref.name}${ref.retired?' (ลบแล้ว)':''}`).join('\n')}`:'\n\nไม่มีสูตรเมนูหรือตัวเลือกเสริมอ้างอิงรายการนี้'
    if(!await this.confirmDialog({title:`จัดเก็บ ${material.name}?`,message:`รายการจะถูกซ่อนจากคลังที่ใช้งาน${affected}\n\nราคา ตัวเลือก และวัตถุดิบอื่นยังคงเดิม ประวัติบิลและสต็อกเดิมยังอยู่`,confirmationValue:'ยืนยัน',confirmText:refs.length?'ถอดจากสูตรและจัดเก็บ':'จัดเก็บรายการ',cancelText:'เก็บไว้',type:'danger'}))return {ok:false}
    if(!alive)return {ok:false}
    if(virtual.value.shop.revision!==revision)return error('ข้อมูลร้านเปลี่ยนระหว่างยืนยัน กรุณาตรวจรายการสูตรและยืนยันจัดเก็บใหม่')

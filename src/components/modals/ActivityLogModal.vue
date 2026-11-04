@@ -144,8 +144,8 @@ const isStockMode = computed(() => {
 const isGlobalMode = computed(() => {
   return !isItemMode.value && (!store.modals.activityLog?.module || store.modals.activityLog.module === 'all')
 })
-const historyTitle=computed(()=>isItemMode.value?activeTargetMaterial.value?.name:({all:'ประวัติทั้งระบบ',stock:'ประวัติสต็อก',pos:'ยอดขายและบิล',menu:'ประวัติการจัดการเมนู',addon:'ประวัติการจัดการ Add-on',system:'ประวัติระบบและการตั้งค่า'})[store.modals.activityLog?.module||'all']||'ประวัติกิจกรรม')
-const historyDescription=computed(()=>({all:'รับเข้า ผลิต ขาย และการเปลี่ยนแปลงในระบบ',stock:'รับเข้า ผลิต ปรับยอด และตัดสต็อก',pos:'ยอดขายและการคืนบิล',menu:'การเพิ่มและแก้ไขเมนู',addon:'การจัดการ Add-on และกลุ่มตัวเลือก',system:'การเปลี่ยนแปลงค่าระบบ'})[store.modals.activityLog?.module||'all']||'รายการเคลื่อนไหว')
+const historyTitle=computed(()=>isItemMode.value?activeTargetMaterial.value?.name:({all:'ประวัติทั้งระบบ',stock:'ประวัติสต็อก',pos:'ยอดขายและบิล',menu:'ประวัติการจัดการเมนู',addon:'ประวัติการจัดการตัวเลือกเสริม',system:'ประวัติระบบและการตั้งค่า'})[store.modals.activityLog?.module||'all']||'ประวัติกิจกรรม')
+const historyDescription=computed(()=>({all:'รับเข้า ผลิต ขาย และการเปลี่ยนแปลงในระบบ',stock:'รับเข้า ผลิต ปรับยอด และตัดสต็อก',pos:'ยอดขายและการคืนบิล',menu:'การเพิ่มและแก้ไขเมนู',addon:'การจัดการตัวเลือกเสริมและกลุ่ม',system:'การเปลี่ยนแปลงค่าระบบ'})[store.modals.activityLog?.module||'all']||'รายการเคลื่อนไหว')
 
 // Options
 const moduleOptions = [
@@ -153,7 +153,7 @@ const moduleOptions = [
   { id: 'stock', label: 'คลังสต็อก', icon: '📦' },
   { id: 'pos', label: 'แคชเชียร์/POS', icon: '🛒' },
   { id: 'menu', label: 'เมนู', icon: '🍽️' },
-  { id: 'addon', label: 'Add-on และกลุ่มตัวเลือก', icon: '🥣' },
+  { id: 'addon', label: 'ตัวเลือกเสริมและกลุ่ม', icon: '🥣' },
   { id: 'system', label: 'ระบบ/การตั้งค่า', icon: '⚙️' }
 ]
 
@@ -272,7 +272,10 @@ function formatDateRangeLabel(start, end) {
 
 // Filtered Logs
 const filteredLogs = computed(() => {
-  let list = store.activityLogs || []
+  let list = (store.activityLogs || []).map(log => {
+    if (log.module !== 'addon' || !/^(เพิ่ม|แก้ไข|ลบ|ปิดใช้งาน) Add-on$/.test(log.title)) return log
+    return { ...log, title: log.title.replace(' Add-on', 'ตัวเลือกเสริม') }
+  })
 
   // 1. Context Filtering
   if (isItemMode.value) {

@@ -44,7 +44,7 @@ import DialogFrame from '@/components/ui/DialogFrame.vue'
 
 const store = usePosStore()
 const historyModule=computed(()=>({dashboard:'all',pos:'pos',menu:'menu',addon:'addon',stock:'stock',settings:'system'})[store.currentTab]||'all')
-const historyLabel=computed(()=>({all:'ประวัติทั้งระบบ',pos:'ยอดขายและบิล',menu:'ประวัติการจัดการเมนู',addon:'ประวัติการจัดการ Add-on',stock:'ประวัติสต็อก',system:'ประวัติระบบและการตั้งค่า'})[historyModule.value])
+const historyLabel=computed(()=>({all:'ประวัติทั้งระบบ',pos:'ยอดขายและบิล',menu:'ประวัติการจัดการเมนู',addon:'ประวัติการจัดการตัวเลือกเสริม',stock:'ประวัติสต็อก',system:'ประวัติระบบและการตั้งค่า'})[historyModule.value])
 const props=defineProps({mobileMenuOpen:Boolean})
 const emit=defineEmits(['toggle-menu','request-close-navigation'])
 const actionsOpen=ref(false),moreButton=ref(null)
@@ -73,7 +73,7 @@ onUnmounted(() => {
 async function confirmClearAll() {
   const ok = await store.confirmDialog({
     title: 'ยืนยันล้างข้อมูลทั้งหมดออก?',
-    message: 'เมนู, วัตถุดิบ, สต็อก, Add-on และประวัติคำสั่งซื้อทั้งหมดจะถูกล้าง\n\n(คุณสามารถกด "โหลด Demo" เพื่อนำชุดข้อมูลตัวอย่างกลับมาได้ทุกเมื่อ)',
+    message: 'เมนู, วัตถุดิบ, สต็อก, ตัวเลือกเสริมและประวัติคำสั่งซื้อทั้งหมดจะถูกล้าง\n\n(คุณสามารถกด "โหลด Demo" เพื่อนำชุดข้อมูลตัวอย่างกลับมาได้ทุกเมื่อ)',
     confirmText: 'ล้างข้อมูลทั้งหมด',
     cancelText: 'ยกเลิก',
     type: 'danger'

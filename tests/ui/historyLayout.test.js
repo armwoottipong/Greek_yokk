@@ -21,7 +21,7 @@ it.each([{}, {module:'stock'}, {targetMaterialId:'M'}])('uses compact expandable
  expect(row.text()).toContain(log.user)
  wrapper.unmount()
 })
-it.each([['menu','ประวัติการจัดการเมนู'],['addon','ประวัติการจัดการ Add-on'],['pos','ยอดขายและบิล'],['system','ประวัติระบบและการตั้งค่า']])('keeps %s history within its own page',async(module,title)=>{
+it.each([['menu','ประวัติการจัดการเมนู'],['addon','ประวัติการจัดการตัวเลือกเสริม'],['pos','ยอดขายและบิล'],['system','ประวัติระบบและการตั้งค่า']])('keeps %s history within its own page',async(module,title)=>{
  const wrapper=open({module})
  state.store.activityLogs=[{...log,id:'MATCH',module,action:'edit'},{...log,id:'OTHER',module:'stock'}]
  await nextTick()

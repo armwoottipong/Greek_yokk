@@ -251,7 +251,7 @@ export function projectPageHistory(input = {}) {
     const action=operation.entitySnapshot?.active===false?'delete':operation.create||kind==='addon'?'create':'edit'
     const title = module === 'menu' ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดขาย':'แก้ไข'}เมนู`
       : group ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'}กลุ่มตัวเลือก`
-        : module === 'addon' ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'} Add-on`
+        : module === 'addon' ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'} ตัวเลือกเสริม`
           : kind === 'platform_gp' ? 'แก้ไขอัตรา GP' : kind === 'command_abort' ? 'หยุดคำสั่งที่ค้าง' : `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'}ช่องทางขาย`
     return [entry({module}, {id:`${id}:page`,timestamp:operation.createdAt,action,title,targetId:entityId,targetName:name||'',description:name?`${title} ${name}`:title,user:operation.uid||''})]
   })

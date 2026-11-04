@@ -18,8 +18,8 @@
      </div>
     </div>
    </div></details>
-   <details v-smooth-disclosure class="menu-editor-section" data-menu-groups open><summary><span>ตัวเลือก</span><small>{{ selectedGroups.length }} กลุ่ม</small></summary><div class="menu-editor-section-body menu-editor-options">
-    <AppCheckbox v-model="form.hasAddons" variant="switch" label="เปิดตัวเลือกตอนขาย"><strong>เปิดตัวเลือกตอนขาย</strong><small>ใช้ได้ทั้งกลุ่มที่รวมในราคาและกลุ่มที่คิดเพิ่ม</small></AppCheckbox>
+   <details v-smooth-disclosure class="menu-editor-section" data-menu-groups open><summary><span>ตัวเลือกเสริม</span><small>{{ selectedGroups.length }} กลุ่ม</small></summary><div class="menu-editor-section-body menu-editor-options">
+    <AppCheckbox v-model="form.hasAddons" variant="switch" label="เปิดตัวเลือกเสริมตอนขาย"><strong>เปิดตัวเลือกเสริมตอนขาย</strong><small>ใช้ได้ทั้งกลุ่มที่รวมในราคาและกลุ่มที่คิดเพิ่ม</small></AppCheckbox>
     <ul v-if="selectedGroups.length" data-menu-group-summary class="menu-group-summary">
      <li v-for="group in selectedGroups" :key="group.id"><strong>{{ group.name }}</strong><small v-if="group.pricingMode">{{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }}</small></li>
     </ul>

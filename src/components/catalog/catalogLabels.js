@@ -19,22 +19,22 @@ export const catalogLabels = {
     "workspace": "พื้นที่ทำงานเมนู"
   },
   "addon": {
-    "label": "Add-on",
-    "add": "เพิ่ม Add-on",
-    "edit": "แก้ไข Add-on",
-    "remove": "ลบ Add-on",
-    "addFirst": "เพิ่ม Add-on แรก",
-    "headerTitle": "จัดการ Add-on",
-    "search": "ค้นหา Add-on",
-    "placeholder": "ค้นหาชื่อ Add-on",
-    "listLabel": "รายการ Add-on",
+    "label": "ตัวเลือกเสริม",
+    "add": "เพิ่มตัวเลือกเสริม",
+    "edit": "แก้ไขตัวเลือกเสริม",
+    "remove": "ลบตัวเลือกเสริม",
+    "addFirst": "เพิ่มตัวเลือกเสริมแรก",
+    "headerTitle": "จัดการตัวเลือกเสริม",
+    "search": "ค้นหาตัวเลือกเสริม",
+    "placeholder": "ค้นหาชื่อตัวเลือกเสริม",
+    "listLabel": "รายการตัวเลือกเสริม",
     "countUnit": "รายการ",
-    "notFound": "ไม่พบ Add-on ที่ค้นหา",
-    "empty": "ยังไม่มี Add-on",
-    "showAll": "แสดง Add-on ทั้งหมด",
-    "first": "เริ่มต้นด้วย Add-on แรก",
-    "description": "เพิ่ม Add-on แรก พร้อมกำหนดราคาและสูตรที่ใช้",
-    "back": "กลับรายการ Add-on",
-    "workspace": "พื้นที่ทำงาน Add-on"
+    "notFound": "ไม่พบตัวเลือกเสริมที่ค้นหา",
+    "empty": "ยังไม่มีตัวเลือกเสริม",
+    "showAll": "แสดงตัวเลือกเสริมทั้งหมด",
+    "first": "เริ่มต้นด้วยตัวเลือกเสริมแรก",
+    "description": "เพิ่มตัวเลือกเสริมแรก พร้อมกำหนดราคาและสูตรที่ใช้",
+    "back": "กลับรายการตัวเลือกเสริม",
+    "workspace": "พื้นที่ทำงานตัวเลือกเสริม"
   }
 }
