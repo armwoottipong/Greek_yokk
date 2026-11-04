@@ -1,6 +1,7 @@
 import { it, expect, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { createTestStore } from '../helpers/createStore'
+import { createTestStore, material } from '../helpers/createStore'
+import { loadDatabase } from '../../src/services/localDatabase'
 import Custom from '../../src/components/modals/CustomOrderModal.vue'
 import MenuEdit from '../../src/components/modals/MenuEditModal.vue'
 import AddonView from '../../src/views/AddonView.vue'
@@ -38,6 +39,69 @@ it('saves menu group assignments while keeping recipe and existing settings', as
     await w.vm.submit()
     expect(s.menus[0].addonGroupIds).toEqual(['G'])
   } finally { w.unmount() }
+})
+it('persists both groups and deducts the base and selected recipes on checkout', async () => {
+  const s = setup()
+  vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
+  const addon = s.addons[0]
+  s.materials.push(material('FRUIT', 1000))
+  s.menus[0].recipe = [{ materialId: 'FRUIT', qty: 100 }]
+  s.addons.slice(0, 3).forEach(option => { option.recipe = [{ materialId: 'FRUIT', qty: 10 }] })
+  s.addonGroups.push({ id: 'PAID', name: 'ท็อปปิ้งเพิ่ม', minSelections: 0, maxSelections: 3, allowRepeat: false, pricingMode: 'extra', options: [{ addonId: addon.id, prices: { [s.currentPlatformId]: 20 } }] })
+  const editor = mount(MenuEdit, { attachTo: document.body, global: { stubs: { teleport: true } } })
+  try {
+    s.modals.menuEdit = { isOpen: true, menuId: s.menus[0].id }; await flushPromises()
+    expect(editor.find('#menu-option-mode').exists()).toBe(false)
+    await editor.get('[data-open-group-picker]').trigger('click')
+    expect(editor.get('[data-picker-group="G"] input').element.checked).toBe(true)
+    await editor.get('[data-picker-group="PAID"] input').setValue(true)
+    await editor.findAll('#menu-group-picker button').find(b => b.text() === 'เสร็จสิ้น').trigger('click')
+    await editor.vm.submit()
+    expect(loadDatabase(localStorage).value.menus[0].addonGroupIds).toEqual(['G', 'PAID'])
+  } finally { editor.unmount() }
+  const order = mount(Custom)
+  try {
+    s.modals.customOrder = { isOpen: true, menuId: s.menus[0].id }; await flushPromises()
+    await order.get('[data-group-option="PAID"]').trigger('click')
+    const add = order.findAll('button').find(b => b.text().includes('เพิ่มลงตะกร้า'))
+    expect(add.attributes('disabled')).toBeDefined()
+    const included = order.findAll('[data-group-option="G"]')
+    await included[0].trigger('click'); await included[1].trigger('click')
+    await add.trigger('click')
+    expect(s.cart[0].selectedAddons.filter(a => a.id === addon.id).map(a => a.groupId).sort()).toEqual(['G', 'PAID'])
+    const receipt = s.checkout()
+    expect(receipt.subtotal).toBe(s.menus[0].prices[s.currentPlatformId] + 20)
+    expect(receipt.items[0].selectedAddons.find(choice => choice.groupId === 'PAID').price).toBe(20)
+    expect(s.matMap.FRUIT.stock).toBe(870)
+  } finally { order.unmount() }
+})
+it('updates the paid option profit from the price draft and channel GP', async () => {
+  const s = setup()
+  s.materials = [material('FRUIT', 1000)]
+  s.addons[0].recipe = [{ materialId: 'FRUIT', qty: 10 }]
+  s.platforms[0].gpPercent = 25
+  const manager = mount(GroupManager, { attachTo: document.body, global: { stubs: { teleport: true } } })
+  try {
+    await manager.get('[aria-label="แก้ไขกลุ่ม เลือกผลไม้"]').trigger('click')
+    await manager.get('#addon-group-pricing').trigger('click')
+    await manager.findAll('[role="option"]').find(option => option.text().includes('คิดเงินเพิ่ม')).trigger('click')
+    await manager.findAll('[data-group-addon]')[0].findAll('input')[1].setValue(true)
+    await manager.get(`#group-price-${s.addons[0].id}-${s.platforms[0].id}`).setValue(40)
+    expect(manager.get('[data-group-option-profit]').text()).toBe(new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(20))
+  } finally { manager.unmount() }
+})
+it('keeps existing menu choices until a group is explicitly assigned', async () => {
+  const s = setup()
+  delete s.menus[0].addonGroupIds
+  vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
+  const editor = mount(MenuEdit, { attachTo: document.body, global: { stubs: { teleport: true } } })
+  try {
+    s.modals.menuEdit = { isOpen: true, menuId: s.menus[0].id }; await flushPromises()
+    await editor.get('[data-open-group-picker]').trigger('click')
+    await editor.findAll('#menu-group-picker button').find(b => b.text() === 'เสร็จสิ้น').trigger('click')
+    await editor.vm.submit()
+    expect(s.menus[0].addonGroupIds).toBeUndefined()
+  } finally { editor.unmount() }
 })
 it('caps repeated portions and removes a choice when its quantity reaches zero', async () => {
   const s = setup(); s.addonGroups[0].allowRepeat = true
@@ -135,6 +199,10 @@ it('uses a drawer for the menu group picker on narrow screens',async()=>{
   s.modals.menuEdit={isOpen:true,menuId:s.menus[0].id};await flushPromises()
   await w.get('[data-open-group-picker]').trigger('click');await flushPromises()
   expect(document.querySelector('#menu-group-picker').classList.contains('dialog-frame-shell--drawer')).toBe(true)
+  document.querySelector('[data-picker-group="G"] input').click()
+  ;[...document.querySelectorAll('#menu-group-picker button')].find(button=>button.textContent.includes('ยกเลิก')).click()
+  await flushPromises()
+  expect(w.get('[data-menu-group-summary]').text()).toContain('เลือกผลไม้')
  }finally{w.unmount();Object.defineProperty(window,'innerWidth',{configurable:true,value:original})}
 })
 

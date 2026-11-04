@@ -21,6 +21,15 @@
        <AppCheckbox :model-value="optionFor(addon.id).prices !== undefined" :label="`กำหนดราคาเฉพาะกลุ่ม ${addon.name}`" @update:model-value="setCustomPrices(addon, $event)">กำหนดราคาเฉพาะกลุ่ม</AppCheckbox>
        <div v-if="optionFor(addon.id).prices !== undefined" class="group-fields"><FormField v-for="platform in store.platforms" :key="platform.id" :id="`group-price-${addon.id}-${platform.id}`" :label="platform.name" v-slot="{controlId}"><AppInput :id="controlId" v-model="optionFor(addon.id).prices[platform.id]" type="number" min="0" step="any"><template #prefix>฿</template></AppInput></FormField></div>
        <p v-else class="group-help">ใช้ราคาจากรายการ Add-on ตามช่องทางขาย</p>
+       <details class="group-price-analysis" data-group-price-analysis>
+        <summary>วิเคราะห์ต้นทุนกำไรต่อที่</summary>
+        <dl v-for="{ platform, cost, netRevenue, profit } in priceAnalysis(addon)" :key="platform.id">
+         <div><dt>ช่องทาง</dt><dd>{{ platform.name }}</dd></div>
+         <div><dt>รายรับหลังหัก GP</dt><dd>{{ analysisMoney(netRevenue) }}</dd></div>
+         <div><dt>ต้นทุนตัวเลือก</dt><dd>{{ analysisMoney(cost) }}</dd></div>
+         <div><dt>กำไรขั้นต้น</dt><dd data-group-option-profit>{{ analysisMoney(profit) }}</dd></div>
+        </dl>
+       </details>
       </template>
      </div>
     </section>
@@ -37,6 +46,8 @@ import { Plus, Check, ChevronDown } from 'lucide-vue-next'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
+import { optionPrices } from '@/domain/addonGroups'
+import { selectedItemCosts } from '@/domain/menuCosts'
 import Button from '@/components/ui/Button.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import FormField from '@/components/ui/FormField.vue'
@@ -57,6 +68,15 @@ function toggleExpanded(id){const next=new Set(expandedGroups.value);if(next.has
 const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const filteredAddons = computed(() => store.addons.filter(a => a.name.toLowerCase().includes(search.value.trim().toLowerCase())))
 const optionFor = id => draft.value.options?.find(o => o.addonId === id)
+const baht = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
+const analysisMoney = value => value === null ? 'คำนวณไม่ได้' : baht.format(value)
+function priceAnalysis(addon) {
+  const prices = optionPrices(draft.value, optionFor(addon.id), addon)
+  return store.platforms.map(platform => ({
+    platform,
+    ...selectedItemCosts({ prices }, [ { ...addon, prices: {} } ], 1, store.materials, platform)
+  }))
+}
 async function edit(group) {
   editCatalogRevision.value=store.catalogRevision
   draft.value = group ? clone(group) : { name: '', minSelections: 0, maxSelections: 3, allowRepeat: false, pricingMode: 'included', options: [] }
@@ -120,6 +140,12 @@ async function performRemove(group) {
 .group-empty{padding:32px 20px;background:var(--bg-card);border-radius:16px;text-align:center}.group-empty strong{font-size:.9375rem;font-weight:500}.group-empty p{max-width:48ch;margin:8px auto 0;color:var(--addon-text-secondary);font-size:.875rem;line-height:1.8}
 .group-usage{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px;font-size:.75rem;color:var(--addon-text-secondary);font-variant-numeric:tabular-nums}.group-row strong{margin-bottom:4px}.group-row small{margin-top:6px}.group-options:focus{outline:none}
 .group-form :deep(.field-hint),.group-form :deep(.app-input-affix){color:var(--addon-text-secondary)}
+.group-price-analysis{padding-top:12px;border-top:1px solid var(--border-subtle);font-size:.8125rem}
+.group-price-analysis summary{cursor:pointer;font-weight:600}
+.group-price-analysis dl{display:grid;gap:6px;margin:12px 0 0;padding-top:8px;border-top:1px solid var(--border-subtle)}
+.group-price-analysis dl div{display:flex;justify-content:space-between;gap:12px}
+.group-price-analysis dt{color:var(--text-muted)}
+.group-price-analysis dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .group-form :deep(:focus-visible){outline:none!important;box-shadow:none!important}
 @media(max-width:767px){.group-form :deep(.app-input input){font-size:1rem}}
 </style>

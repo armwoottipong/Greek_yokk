@@ -17,10 +17,9 @@
    </section>
    <p v-if="!selectionCheck.ok" class="bowl-group-hint" role="status">{{ selectionCheck.message }}</p>
   </div>
-  <section v-else-if="selectedMenu.hasAddons" class="bowl-options" aria-label="ปรับแต่งท็อปปิ้ง">
-   <header><div><h4>เลือกท็อปปิ้งเพิ่ม</h4><p>ราคาบน {{ store.currentPlatform.name }}</p></div><span>{{ selectedAddons.length ? 'เลือกแล้ว '+selectedAddons.length+' รายการ' : 'เลือกได้ตามชอบ' }}</span></header>
-   <p v-if="!selectedMenu.hasAddons" class="bowl-no-addons">เมนูนี้ไม่อนุญาตให้เลือก Add-on เพิ่มเติม</p>
-   <p v-else-if="!activeAddons.length" class="bowl-no-addons">ยังไม่มีท็อปปิ้งเพิ่มเติม เพิ่มชามนี้ลงตะกร้าได้เลย</p>
+  <section v-else-if="selectedMenu.hasAddons" class="bowl-options" aria-label="ตัวเลือก">
+   <header><div><h4>ตัวเลือก</h4><p>ราคาบน {{ store.currentPlatform.name }}</p></div><span>{{ selectedAddons.length ? 'เลือกแล้ว '+selectedAddons.length+' รายการ' : 'เลือกได้ตามชอบ' }}</span></header>
+   <p v-if="!activeAddons.length" class="bowl-no-addons">ยังไม่มีตัวเลือก เพิ่มชามนี้ลงตะกร้าได้เลย</p>
    <div v-else class="bowl-addon-grid">
     <button v-for="addon in activeAddons" :key="addon.id" type="button" class="bowl-addon" :class="{'is-selected':isAddonSelected(addon.id),'is-unavailable':isAddonOutOfStock(addon)}" :aria-pressed="isAddonSelected(addon.id)" @click="toggleAddon(addon)">
      <span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span>
