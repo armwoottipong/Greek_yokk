@@ -10,6 +10,29 @@ function fixture(){
  model=createInventoryModel({getData:()=>data,loadServer:async()=>data,execute,isReady:()=>true,isBlocked:()=>false,storageKey:'catalog-bindings'})
  return {model,snapshot:()=>data}
 }
+it('moves legacy choices to groups using a checked revision and preserves prices and recipes',async()=>{
+ const {model,snapshot}=fixture()
+ const before=structuredClone(snapshot().shop.catalog)
+ const plan=model.legacyOptionMigrationPlan()
+ const ids=plan.profiles.flatMap(profile=>profile.menus)
+ expect(ids.length).toBeGreaterThan(0)
+ expect((await model.migrateLegacyOptions(plan.revision-1)).ok).toBe(false)
+ expect((await model.migrateLegacyOptions(plan.revision)).ok).toBe(true)
+ const after=snapshot().shop.catalog
+ for(const id of ids){
+  const old=before.menus[id],menu=after.menus[id],group=after.groups[menu.groupId]
+  expect(menu.optionIds).toEqual([])
+  expect(menu.recipe).toEqual(old.recipe)
+  expect(menu.pricesCents).toEqual(old.pricesCents)
+  expect(group).toMatchObject({min:old.min,max:old.max,optionIds:old.optionIds})
+  for(const p of before.platformIds)for(const option of old.optionIds){
+   const price=(old.priceMode==='addon'?before.addonPrices:old.optionPrices)[p][option]
+   expect(group.optionPrices[p][option]).toBe(price)
+  }
+ }
+ expect(model.legacyOptionMigrationPlan().profiles).toEqual([])
+ model.close()
+})
 it('saves original menu/addon fields with one quantity/price conversion and confirmed display names',async()=>{
  const {model,snapshot}=fixture(),menu=model.menus.find(m=>m.id==='SIMPLE')
  expect(await model.saveMenu({...menu,name:'Renamed menu',prices:{P:89.5},recipe:[{materialId:'S0',qty:12.5}],hasAddons:false,hasPackage:true})).toMatchObject({ok:true})

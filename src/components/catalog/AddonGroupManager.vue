@@ -1,6 +1,12 @@
 <template>
  <section class="option-groups" aria-label="กลุ่มตัวเลือก">
-  <header class="group-heading"><div><h3>กลุ่มตัวเลือก</h3><p>สร้างชุดผลไม้หรือของเสริม แล้วนำไปใช้กับหลายเมนูได้</p></div><Button :disabled="!!actionPending||store.inventorySaving" @click="edit()"><Plus :size="16" aria-hidden="true"/>เพิ่มกลุ่มตัวเลือก</Button></header>
+  <header class="group-heading">
+   <div><h3>กลุ่มตัวเลือก</h3><p>สร้างชุดผลไม้หรือของเสริม แล้วนำไปใช้กับหลายเมนูได้</p></div>
+   <div class="group-items-actions">
+    <Button v-if="legacyMenuCount" variant="secondary" :disabled="!!actionPending || store.inventorySaving" :loading="actionPending === 'migration'" @click="migrateLegacyOptions">ย้ายตัวเลือกเดิม {{ legacyMenuCount }} เมนู</Button>
+    <Button :disabled="!!actionPending||store.inventorySaving" @click="edit()"><Plus :size="16" aria-hidden="true"/>เพิ่มกลุ่มตัวเลือก</Button>
+   </div>
+  </header>
   <div v-if="!store.addonGroups.length" class="group-empty"><strong>จัดตัวเลือกเสริมเป็นชุดให้เลือก</strong><p>เช่น ผลไม้ฟรี 3 ชนิด หรือเพิ่มพิเศษ สร้างกลุ่มแล้วนำไปใช้กับหลายเมนูได้</p></div>
   <div v-else class="group-workspace">
    <nav class="group-directory" aria-label="รายชื่อกลุ่มตัวเลือก">
@@ -135,6 +141,18 @@ import AppSelect from '@/components/ui/AppSelect.vue'
 
 import {useActionPending} from '@/composables/useActionPending'
 const {pending:actionPending,run:runAction}=useActionPending()
+const legacyPlan = computed(() => store.legacyOptionMigrationPlan?.())
+const legacyMenuCount = computed(() => legacyPlan.value?.profiles.reduce((total, profile) => total + profile.menus.length, 0) || 0)
+const migrateLegacyOptions = () => runAction('migration', async () => {
+  const plan = legacyPlan.value
+  if (!plan || !legacyMenuCount.value) return
+  const accepted = await store.confirmDialog({
+    title: 'ย้ายตัวเลือกเดิมเข้ากลุ่ม?',
+    message: `ย้าย ${legacyMenuCount.value} เมนูไปใช้กลุ่มตัวเลือก โดยเก็บราคา กติกา และสูตรเดิม ควรดาวน์โหลดไฟล์สำรองล่าสุดก่อนย้าย`,
+    confirmText: 'ย้ายตัวเลือก', cancelText: 'ยกเลิก'
+  })
+  if (accepted) await store.migrateLegacyOptions(plan.revision)
+})
 const OptionCatalog = defineAsyncComponent(() => import('./OptionCatalog.vue'))
 const store = useInventoryStore(), open = ref(false), error = ref(''), search = ref('')
 const draft = ref({}),editCatalogRevision=ref(null)

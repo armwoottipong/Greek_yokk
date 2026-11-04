@@ -1,4 +1,6 @@
 import {encodeGroupAvailability} from './groupAvailability.js'
+import {planLegacyOptionMigration} from './legacyOptionMigration.js'
+import {catalogMenus} from './catalogPresentation.js'
 import {toScaledExact} from '../conversion.js'
 import {detachMaterialCommands} from './catalogDetachment.js'
 const clone=v=>JSON.parse(JSON.stringify(v))
@@ -29,6 +31,32 @@ export function createCatalogBindings({snapshot,mutate,error}){
   return {input:canonical,display}
  }
  return {
+  legacyOptionMigrationPlan:()=>{
+   const data=snapshot()
+   return { revision:data.shop.revision, ...planLegacyOptionMigration(data) }
+  },
+  migrateLegacyOptions:guarded(expectedRevision=>{
+   const data=snapshot()
+   if(data.shop.revision!==expectedRevision)throw new Error('ข้อมูลร้านเปลี่ยน กรุณาตรวจรายการที่จะย้ายอีกครั้ง')
+   const {profiles,blockers}=planLegacyOptionMigration(data)
+   if(blockers.length)throw new Error('บางเมนูมีราคาหรือกติกาเดิมที่ต้องตรวจสอบก่อนย้าย')
+   const menus=new Map(catalogMenus(data).map(menu=>[menu.id,menu]))
+   const entries=[]
+   for(const profile of profiles){
+    const {optionIds,min,max,optionPrices}=profile
+    const groupIds=[]
+    if(max){
+     const id=`GROUP-${crypto.randomUUID()}`
+     const name='ตัวเลือกจากเมนูเดิม'
+     entries.push({kind:'group',payload:{input:{id,name,active:true,min,max,allowRepeat:false,pricingMode:'extra',optionIds,optionPrices},display:metadata({name})}})
+     groupIds.push(id)
+    }
+    for(const id of profile.menus){
+     entries.push({kind:'menu',payload:menuPayload({...menus.get(id),hasAddons:groupIds.length>0,addonGroupIds:groupIds})})
+    }
+   }
+   return mutate(entries)
+  }),
   detachMaterialCommands:materialId=>detachMaterialCommands(snapshot(),materialId),
   saveMenu:guarded(input=>mutate([{kind:'menu',payload:menuPayload(input)}])),
   deleteMenu:guarded(id=>{const data=snapshot(),old=data.shop.catalog.menus[id];if(!old)return error('ไม่พบเมนู');return mutate([{kind:'menu',payload:menuPayload({id,name:data.display.menus?.[id]?.name||old.name,hasAddons:false},true)}])}),
