@@ -20,6 +20,7 @@
    </div></details>
    <details v-smooth-disclosure class="menu-editor-section" data-menu-groups open><summary><span>ตัวเลือกเสริม</span><small>{{ selectedGroups.length }} กลุ่ม</small></summary><div class="menu-editor-section-body menu-editor-options">
     <AppCheckbox v-model="form.hasAddons" variant="switch" label="เปิดตัวเลือกเสริมตอนขาย"><strong>เปิดตัวเลือกเสริมตอนขาย</strong><small>ใช้ได้ทั้งกลุ่มที่รวมในราคาและกลุ่มที่คิดเพิ่ม</small></AppCheckbox>
+    <p v-if="sharedPackaging.length" class="menu-editor-help" role="status">บรรจุภัณฑ์ {{ sharedPackaging.join(', ') }} อยู่ทั้งในสูตรเมนูและในตัวเลือก เมื่อขายจะตัดตามทั้งสองสูตร กรุณาตรวจจำนวนก่อนบันทึก</p>
     <ul v-if="selectedGroups.length" data-menu-group-summary class="menu-group-summary">
      <li v-for="group in selectedGroups" :key="group.id"><strong>{{ group.name }}</strong><small v-if="group.pricingMode">{{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }}</small></li>
     </ul>
@@ -110,6 +111,12 @@ const selectedGroups = computed(() => (form.value.addonGroupIds || []).map(id =>
   store.addonGroups.find(group => group.id === id) || { id, name: 'ไม่พบกลุ่มตัวเลือก' }
 ))
 const packageRecipeRows = ref([])
+const sharedPackaging = computed(() => {
+  if (!form.value.hasPackage || !form.value.hasAddons) return []
+  const optionIds = new Set(selectedGroups.value.flatMap(group => (group.options || []).map(option => option.addonId)))
+  const optionMaterials = new Set(store.addons.filter(addon => optionIds.has(addon.id)).flatMap(addon => (addon.recipe || []).map(row => row.materialId)))
+  return [...new Set(packageRecipeRows.value.filter(row => row.qty > 0 && optionMaterials.has(row.materialId)).map(row => store.matMap[row.materialId]?.name || row.materialId))]
+})
 
 const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => ({
   form: form.value,
@@ -117,7 +124,10 @@ const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => ({
   packageRecipeRows: packageRecipeRows.value
 }))
 
-const initialFocus=computed(()=>store.modals.menuEdit.initialSection==='recipe'?'[data-menu-recipe] button:not(:disabled)':'#menu-name')
+const initialFocus = computed(() => ({
+  recipe: '[data-menu-recipe] button:not(:disabled)',
+  groups: '[data-open-group-picker]'
+})[store.modals.menuEdit.initialSection] || '#menu-name')
 const isEditing = computed(() => Boolean(store.modals.menuEdit.menuId))
 const storefront = computed(() => store.platforms.find(p => p.id === 'PLAT01'))
 
@@ -202,6 +212,14 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
     nextTick(() => {
       saveSnapshot()
       initialBusiness.value=businessFingerprint()
+      const suggestedGroupId = store.modals.menuEdit.suggestedGroupId
+      if (suggestedGroupId && store.addonGroups.some(group => group.id === suggestedGroupId)) {
+        const ids = form.value.addonGroupIds || []
+        if (ids.length < 2 && !ids.includes(suggestedGroupId)) {
+          form.value.addonGroupIds = [...ids, suggestedGroupId]
+          form.value.hasAddons = true
+        }
+      }
       if(store.modals.menuEdit.initialSection==='recipe'){
         const section=document.getElementById('MenuEditModal')?.querySelector('[data-menu-recipe]')
         if(section){section.open=true;section.querySelector('button:not(:disabled)')?.scrollIntoView?.({block:'nearest'})}

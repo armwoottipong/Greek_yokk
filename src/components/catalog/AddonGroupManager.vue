@@ -48,7 +48,7 @@
     <p v-if="statusError" class="group-error" role="alert">{{ statusError }}</p>
    </section>
   </div>
-  <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="ตั้งชื่อ เลือกรายการ แล้วบันทึกได้เลย" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
+  <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="ตั้งชื่อ เพิ่มตัวเลือกจากคลัง แล้วกำหนดกติกา" presentation="drawer" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
    <div class="group-form">
     <FormField id="addon-group-name" label="ชื่อกลุ่มตัวเลือก" required :error="fieldErrors.name" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="draft.name" :aria-invalid="invalid" :aria-describedby="describedBy" aria-required="true" placeholder="เช่น ผลไม้ฟรี 3 ชนิด"/></FormField>
     <section ref="optionsSection" tabindex="-1" class="group-options" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p>
@@ -83,6 +83,13 @@
     </section>
     <details ref="groupRules" class="group-rules">
      <summary><strong>กติกาการเลือกและสต็อก</strong><small>{{ ruleSummary }}</small></summary>
+     <FormField id="group-selection-rule" label="ลูกค้าเลือกอย่างไร" v-slot="{controlId}">
+      <AppSelect :id="controlId" aria-label="ลูกค้าเลือกอย่างไร" :model-value="selectionRule" @update:model-value="applySelectionRule">
+       <option value="optional">ไม่บังคับเลือก</option>
+       <option value="one">ต้องเลือก 1 อย่าง</option>
+       <option value="custom">กำหนดขั้นต่ำและสูงสุด</option>
+      </AppSelect>
+     </FormField>
     <div class="group-fields"><FormField id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
     <AppCheckbox v-model="draft.allowRepeat" variant="switch" label="เลือกชนิดเดิมซ้ำได้">เลือกชนิดเดิมซ้ำได้ · นับจำนวนเป็นที่</AppCheckbox>
     <div class="group-stock-controls">
@@ -91,6 +98,15 @@
      <p class="group-help">อิงจุดเตือนและจำนวนคงเหลือของวัตถุดิบในสูตร</p>
     </div>
     </details>
+    <section class="group-options" aria-label="เมนูที่ใช้กลุ่มนี้">
+     <h4>เมนูที่ใช้กลุ่มนี้</h4>
+     <p v-if="!linkedMenus.length" class="group-help">{{ draft.id ? 'ยังไม่มีเมนูใช้กลุ่มนี้' : 'บันทึกกลุ่มก่อนเพื่อเชื่อมกับเมนู' }}</p>
+     <ul v-else class="group-linked-menus"><li v-for="menu in linkedMenus" :key="menu.id">{{ menu.name }}</li></ul>
+     <AppSelect v-if="draft.id && linkableMenus.length && !creationResolver" aria-label="เชื่อมกับเมนู" model-value="" @update:model-value="linkMenu">
+      <option value="" disabled>เลือกเมนูที่จะเชื่อม</option>
+      <option v-for="menu in linkableMenus" :key="menu.id" :value="menu.id">{{ menu.name }}</option>
+     </AppSelect>
+    </section>
     <p v-if="error" role="alert" class="group-error">{{ error }}</p>
    </div>
    <template #footer><Button variant="quiet" :disabled="!!actionPending" @click="requestEditorClose">ยกเลิก</Button><Button :loading="actionPending==='save'" @click="save"><Check :size="18" aria-hidden="true"/>บันทึกกลุ่มตัวเลือก</Button></template>
@@ -128,6 +144,21 @@ let creationResolver=null
 const fieldErrors = ref({})
 const optionsSection = ref(null)
 const groupRules = ref(null)
+const linkedMenus = computed(() => draft.value.id ? store.menus.filter(menu => menu.addonGroupIds?.includes(draft.value.id)) : [])
+const linkableMenus = computed(() => store.menus.filter(menu => !menu.addonGroupIds?.includes(draft.value.id) && (menu.addonGroupIds?.length || 0) < 2))
+function linkMenu(menuId) {
+  const groupId = draft.value.id
+  return requestClose(() => {
+    close()
+    store.modals.menuEdit = { isOpen: true, menuId, initialSection: 'groups', suggestedGroupId: groupId }
+  })
+}
+const selectionRule = ref('optional')
+function applySelectionRule(rule) {
+  selectionRule.value = rule
+  if (rule === 'one') Object.assign(draft.value, { minSelections: 1, maxSelections: 1, allowRepeat: false })
+  if (rule === 'optional') Object.assign(draft.value, { minSelections: 0, maxSelections: 3 })
+}
 const ruleSummary = computed(() => {
   const { minSelections, maxSelections, allowRepeat } = draft.value
   const unit = allowRepeat ? 'ที่' : 'ชนิด'
@@ -157,7 +188,7 @@ const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const filteredAddons = computed(() => store.addons.filter(a => a.name.toLowerCase().includes(search.value.trim().toLowerCase())))
 const optionFor = id => draft.value.options?.find(o => o.addonId === id)
 function addOption() {
-  store.modals.addonEdit = { isOpen: true, addonId: null, savedAddonId: null }
+  store.modals.addonEdit = { isOpen: true, addonId: null, savedAddonId: null, fromGroup: true }
 }
 function optionRemoved(id) {
   if (open.value) toggleOption(id, false)
@@ -180,6 +211,8 @@ watch(() => store.modals.addonEdit?.isOpen, isOpen => {
   if (!detailId.value && !optionFor(savedId)) {
     search.value = ''
     toggleOption(savedId, true)
+    const prices = addonMap.value.get(savedId)?.prices
+    if (Object.values(prices || {}).some(price => price > 0)) optionFor(savedId).prices = { ...prices }
   }
 })
 const baht = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
@@ -194,6 +227,7 @@ function priceAnalysis(addon) {
 async function edit(group) {
   editCatalogRevision.value=store.catalogRevision
   draft.value = group ? clone(group) : { name: '', minSelections: 0, maxSelections: 3, allowRepeat: false, pricingMode: 'included', options: [] }
+  selectionRule.value = group ? 'custom' : 'optional'
   if (group) {
     for (const option of draft.value.options) {
       option.prices = optionPrices(group, option, addonMap.value.get(option.addonId) || {})
@@ -353,5 +387,6 @@ async function performRemove(group) {
 .group-rules{padding:12px;border:1px solid var(--border-subtle);border-radius:12px}
 .group-rules[open]{display:grid;gap:12px}
 .group-rules summary{cursor:pointer}
+.group-linked-menus{margin:0;padding-inline-start:20px;font-size:.875rem}
 .group-rules summary small,.group-price-fields summary small{margin-inline-start:8px;font-size:.75rem;color:var(--text-muted);font-weight:400}
 </style>

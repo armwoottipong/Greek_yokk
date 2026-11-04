@@ -1,6 +1,21 @@
 <template>
- <DialogFrame :busy="!!actionPending" :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไขตัวเลือกเสริม':'เพิ่มตัวเลือกเสริมใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่" width="720px" :teleport="false" :initial-focus="store.modals.addonEdit.initialSection==='recipe'?'[data-addon-recipe] button:not(:disabled)':'#addon-name'" @request-close="requestClose(close)">
+ <DialogFrame :busy="!!actionPending" :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไขตัวเลือกเสริม':'เพิ่มตัวเลือกเสริมใหม่'" :description="fromGroup ? 'เลือกของจากคลัง หรือสร้างตัวเลือกที่ไม่ตัดสต็อก' : 'ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่'" :presentation="fromGroup ? 'drawer' : 'dialog'" width="720px" :teleport="false" :initial-focus="fromGroup ? '#group-option-ingredient' : store.modals.addonEdit.initialSection==='recipe'?'[data-addon-recipe] button:not(:disabled)':'#addon-name'" @request-close="requestClose(close)">
   <div class="menu-editor">
+   <section v-if="fromGroup" class="menu-editor-section-body" aria-label="รายการที่ตัดจากคลัง">
+    <div v-for="kind in stockKinds" :key="kind.id" class="menu-editor-prices">
+     <FormField :id="`group-option-${kind.id}`" :label="kind.label" v-slot="{controlId}">
+      <AppSelect :id="controlId" :aria-label="kind.label" :model-value="stockRow(kind.id)?.materialId || ''" @update:model-value="selectStock(kind.id, $event)">
+       <option value="">ไม่ตัด{{ kind.label }}</option>
+       <option v-for="material in stockOptions(kind.id)" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
+      </AppSelect>
+     </FormField>
+     <FormField v-if="stockRow(kind.id)" :label="`จำนวน ${kind.label} ต่อที่`" :error="recipeErrors[form.recipe.indexOf(stockRow(kind.id))]" v-slot="{controlId,describedBy,invalid}">
+      <AppInput :id="controlId" v-model="stockRow(kind.id).qty" type="number" min="0.01" step="0.01" :aria-describedby="describedBy" :aria-invalid="invalid">
+       <template #suffix>{{ store.matMap[stockRow(kind.id).materialId]?.unit }}</template>
+      </AppInput>
+     </FormField>
+    </div>
+   </section>
    <section class="menu-editor-basics" aria-label="ข้อมูลตัวเลือกเสริม">
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอนตัวเลือกเสริม" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="addon-name" label="ชื่อตัวเลือกเสริม" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น สตรอว์เบอร์รีสด (30g)"/></FormField></div>
     <CatalogImageEditor v-if="store.modals.addonEdit.isOpen" ref="imageEditor" v-model="form.image" kind="addons" :entity-id="form.id" :emoji="form.emoji" :disabled="!!actionPending"/>
@@ -8,7 +23,7 @@
    <details v-smooth-disclosure class="menu-editor-section" data-addon-prices open><summary><span>ราคาบวกเพิ่มแต่ละช่องทาง</span><small>{{ store.platforms.length }} ช่องทาง</small></summary><div class="menu-editor-section-body">
     <div class="menu-editor-prices"><FormField v-for="p in store.platforms" :key="p.id" :label="p.name" :hint="p.gpPercent>0?'ค่าธรรมเนียมช่องทาง '+p.gpPercent+'%':undefined" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.prices[p.id]" type="number" min="0" step="any" :aria-label="`ราคา ${p.name}`" placeholder="ยังไม่ตั้งราคา"><template #prefix>฿</template></AppInput></FormField></div>
    </div></details>
-   <details v-smooth-disclosure class="menu-editor-section" data-addon-recipe open><summary><span>สูตรวัตถุดิบและบรรจุภัณฑ์</span><small>{{ form.recipe.length }} รายการ</small></summary><div class="menu-editor-section-body">
+   <details v-if="!fromGroup" v-smooth-disclosure class="menu-editor-section" data-addon-recipe open><summary><span>สูตรวัตถุดิบและบรรจุภัณฑ์</span><small>{{ form.recipe.length }} รายการ</small></summary><div class="menu-editor-section-body">
     <p class="menu-editor-help">ปริมาณที่ตัดต่อตัวเลือกเสริม 1 ที่ เลือกวัตถุดิบหรือบรรจุภัณฑ์ได้ในช่องเดียวกัน</p>
     <p v-if="!form.recipe.length" class="menu-editor-empty">ไม่ตัดวัตถุดิบหรือบรรจุภัณฑ์ · เพิ่มรายการเพื่อกำหนดสูตร</p>
     <div class="menu-editor-recipe-list"><div v-for="(row,idx) in form.recipe" :key="idx" data-addon-recipe-row>
@@ -32,6 +47,7 @@ import '@/components/catalog/menuFocus.css'
 import {MATERIAL_KIND_OPTIONS, getMaterialKind} from '@/domain/materialClassification'
 import FormField from '@/components/ui/FormField.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import RecipeEditorRow from '@/components/ui/RecipeEditorRow.vue'
 import Button from '@/components/ui/Button.vue'
 import {vSmoothDisclosure, revealDisclosure} from '@/directives/smoothDisclosure'
@@ -62,6 +78,20 @@ const form = ref({
 const { saveSnapshot, requestClose, confirmSave } = useModalForm(() => form.value)
 
 const isEditing = computed(() => Boolean(store.modals.addonEdit.addonId))
+const fromGroup = computed(() => store.modals.addonEdit.fromGroup === true && !isEditing.value)
+const stockKinds = [{ id: 'ingredient', label: 'วัตถุดิบ' }, { id: 'packaging', label: 'บรรจุภัณฑ์' }]
+const stockOptions = kind => store.activeMaterials.filter(material => !material.isArchived && material.inventoryType === kind)
+const stockRow = kind => form.value.recipe.find(row => store.matMap[row.materialId]?.inventoryType === kind)
+function selectStock(kind, id) {
+  const previous = stockRow(kind)
+  const material = stockOptions(kind).find(item => item.id === id)
+  if (material && (!form.value.name.trim() || form.value.name === store.matMap[previous?.materialId]?.name)) {
+    form.value.name = material.name
+  }
+  if (previous) form.value.recipe.splice(form.value.recipe.indexOf(previous), 1)
+  if (material) form.value.recipe.push({ materialId: id, qty: 1 })
+  recipeErrors.value = []
+}
 
 const materialGroups = computed(() => MATERIAL_KIND_OPTIONS.map(group => ({
   type:group.id, label:group.label,

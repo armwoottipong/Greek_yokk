@@ -16,7 +16,7 @@ function setup() {
   s.menus[0].addonGroupIds = ['G']
   return s
 }
-it('creates and selects an option from the group without losing its draft', async () => {
+it('creates and selects a stock-free option from the group without losing its draft', async () => {
   const s = setup()
   vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
   const wrapper = mount({ render: () => h('div', [h(AddonView), h(AddonEdit)]) }, {
@@ -33,6 +33,7 @@ it('creates and selects an option from the group without losing its draft', asyn
     await flushPromises()
     const created = s.addons.find(option => option.name === 'ตัวเลือกใหม่')
     expect(created).toBeDefined()
+    expect(created.recipe).toEqual([])
     expect(workspace.get('#addon-group-name').element.value).toBe('กลุ่มใหม่')
     expect(workspace.get('[aria-label="ตัวเลือกใหม่"]').element.checked).toBe(true)
     await workspace.get('[aria-label="ดูสูตรและราคาของ ตัวเลือกใหม่"]').trigger('click')
@@ -47,6 +48,41 @@ it('creates and selects an option from the group without losing its draft', asyn
   } finally {
     wrapper.unmount()
   }
+})
+it('adds one ingredient and one package from stock to a paid group option', async () => {
+  const s = setup()
+  s.materials.push(material('BLUEBERRY', 100, { name: 'บลูเบอร์รีทดสอบ' }))
+  s.materials.push(material('SPOON', 10, { name: 'ช้อนทดสอบ', inventoryType: 'packaging', unit: 'คัน' }))
+  vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
+  const wrapper = mount({ render: () => h('div', [h(AddonView), h(AddonEdit)]) }, {
+    attachTo: document.body, global: { stubs: { teleport: true } }
+  })
+  try {
+    await wrapper.findAll('button').find(button => button.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
+    await wrapper.get('#addon-group-name').setValue('กลุ่มจากคลัง')
+    await wrapper.get('[data-group-add-option]').trigger('click')
+    for (const [id, name] of [['ingredient', 'บลูเบอร์รีทดสอบ'], ['packaging', 'ช้อนทดสอบ']]) {
+      await wrapper.get(`#group-option-${id}`).trigger('click')
+      await wrapper.findAll('[role="option"]').find(option => option.text().includes(name)).trigger('click')
+    }
+    expect(wrapper.get('#addon-name').element.value).toBe('บลูเบอร์รีทดสอบ')
+    const platform = s.platforms[0]
+    await wrapper.get(`[aria-label="ราคา ${platform.name}"]`).setValue(12)
+    await wrapper.getComponent(AddonEdit).vm.submit()
+    await flushPromises()
+    const addon = s.addons.find(option => option.name === 'บลูเบอร์รีทดสอบ')
+    expect(addon.recipe).toEqual([{ materialId: 'BLUEBERRY', qty: 1 }, { materialId: 'SPOON', qty: 1 }])
+    await wrapper.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
+    await flushPromises()
+    const group = loadDatabase(localStorage).value.addonGroups.find(group => group.name === 'กลุ่มจากคลัง')
+    expect(group?.options[0].prices[platform.id]).toBe(12)
+    const menu = s.menus[0]
+    menu.addonGroupIds = [group.id]
+    expect(s.addToCart(menu, [{ id: addon.id, groupId: group.id }])).toBe(true)
+    expect(s.checkout()).toBeTruthy()
+    expect(s.matMap.BLUEBERRY.stock).toBe(99)
+    expect(s.matMap.SPOON.stock).toBe(9)
+  } finally { wrapper.unmount() }
 })
 it('requires complete group choices, caps kinds and adds free selections', async () => {
   const s = setup(), w = mount(Custom)
@@ -63,6 +99,24 @@ it('requires complete group choices, caps kinds and adds free selections', async
     expect(s.cart[0].selectedAddons).toHaveLength(2)
     expect(s.cartSummary.subtotal).toBe(s.menus[0].prices[s.currentPlatformId])
   } finally { w.unmount() }
+})
+it('prepares a group link from the drawer and persists it only on menu save', async () => {
+  const s = setup()
+  const menu = s.menus[1]
+  vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
+  const wrapper = mount({ render: () => h('div', [h(AddonView), h(MenuEdit)]) }, {
+    attachTo: document.body, global: { stubs: { teleport: true } }
+  })
+  try {
+    await wrapper.get('[aria-label="แก้ไขกลุ่ม เลือกผลไม้"]').trigger('click')
+    await wrapper.get('[role="combobox"][aria-label="เชื่อมกับเมนู"]').trigger('click')
+    await wrapper.findAll('[role="option"]').find(option => option.text() === menu.name).trigger('click')
+    await flushPromises()
+    expect(s.modals.menuEdit.menuId).toBe(menu.id)
+    expect(s.menus.find(item => item.id === menu.id).addonGroupIds).toBeUndefined()
+    await wrapper.getComponent(MenuEdit).vm.submit()
+    expect(loadDatabase(localStorage).value.menus.find(item => item.id === menu.id).addonGroupIds).toEqual(['G'])
+  } finally { wrapper.unmount() }
 })
 it('saves menu group assignments while keeping recipe and existing settings', async () => {
   const s = setup(); vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
