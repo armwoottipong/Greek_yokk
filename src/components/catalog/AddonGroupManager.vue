@@ -4,6 +4,7 @@
   <div v-if="!store.addonGroups.length" class="group-empty"><strong>จัดตัวเลือกเสริมเป็นชุดให้เลือก</strong><p>เช่น ผลไม้ฟรี 3 ชนิด หรือเพิ่มพิเศษ สร้างกลุ่มแล้วนำไปใช้กับหลายเมนูได้</p></div>
   <div v-else class="group-workspace">
    <nav class="group-directory" aria-label="รายชื่อกลุ่มตัวเลือก">
+    <div class="group-directory-header"><span>กลุ่มตัวเลือก</span><span>จำนวน</span></div>
     <button v-for="group in store.addonGroups" :key="group.id" type="button" class="group-directory-button"
      :aria-pressed="selectedGroup?.id === group.id" @click="selectedGroupId = group.id">
      <strong>{{ group.name }}</strong><span>{{ group.options.length }}</span>
@@ -17,14 +18,17 @@
      </div>
      <Button variant="secondary" :disabled="!!actionPending || store.inventorySaving" :aria-label="`แก้ไขกลุ่ม ${selectedGroup.name}`" @click="edit(selectedGroup)">แก้ไขกลุ่ม</Button>
     </header>
+    <div class="group-item group-column-header" aria-hidden="true">
+     <span>ตัวเลือก</span><span>ราคา</span><span>สถานะ</span><span>เปิดขาย</span>
+    </div>
     <ul class="group-items-list" data-group-options>
      <li v-for="option in selectedGroup.options" :key="option.addonId" class="group-item">
       <span class="group-item-image"><EntityImage kind="addons" :entity-id="option.addonId" :image="addonMap.get(option.addonId)?.image" :emoji="addonMap.get(option.addonId)?.emoji"/></span>
       <div class="group-item-name">
        <button v-if="addonMap.has(option.addonId)" type="button" @click="detailId = option.addonId">{{ addonMap.get(option.addonId).name }}</button>
        <strong v-else>ไม่พบตัวเลือก</strong>
-       <small>{{ priceSummary(selectedGroup, option) }}</small>
       </div>
+      <small class="group-item-price">{{ priceSummary(selectedGroup, option) }}</small>
       <span class="group-item-status" :data-status="status(selectedGroup, option)">{{ optionAvailabilityLabel[status(selectedGroup, option)] }}</span>
       <AppCheckbox :model-value="!option.paused" variant="switch" :disabled="!!actionPending || store.inventorySaving"
        :label="`เปิดขาย ${addonMap.get(option.addonId)?.name || option.addonId} ในกลุ่มนี้`"
@@ -250,13 +254,20 @@ async function performRemove(group) {
 @media(max-width:767px){.group-form :deep(.app-input input){font-size:1rem}}
 .group-workspace{display:grid;grid-template-columns:minmax(12rem,1fr) minmax(0,3fr);border:1px solid var(--border-subtle);border-radius:16px;background:var(--bg-card);overflow:hidden}
 .group-directory{border-inline-end:1px solid var(--border-subtle)}
+.group-directory-header{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:72px;padding:12px 16px;border-bottom:1px solid var(--border-subtle);font-size:.8125rem;font-weight:600}
 .group-directory-button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:52px;padding:12px 16px;text-align:start;border-bottom:1px solid var(--border-subtle);overflow-wrap:anywhere}
 .group-directory-button[aria-pressed=true]{background:var(--bg-soft);color:var(--accent-brand)}
 .group-directory-button span,.group-item small,.group-items-header p{color:var(--text-muted);font-size:.8125rem}
 .group-items-header,.group-items-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px}
+.group-items-header{min-height:72px}
 .group-items-header h4{font-weight:600;overflow-wrap:anywhere}
 .group-items-list{list-style:none;margin:0;padding:0}
-.group-item{display:grid;grid-template-columns:48px minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border-subtle)}
+.group-item{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(4rem,1fr) minmax(6rem,1fr) 3.5rem;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--border-subtle)}
+.group-column-header{background:var(--bg-soft);font-size:.8125rem;font-weight:600}
+.group-column-header span:first-child{grid-column:span 2}
+.group-column-header span:last-child{text-align:center}
+.group-item-price{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.group-item>.app-checkbox{justify-self:center}
 .group-item-image{display:grid;place-items:center;width:48px;height:48px;border-radius:10px;background:var(--bg-soft);overflow:hidden}
 .group-item-image :deep(img){width:100%;height:100%;object-fit:cover}
 .group-item-name{display:grid;gap:3px;overflow-wrap:anywhere}
@@ -266,13 +277,16 @@ async function performRemove(group) {
 .group-item-status[data-status=low],.group-item-status[data-status=out]{color:var(--state-danger)}
 .group-stock-controls,.group-price-fields[open]{display:grid;gap:12px}
 .group-price-fields summary{cursor:pointer;font-weight:600}
-@media(max-width:680px){
+.option-groups{container-type:inline-size}
+@container(max-width:680px){
  .group-workspace{grid-template-columns:minmax(0,1fr)}
  .group-directory{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border-inline-end:0;border-bottom:1px solid var(--border-subtle)}
+ .group-directory-header{display:none}
  .group-directory-button{width:auto;min-height:44px;border:0;border-radius:8px}
  .group-item{grid-template-columns:40px minmax(0,1fr) auto;gap:8px}
- .group-item-image{width:40px;height:40px;grid-row:span 2}
- .group-item-status{grid-column:2}
- .group-item>.app-checkbox{grid-column:3;grid-row:1 / span 2}
+ .group-column-header{display:none}
+ .group-item-image{width:40px;height:40px;grid-row:span 3}
+ .group-item-price,.group-item-status{grid-column:2}
+ .group-item>.app-checkbox{grid-column:3;grid-row:1 / span 3}
 }
 </style>
