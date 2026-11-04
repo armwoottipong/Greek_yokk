@@ -31,8 +31,27 @@ export function optionPrices(group, option, addon) {
   return group.pricingMode === 'included' ? Object.fromEntries(Object.keys(prices).map(id => [id, 0])) : prices
 }
 
+export function optionAvailability(group, option, addon, materials, quantity = 1) {
+  if (option?.paused || addon?.isActive === false || !addon) return 'paused'
+  let low = false
+  for (const { materialId, qty } of addon.recipe || []) {
+    const material = materials.find(row => row.id === materialId)
+    const stock = material && !material.isDeleted && !material.isArchived ? Number(material.stock) : 0
+    if (group.autoPauseOutOfStock && stock < qty * quantity) return 'out'
+    if (group.warnLowStock && stock <= Number(material?.minAlert ?? 0)) low = true
+  }
+  return low ? 'low' : 'ready'
+}
+
+export const optionAvailabilityLabel = {
+  paused: 'พักขาย',
+  out: 'ของหมด · พักอัตโนมัติ',
+  low: 'ใกล้หมด',
+  ready: 'พร้อมจำหน่าย'
+}
+
 // Resolve IDs against the catalog: callers cannot supply their own prices or recipes.
-export function resolveSelections(menu, selected, groups, addons) {
+export function resolveSelections(menu, selected, groups, addons, materials, quantity = 1) {
   const fail = message => ({ ok: false, code: 'INVALID_ADDON_SELECTION', message })
   if (!Array.isArray(selected)) return fail('ตัวเลือกไม่ถูกต้อง กรุณาเลือกใหม่')
   if (!Array.isArray(menu.addonGroupIds)) return selected.some(a => a.groupId)
@@ -45,9 +64,10 @@ export function resolveSelections(menu, selected, groups, addons) {
     const group = assigned.find(g => g.id === choice.groupId)
     const option = group?.options.find(o => o.addonId === choice.id)
     const addon = addons.find(a => a.id === choice.id && a.isActive !== false)
-    if (!group || !option || !addon) return fail('ตัวเลือกนี้ใช้กับเมนูไม่ได้แล้ว กรุณาเลือกใหม่')
+    if (!group || !option || !addon || option.paused) return fail('ตัวเลือกนี้พักขายในกลุ่ม กรุณาเลือกใหม่')
     const qty = selectionQty(choice), key = `${group.id}:${addon.id}`
     if (!Number.isSafeInteger(qty) || qty < 1 || (!group.allowRepeat && qty !== 1) || seen.has(key)) return fail('จำนวนตัวเลือกไม่ถูกต้องหรือมีชนิดซ้ำ กรุณาเลือกใหม่')
+    if (materials && optionAvailability(group, option, addon, materials, qty * quantity) === 'out') return fail('สต็อกของตัวเลือกไม่พอ กรุณาลดจำนวนหรือเลือกใหม่')
     seen.add(key)
     counts.set(group.id, (counts.get(group.id) || 0) + qty)
     selections.push({ ...addon, groupId: group.id, groupName: group.name, selectionQty: qty, prices: optionPrices(group, option, addon) })

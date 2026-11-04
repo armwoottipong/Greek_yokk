@@ -32,7 +32,7 @@
  <DialogFrame :open="!!menu" id="cloud-custom-order" title="รายละเอียดสินค้า" presentation="drawer" width="520px" :busy="busy" @request-close="selectedMenu=''">
   <form v-if="menu" id="cloud-line-form" class="line-form" @submit.prevent="addLine">
    <div class="product-detail"><div class="product-visual" aria-hidden="true"><EntityImage kind="menus" :entity-id="menu.id" :emoji="data.display.menus?.[menu.id]?.emoji"/></div><div class="bowl-heading"><h3>{{ name('menus',menu.id) }}</h3><strong class="product-base-price">{{ money(menu.pricesCents[platformId]) }}</strong></div></div>
-   <div class="bowl-groups"><section v-for="g in menuGroups" :key="g.id" class="bowl-options"><header><div><h4>{{ g.name }}</h4><p>เลือก {{ g.min===g.max?g.min:`${g.min}–${g.max}` }} อย่าง · {{ g.pricingMode==='included'?'รวมในราคา':'คิดเงินเพิ่ม' }}</p></div><span>{{ groupCount(g) }}/{{ g.max }}</span></header><div class="bowl-addon-grid"><div v-for="id in g.optionIds" :key="id" class="bowl-group-option"><button type="button" class="bowl-addon" :class="{'is-selected':choices[g.id][id]>0}" :aria-pressed="choices[g.id][id]>0" :disabled="locked||(!choices[g.id][id]&&groupCount(g)>=g.max)" @click="toggleChoice(g,id)"><span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="id" :emoji="data.display.addons?.[id]?.emoji"/></span><span class="bowl-addon-name"><strong>{{ name('addons',id) }}</strong></span><span class="bowl-addon-price">{{ optionPrice(g,id) }}</span><span class="bowl-addon-check"><Check v-if="choices[g.id][id]>0" :size="15"/><Plus v-else :size="15"/></span></button><div v-if="g.allowRepeat&&choices[g.id][id]>0" class="bowl-option-quantity"><AppQuantityInput v-model="choices[g.id][id]" :label="`${g.name} ${name('addons',id)} จำนวน`" :min="0" :max="g.max" :disabled="locked"/></div></div></div></section></div>
+   <div class="bowl-groups"><section v-for="g in menuGroups" :key="g.id" class="bowl-options"><header><div><h4>{{ g.name }}</h4><p>เลือก {{ g.min===g.max?g.min:`${g.min}–${g.max}` }} อย่าง · {{ g.pricingMode==='included'?'รวมในราคา':'คิดเงินเพิ่ม' }}</p></div><span>{{ groupCount(g) }}/{{ g.max }}</span></header><div class="bowl-addon-grid"><div v-for="id in g.optionIds" :key="id" class="bowl-group-option"><button type="button" class="bowl-addon" :class="{'is-selected':choices[g.id][id]>0}" :aria-pressed="choices[g.id][id]>0" :disabled="locked||(!choices[g.id][id]&&(groupCount(g)>=g.max||blockedOption(g,id)))" @click="toggleChoice(g,id)"><span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="id" :emoji="data.display.addons?.[id]?.emoji"/></span><span class="bowl-addon-name"><strong>{{ name('addons',id) }}</strong><small v-if="availability(g,id)!=='ready'">{{ optionAvailabilityLabel[availability(g,id)] }}</small></span><span class="bowl-addon-price">{{ optionPrice(g,id) }}</span><span class="bowl-addon-check"><Check v-if="choices[g.id][id]>0" :size="15"/><Plus v-else :size="15"/></span></button><div v-if="g.allowRepeat&&choices[g.id][id]>0" class="bowl-option-quantity"><AppQuantityInput v-model="choices[g.id][id]" :label="`${g.name} ${name('addons',id)} จำนวน`" :min="0" :max="g.max" :disabled="locked"/></div></div></div></section></div>
    <section class="product-note"><label class="field">หมายเหตุ<AppInput v-model="lineNote" maxlength="1000" placeholder="เช่น แยกท็อปปิ้ง" :disabled="locked"/></label></section>
    <p v-if="lineError" class="error" role="alert">{{ lineError }}</p>
   </form>
@@ -43,6 +43,9 @@
 </template>
 
 <script setup>
+import { optionAvailability, optionAvailabilityLabel } from '@/domain/addonGroups'
+import { catalogAddons } from './catalogPresentation.js'
+import { groupAvailability } from './groupAvailability.js'
 import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive,provide} from 'vue'
 import {sameCartPreparation} from './cartLineIdentity.js'
 import EntityImage from '@/components/images/EntityImage.vue'
@@ -109,7 +112,7 @@ const platformIds=computed(()=>data.value?.shop.catalog.platformIds.filter(id=>d
 const menu=computed(()=>data.value?.shop.catalog.menus[selectedMenu.value])
 const menuGroups=computed(()=>{const m=menu.value,c=data.value?.shop.catalog;if(!m)return [];if(m.groupIds?.length)return m.groupIds.map(id=>c.groups[id]);if(m.groupId)return [c.groups[m.groupId]];return m.optionIds?.length?[{...m,id:'legacy',name:'ท็อปปิ้ง',allowRepeat:false}]:[]})
 const sourceDate=computed(()=>String(data.value?.display.sourceDate||'ไม่ระบุวันที่').slice(0,10))
-const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return {};return {order:service.previewSale({platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value)})}}catch(e){return {error:explain(e)}}})
+const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return {};assertOptionAvailability(cart.value);return {order:service.previewSale({platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value)})}}catch(e){return {error:explain(e)}}})
 const preview=computed(()=>previewResult.value.order),previewError=computed(()=>previewResult.value.error)
 const shortages=computed(()=>Object.entries(preview.value?.approvedShortages||{}).filter(([,q])=>q>0))
 const canCheckout=computed(()=>ready.value&&!locked.value&&!!preview.value&&(!shortages.value.length||approveShortage.value))
@@ -165,6 +168,31 @@ function answerClear(value){clearConfirm.value=false;clearAnswer?.(value);clearA
 function updateCartQty(index,qty){if(locked.value)return;try{const next=plain(cart.value);next[index].qty=qty;service.previewSale({platformId:platformId.value,lines:next});cart.value=next}catch(e){error.value=explain(e)}}
 function setPlatform(id){if(!locked.value)platformId.value=id}
 function groupCount(g){return Object.values(choices.value[g.id]||{}).reduce((n,q)=>n+Number(q),0)}
+const availabilityAddons = computed(() => new Map(catalogAddons(data.value).map(addon => [addon.id, addon])))
+const availabilityMaterials = computed(() => (data.value?.materials || []).map(material => ({
+ id: material.id, stock: material.stock / 100, minAlert: (material.minAlertQ || 0) / 100, isDeleted: material.deleted
+})))
+function availability(group, id, qty = quantity.value) {
+ if (group.id === 'legacy') return 'ready'
+ const policy = groupAvailability(data.value, group)
+ return optionAvailability(policy, { paused: policy.pausedIds?.has(id) }, availabilityAddons.value.get(id), availabilityMaterials.value, qty)
+}
+const blockedOption = (group, id, qty) => ['paused', 'out'].includes(availability(group, id, qty))
+function assertOptionAvailability(lines) {
+ const catalog = data.value.shop.catalog
+ for (const line of lines) {
+  const menu = catalog.menus[line.menuId]
+  const selected = line.selections || (menu?.groupId ? [...new Set(line.optionIds || [])].map(id => ({
+   id, groupId: menu.groupId, selectionQty: line.optionIds.filter(optionId => optionId === id).length
+  })) : [])
+  for (const choice of selected) {
+   const group = catalog.groups[choice.groupId]
+   if (group && blockedOption(group, choice.id, line.qty * (choice.selectionQty || 1))) {
+    throw new Error('OPTION_UNAVAILABLE')
+   }
+  }
+ }
+}
 function toggleChoice(g,id){if(!locked.value)choices.value[g.id][id]=choices.value[g.id][id]?0:1}
 function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(c.groupId||c.groupIds?.length)return false;return Object.values(service.previewSale({platformId:platformId.value,lines:[{menuId:m.id,qty:1,optionIds:[]}]}).approvedShortages||{}).some(q=>q>0)}catch{return false}}
 function navigate(id){const target=id==='sale'?'pos':id;if(!roleTabs(role.value).includes(target)&&!(target==='orders'&&operator.value))return;tab.value=target==='pos'?'sale':target}
@@ -195,9 +223,9 @@ function addLine(){
  const next=plain(cart.value)
  if(existingIndex>=0)next[existingIndex].qty+=line.qty
  else next.push(line)
- service.previewSale({platformId:platformId.value,lines:next});cart.value=next;error.value='';lineError.value='';selectedMenu.value='';if(!split.value)cartOpen.value=true}catch(e){lineError.value=explain(e)}
+ assertOptionAvailability(next);service.previewSale({platformId:platformId.value,lines:next});cart.value=next;error.value='';lineError.value='';selectedMenu.value='';if(!split.value)cartOpen.value=true}catch(e){lineError.value=explain(e)}
 }
-function explain(e){const known=commandErrorMessage(e);if(known)return known;const code=e?.code||e?.message||'';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SALE_MATERIAL_LIMIT')return 'บิลนี้ใช้วัตถุดิบรวมเกิน 16 รายการ กรุณาแบ่งเป็นหลายบิล';if(code==='RECIPE_MATERIAL_LIMIT')return 'หนึ่งสูตรใช้วัตถุดิบได้ไม่เกิน 16 รายการ';if(code==='PREPARATION_LIMIT')return 'มีคำสั่งค้างหลายรายการ กรุณาตรวจและจัดการคำสั่งค้างก่อนลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
+function explain(e){const known=commandErrorMessage(e);if(known)return known;const code=e?.code||e?.message||'';if(code==='OPTION_UNAVAILABLE')return 'ตัวเลือกพักขายหรือสต็อกไม่พอ กรุณาแก้รายการในตะกร้า';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SALE_MATERIAL_LIMIT')return 'บิลนี้ใช้วัตถุดิบรวมเกิน 16 รายการ กรุณาแบ่งเป็นหลายบิล';if(code==='RECIPE_MATERIAL_LIMIT')return 'หนึ่งสูตรใช้วัตถุดิบได้ไม่เกิน 16 รายการ';if(code==='PREPARATION_LIMIT')return 'มีคำสั่งค้างหลายรายการ กรุณาตรวจและจัดการคำสั่งค้างก่อนลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
 let refreshTask=null
 function refresh(){
  if(!service||disposed)return Promise.resolve()

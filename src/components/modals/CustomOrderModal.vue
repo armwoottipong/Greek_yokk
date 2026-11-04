@@ -6,8 +6,8 @@
     <header><div><h4>{{ group.name }}</h4><p>{{ groupRule(group) }} · {{ group.pricingMode === 'included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }}</p></div><span aria-live="polite">{{ groupCount(group.id) }}/{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่' : 'ชนิด' }}</span></header>
     <div class="bowl-addon-grid">
      <div v-for="addon in groupOptions(group)" :key="addon.id" class="bowl-group-option">
-      <button type="button" class="bowl-addon" :data-group-option="group.id" :class="{'is-selected':isGroupSelected(group.id,addon.id),'is-unavailable':isAddonOutOfStock(addon)}" :aria-pressed="isGroupSelected(group.id,addon.id)" :disabled="!isGroupSelected(group.id,addon.id) && groupCount(group.id)>=group.maxSelections" @click="toggleGroupAddon(group,addon)">
-       <span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span><span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="isAddonOutOfStock(addon)">ของหมด · ยืนยันเลือกต่อได้</small></span><span class="bowl-addon-price font-number">{{ getAddonPrice(addon) === 0 ? 'รวมในราคา' : '+฿'+getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isGroupSelected(group.id,addon.id)" :size="15"/><Plus v-else :size="15"/></span>
+      <button type="button" class="bowl-addon" :data-group-option="group.id" :class="{'is-selected':isGroupSelected(group.id,addon.id),'is-unavailable':addon.availability !== 'ready'}" :aria-pressed="isGroupSelected(group.id,addon.id)" :disabled="!isGroupSelected(group.id,addon.id) && (groupCount(group.id)>=group.maxSelections || ['paused','out'].includes(addon.availability))" @click="toggleGroupAddon(group,addon)">
+       <span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span><span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="addon.availability !== 'ready'">{{ optionAvailabilityLabel[addon.availability] }}</small></span><span class="bowl-addon-price font-number">{{ getAddonPrice(addon) === 0 ? 'รวมในราคา' : '+฿'+getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isGroupSelected(group.id,addon.id)" :size="15"/><Plus v-else :size="15"/></span>
       </button>
       <div v-if="group.allowRepeat && isGroupSelected(group.id,addon.id)" class="bowl-option-quantity"><span>จำนวน {{ addon.name }}</span><IconButton :label="`ลด ${group.name} ${addon.name}`" @click="adjustGroupQty(group,addon,-1)"><Minus :size="16" aria-hidden="true"/></IconButton><span class="font-number">{{ groupSelection(group.id,addon.id)?.selectionQty }}</span><IconButton :label="`เพิ่ม ${group.name} ${addon.name}`" :disabled="groupCount(group.id)>=group.maxSelections" @click="adjustGroupQty(group,addon,1)"><Plus :size="16" aria-hidden="true"/></IconButton></div>
      </div>
@@ -47,7 +47,7 @@ import FormField from '@/components/ui/FormField.vue'
 import { ref, computed, watch } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import { Minus, Plus, Check, ShoppingBag } from 'lucide-vue-next'
-import { menuGroups, optionPrices, resolveSelections, selectionPrice } from '@/domain/addonGroups'
+import { menuGroups, optionPrices, resolveSelections, selectionPrice, optionAvailability, optionAvailabilityLabel } from '@/domain/addonGroups'
 
 const store = usePosStore()
 
@@ -62,14 +62,14 @@ const selectedMenu = computed(() => {
 
 const activeAddons = computed(() => store.addons.filter(a => a.isActive !== false))
 const groups = computed(() => menuGroups(selectedMenu.value, store.addonGroups))
-const selectionCheck = computed(() => selectedMenu.value ? resolveSelections(selectedMenu.value, selectedAddons.value, store.addonGroups, store.addons) : { ok: false })
+const selectionCheck = computed(() => selectedMenu.value ? resolveSelections(selectedMenu.value, selectedAddons.value, store.addonGroups, store.addons, store.materials, qty.value) : { ok: false })
 const groupSelection = (groupId, addonId) => selectedAddons.value.find(a => a.groupId === groupId && a.id === addonId)
 const isGroupSelected = (groupId, addonId) => Boolean(groupSelection(groupId, addonId))
 const groupCount = groupId => selectedAddons.value.filter(a => a.groupId === groupId).reduce((sum, a) => sum + a.selectionQty, 0)
 function groupOptions(group) {
   return group.options.flatMap(option => {
     const addon = activeAddons.value.find(a => a.id === option.addonId)
-    return addon ? [{ ...addon, prices: optionPrices(group, option, addon) }] : []
+    return addon ? [{ ...addon, prices: optionPrices(group, option, addon), availability: optionAvailability(group, option, addon, store.materials, qty.value) }] : []
   })
 }
 function groupRule(group) {

@@ -111,18 +111,45 @@ it('persists both groups and deducts the base and selected recipes on checkout',
 })
 it('updates the paid option profit from the price draft and channel GP', async () => {
   const s = setup()
-  s.materials = [material('FRUIT', 1000)]
+  s.materials.push(material('FRUIT', 1000))
   s.addons[0].recipe = [{ materialId: 'FRUIT', qty: 10 }]
   s.platforms[0].gpPercent = 25
   const manager = mount(GroupManager, { attachTo: document.body, global: { stubs: { teleport: true } } })
   try {
     await manager.get('[aria-label="แก้ไขกลุ่ม เลือกผลไม้"]').trigger('click')
-    await manager.get('#addon-group-pricing').trigger('click')
-    await manager.findAll('[role="option"]').find(option => option.text().includes('คิดเงินเพิ่ม')).trigger('click')
-    await manager.findAll('[data-group-addon]')[0].findAll('input')[1].setValue(true)
     await manager.get(`#group-price-${s.addons[0].id}-${s.platforms[0].id}`).setValue(40)
     expect(manager.get('[data-group-option-profit]').text()).toBe(new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(20))
+    await manager.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
+    await flushPromises()
+    expect(s.addonGroups[0].options[1].prices[s.platforms[0].id]).toBe(0)
   } finally { manager.unmount() }
+})
+it('warns, blocks and reopens from stock while manual pause applies to only one group', async () => {
+  const s = setup()
+  s.materials.push(material('FRUIT', 10, { minAlert: 15 }))
+  s.addons[0].recipe = [{ materialId: 'FRUIT', qty: 10 }]
+  Object.assign(s.addonGroups[0], { warnLowStock: true, autoPauseOutOfStock: true })
+  s.addonGroups.push({ ...s.addonGroups[0], id: 'H', name: 'กลุ่มที่สอง', options: s.addonGroups[0].options.map(option => ({ ...option })) })
+  s.menus[0].addonGroupIds = ['G', 'H']
+  const order = mount(Custom)
+  const manager = mount(AddonView)
+  try {
+    s.modals.customOrder = { isOpen: true, menuId: s.menus[0].id }
+    await flushPromises()
+    const first = group => order.findAll(`[data-group-option="${group}"]`)[0]
+    expect(first('G').text()).toContain('ใกล้หมด')
+    s.matMap.FRUIT.stock = 0
+    await flushPromises()
+    expect(first('G').attributes('disabled')).toBeDefined()
+    s.matMap.FRUIT.stock = 10
+    await flushPromises()
+    expect(first('G').attributes('disabled')).toBeUndefined()
+    await manager.get(`[aria-label="เปิดขาย ${s.addons[0].name} ในกลุ่มนี้"]`).setValue(false)
+    await flushPromises()
+    expect(first('G').attributes('disabled')).toBeDefined()
+    expect(first('H').attributes('disabled')).toBeUndefined()
+    expect(loadDatabase(localStorage).value.addonGroups[0].options[0].paused).toBe(true)
+  } finally { manager.unmount(); order.unmount() }
 })
 it('keeps existing menu choices until a group is explicitly assigned', async () => {
   const s = setup()
@@ -156,7 +183,7 @@ it('creates and reopens a reusable group in the option workspace', async () => {
   const s = setup(), w = mount(AddonView, { global: { stubs: { teleport: true } } })
   try {
     await w.findAll('button').find(b => b.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
-    expect(w.get('[role="note"]').text()).toContain('ไม่พร้อมใช้งาน')
+    expect(w.get('[aria-label="พักขายอัตโนมัติเมื่อของหมด"]').element.checked).toBe(false)
     await w.get('#addon-group-name').setValue('ฟรี 1 ชนิด')
     await w.get('#addon-group-min').setValue(1)
     await w.get('#addon-group-max').setValue(1)
@@ -177,12 +204,9 @@ it('opens directly on the groups with no separate option directory', async () =>
     expect(w.find('[data-addon-section]').exists()).toBe(false)
     expect(w.find('[aria-label="รายการตัวเลือกเสริม"]').exists()).toBe(false)
     expect(w.find('[data-picker-group="G"]').exists()).toBe(false)
-    const expand=w.get('[aria-controls="group-options-G"]')
-    expect(expand.attributes('aria-expanded')).toBe('false')
-    await expand.trigger('click')
-    expect(expand.attributes('aria-expanded')).toBe('true')
+    expect(w.get('.group-directory-button').attributes('aria-pressed')).toBe('true')
     expect(w.get('[data-group-options]').text()).toContain(s.addons[0].name)
-    expect(w.get('[data-group-options]').text()).toContain('ไม่พร้อมใช้งาน')
+    expect(w.get('[data-group-options]').text()).toContain('พร้อมจำหน่าย')
   }finally{w.unmount()}
 })
 it('selects at most two existing groups in the menu picker',async()=>{

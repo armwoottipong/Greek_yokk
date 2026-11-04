@@ -21,8 +21,9 @@ it('saves original menu/addon fields with one quantity/price conversion and conf
 })
 it('creates and edits an original option group and binds it to a menu',async()=>{
  const {model,snapshot}=fixture()
- expect(await model.saveAddonGroup({name:'Free choices',minSelections:0,maxSelections:3,pricingMode:'extra',allowRepeat:false,options:[{addonId:'A0',prices:{P:5}}]})).toMatchObject({ok:true})
+ expect(await model.saveAddonGroup({name:'Free choices',minSelections:0,maxSelections:3,pricingMode:'extra',allowRepeat:false,warnLowStock:true,autoPauseOutOfStock:true,options:[{addonId:'A0',paused:true,prices:{P:5}}]})).toMatchObject({ok:true})
  const group=model.addonGroups.find(g=>g.name==='Free choices');expect(group.options[0].prices.P).toBe(5)
+ expect(group).toMatchObject({warnLowStock:true,autoPauseOutOfStock:true,options:[{addonId:'A0',paused:true}]})
  const menu=model.menus.find(m=>m.id==='SIMPLE')
  expect(await model.saveMenu({...menu,addonGroupIds:[group.id],hasAddons:true})).toMatchObject({ok:true})
  expect(snapshot().shop.catalog.groups[group.id].menuIds).toContain('SIMPLE')

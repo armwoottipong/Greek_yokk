@@ -2818,7 +2818,7 @@ const posDefinition = {
 
     addToCart(menu, selectedAddons = [], qty = 1, forceConfirm = false, note = '') {
       const current = this.menus.find(m => m.id === menu.id) || menu
-      const resolved = resolveSelections(current, selectedAddons, this.addonGroups, this.addons)
+      const resolved = resolveSelections(current, selectedAddons, this.addonGroups, this.addons, this.materials, qty)
       if (!resolved.ok) { this.showToast(resolved.message, 'error'); return false }
       selectedAddons = resolved.selections
       const stockCheck = this.checkStockAvailability(menu, selectedAddons, qty)
@@ -2868,7 +2868,7 @@ const posDefinition = {
 
     executeAddToCart(menu, selectedAddons = [], qty = 1, isBackorder = false, note = '') {
       const current = this.menus.find(m => m.id === menu.id) || menu
-      const resolved = resolveSelections(current, selectedAddons, this.addonGroups, this.addons)
+      const resolved = resolveSelections(current, selectedAddons, this.addonGroups, this.addons, this.materials, qty)
       if (!resolved.ok) { this.showToast(resolved.message, 'error'); return false }
       selectedAddons = resolved.selections
       const plat = this.currentPlatform
@@ -3042,7 +3042,7 @@ const posDefinition = {
             code: 'MENU_UNAVAILABLE',
             issues: []
           }
-          const resolved = resolveSelections(current, item.selectedAddons || [], this.addonGroups, this.addons)
+          const resolved = resolveSelections(current, item.selectedAddons || [], this.addonGroups, this.addons, this.materials, item.qty)
           if (!resolved.ok) return { ...resolved, message: `${resolved.message} · นำรายการนี้ออกจากตะกร้าแล้วเลือกใหม่`, issues: [] }
           for (const addon of item.selectedAddons || [])
             if (!this.addons.some(a => a.id === addon.id && a.isActive !== false)) return {
