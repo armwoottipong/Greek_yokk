@@ -48,29 +48,24 @@
     <p v-if="statusError" class="group-error" role="alert">{{ statusError }}</p>
    </section>
   </div>
-  <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="กำหนดรายการ จำนวนที่เลือก และราคาที่ใช้ในกลุ่มนี้" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
+  <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="ตั้งชื่อ เลือกรายการ แล้วบันทึกได้เลย" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
    <div class="group-form">
     <FormField id="addon-group-name" label="ชื่อกลุ่มตัวเลือก" required :error="fieldErrors.name" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="draft.name" :aria-invalid="invalid" :aria-describedby="describedBy" aria-required="true" placeholder="เช่น ผลไม้ฟรี 3 ชนิด"/></FormField>
-    <div class="group-fields"><FormField id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
-    <AppCheckbox v-model="draft.allowRepeat" variant="switch" label="เลือกชนิดเดิมซ้ำได้">เลือกชนิดเดิมซ้ำได้ · นับจำนวนเป็นที่</AppCheckbox>
-    <div class="group-stock-controls">
-     <AppCheckbox v-model="draft.warnLowStock" variant="switch" label="เตือนเมื่อใกล้หมด">เตือนเมื่อใกล้หมด</AppCheckbox>
-     <AppCheckbox v-model="draft.autoPauseOutOfStock" variant="switch" label="พักขายอัตโนมัติเมื่อของหมด">พักขายอัตโนมัติเมื่อของหมด</AppCheckbox>
-     <p class="group-help">อิงจุดเตือนและจำนวนคงเหลือของวัตถุดิบในสูตร</p>
-    </div>
     <section ref="optionsSection" tabindex="-1" class="group-options" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p>
      <div class="group-heading">
-      <h4>รายการในกลุ่ม</h4>
+      <div><h4>เลือกรายการเข้ากลุ่ม</h4><p class="group-help" aria-live="polite">เลือกแล้ว {{ draft.options?.length || 0 }} รายการ · เว้นราคาว่างเพื่อให้ฟรี</p></div>
       <Button variant="secondary" data-group-add-option :disabled="!!actionPending || store.inventorySaving" @click="addOption"><Plus :size="16" aria-hidden="true"/>เพิ่มตัวเลือก</Button>
      </div>
      <p v-if="!store.addons.length" class="group-help">เพิ่มตัวเลือกเพื่อกำหนดสูตรและราคาของรายการแรกในกลุ่มนี้</p>
      <AppSearch v-if="store.addons.length" v-model="search" label="ค้นหาตัวเลือก" placeholder="ค้นหาตัวเลือก"/>
      <p v-if="store.addons.length && !filteredAddons.length" class="group-help">ไม่พบรายการ ลองค้นหาด้วยชื่ออื่น</p>
-     <div v-for="addon in filteredAddons" :key="addon.id" class="group-option" data-group-addon>
-      <AppCheckbox :model-value="Boolean(optionFor(addon.id))" :label="addon.name" @update:model-value="toggleOption(addon.id, $event)">{{ addon.emoji }} {{ addon.name }} <small v-if="addon.isActive === false">(ปิดขาย)</small></AppCheckbox>
+     <div v-for="addon in filteredAddons" :key="addon.id" class="group-option" :class="{ 'group-option--selected': optionFor(addon.id) }" data-group-addon>
+      <div class="group-option-heading">
+      <AppCheckbox :model-value="Boolean(optionFor(addon.id))" :label="addon.name" @update:model-value="toggleOption(addon.id, $event)"><span class="group-option-image"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span>{{ addon.name }} <small v-if="addon.isActive === false">(ปิดขาย)</small></AppCheckbox>
       <Button variant="quiet" size="compact" :aria-label="`ดูสูตรและราคาของ ${addon.name}`" @click="detailId = addon.id">สูตรและราคา</Button>
+      </div>
       <details v-if="optionFor(addon.id)" class="group-price-fields">
-       <summary>ราคาและสถานะในกลุ่ม</summary>
+       <summary>ราคาและสถานะ <small>{{ formatPriceSummary(optionFor(addon.id).prices) }}</small></summary>
        <AppCheckbox :model-value="!optionFor(addon.id).paused" variant="switch" :label="`เปิดขาย ${addon.name} ในกลุ่มนี้`" @update:model-value="optionFor(addon.id).paused = !$event">เปิดขายในกลุ่มนี้</AppCheckbox>
        <p class="group-help">เว้นราคาว่างได้ ระบบจะคิดเป็นฟรี</p>
        <div class="group-fields"><FormField v-for="platform in store.platforms" :key="platform.id" :id="`group-price-${addon.id}-${platform.id}`" :label="platform.name" v-slot="{controlId}"><AppInput :id="controlId" :model-value="optionFor(addon.id).prices?.[platform.id] ?? ''" placeholder="ฟรี" type="number" min="0" step="0.01" @update:model-value="setPrice(addon.id, platform.id, $event)"><template #prefix>฿</template></AppInput></FormField></div>
@@ -86,6 +81,16 @@
       </details>
      </div>
     </section>
+    <details ref="groupRules" class="group-rules">
+     <summary><strong>กติกาการเลือกและสต็อก</strong><small>{{ ruleSummary }}</small></summary>
+    <div class="group-fields"><FormField id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
+    <AppCheckbox v-model="draft.allowRepeat" variant="switch" label="เลือกชนิดเดิมซ้ำได้">เลือกชนิดเดิมซ้ำได้ · นับจำนวนเป็นที่</AppCheckbox>
+    <div class="group-stock-controls">
+     <AppCheckbox v-model="draft.warnLowStock" variant="switch" label="เตือนเมื่อใกล้หมด">เตือนเมื่อใกล้หมด</AppCheckbox>
+     <AppCheckbox v-model="draft.autoPauseOutOfStock" variant="switch" label="พักขายอัตโนมัติเมื่อของหมด">พักขายอัตโนมัติเมื่อของหมด</AppCheckbox>
+     <p class="group-help">อิงจุดเตือนและจำนวนคงเหลือของวัตถุดิบในสูตร</p>
+    </div>
+    </details>
     <p v-if="error" role="alert" class="group-error">{{ error }}</p>
    </div>
    <template #footer><Button variant="quiet" :disabled="!!actionPending" @click="requestEditorClose">ยกเลิก</Button><Button :loading="actionPending==='save'" @click="save"><Check :size="18" aria-hidden="true"/>บันทึกกลุ่มตัวเลือก</Button></template>
@@ -122,13 +127,24 @@ let optionEditRevision = null
 let creationResolver=null
 const fieldErrors = ref({})
 const optionsSection = ref(null)
+const groupRules = ref(null)
+const ruleSummary = computed(() => {
+  const { minSelections, maxSelections, allowRepeat } = draft.value
+  const unit = allowRepeat ? 'ที่' : 'ชนิด'
+  return minSelections > 0
+    ? `เลือก ${minSelections}–${maxSelections} ${unit}`
+    : `เลือกได้สูงสุด ${maxSelections} ${unit} · ไม่บังคับ`
+})
 const selectedGroupId = ref(null)
 const statusError = ref('')
 const selectedGroup = computed(() => store.addonGroups.find(group => group.id === selectedGroupId.value) || store.addonGroups[0])
 const addonMap = computed(() => new Map(store.addons.map(addon => [addon.id, addon])))
 const status = (group, option) => optionAvailability(group, option, addonMap.value.get(option.addonId), store.materials)
 function priceSummary(group, option) {
-  const values = [...new Set(Object.values(optionPrices(group, option, addonMap.value.get(option.addonId) || {})))]
+  return formatPriceSummary(optionPrices(group, option, addonMap.value.get(option.addonId) || {}))
+}
+function formatPriceSummary(prices = {}) {
+  const values = [...new Set(Object.values(prices).map(price => Number(price) || 0))]
   return values.some(price => price > 0) ? values.sort((a, b) => a - b).map(price => price === 0 ? 'ฟรี' : analysisMoney(price)).join(' / ') : 'ฟรี'
 }
 const setOptionActive = (group, id, active) => runAction('availability', async () => {
@@ -223,7 +239,10 @@ async function performSave() {
     await nextTick()
     const key = ['name', 'minSelections', 'maxSelections'].find(key => fieldErrors.value[key])
     const id = { name: 'addon-group-name', minSelections: 'addon-group-min', maxSelections: 'addon-group-max' }[key]
-    if (id) document.getElementById(id)?.focus()
+    if (id) {
+      if (key !== 'name' && groupRules.value) groupRules.value.open = true
+      document.getElementById(id)?.focus()
+    }
     else optionsSection.value?.focus()
     return
   }
@@ -325,4 +344,14 @@ async function performRemove(group) {
  .option-groups>.group-heading p{display:none}
  .group-workspace{--group-row-height:52px}
 }
+.group-option{padding:10px 12px;border:1px solid var(--border-subtle);background:var(--bg-card)}
+.group-option--selected{background:var(--bg-soft)}
+.group-option-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.group-option-heading .app-checkbox{min-width:0;flex:1}
+.group-option-heading .ui-button{flex-shrink:0}
+.group-option-image{display:block;width:32px;height:32px;flex-shrink:0;border-radius:8px}
+.group-rules{padding:12px;border:1px solid var(--border-subtle);border-radius:12px}
+.group-rules[open]{display:grid;gap:12px}
+.group-rules summary{cursor:pointer}
+.group-rules summary small,.group-price-fields summary small{margin-inline-start:8px;font-size:.75rem;color:var(--text-muted);font-weight:400}
 </style>
