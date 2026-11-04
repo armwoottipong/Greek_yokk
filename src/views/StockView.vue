@@ -6,7 +6,7 @@
       <StockMaterialCard v-for="mat in filteredMaterials" :key="mat.id" :material="mat" :usage="store.materialUsageById.get(mat.id)" :draft-diff="getDraftDiff(mat)" :pack-cost="getDisplayPackCost(mat)" :lot-count="getDisplayLots(mat).length" :tracking-mode="store.getMaterialTrackingMode(mat)" :more-open="activeActionMenuId===mat.id" @more="toggleActionMenu" @details="detailMaterialId=$event" @receive="openStockIn" />
       <p v-if="!filteredMaterials.length" class="p-6 text-sm">ไม่พบรายการวัตถุดิบตามเงื่อนไขที่เลือก ลองเปลี่ยนตัวกรองหรือคำค้นหา</p>
     </div></section>
-    <MaterialDetails :busy="actionBusy" :restoring="actionPending==='restore'" :open="Boolean(detailMaterialId)" :material="detailMaterial" :usage="store.materialUsageById.get(detailMaterialId)" :lots="detailMaterial?getDisplayLots(detailMaterial):[]" :tracking-mode="detailMaterial?store.getMaterialTrackingMode(detailMaterial):'none'" :pack-cost="detailMaterial?getDisplayPackCost(detailMaterial):0" :draft-diff="detailMaterial?getDraftDiff(detailMaterial):0" @close="detailMaterialId=null" @adjust="onActionStockAdjustLot" @waste="onActionWasteLot" @switch="onActionSwitchLot" @restore="onActionRestore" @delete="onActionPermanentDelete" @edit="openEditMaterial" @receive="openStockIn" />
+    <MaterialDetails :busy="actionBusy" :restoring="actionPending==='restore'" :open="Boolean(detailMaterialId)" :material="detailMaterial" :usage="store.materialUsageById.get(detailMaterialId)" :lots="detailMaterial?getDisplayLots(detailMaterial):[]" :tracking-mode="detailMaterial?store.getMaterialTrackingMode(detailMaterial):'none'" :pack-cost="detailMaterial?getDisplayPackCost(detailMaterial):0" :draft-diff="detailMaterial?getDraftDiff(detailMaterial):0" @close="detailMaterialId=null" @adjust="onActionStockAdjustLot" @waste="onActionWasteLot" @remove-lot="onActionRemoveLot" @switch="onActionSwitchLot" @restore="onActionRestore" @delete="onActionPermanentDelete" @edit="openEditMaterial" @receive="openStockIn" />
     <!-- Material Inventory Table -->
     <div class="desktop-material-table stock-table-surface">
       <div class="stock-table-scroll">
@@ -326,6 +326,7 @@
   <Button variant="secondary" @click="onActionStockAdjustLot(mat.id,lot.id)">ปรับยอดเฉพาะล็อตนี้</Button>
   <Button variant="quiet" @click="onActionWasteLot(mat.id,lot.id)">{{ isLotExpired(lot)?'ตัดทิ้งของเสียที่หมดอายุ':'บันทึกของเสียล็อตนี้' }}</Button>
   <Button variant="quiet" @click="onActionHistory(mat.id)">ประวัติการเคลื่อนไหว</Button>
+  <Button v-if="!mat.isDeleted" :disabled="actionBusy" variant="danger" :data-lot-remove="lot.id" @click="onActionRemoveLot(mat.id,lot.id)">ลบล็อต</Button>
  </div>
 </DialogFrame></td>
                         </tr>
@@ -644,6 +645,36 @@ function onActionWasteLot(matId, lotId) {
   closeActionMenu()
   store.openWasteModal(matId, lotId)
 }
+
+const onActionRemoveLot = (materialId, lotId) => runAction('remove-lot', async () => {
+  const material = store.matMap[materialId]
+  const lot = material?.lots?.find(item => item.id === lotId)
+  if (!lot || material.isDeleted || !(lot.qty > 0)) return
+
+  const quantity = lot.qty
+  closeActionMenu()
+  const confirmed = await store.confirmDialog({
+    title: 'ลบล็อตออกจากสต็อก?',
+    message: `${material.name} · ล็อต ${lotId}\nตัดคงเหลือ ${quantity.toLocaleString('th-TH')} ${material.unit} ทั้งหมดเป็นของเสีย แล้วตรวจแบบร่างก่อนบันทึก`,
+    confirmationValue: 'ลบล็อต',
+    confirmText: 'เพิ่มลงแบบร่าง',
+    type: 'danger'
+  })
+  if (!confirmed) return
+
+  const current = store.matMap[materialId]
+  if (!current || current.isDeleted || current.lots?.find(item => item.id === lotId)?.qty !== quantity) {
+    store.showToast('ยอดล็อตเปลี่ยนแล้ว กรุณาตรวจจำนวนและยืนยันใหม่', 'warning')
+    return
+  }
+  const result = store.recordLotWaste({
+    materialId,
+    lotId,
+    wasteQty: quantity,
+    reason: 'ลบล็อตออกจากสต็อก'
+  }, true)
+  if (result === true || result?.ok) detailMaterialId.value = null
+})
 
 function onActionSwitchLot(matId, lotId) {
   closeActionMenu()

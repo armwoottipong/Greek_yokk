@@ -1,6 +1,7 @@
 import {it,expect} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import Stock from '../../src/views/StockView.vue'
+import ConfirmModal from '../../src/components/modals/ConfirmModal.vue'
 import {createTestStore,material} from '../helpers/createStore'
 
 it('retains the inventory columns with a separate date column and contextual lot actions',async()=>{
@@ -11,6 +12,7 @@ it('retains the inventory columns with a separate date column and contextual lot
  ]})
  store.materials=[mat];store.menus=[];store.addons=[]
  const wrapper=mount(Stock,{attachTo:document.body})
+ const confirmation=mount(ConfirmModal,{attachTo:document.body})
  try {
   expect(wrapper.findAll('.desktop-material-table thead th').map(th=>th.attributes('aria-label')||th.text())).toEqual(['วัตถุดิบ / สินค้า','วันที่','ประเภท','คงเหลือในคลัง','ต้นทุน/หน่วย','สถานะ','การจัดการ'])
   const row=wrapper.get('.desktop-material-table>div>table>tbody>tr')
@@ -34,5 +36,19 @@ it('retains the inventory columns with a separate date column and contextual lot
   expect(dialog.textContent).toContain('ปรับยอดเฉพาะล็อตนี้')
   expect(dialog.textContent).toContain('สลับเป็นล็อตใช้งาน')
   expect(store.materials[0].stock).toBe(100)
- }finally{wrapper.unmount()}
+  dialog.querySelector('[data-lot-remove="LOT-2"]').click()
+  await flushPromises()
+  expect(confirmation.text()).toContain('40 g')
+  const submit=confirmation.get('[data-confirm-submit]')
+  expect(submit.attributes('disabled')).toBeDefined()
+  await confirmation.get('input').setValue('ยืนยัน')
+  expect(submit.attributes('disabled')).toBeDefined()
+  await confirmation.get('input').setValue('ลบล็อต')
+  await submit.trigger('click')
+  await flushPromises()
+  expect(store.materials[0].stock).toBe(60)
+  expect(store.stockDraftSnapshot[0].stock).toBe(100)
+  expect(store.getMaterialLots(store.materials[0]).map(lot=>lot.id)).toEqual(['LOT-1'])
+  expect(store.materials[0].lots.find(lot=>lot.id==='LOT-2').qty).toBe(0)
+ }finally{confirmation.unmount();wrapper.unmount()}
 })

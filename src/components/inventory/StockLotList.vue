@@ -14,6 +14,7 @@
     <Button :disabled="busy" variant="secondary" :data-lot-adjust="lot.id" :aria-label="`ปรับยอดล็อต ${lot.id}`" @click="$emit('adjust',lot.id)">ปรับยอด</Button>
     <Button :disabled="busy" variant="quiet" :aria-label="`บันทึกของเสียล็อต ${lot.id}`" @click="$emit('waste',lot.id)">บันทึกของเสีย</Button>
     <Button :disabled="busy" v-if="!lot.isInUse && lot.qty>0" variant="quiet" :aria-label="`เลือกใช้ล็อต ${lot.id}`" @click="$emit('switch',lot.id)">เลือกใช้ล็อตนี้</Button>
+    <Button :disabled="busy" variant="danger" :data-lot-remove="lot.id" @click="$emit('remove',lot.id)">ลบล็อต</Button>
    </div>
   </article>
  </section>
@@ -23,7 +24,7 @@ import {formatDisplayDate,isExpired} from '@/stores/posStore'
 import Button from '../ui/Button.vue'
 import StatusBadge from '../ui/StatusBadge.vue'
 defineProps({busy:Boolean,lots:{type:Array,default:()=>[]},trackingMode:String,unit:String,fallbackUnitCost:{type:Number,default:0},archived:Boolean,originLabel:{type:String,default:'วันรับเข้า'}})
-defineEmits(['adjust','waste','switch'])
+defineEmits(['adjust','waste','switch','remove'])
 </script>
 <style scoped>
 .lot-section h4{font-weight:600;margin:20px 0 12px}.lot-card{padding:16px;background:var(--bg-soft);border-radius:var(--surface-radius);margin:10px 0}.lot-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.lot-heading strong{font-size:12px;overflow-wrap:anywhere;min-width:0}.lot-quantity{font-size:18px;font-weight:600;margin:10px 0;font-variant-numeric:tabular-nums}.lot-dates{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px}.lot-dates dt,.lot-help{color:var(--text-muted)}.lot-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}

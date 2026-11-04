@@ -1087,6 +1087,7 @@ const posDefinition = {
       message,
       confirmText = 'ยืนยัน',
       cancelText = 'ยกเลิก',
+      confirmationValue,
       type = 'warning'
     }) {
       return new Promise((resolve) => {
@@ -1096,6 +1097,7 @@ const posDefinition = {
           message,
           confirmText,
           cancelText,
+          confirmationValue,
           type,
           onConfirm: () => {
             this.modals.confirm.isOpen = false

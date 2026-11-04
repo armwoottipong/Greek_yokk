@@ -6,7 +6,7 @@
    <dl class="material-facts"><div><dt>คงเหลือ</dt><dd>{{ Number(material.stock||0).toLocaleString('th-TH') }} {{ material.unit }}</dd></div><div><dt>ต้นทุนต่อ {{ material.packUnit||material.unit }}</dt><dd>฿{{ packCost.toLocaleString('th-TH',{maximumFractionDigits:2}) }}</dd></div><div><dt>มูลค่าสต็อกคงเหลือ</dt><dd>฿{{ (Math.max(0,Number(material.stock)||0)*Number(material.unitCost||0)).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}) }}</dd></div></dl>
    <p v-if="draftDiff" class="draft-note">รอยืนยัน {{ draftDiff>0?'+':'' }}{{ draftDiff }} {{ material.unit }}</p>
    <MaterialUsage :usage="usage" show-references />
-   <StockLotList :busy="busy" :lots="lots" :tracking-mode="trackingMode" :origin-label="material.hasSubRecipe ? 'วันผลิต' : 'วันรับเข้า'" :unit="material.unit" :fallback-unit-cost="material.unitCost" :archived="material.isDeleted" @adjust="$emit('adjust',material.id,$event)" @waste="$emit('waste',material.id,$event)" @switch="$emit('switch',material.id,$event)" />
+   <StockLotList :busy="busy" :lots="lots" :tracking-mode="trackingMode" :origin-label="material.hasSubRecipe ? 'วันผลิต' : 'วันรับเข้า'" :unit="material.unit" :fallback-unit-cost="material.unitCost" :archived="material.isDeleted" @adjust="$emit('adjust',material.id,$event)" @waste="$emit('waste',material.id,$event)" @switch="$emit('switch',material.id,$event)" @remove="$emit('remove-lot',material.id,$event)" />
   </template>
   <p v-else>ไม่พบวัตถุดิบ รายการนี้อาจถูกลบไปแล้ว</p>
   <template #footer>
@@ -27,7 +27,7 @@ import MaterialUsage from './MaterialUsage.vue'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
 import StockLotList from './StockLotList.vue'
 defineProps({busy:Boolean,restoring:Boolean,open:Boolean,material:Object,usage:Object,lots:Array,trackingMode:String,packCost:{type:Number,default:0},draftDiff:Number})
-defineEmits(['close','adjust','waste','switch','restore','edit','receive','delete'])
+defineEmits(['close','adjust','waste','switch','remove-lot','restore','edit','receive','delete'])
 </script>
 <style scoped>
 .material-facts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}.material-facts dt,.material-context{font-size:12px;color:var(--text-muted)}.material-facts dd{font-size:20px;font-weight:600;color:var(--accent-brand);margin-top:6px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.draft-note{font-size:13px;color:var(--state-warning);margin:12px 0}
