@@ -8,7 +8,7 @@
     <div class="header-page-title" :inert="mobileOpen||undefined"><h2>{{ title }}</h2><p>{{ model.connected?'ข้อมูลร้านจาก Firebase · ใช้ร่วมกันทุกเครื่อง':'ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว ยังบันทึกไม่ได้' }}</p></div>
     <div class="header-quick-actions" :inert="mobileOpen||undefined"><Button v-if="model.role!=='viewer'" variant="quiet" size="compact" :disabled="busy" :aria-label="historyLabel" @click="$emit('history')"><History :size="17"/><span>ประวัติ</span></Button><Button variant="quiet" size="compact" :loading="loading" :disabled="busy||!online||loading" aria-label="โหลดข้อมูลล่าสุด" @click="$emit('reload')"><RefreshCw :size="17"/><span>โหลดข้อมูลล่าสุด</span></Button><Button variant="quiet" size="compact" :disabled="busy" aria-label="ออกจากระบบ" @click="$emit('sign-out')"><LogOut :size="17"/><span>ออกจากระบบ</span></Button></div>
    </header>
-   <main id="cloud-main" ref="main" tabindex="-1" :inert="mobileOpen||undefined" class="product-content"><slot/></main>
+   <main id="cloud-main" ref="main" tabindex="-1" :inert="mobileOpen||undefined" class="product-content" :class="{ 'product-content--stock': model.currentTab === 'stock' }"><slot/></main>
   </div>
  </div>
 </template>
@@ -28,4 +28,37 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
 .product-shell{display:flex;width:100%;height:100dvh;min-width:0;background:var(--bg-primary);color:var(--text-main);overflow:hidden}.product-main{display:flex;flex:1;flex-direction:column;min-width:0;min-height:0}.product-content{flex:1;min-height:0;overflow:auto;padding:24px;outline:none}.brand-page-header{min-height:var(--panel-header-height);display:flex;align-items:center;justify-content:space-between;padding:16px 24px;gap:16px;background:var(--bg-card);flex-shrink:0}.header-page-title{min-width:0}.header-page-title h2{font-size:1rem;font-weight:600;line-height:1.5}.header-page-title p{font-size:.75rem;line-height:1.6;color:var(--text-muted);margin-top:3px}.header-quick-actions{display:flex;gap:6px;flex-shrink:0}.mobile-menu-toggle{display:none;place-items:center;width:44px;height:44px;color:var(--accent-brand);border-radius:12px}.mobile-menu-toggle:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}
 @media(max-width:1199px){.mobile-menu-toggle{display:grid;position:fixed;left:82px;top:12px;z-index:70}.mobile-menu-toggle[aria-expanded=true]{left:10px;color:var(--bg-card)}.brand-page-header{padding-left:66px}.header-quick-actions span{display:none}}
 @media(max-width:767px){.mobile-menu-toggle{left:10px}.brand-page-header{padding:12px 12px 12px 66px;gap:8px}.header-page-title h2{font-size:.875rem}.header-page-title p{display:none}.product-content{padding:16px}.header-quick-actions{gap:0}}
+</style>
+<style scoped>
+.product-content--stock {
+  background: var(--bg-card);
+  border-block-start: 1px solid var(--border-subtle);
+}
+
+.product-content--stock :deep(.menu-workspace) {
+  gap: 16px;
+}
+
+.product-content--stock :deep(.stock-summary) {
+  background: transparent;
+  border: 0;
+  border-block-end: 1px solid var(--border-subtle);
+  border-radius: 0;
+  padding: 0 0 16px;
+}
+
+.product-content--stock :deep(.stock-search > .app-search) {
+  border: 1px solid var(--border-subtle);
+}
+
+.product-content--stock :deep(.stock-table-surface),
+.product-content--stock :deep(.adaptive-material-list .menu-directory-list) {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+
+.product-content--stock :deep(.stock-table-surface .stock-inventory-table) {
+  background: transparent;
+}
 </style>
