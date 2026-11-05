@@ -7,7 +7,6 @@
     <Button :disabled="!!actionPending||store.inventorySaving" @click="edit()"><Plus :size="16" aria-hidden="true"/>เพิ่มกลุ่มตัวเลือก</Button>
    </div>
   </header>
-  <p v-if="statusError" class="group-error" role="alert">{{ statusError }}</p>
   <div v-if="!store.addonGroups.length" class="group-empty"><strong>จัดตัวเลือกเสริมเป็นชุดให้เลือก</strong><p>เช่น ผลไม้ฟรี 3 ชนิด หรือเพิ่มพิเศษ สร้างกลุ่มแล้วนำไปใช้กับหลายเมนูได้</p></div>
   <div v-else class="group-workspace">
    <nav class="group-directory" aria-label="รายชื่อกลุ่มตัวเลือก">
@@ -291,7 +290,9 @@ const ruleSummary = computed(() => {
     : `เลือกได้สูงสุด ${maxSelections} ${unit} · ไม่บังคับ`
 })
 const selectedGroupId = ref(null)
-const statusError = ref('')
+function reportActionError(message) {
+  if (!store.toasts.some(toast => toast.type === 'error' && toast.message === message)) store.showToast(message, 'error')
+}
 const selectedGroup = computed(() => store.addonGroups.find(group => group.id === selectedGroupId.value) || store.addonGroups[0])
 const addonMap = computed(() => new Map(store.addons.map(addon => [addon.id, addon])))
 const detailSelection = ref(null)
@@ -316,10 +317,9 @@ function formatPriceSummary(prices = {}) {
   return values.some(price => price > 0) ? values.sort((a, b) => a - b).map(price => price === 0 ? 'ฟรี' : analysisMoney(price)).join(' / ') : 'ฟรี'
 }
 const setOptionActive = (group, id, active) => runAction('availability', async () => {
-  statusError.value = ''
   const options = group.options.map(option => option.addonId === id ? { ...option, paused: !active } : option)
   const result = await store.saveAddonGroup({ ...group, options, ...(store.cloud ? { expectedCatalogRevision: store.catalogRevision } : {}) })
-  if (!result?.ok) statusError.value = result?.message || 'เปลี่ยนสถานะไม่สำเร็จ กรุณาลองใหม่'
+  if (!result?.ok) reportActionError(result?.message || 'เปลี่ยนสถานะไม่สำเร็จ กรุณาลองใหม่')
 })
 const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const optionFor = id => draft.value.options?.find(option => option.addonId === id)
@@ -530,7 +530,6 @@ async function performSave() {
 }
 const remove=group=>runAction('delete-'+group.id,()=>performRemove(group))
 async function performRemove(group) {
-  statusError.value = ''
   const affected = store.menus.filter(menu => menu.addonGroupIds?.includes(group.id))
   const options = store.cloud
     ? { expectedCatalogRevision: store.catalogRevision }
@@ -545,7 +544,7 @@ async function performRemove(group) {
   })
   if (!accepted) return
   const result = await store.deleteAddonGroup(group.id, options)
-  if (!result?.ok) statusError.value = result?.message || 'ลบกลุ่มไม่สำเร็จ กรุณาตรวจผลรายการก่อนลองอีกครั้ง'
+  if (!result?.ok) reportActionError(result?.message || 'ลบกลุ่มไม่สำเร็จ กรุณาตรวจผลรายการก่อนลองอีกครั้ง')
 }
 
 </script>

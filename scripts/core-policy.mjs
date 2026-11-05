@@ -262,6 +262,26 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
    const end=body.lastIndexOf(';');body=body.slice(0,end)+' && catalogChecksPresent(s,g,id,o) && getAfter(catalogAdmissionPath(s,g,id)).data.opId==id'+body.slice(end)
   }
   if(name==='menuData')body=body.replace("'rawRecipe','hasPackage'","'baseMaterialIds','rawRecipe','hasPackage'").replaceAll('c.summaryMaterials',"c.get('recipeRegistryIds',c.summaryMaterials)").replace('return m.keys()',"return m.get('baseMaterialIds',m.recipe.keys()) is list && m.get('baseMaterialIds',m.recipe.keys()).size()<=16 && m.get('baseMaterialIds',m.recipe.keys()).toSet().size()==m.get('baseMaterialIds',m.recipe.keys()).size() && m.get('baseMaterialIds',m.recipe.keys()).hasOnly(m.recipe.keys()) && m.recipe.keys().hasOnly(m.get('rawRecipe',m.recipe).keys()) && m.keys()")
+  if(name==='menuBindings')body=replace(body,' && (a.size()<2 || groupBinding(c,old,id,a[1],a,b))','')
+  if(name==='groupBinding'){
+   const at=body.indexOf('return ')
+   body=body.slice(0,at)+'let previousMenuIds=a.menuIds;\n'+body.slice(at).replaceAll('a.menuIds','previousMenuIds')
+  }
+  if(name==='menuShapeProof')body=body.replace('writable(s,g) &&', "root.status=='active' && root.generation==g &&")
+  if(name==='menuData'){
+   // Cache repeated reads. Every validation predicate keeps its original order.
+   const cached=[
+    ["m.get('baseMaterialIds',m.recipe.keys())",'menuBaseIds'],
+    ['m.recipe.keys()','menuRecipeKeys'],
+    ['m.materialIds','menuMaterialIds'],
+    ['m.optionIds','menuOptionIds'],
+    ['m.keys()','menuKeys']
+   ]
+   const at=body.indexOf('return ')
+   let predicate=body.slice(at)
+   for(const [expression,alias] of cached)predicate=predicate.split(expression).join(alias)
+   body=body.slice(0,at)+cached.map(([expression,alias])=>`let ${alias}=${expression};`).join('\n')+'\n'+predicate
+  }
   if(name==='addonData')body=body.replace("['recipe','pricesCents','name','active']","['materialIds','recipe','pricesCents','name','active']").replaceAll('c.summaryMaterials',"c.get('recipeRegistryIds',c.summaryMaterials)").replace('return a.keys()',"return a.get('materialIds',a.recipe.keys()) is list && a.get('materialIds',a.recipe.keys()).size()<=16 && a.get('materialIds',a.recipe.keys()).toSet().size()==a.get('materialIds',a.recipe.keys()).size() && a.get('materialIds',a.recipe.keys()).hasOnly(a.recipe.keys()) && a.keys()")
   if(name==='addonShapeProof')body=body.replace("root.revision==o.shopRevision;", "root.revision==o.shopRevision && addonData(root.catalog,o.entityId);")
   if(name==='catalogInputReceipt')body=body.replace("a==n", "n.diff(a).affectedKeys().hasOnly(['materialIds'])").replace("'revision','choiceMaterials'","'baseMaterialIds','revision','choiceMaterials'")

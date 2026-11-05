@@ -113,7 +113,7 @@ export function createCatalogBindings({snapshot,mutate,error}){
     const menu=menus.get(menuId)
     if(!menu)throw new Error('ไม่พบเมนูที่เชื่อมกับกลุ่ม กรุณาโหลดข้อมูลล่าสุด')
     const addonGroupIds=(menu.addonGroupIds||[]).filter(groupId=>groupId!==id)
-    const payload=menuPayload({...menu,addonGroupIds,hasAddons:addonGroupIds.length>0})
+    const payload=menuPayload({...menu,name:d.display.menus?.[menuId]?.name||menu.name,addonGroupIds,hasAddons:addonGroupIds.length>0})
     if(d.display.menus?.[menuId])payload.display=clone(d.display.menus[menuId])
     entries.push({kind:'menu',payload})
    }

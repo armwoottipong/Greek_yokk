@@ -50,6 +50,23 @@ it.each(['omitCheck','omitAdmitted','omitInputProof','forgedInput','omitDisplay'
  if(tamper==='forgedStock'){const m=structuredClone(base.materials[0]);m.stock++;b.set(doc(db,`${gen}/materials/${m.id}`),m)}
  await assertFails(b.commit());expect((await api.snapshot()).shop.revision).toBe(base.shop.revision)
 })
+it.each(['wrongSecondBinding','missingSecondBindingProof'])('rejects %s while detaching a second group',async tamper=>{
+ const base=await seed(),{db,api}=setup()
+ await api.commit(addon(base.shop))
+ for(const id of ['G','H'])await api.commit(group(base.shop,id))
+ await api.commit(menu(base.shop))
+ const before=await api.snapshot()
+ const command=menu(before.shop)
+ command.opId='DETACH_SECOND'
+ command.payload.input.groupIds=['G']
+ const f=planInventoryCommand(before.shop,before.materials,command,'cashier')
+ await admissionParts(db,command,f,before.shop)
+ const display=(await getDoc(doc(db,gen+'/display/catalog'))).data()
+ if(tamper==='wrongSecondBinding')f.nextShop.catalog.groups.H.menuIds=before.shop.catalog.groups.H.menuIds
+ if(tamper==='missingSecondBindingProof')f.checkProofs=f.checkProofs.filter(proof=>proof.index!==7)
+ await assertFails(catalogBatch(db,command,f,display).commit())
+ expect((await api.snapshot()).shop.revision).toBe(before.shop.revision)
+})
 it('fences races at the expected revision and supports addon slot twelve',async()=>{
  const base=await seed(),a=setup().api,b=setup('other').api
  const command=addon(base.shop);command.payload.expectedRevision=base.shop.revision

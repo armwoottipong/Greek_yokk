@@ -1,6 +1,13 @@
 // Additional catalog surfaces remain tied to the same immutable operation and
 // validated root. Display changes cannot alter unrelated imported metadata.
 export const catalogPolicy=String.raw`
+ // A menu can have two previous groups. Validate the second reverse binding
+ // in mandatory check7 so the shape witness stays below the evaluation limit.
+ function previousSecondBinding(c,old,id,create) {
+  let a=create ? [] : assignedGroups(old.menus[id]);
+  let b=assignedGroups(c.menus[id]);
+  return a.size()<2 || groupBinding(c,old,id,a[1],a,b);
+ }
  function catalogInputPath(s,g,id) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/operations/$(id)/referenceProofs/input; }
  function catalogInputProof(s,g,id,index,d) {
   let root=rootAfter(s);

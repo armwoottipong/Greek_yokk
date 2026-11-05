@@ -5,6 +5,7 @@
       <div
         v-for="toast in store.toasts"
         :key="toast.id"
+        :data-toast-id="toast.id"
         :role="toast.type === 'error' ? 'alert' : undefined"
         @mouseenter="pause(toast.id, 'hover')" @mouseleave="resume(toast.id, 'hover')" @focusin="pause(toast.id, 'focus')" @focusout="resume(toast.id, 'focus')"
         aria-atomic="true"
@@ -20,8 +21,14 @@
         <CheckCircle2 v-if="toast.type === 'success'" aria-hidden="true" class="w-4 h-4 text-emerald-400 shrink-0" />
         <AlertTriangle v-else-if="toast.type === 'error'" aria-hidden="true" class="w-4 h-4 text-rose-400 shrink-0" />
         <Info v-else aria-hidden="true" class="w-4 h-4 text-white shrink-0" />
-        <span class="flex-1 leading-relaxed">{{ toast.message }}</span>
-        <button type="button" aria-label="ปิดข้อความแจ้งเตือน" class="toast-dismiss" @click="store.dismissToast(toast.id)"><X :size="18" aria-hidden="true" /></button>
+        <div class="toast-content">
+         <span>{{ toast.message }}</span>
+         <details v-if="toast.detail"><summary>รายละเอียด</summary><small>{{ toast.detail }}</small></details>
+         <div v-if="toast.actions?.length" class="toast-actions">
+          <button v-for="action in toast.actions" :key="action.label" type="button" :disabled="action.disabled" :data-retry-command="action.id === 'retry' ? '' : undefined" :data-stop-command="action.id === 'stop' ? '' : undefined" @click="action.run()">{{ action.label }}</button>
+         </div>
+        </div>
+        <button v-if="toast.dismissible !== false" type="button" aria-label="ปิดข้อความแจ้งเตือน" class="toast-dismiss" @click="store.dismissToast(toast.id)"><X :size="18" aria-hidden="true" /></button>
       </div>
     </transition-group>
   </div>
@@ -45,15 +52,16 @@ watch(()=>store.toasts.map(t=>({id:t.id,type:t.type,message:t.message})),async t
 function schedule(id,entry){entry.started=Date.now();entry.handle=setTimeout(()=>{store.dismissToast(id);timers.delete(id)},entry.remaining)}
 function pause(id,kind){const entry=timers.get(id);if(!entry)return;entry[kind]=true;if(entry.paused)return;clearTimeout(entry.handle);entry.remaining=Math.max(0,entry.remaining-(Date.now()-entry.started));entry.paused=true}
 function resume(id,kind){const entry=timers.get(id);if(!entry)return;entry[kind]=false;if(!entry.paused||entry.hover||entry.focus)return;entry.paused=false;schedule(id,entry)}
-watch(()=>store.toasts.map(t=>t.id),()=>{
- for(const [id,entry] of timers)if(!store.toasts.some(t=>t.id===id)){clearTimeout(entry.handle);timers.delete(id)}
- for(const toast of store.toasts)if(!timers.has(toast.id)){const entry={remaining:toast.type==='error'?8000:5000,paused:false,hover:false,focus:false};timers.set(toast.id,entry);schedule(toast.id,entry)}
+watch(()=>store.toasts.map(t=>({id:t.id,persistent:t.persistent})),()=>{
+ for(const [id,entry] of timers)if(!store.toasts.some(t=>t.id===id&&!t.persistent)){clearTimeout(entry.handle);timers.delete(id)}
+ for(const toast of store.toasts)if(!toast.persistent&&!timers.has(toast.id)){const entry={remaining:toast.type==='error'?8000:5000,paused:false,hover:false,focus:false};timers.set(toast.id,entry);schedule(toast.id,entry)}
 },{immediate:true})
 onUnmounted(()=>{for(const entry of timers.values())clearTimeout(entry.handle);timers.clear()})
 </script>
 
 <style scoped>
 .ui-toasts{position:fixed;right:16px;bottom:max(16px,env(safe-area-inset-bottom));width:min(384px,calc(100vw - 32px));z-index:160;display:flex;flex-direction:column;gap:8px;pointer-events:none}.ui-toasts>div:not(.sr-only){pointer-events:auto;overflow-wrap:anywhere;font-size:.8125rem;line-height:1.6}
+.toast-content{flex:1;min-width:0;line-height:1.7}.toast-content details{margin-top:6px;color:inherit}.toast-content summary{cursor:pointer}.toast-content small{display:block;overflow-wrap:anywhere}.toast-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.toast-actions button{min-height:40px;padding:6px 10px;border:1px solid currentColor;border-radius:8px;text-align:start}.toast-actions button:disabled{opacity:.5}.toast-actions button:focus-visible{text-decoration:underline}
 .toast-dismiss{display:flex;align-items:center;justify-content:center;flex-shrink:0;min-width:44px;min-height:44px;border-radius:8px;color:inherit}.toast-dismiss:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 @media(max-width:767px){.ui-toasts{top:max(12px,env(safe-area-inset-top));bottom:auto}}
 @media(prefers-reduced-motion:no-preference){

@@ -65,6 +65,7 @@ export const recipeAdmissionPolicy=String.raw`
   let part=index=='check0'?0:index=='check1'?1:index=='check2'?2:index=='check3'?3:index=='check4'?4:index=='check5'?5:index=='check6'?6:index=='check7'?7:-1;
   return writable(s,g) && part>=0 && d.keys().hasOnly(['opId']) && d.opId==id && o.uid==request.auth.uid &&
    o.kind in ['menu','group','catalog'] && root.lastOpId==id && root.lastOpKind==o.kind && root.revision==o.shopRevision &&
-   catalogCheckSlot(s,root.catalog,o,part*2) && catalogCheckSlot(s,root.catalog,o,part*2+1);
+   catalogCheckSlot(s,root.catalog,o,part*2) && catalogCheckSlot(s,root.catalog,o,part*2+1) &&
+   (part!=7 || o.kind!='menu' || previousSecondBinding(root.catalog,get(rootPath(s)).data.catalog,o.entityId,o.get('create',false)));
  }
 `;

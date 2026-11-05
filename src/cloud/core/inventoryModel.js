@@ -122,7 +122,12 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
    })
    return {count:items.length,items,text:items.map(item=>item.name).join(', ')}
   },
-  showToast(message,type='info'){state.toasts.push({id:crypto.randomUUID(),message,type})},dismissToast(id){state.toasts=state.toasts.filter(t=>t.id!==id)},
+  showToast(message,type='info',options={}){
+   const toast={id:crypto.randomUUID(),message,type,...options}
+   const index=state.toasts.findIndex(item=>item.id===toast.id)
+   if(index<0)state.toasts.push(toast)
+   else state.toasts[index]=toast
+  },dismissToast(id){state.toasts=state.toasts.filter(t=>t.id!==id)},
   initStockDraftSnapshot(){},commitStockDrafts:commit,commitCatalogChanges:commit,
   discardCatalogChanges(){return this.discardStockDrafts()},
   discardStockDrafts(){if(state.saving||state.uncertain)return error('แบบร่างนี้มีคำสั่งที่รอตรวจผล กรุณาตรวจผลจากแถบสถานะด้านบนก่อนยกเลิก');state.commands=[];state.base=null;state.conflict=false;virtual.value=latest.value;persist();return {ok:true}},

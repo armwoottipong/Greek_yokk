@@ -23,3 +23,20 @@ it('pauses an error while hovered or focused, resumes remaining time, and clears
   store.showToast('อีกข้อความ','error');await w.vm.$nextTick();w.unmount();expect(vi.getTimerCount()).toBe(0)
  }finally{w.unmount();vi.useRealTimers()}
 })
+
+it('keeps recovery actions available until a persistent toast is resolved',async()=>{
+ vi.useFakeTimers()
+ const store=createTestStore(),retry=vi.fn()
+ store.toasts=[{id:'pending',type:'error',message:'รอตรวจผล',persistent:true,dismissible:false,actions:[{label:'ตรวจผล',run:retry}]}]
+ const wrapper=mount(Toast)
+ try{
+  await vi.advanceTimersByTimeAsync(60000)
+  expect(store.toasts).toHaveLength(1)
+  expect(wrapper.find('[aria-label="ปิดข้อความแจ้งเตือน"]').exists()).toBe(false)
+  await wrapper.get('.toast-actions button').trigger('click')
+  expect(retry).toHaveBeenCalledOnce()
+  store.dismissToast('pending')
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('[data-toast-id="pending"]').exists()).toBe(false)
+ }finally{wrapper.unmount();vi.useRealTimers()}
+})

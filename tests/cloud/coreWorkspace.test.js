@@ -48,10 +48,10 @@ it('hides a restored pending command while initial recovery is still checking',a
  try{
   await flushPromises()
   expect(h.recover).toHaveBeenCalledWith(command)
-  expect(w.find('.pending-panel').exists()).toBe(false)
+  expect(w.find('[data-toast-id="pending-command"]').exists()).toBe(false)
   finishRecovery({ok:false,code:'PENDING_RESULT'})
   await flushPromises()
-  expect(w.get('.pending-panel').text()).toContain('RESTORED')
+  expect(w.get('[data-toast-id="pending-command"]').text()).toContain('RESTORED')
  }finally{w.unmount()}
 })
 it('recovers another tab’s resolved command during reload without resubmission',async()=>{
@@ -60,14 +60,14 @@ it('recovers another tab’s resolved command during reload without resubmission
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  h.recover.mockResolvedValue({ok:true,value:{...command,rejected:true,code:'STALE_INVENTORY_DRAFT'}})
  await w.get('button[aria-label="โหลดข้อมูลล่าสุด"]').trigger('click');await flushPromises()
- expect(w.find('.pending-panel').exists()).toBe(false);expect(h.execute).not.toHaveBeenCalled();w.unmount()
+ expect(w.find('[data-toast-id="pending-command"]').exists()).toBe(false);expect(h.execute).not.toHaveBeenCalled();w.unmount()
 })
 it('does not lock the shop for a new sale refused before journal submission',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
  h.execute.mockResolvedValueOnce({ok:false,code:'NOT_READY',outcome:'blocked'})
  await w.get('[data-checkout]').trigger('click');await flushPromises()
- expect(w.find('.pending-panel').exists()).toBe(false);expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
+ expect(w.find('[data-toast-id="pending-command"]').exists()).toBe(false);expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
 })
 it('shows the real access failure and operation identity for an uncertain sale',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
@@ -75,10 +75,10 @@ it('shows the real access failure and operation identity for an uncertain sale',
  let finishRequest
  h.execute.mockImplementationOnce(()=>new Promise(resolve=>{finishRequest=resolve}))
  await w.get('[data-checkout]').trigger('click');await flushPromises()
- expect(w.find('.pending-panel').exists()).toBe(false)
+ expect(w.find('[data-toast-id="pending-command"]').exists()).toBe(false)
  finishRequest({ok:false,code:'PENDING_RESULT',causeCode:'permission-denied',outcome:'uncertain'})
  await flushPromises()
- expect(w.get('.pending-panel').text()).toContain('สิทธิ์');expect(w.get('.pending-panel').text()).toContain(h.execute.mock.calls.at(-1)[0].opId)
+ expect(w.get('[data-toast-id="pending-command"]').text()).toContain('สิทธิ์');expect(w.get('[data-toast-id="pending-command"]').text()).toContain(h.execute.mock.calls.at(-1)[0].opId)
  w.unmount()
 })
 it('honors a committed receipt when another tab resolves during unsent cleanup',async()=>{
@@ -97,7 +97,7 @@ it('recovers an uncertain inventory draft even when the parent session command w
  sessionStorage.setItem(`gy-inventory-drafts-v1:${key}`,JSON.stringify({base:data,commands:[command],uncertain:true,conflict:false}))
  h.load.mockResolvedValue(data)
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
- expect(h.recover).toHaveBeenCalledWith(command);expect(w.get('.pending-panel').text()).toContain('ORPHAN')
+ expect(h.recover).toHaveBeenCalledWith(command);expect(w.get('[data-toast-id="pending-command"]').text()).toContain('ORPHAN')
  w.unmount()
 })
 it('shows the four-line limit for a sixteen-material shop and prevents creating a fifth line',async()=>{
@@ -134,7 +134,7 @@ it('opens the trial workspace, retains cart after uncertain results, and only cl
  expect(w.get('.pos-catalog').isVisible()).toBe(false)
  h.execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT'})
  await w.get('[data-checkout]').trigger('click');await flushPromises()
- expect(w.findAll('[data-cart-line]')).toHaveLength(1);expect(w.text()).toContain('ยังไม่ทราบผล')
+ expect(w.findAll('[data-cart-line]')).toHaveLength(1);expect(w.get('[data-toast-id="pending-command"]').text()).toContain('ยังยืนยันผล')
  await w.get('[data-retry-command]').trigger('click');await flushPromises()
  expect(w.findAll('[data-cart-line]')).toHaveLength(0);expect(w.find('.notice').exists()).toBe(false);expect(w.get('.ui-toasts').text()).toContain('บันทึกสำเร็จ');w.unmount()
 })
@@ -283,10 +283,10 @@ it('hides pending sale actions until stopping and reloading finish',async()=>{
  const d=await h.load();let resolveLoad
  h.load.mockImplementationOnce(()=>new Promise(r=>{resolveLoad=r}))
  h.abandon.mockResolvedValue({ok:true,value:{kind:'sale',abandoned:true,opId:'stopped'}})
- const button=()=>w.get('.pending-panel .ui-button--secondary')
+ const button=()=>w.get('[data-stop-command]')
  await button().trigger('click');await flushPromises()
- expect(w.find('.pending-panel').exists()).toBe(false);expect(h.abandon).toHaveBeenCalledTimes(1)
- resolveLoad(d);await flushPromises();expect(w.find('.pending-panel').exists()).toBe(false);expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
+ expect(w.find('[data-toast-id="pending-command"]').exists()).toBe(false);expect(h.abandon).toHaveBeenCalledTimes(1)
+ resolveLoad(d);await flushPromises();expect(w.find('[data-toast-id="pending-command"]').exists()).toBe(false);expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
 })
 
 

@@ -1,9 +1,6 @@
 <template>
  <CloudProductShell :model="productModel" :title="pageTitle" :history-label="historyLabel" :loading="loading||reloading" :busy="busy" :online="online" @history="openPageHistory" @reload="reloadEverything" @sign-out="$emit('sign-out')">
   <p v-if="data?.display.trial" class="trial-banner"><strong>ข้อมูลทดสอบ — ยังไม่ใช่ยอดร้านปัจจุบัน</strong><br>จากไฟล์สำรอง {{ sourceDate }} · <a :href="localUrl">เปิดระบบเดิม</a></p>
-  <p v-if="!state.serverReady||!online" class="connection-warning" role="status">ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว กรุณาเชื่อมต่อก่อนบันทึก</p>
-  <p v-if="error" class="error" role="alert">{{ error }}</p>
-  <section v-if="showPendingPanel" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>{{ pendingLabel }} · เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนบันทึกรายการใหม่ เพื่อไม่บันทึกซ้ำ</p><p v-if="pendingCause">{{ explain({code:pendingCause}) }}</p><details><summary>รายละเอียดรายการรอตรวจผล</summary><p>รหัสรายการ: {{ pendingCommand.opId }}</p><p v-if="pendingCause">รหัสสาเหตุ: {{ pendingCause }}</p></details><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button><Button v-else-if="pendingCommand.payload?.expectedRevision!==undefined" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='stop'" @click="stopPending">หยุดรายการที่ยังไม่สำเร็จและเก็บแบบร่าง</Button></section>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
    <section v-if="operator" v-show="tab==='sale'" ref="saleRoot" class="pos-workspace" :class="{'is-split':split,'is-cart-page':!split&&cartOpen}" aria-label="ขายสินค้า">
@@ -14,7 +11,6 @@
        <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ · เมนู ตัวเลือก และหมายเหตุที่เหมือนกันจะรวมจำนวน</p>
        <section v-if="shortages.length" class="shortage"><h3>สต็อกไม่พอ</h3><p v-for="[id,q] in shortages" :key="id">{{ materialName(id) }} ขาด {{ amount(q) }} {{ material(id)?.unit }}</p><label><input v-model="approveShortage" type="checkbox" :disabled="locked"> ยืนยันขายตามจำนวนที่ขาดข้างต้น</label></section>
        <p v-if="previewError" class="error" role="alert">{{ previewError }}</p>
-       <div v-if="showPendingPanel"><strong>ยังไม่ทราบผลการบันทึก</strong><p>ตรวจผลด้วยคำสั่งเดิมก่อนเริ่มบิลใหม่</p><Button :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="quiet" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลและเก็บตะกร้า</Button></div>
        <p>ยืนยันจากเซิร์ฟเวอร์ก่อนถือว่าขายสำเร็จ · บรรจุภัณฑ์ตัดตามสูตรที่บันทึกไว้</p>
       </div>
      </template>
@@ -282,6 +278,27 @@ async function send(command,action=command.kind){
  }catch(e){if(!disposed){pendingCause.value=e.code||e.message;error.value=explain(e);save()}return {ok:false,code:'PENDING_RESULT',outcome:'uncertain'}}
  finally{try{if(!disposed&&!refreshed)await reloadEverything()}finally{busy.value=false;activeAction.value=''}}
 }
+watch([showPendingPanel,()=>pendingCommand.value?.opId,pendingCause,ready,inventoryWorkspace],()=>{
+ const model=inventoryWorkspace.value?.model
+ if(!model)return
+ if(!showPendingPanel.value){model.dismissToast('pending-command');return}
+ const actions=[{id:'retry',label:'ตรวจผลและลองต่อ',disabled:!ready.value,run:retry}]
+ if(pendingCommand.value.kind==='sale')actions.push({id:'stop',label:'หยุดบิลและเก็บตะกร้า',disabled:!ready.value,run:abandon})
+ else if(pendingCommand.value.payload?.expectedRevision!==undefined)actions.push({id:'stop',label:'หยุดรายการและเก็บแบบร่าง',disabled:!ready.value,run:stopPending})
+ model.showToast(`${pendingLabel.value} · ยังยืนยันผลการบันทึกไม่ได้${pendingCause.value?' · '+explain({code:pendingCause.value}):''}`,'error',{
+  id:'pending-command',persistent:true,dismissible:false,
+  detail:`รหัสรายการ ${pendingCommand.value.opId}${pendingCause.value?' · '+pendingCause.value:''}`,actions
+ })
+},{flush:'post'})
+watch([online,()=>props.state.serverReady,inventoryWorkspace],()=>{
+ const model=inventoryWorkspace.value?.model
+ if(!model)return
+ if(online.value&&props.state.serverReady){model.dismissToast('cloud-connection');return}
+ model.showToast('ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว กรุณาเชื่อมต่อก่อนบันทึก','info',{id:'cloud-connection',persistent:true})
+},{flush:'post'})
+watch([error,inventoryWorkspace],([message])=>{
+ if(message&&!pendingCommand.value)showToast(message,'error')
+},{flush:'post'})
 function showToast(message, type='info'){
  inventoryWorkspace.value?.model.showToast(message,type)
 }

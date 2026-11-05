@@ -110,6 +110,8 @@ it('detaches only the deleted group from two-group menus and rejects a stale con
  const revision=model.catalogRevision
  expect(await model.deleteAddonGroup(first.id,{expectedCatalogRevision:revision-1})).toMatchObject({ok:false})
  expect(model.menus.find(menu=>menu.id==='SIMPLE').addonGroupIds).toEqual([first.id,second.id])
+ snapshot().display.menus.SIMPLE.name='Renamed display menu'
+ model.update(snapshot())
  const before=JSON.parse(JSON.stringify(model.menus.find(menu=>menu.id==='SIMPLE')))
  expect(await model.deleteAddonGroup(first.id,{expectedCatalogRevision:revision})).toMatchObject({ok:true})
  expect(model.menus.find(menu=>menu.id==='SIMPLE')).toMatchObject({addonGroupIds:[second.id],hasAddons:true,recipe:before.recipe,prices:before.prices})
