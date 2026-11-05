@@ -1816,11 +1816,25 @@ const posDefinition = {
       const option = group?.options.find(o => o.addonId === selection.id)
       return group && option ? optionPrices(group, option, addon) : selection.prices || {}
     },
-    saveAddonGroup(data) {
-      const message = groupError(data, this.addons)
-      if (message) { this.showToast(message, 'error'); return { ok: false, message } }
+    saveAddonGroup({ newAddons = [], menuIds, ...data }) {
       const candidate = this.databaseSnapshot()
       const id = data.id || createEntityId('GROUP', this.addonGroups.map(g => g.id))
+      candidate.addons.push(...clone(newAddons))
+      let message = groupError(data, candidate.addons)
+      if (!message && menuIds !== undefined) {
+        for (const menu of candidate.menus) {
+          const current = menu.addonGroupIds || []
+          const selected = menuIds.includes(menu.id)
+          if (selected === current.includes(id)) continue
+          if (selected && current.length >= 2) {
+            message = 'บางเมนูมีกลุ่มตัวเลือกครบแล้ว กรุณาตรวจเมนูที่เลือก'
+            break
+          }
+          menu.addonGroupIds = selected ? [...current, id] : current.filter(groupId => groupId !== id)
+          menu.hasAddons = menu.addonGroupIds.length > 0
+        }
+      }
+      if (message) { this.showToast(message, 'error'); return { ok: false, message } }
       const index = candidate.addonGroups.findIndex(g => g.id === id)
       const group = { ...clone(data), id, name: data.name.trim() }
       if (index < 0) candidate.addonGroups.push(group)

@@ -6,7 +6,6 @@ import { loadDatabase } from '../../src/services/localDatabase'
 import Custom from '../../src/components/modals/CustomOrderModal.vue'
 import MenuEdit from '../../src/components/modals/MenuEditModal.vue'
 import AddonView from '../../src/views/AddonView.vue'
-import AddonEdit from '../../src/components/modals/AddonEditModal.vue'
 import GroupManager from '../../src/components/catalog/AddonGroupManager.vue'
 import Frame from '../../src/components/ui/DialogFrame.vue'
 
@@ -16,34 +15,24 @@ function setup() {
   s.menus[0].addonGroupIds = ['G']
   return s
 }
+async function chooseOne(wrapper) {
+  await wrapper.get('[role="combobox"][aria-label="ลูกค้าเลือกอย่างไร"]').trigger('click')
+  await wrapper.findAll('[role="option"]').find(option => option.text() === 'ต้องเลือก 1 อย่าง').trigger('click')
+}
 it('creates and selects a stock-free option from the group without losing its draft', async () => {
   const s = setup()
   vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
-  const wrapper = mount({ render: () => h('div', [h(AddonView), h(AddonEdit)]) }, {
-    global: { stubs: { teleport: true } }
-  })
-  const workspace = wrapper.getComponent(AddonView)
-  const editor = wrapper.getComponent(AddonEdit)
+  const wrapper = mount(AddonView, { global: { stubs: { teleport: true } } })
   try {
-    await workspace.findAll('button').find(button => button.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
-    await workspace.get('#addon-group-name').setValue('กลุ่มใหม่')
-    await workspace.get('[data-group-add-option]').trigger('click')
-    await editor.get('#addon-name').setValue('ตัวเลือกใหม่')
-    await editor.vm.submit()
+    await wrapper.findAll('button').find(button => button.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
+    await wrapper.get('#addon-group-name').setValue('กลุ่มใหม่')
+    await wrapper.get('[data-group-add-option]').trigger('click')
+    await wrapper.get('[aria-label="ชื่อตัวเลือก"]').setValue('ตัวเลือกใหม่')
+    expect(s.addons.some(option => option.name === 'ตัวเลือกใหม่')).toBe(false)
+    await wrapper.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
     await flushPromises()
     const created = s.addons.find(option => option.name === 'ตัวเลือกใหม่')
-    expect(created).toBeDefined()
     expect(created.recipe).toEqual([])
-    expect(workspace.get('#addon-group-name').element.value).toBe('กลุ่มใหม่')
-    expect(workspace.get('[aria-label="ตัวเลือกใหม่"]').element.checked).toBe(true)
-    await workspace.get('[aria-label="ดูสูตรและราคาของ ตัวเลือกใหม่"]').trigger('click')
-    await vi.dynamicImportSettled()
-    const details = workspace.get('#group-option-details')
-    expect(details.get('[data-selected-addon-name]').text()).toBe('ตัวเลือกใหม่')
-    expect(details.find('[data-addon-select]').exists()).toBe(false)
-    await details.get('[aria-label="ปิดหน้าต่าง"]').trigger('click')
-    await workspace.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
-    await flushPromises()
     expect(loadDatabase(localStorage).value.addonGroups.find(group => group.name === 'กลุ่มใหม่')?.options).toEqual([{ addonId: created.id }])
   } finally {
     wrapper.unmount()
@@ -51,36 +40,42 @@ it('creates and selects a stock-free option from the group without losing its dr
 })
 it('adds one ingredient and one package from stock to a paid group option', async () => {
   const s = setup()
-  s.materials.push(material('BLUEBERRY', 100, { name: 'บลูเบอร์รีทดสอบ' }))
+  s.materials.push(material('BLUEBERRY', 100, { name: 'บลูเบอร์รีทดสอบ', unit: 'กรัม', hasSubRecipe: true }))
   s.materials.push(material('SPOON', 10, { name: 'ช้อนทดสอบ', inventoryType: 'packaging', unit: 'คัน' }))
   vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
-  const wrapper = mount({ render: () => h('div', [h(AddonView), h(AddonEdit)]) }, {
+  const wrapper = mount(AddonView, {
     attachTo: document.body, global: { stubs: { teleport: true } }
   })
   try {
     await wrapper.findAll('button').find(button => button.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
     await wrapper.get('#addon-group-name').setValue('กลุ่มจากคลัง')
     await wrapper.get('[data-group-add-option]').trigger('click')
-    for (const [id, name] of [['ingredient', 'บลูเบอร์รีทดสอบ'], ['packaging', 'ช้อนทดสอบ']]) {
-      await wrapper.get(`#group-option-${id}`).trigger('click')
+    for (const [id, name] of [['เลือกของจากคลัง', 'บลูเบอร์รีทดสอบ'], ['บรรจุภัณฑ์เพิ่มเติม', 'ช้อนทดสอบ']]) {
+      await wrapper.get(`[role="combobox"][aria-label="${id}"]`).trigger('click')
       await wrapper.findAll('[role="option"]').find(option => option.text().includes(name)).trigger('click')
     }
-    expect(wrapper.get('#addon-name').element.value).toBe('บลูเบอร์รีทดสอบ')
+    expect(wrapper.get('[aria-label="ชื่อตัวเลือก"]').element.value).toBe('บลูเบอร์รีทดสอบ')
     const platform = s.platforms[0]
-    await wrapper.get(`[aria-label="ราคา ${platform.name}"]`).setValue(12)
-    await wrapper.getComponent(AddonEdit).vm.submit()
-    await flushPromises()
-    const addon = s.addons.find(option => option.name === 'บลูเบอร์รีทดสอบ')
-    expect(addon.recipe).toEqual([{ materialId: 'BLUEBERRY', qty: 1 }, { materialId: 'SPOON', qty: 1 }])
+    await wrapper.get('[aria-label="จำนวนต่อที่"]').setValue(2.5)
+    expect(wrapper.get('[data-group-addon]').text()).toContain('กรัม')
+    expect(wrapper.get('[data-group-addon]').text()).toContain('คัน')
+    const row = wrapper.get('[data-group-addon]')
+    await row.get('input[id^="group-price-"]').setValue(12)
+    expect(row.find('[data-group-option-profit]').exists()).toBe(true)
+    const menuId = s.menus[1].id
+    await wrapper.get('[role="combobox"][aria-label="เชื่อมกับเมนู"]').trigger('click')
+    await wrapper.findAll('[role="option"]').find(option => option.text() === s.menus[1].name).trigger('click')
     await wrapper.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
     await flushPromises()
+    const addon = s.addons.find(option => option.name === 'บลูเบอร์รีทดสอบ')
+    expect(addon.recipe).toEqual([{ materialId: 'BLUEBERRY', qty: 2.5 }, { materialId: 'SPOON', qty: 1 }])
     const group = loadDatabase(localStorage).value.addonGroups.find(group => group.name === 'กลุ่มจากคลัง')
-    expect(group?.options[0].prices[platform.id]).toBe(12)
-    const menu = s.menus[0]
-    menu.addonGroupIds = [group.id]
+    expect(group.options[0].prices[platform.id]).toBe(12)
+    const menu = s.menus.find(item => item.id === menuId)
+    expect(menu.addonGroupIds).toEqual([group.id])
     expect(s.addToCart(menu, [{ id: addon.id, groupId: group.id }])).toBe(true)
     expect(s.checkout()).toBeTruthy()
-    expect(s.matMap.BLUEBERRY.stock).toBe(99)
+    expect(s.matMap.BLUEBERRY.stock).toBe(97.5)
     expect(s.matMap.SPOON.stock).toBe(9)
   } finally { wrapper.unmount() }
 })
@@ -100,7 +95,7 @@ it('requires complete group choices, caps kinds and adds free selections', async
     expect(s.cartSummary.subtotal).toBe(s.menus[0].prices[s.currentPlatformId])
   } finally { w.unmount() }
 })
-it('prepares a group link from the drawer and persists it only on menu save', async () => {
+it('persists a staged group link only when the group drawer saves', async () => {
   const s = setup()
   const menu = s.menus[1]
   vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
@@ -112,9 +107,9 @@ it('prepares a group link from the drawer and persists it only on menu save', as
     await wrapper.get('[role="combobox"][aria-label="เชื่อมกับเมนู"]').trigger('click')
     await wrapper.findAll('[role="option"]').find(option => option.text() === menu.name).trigger('click')
     await flushPromises()
-    expect(s.modals.menuEdit.menuId).toBe(menu.id)
     expect(s.menus.find(item => item.id === menu.id).addonGroupIds).toBeUndefined()
-    await wrapper.getComponent(MenuEdit).vm.submit()
+    await wrapper.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
+    await flushPromises()
     expect(loadDatabase(localStorage).value.menus.find(item => item.id === menu.id).addonGroupIds).toEqual(['G'])
   } finally { wrapper.unmount() }
 })
@@ -239,9 +234,8 @@ it('creates and reopens a reusable group in the option workspace', async () => {
     await w.findAll('button').find(b => b.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
     expect(w.get('[aria-label="พักขายอัตโนมัติเมื่อของหมด"]').element.checked).toBe(false)
     await w.get('#addon-group-name').setValue('ฟรี 1 ชนิด')
-    await w.get('#addon-group-min').setValue(1)
-    await w.get('#addon-group-max').setValue(1)
-    await w.get('[data-group-addon] input').setValue(true)
+    await chooseOne(w)
+    await w.get('input[data-existing-option]').setValue(true)
     await w.findAll('button').find(b => b.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
     await flushPromises()
     expect(s.addonGroups.find(g => g.name === 'ฟรี 1 ชนิด')).toMatchObject({ minSelections: 1, maxSelections: 1, pricingMode: 'included' })
@@ -288,9 +282,8 @@ it('returns to the menu picker with a newly created group selected',async()=>{
   expect(document.querySelector('#addon-group-editor')).not.toBeNull()
   const group=w.getComponent(GroupManager)
   await group.get('#addon-group-name').setValue('รับช้อนหรือไม่')
-  await group.get('#addon-group-min').setValue(1)
-  await group.get('#addon-group-max').setValue(1)
-  await group.get('[data-group-addon] input').setValue(true)
+  await chooseOne(group)
+  await group.get('input[data-existing-option]').setValue(true)
   await group.findAll('button').find(b=>b.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click');await flushPromises()
   const created=s.addonGroups.find(g=>g.name==='รับช้อนหรือไม่')
   expect(created).toBeTruthy()

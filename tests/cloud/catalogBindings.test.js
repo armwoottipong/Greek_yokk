@@ -42,15 +42,25 @@ it('saves original menu/addon fields with one quantity/price conversion and conf
  expect(await model.saveAddon({...addon,name:'Renamed addon',prices:{P:12.25},recipe:[{materialId:'S0',qty:2.5}]})).toMatchObject({ok:true})
  expect(snapshot().shop.catalog.addons.A0.pricesCents.P).toBe(1225);expect(snapshot().shop.catalog.addons.A0.recipe.S0).toBe(250);model.close()
 })
-it('creates and edits an original option group and binds it to a menu',async()=>{
+it('saves a new option, its group price and menu assignment through one group action',async()=>{
  const {model,snapshot}=fixture()
- expect(await model.saveAddonGroup({name:'Free choices',minSelections:0,maxSelections:3,pricingMode:'extra',allowRepeat:false,warnLowStock:true,autoPauseOutOfStock:true,options:[{addonId:'A0',paused:true,prices:{P:5}}]})).toMatchObject({ok:true})
- const group=model.addonGroups.find(g=>g.name==='Free choices');expect(group.options[0].prices.P).toBe(5)
- expect(group).toMatchObject({warnLowStock:true,autoPauseOutOfStock:true,options:[{addonId:'A0',paused:true}]})
- const menu=model.menus.find(m=>m.id==='SIMPLE')
- expect(await model.saveMenu({...menu,addonGroupIds:[group.id],hasAddons:true})).toMatchObject({ok:true})
- expect(snapshot().shop.catalog.groups[group.id].menuIds).toContain('SIMPLE')
- expect((await model.deleteAddonGroup(group.id)).ok).toBe(false);expect((await model.deleteAddon('A0')).ok).toBe(false);model.close()
+ const addonId='ADDON-TEST',menuId='SIMPLE'
+ const before=structuredClone(snapshot().shop.catalog.menus[menuId])
+ expect(await model.saveAddonGroup({
+  name:'Fruit choices',minSelections:0,maxSelections:3,pricingMode:'extra',allowRepeat:false,
+  warnLowStock:true,autoPauseOutOfStock:true,menuIds:[menuId],
+  newAddons:[{id:addonId,name:'New fruit',recipe:[{materialId:'S0',qty:2.5}],prices:{}}],
+  options:[{addonId,paused:true,prices:{P:5}}]
+ })).toMatchObject({ok:true})
+ const group=model.addonGroups.find(g=>g.name==='Fruit choices')
+ expect(group).toMatchObject({warnLowStock:true,autoPauseOutOfStock:true,options:[{addonId,paused:true,prices:{P:5}}]})
+ const catalog=snapshot().shop.catalog
+ expect(catalog.addons[addonId].recipe.S0).toBe(250)
+ expect(catalog.groups[group.id].menuIds).toContain(menuId)
+ expect(catalog.menus[menuId]).toMatchObject({recipe:before.recipe,pricesCents:before.pricesCents})
+ expect((await model.deleteAddonGroup(group.id)).ok).toBe(false)
+ expect((await model.deleteAddon(addonId)).ok).toBe(false)
+ model.close()
 })
 it('retires a menu from the original management list and detaches its option groups while retaining the canonical identity',async()=>{
  const {model,snapshot}=fixture()

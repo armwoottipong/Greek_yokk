@@ -41,8 +41,7 @@ const viewportStyle=computed(()=>({'--dialog-viewport-height':`${viewport.value.
 .dialog-frame-panel--side-drawer .dialog-frame-header{border-bottom:1px solid var(--border-subtle)}
 .dialog-frame-panel--side-drawer .dialog-frame-footer>:last-child{flex:1}
 @media(max-width:767px){
- .dialog-frame-shell.dialog-frame-shell--side-drawer{justify-content:center;align-items:flex-end}
- .dialog-frame-panel.dialog-frame-panel--side-drawer{height:min(90%,760px);border-radius:20px 20px 0 0}
+ .dialog-frame-panel.dialog-frame-panel--side-drawer{border-radius:0}
 }
 
 .dialog-frame-shell.dialog-frame-shell--drawer{padding:0;justify-content:center;align-items:flex-end}.dialog-frame-panel.dialog-frame-panel--drawer{width:min(100%,var(--dialog-width));height:auto;max-height:calc(var(--dialog-viewport-height) - 12px);border-radius:24px 24px 0 0;min-height:min(680px,calc(var(--dialog-viewport-height) - 12px))}.dialog-frame-panel--drawer .dialog-frame-header{padding-bottom:16px}.dialog-frame-panel--drawer .dialog-frame-body{padding-top:8px}
@@ -53,9 +52,6 @@ const viewportStyle=computed(()=>({'--dialog-viewport-height':`${viewport.value.
 @media(prefers-reduced-motion:no-preference) and (max-width:767px){.dialog-frame-panel--sheet.dialog-frame-enter-from,.dialog-frame-panel--sheet.dialog-frame-leave-to{transform:translateY(100%)}}
 @media(prefers-reduced-motion:no-preference){
  .dialog-frame-panel--side-drawer.dialog-frame-enter-from,.dialog-frame-panel--side-drawer.dialog-frame-leave-to{transform:translateX(100%)}
-}
-@media(prefers-reduced-motion:no-preference) and (max-width:767px){
- .dialog-frame-panel--side-drawer.dialog-frame-enter-from,.dialog-frame-panel--side-drawer.dialog-frame-leave-to{transform:translateY(100%)}
 }
 </style>
 <style scoped>

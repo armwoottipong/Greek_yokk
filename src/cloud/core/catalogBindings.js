@@ -30,6 +30,7 @@ export function createCatalogBindings({snapshot,mutate,error}){
   const display=retire?{...metadata(input,data.display.menus?.[id]),deleted:true}:metadata(input,data.display.menus?.[id])
   return {input:canonical,display}
  }
+ const addonCommand=input=>{const d=snapshot(),c=d.shop.catalog,id=input.id||`ADDON-${crypto.randomUUID()}`,old=c.addons[id];return {kind:'addon',payload:{entityId:id,input:{name:input.name.trim(),active:input.isActive??old?.active??true,pricesCents:money(input.prices,c),recipe:recipe(input.recipe,c,d.materials)},display:metadata(input,d.display.addons?.[id])}}}
  return {
   legacyOptionMigrationPlan:()=>{
    const data=snapshot()
@@ -60,9 +61,24 @@ export function createCatalogBindings({snapshot,mutate,error}){
   detachMaterialCommands:materialId=>detachMaterialCommands(snapshot(),materialId),
   saveMenu:guarded(input=>mutate([{kind:'menu',payload:menuPayload(input)}])),
   deleteMenu:guarded(id=>{const data=snapshot(),old=data.shop.catalog.menus[id];if(!old)return error('ไม่พบเมนู');return mutate([{kind:'menu',payload:menuPayload({id,name:data.display.menus?.[id]?.name||old.name,hasAddons:false},true)}])}),
-  saveAddon:guarded(input=>{version(input);const d=snapshot(),c=d.shop.catalog,id=input.id||`ADDON-${crypto.randomUUID()}`,old=c.addons[id];return mutate([{kind:'addon',payload:{entityId:id,input:{name:input.name.trim(),active:input.isActive??old?.active??true,pricesCents:money(input.prices,c),recipe:recipe(input.recipe,c,d.materials)},display:metadata(input,d.display.addons?.[id])}}])}),
+  saveAddon:guarded(input=>{version(input);return mutate([addonCommand(input)])}),
   deleteAddon:guarded(id=>{const d=snapshot(),c=d.shop.catalog,old=c.addons[id];if(!old)return error('ไม่พบตัวเลือกเสริม');if(Object.values(c.menus).some(m=>m.active&&m.optionIds.includes(id))||Object.values(c.groups||{}).some(g=>g.active&&g.optionIds.includes(id)))return error('ยังลบไม่ได้: ตัวเลือกเสริมนี้อยู่ในเมนูหรือกลุ่มตัวเลือก กรุณานำออกก่อน');return mutate([{kind:'addon',payload:{entityId:id,input:{...clone(old),active:false,recipe:{},materialIds:[]},display:{...metadata({name:d.display.addons?.[id]?.name||old.name||id},d.display.addons?.[id]),deleted:true}}}])}),
-  saveAddonGroup:guarded(input=>{version(input);const d=snapshot(),c=d.shop.catalog,id=input.id||`GROUP-${crypto.randomUUID()}`,ids=input.options.map(o=>o.addonId);return mutate([{kind:'group',payload:{input:{id,name:input.name.trim(),active:input.isActive!==false,min:Number(input.minSelections),max:Number(input.maxSelections),allowRepeat:!!input.allowRepeat,pricingMode:input.pricingMode,optionIds:ids,optionPrices:Object.fromEntries(c.platformIds.map(p=>[p,{_:0,...Object.fromEntries(input.options.filter(o=>o.prices&&Object.hasOwn(o.prices,p)).map(o=>[o.addonId,scaled(o.prices[p])]))}]))},display:metadata({name:input.name.trim(),description:encodeGroupAvailability(input)},d.display.groups?.[id])}}])}),
+  saveAddonGroup:guarded(input=>{
+   version(input)
+   const d=snapshot(),c=d.shop.catalog,id=input.id||`GROUP-${crypto.randomUUID()}`,ids=input.options.map(o=>o.addonId)
+   const entries=(input.newAddons||[]).map(addonCommand)
+   entries.push({kind:'group',payload:{input:{id,name:input.name.trim(),active:input.isActive!==false,min:Number(input.minSelections),max:Number(input.maxSelections),allowRepeat:!!input.allowRepeat,pricingMode:input.pricingMode,optionIds:ids,optionPrices:Object.fromEntries(c.platformIds.map(p=>[p,{_:0,...Object.fromEntries(input.options.filter(o=>o.prices&&Object.hasOwn(o.prices,p)).map(o=>[o.addonId,scaled(o.prices[p])]))}]))},display:metadata({name:input.name.trim(),description:encodeGroupAvailability(input)},d.display.groups?.[id])}})
+   if(input.menuIds!==undefined){
+    for(const menu of catalogMenus(d)){
+     const current=menu.addonGroupIds||[], selected=input.menuIds.includes(menu.id)
+     if(selected===current.includes(id))continue
+     const addonGroupIds=selected?[...current,id]:current.filter(groupId=>groupId!==id)
+     if(addonGroupIds.length>2)throw new Error('บางเมนูมีกลุ่มตัวเลือกครบแล้ว กรุณาตรวจเมนูที่เลือก')
+     entries.push({kind:'menu',payload:menuPayload({...menu,addonGroupIds,hasAddons:addonGroupIds.length>0})})
+    }
+   }
+   return mutate(entries)
+  }),
   deleteAddonGroup:guarded(id=>{const d=snapshot(),old=d.shop.catalog.groups[id];if(!old)return error('ไม่พบกลุ่มตัวเลือก');if(old.menuIds.length)return error('ยังลบไม่ได้: กลุ่มนี้ยังถูกใช้ในเมนู กรุณานำออกจากเมนูก่อน');const input=clone(old);delete input.revision;delete input.menuIds;delete input.multiMenuIds;input.active=false;return mutate([{kind:'group',payload:{input,display:{...metadata({name:old.name},d.display.groups?.[id]),deleted:true}}}])})
  }
 }
