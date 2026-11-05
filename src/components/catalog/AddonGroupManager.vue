@@ -135,20 +135,24 @@
     </section>
     <details ref="groupRules" class="group-rules" open>
      <summary class="group-drawer-band"><strong>กติกาการเลือก</strong><small>{{ ruleSummary }}</small></summary>
-     <FormField id="group-selection-rule" label="ลูกค้าเลือกอย่างไร" v-slot="{controlId}">
-      <AppSelect :id="controlId" aria-label="ลูกค้าเลือกอย่างไร" :model-value="selectionRule" @update:model-value="applySelectionRule">
-       <option value="optional">ไม่บังคับเลือก</option>
-       <option value="one">ต้องเลือก 1 อย่าง</option>
-       <option value="custom">กำหนดขั้นต่ำและสูงสุด</option>
-      </AppSelect>
-     </FormField>
-    <div v-if="selectionRule !== 'one'" class="group-fields"><FormField v-if="selectionRule === 'custom'" id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
-    <details class="group-stock-controls">
-     <summary>การแจ้งเตือนและพักขาย</summary>
-     <AppCheckbox v-model="draft.warnLowStock" variant="switch" label="เตือนเมื่อใกล้หมด">เตือนเมื่อใกล้หมด</AppCheckbox>
-     <AppCheckbox v-model="draft.autoPauseOutOfStock" variant="switch" label="พักขายอัตโนมัติเมื่อของหมด">พักขายอัตโนมัติเมื่อของหมด</AppCheckbox>
-     <p class="group-help">อิงจุดเตือนและจำนวนคงเหลือของวัตถุดิบในสูตร</p>
-    </details>
+     <div class="group-rule-body">
+      <FormField id="group-selection-rule" label="ลูกค้าเลือกอย่างไร" v-slot="{controlId}">
+       <AppSelect :id="controlId" aria-label="ลูกค้าเลือกอย่างไร" :model-value="selectionRule" @update:model-value="applySelectionRule">
+        <option value="optional">ไม่บังคับเลือก</option>
+        <option value="one">ต้องเลือก 1 อย่าง</option>
+        <option value="custom">กำหนดขั้นต่ำและสูงสุด</option>
+       </AppSelect>
+      </FormField>
+      <div v-if="selectionRule !== 'one'" class="group-fields"><FormField v-if="selectionRule === 'custom'" id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
+      <details class="group-stock-controls">
+       <summary>การแจ้งเตือนและพักขาย</summary>
+       <div class="group-stock-body">
+        <AppCheckbox v-model="draft.warnLowStock" variant="switch" label="เตือนเมื่อใกล้หมด">เตือนเมื่อใกล้หมด</AppCheckbox>
+        <AppCheckbox v-model="draft.autoPauseOutOfStock" variant="switch" label="พักขายอัตโนมัติเมื่อของหมด">พักขายอัตโนมัติเมื่อของหมด</AppCheckbox>
+        <p class="group-help">อิงจุดเตือนและจำนวนคงเหลือของวัตถุดิบในสูตร</p>
+       </div>
+      </details>
+     </div>
     </details>
     <section class="group-options group-drawer-section" aria-label="เมนูที่ใช้กลุ่มนี้">
      <h4 class="group-drawer-band">เมนูที่ใช้ตัวเลือกเสริมนี้</h4>
@@ -515,7 +519,7 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
 
 .group-item-status{font-size:.75rem;color:var(--text-muted)}
 .group-item-status[data-status=low],.group-item-status[data-status=out]{color:var(--state-danger)}
-.group-stock-controls,.group-price-fields{display:grid;gap:12px}
+.group-price-fields{display:grid;gap:12px}
 .option-groups{container-type:inline-size;grid-template-rows:auto minmax(0,1fr)}
 .group-mobile-picker{display:none}
 @container(min-width:681px){
@@ -573,14 +577,18 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
 .group-option-heading .ui-button{flex-shrink:0}
 .group-option-image{display:block;width:32px;height:32px;flex-shrink:0;border-radius:8px}
 .group-rules{padding:12px;border:1px solid var(--border-subtle);border-radius:12px}
-.group-rules[open]{display:grid;gap:12px}
 .group-rules summary{cursor:pointer}
 .group-linked-menus{margin:0;padding-inline-start:20px;font-size:.875rem}
 .group-rules summary small{margin-inline-start:8px;font-size:.75rem;color:var(--text-muted);font-weight:400}
-.group-drawer-form{gap:16px}
+.group-drawer-form{gap:24px}
 .group-drawer-band{background:var(--bg-soft);padding:10px 12px;border-radius:8px}
 .group-drawer-section .group-drawer-band{font-size:.875rem}
 .group-drawer-form .group-rules{border:0;padding:0}
-.group-drawer-form .group-stock-controls:not([open]){display:block}
+.group-rule-body{display:grid;gap:16px;padding-block-start:16px}
+.group-rule-body :deep(.app-select),.group-rule-body :deep(.app-select-trigger){width:100%}
+.group-stock-controls{padding:12px;border:1px solid var(--border-subtle);border-radius:12px}
 .group-stock-controls summary{cursor:pointer;font-size:.8125rem;font-weight:600}
+.group-stock-body{display:grid;gap:8px;padding-block-start:12px}
+.group-stock-body :deep(.app-checkbox){display:flex;min-height:44px;width:100%}
+.group-stock-body :deep(.app-checkbox-content){overflow-wrap:anywhere}
 </style>
