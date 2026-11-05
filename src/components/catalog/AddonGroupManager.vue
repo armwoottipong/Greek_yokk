@@ -186,7 +186,10 @@
        <AppCheckbox :model-value="selectedStockIds.includes(material.id)" :label="material.name"
         @update:model-value="toggleStock(material.id, $event)">
         <span class="stock-picker-item">
-         <strong>{{ material.name }}</strong>
+         <strong class="stock-picker-name">
+          <span class="group-item-image"><EntityImage kind="materials" :entity-id="material.id" :image="material.image" :emoji="material.emoji"/></span>
+          <span>{{ material.name }}</span>
+         </strong>
          <small>
           คงเหลือ {{ stockNumber.format(material.stock) }} {{ material.unit }}
           <span v-if="hasStockPack(material)">≈ {{ stockNumber.format(material.stock / material.packSize) }} {{ material.packUnit }}</span>
@@ -564,6 +567,8 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
 .stock-picker-list :deep(.app-checkbox){display:flex;width:100%;padding:10px 4px}
 .stock-picker-list :deep(.app-checkbox-content){flex:1}
 .stock-picker-item{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:4px 12px;align-items:center;width:100%}
+.stock-picker-name{display:flex;align-items:center;gap:8px;min-width:0;overflow-wrap:anywhere}
+.stock-picker-name .group-item-image{width:40px;height:40px;flex:none}
 .stock-picker-item small{color:var(--addon-text-secondary, var(--text-muted));font-variant-numeric:tabular-nums}
 .stock-picker-item small span{display:block}
 @media(max-width:520px){
