@@ -193,12 +193,12 @@
      <h4 class="group-drawer-band">{{ kind.label }}</h4>
      <ul class="stock-picker-list">
       <li v-for="material in kind.items" :key="material.id">
-       <AppCheckbox :model-value="selectedStockIds.includes(material.id)" :label="material.name"
+       <AppCheckbox :model-value="selectedStockIds.includes(material.id)" :label="material.name" :disabled="usedStockIds.has(material.id)"
         @update:model-value="toggleStock(material.id, $event)">
         <span class="stock-picker-item">
          <strong class="stock-picker-name">
           <span class="group-item-image"><EntityImage kind="materials" :entity-id="material.id" :image="material.image" :emoji="material.emoji"/></span>
-          <span>{{ material.name }}</span>
+          <span>{{ material.name }} <small v-if="usedStockIds.has(material.id)">อยู่ในกลุ่มแล้ว</small></span>
          </strong>
          <small>
           คงเหลือ {{ stockNumber.format(material.stock) }} {{ material.unit }}
@@ -233,7 +233,7 @@ import { Plus, Check, EllipsisVertical, Package, Scale, Tag, Trash2 } from 'luci
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
-import { optionPrices, optionAvailability, optionAvailabilityLabel } from '@/domain/addonGroups'
+import { optionPrices, optionAvailability, optionAvailabilityLabel, optionStockMaterialId } from '@/domain/addonGroups'
 import { MATERIAL_KIND_OPTIONS, getMaterialKind } from '@/domain/materialClassification'
 import { recipeCost, selectedItemCosts } from '@/domain/menuCosts'
 import CatalogAnalysisDialog from './CatalogAnalysisDialog.vue'
@@ -356,6 +356,8 @@ const stockPickerOpen = ref(false)
 const stockSearch = ref('')
 const selectedStockIds = ref([])
 const stockMaterials = computed(() => store.activeMaterials.filter(material => !material.isArchived))
+const usedStockIds = computed(() => new Set(editorAddons.value
+  .map(addon => optionStockMaterialId(addon, store.matMap)).filter(Boolean)))
 const stockPickerGroups = computed(() => {
   const query = stockSearch.value.trim().toLowerCase()
   return MATERIAL_KIND_OPTIONS.map(kind => ({
@@ -373,10 +375,11 @@ function openStockPicker() {
   stockPickerOpen.value = true
 }
 function toggleStock(id, checked) {
-  selectedStockIds.value = checked ? [...selectedStockIds.value, id] : selectedStockIds.value.filter(value => value !== id)
+  if (usedStockIds.value.has(id)) return
+  selectedStockIds.value = checked ? [...new Set([...selectedStockIds.value, id])] : selectedStockIds.value.filter(value => value !== id)
 }
 function addPickedOptions() {
-  for (const material of stockMaterials.value.filter(item => selectedStockIds.value.includes(item.id))) {
+  for (const material of stockMaterials.value.filter(item => selectedStockIds.value.includes(item.id) && !usedStockIds.value.has(item.id))) {
     addOption(material)
   }
   stockPickerOpen.value = false
@@ -390,12 +393,7 @@ function addManualOption() {
   manualOpen.value = false
 }
 function optionImage(addon) {
-  const recipe = addon.recipe || []
-  const ingredients = recipe.filter(row => store.matMap[row.materialId] && getMaterialKind(store.matMap[row.materialId]) !== 'packaging')
-  const materialId = recipe.length === 1 ? recipe[0].materialId
-      : ingredients.length === 1 && recipe.every(row => row === ingredients[0] || store.matMap[row.materialId]?.inventoryType === 'packaging')
-        ? ingredients[0].materialId : null
-  const material = store.matMap[materialId]
+  const material = store.matMap[optionStockMaterialId(addon, store.matMap)]
   return material
     ? { kind: 'materials', entityId: material.id, image: material.image, emoji: material.emoji }
     : { kind: 'addons', entityId: addon.isDraft ? undefined : addon.id, image: addon.image, emoji: addon.emoji }

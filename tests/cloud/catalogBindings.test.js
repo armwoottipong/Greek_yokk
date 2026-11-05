@@ -64,6 +64,11 @@ it('saves a new option, its group price and menu assignment through one group ac
   updatedAddons:[{...addon,recipe:[{materialId:'S0',qty:3.5}]}]
  })).toMatchObject({ok:true})
  expect(snapshot().shop.catalog.addons[addonId].recipe.S0).toBe(350)
+ const duplicate={...addon,id:'ADDON-DUPLICATE'}
+ expect(await model.saveAddonGroup({
+  ...group, options:[...group.options,{addonId:duplicate.id}],newAddons:[duplicate]
+ })).toMatchObject({ok:false,message:expect.stringContaining('วัตถุดิบนี้อยู่ในกลุ่มแล้ว')})
+ expect(snapshot().shop.catalog.addons[duplicate.id]).toBeUndefined()
  expect(snapshot().shop.catalog.groups[group.id].menuIds).toContain(menuId)
  expect((await model.deleteAddonGroup(group.id)).ok).toBe(false)
  expect((await model.deleteAddon(addonId)).ok).toBe(false)

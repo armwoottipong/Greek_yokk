@@ -1,6 +1,7 @@
 import {encodeGroupAvailability} from './groupAvailability.js'
 import {planLegacyOptionMigration} from './legacyOptionMigration.js'
-import {catalogMenus} from './catalogPresentation.js'
+import {duplicateNewStockOption} from '../../domain/addonGroups.js'
+import {catalogAddons,catalogMenus} from './catalogPresentation.js'
 import {toScaledExact} from '../conversion.js'
 import {detachMaterialCommands} from './catalogDetachment.js'
 const clone=v=>JSON.parse(JSON.stringify(v))
@@ -66,6 +67,13 @@ export function createCatalogBindings({snapshot,mutate,error}){
   saveAddonGroup:guarded(input=>{
    version(input)
    const d=snapshot(),c=d.shop.catalog,id=input.id||`GROUP-${crypto.randomUUID()}`,ids=input.options.map(o=>o.addonId)
+   if(input.newAddons?.length){
+    const changed=new Map((input.updatedAddons||[]).map(addon=>[addon.id,addon]))
+    const existing=catalogAddons(d).map(addon=>changed.get(addon.id)||addon)
+    const materials=Object.fromEntries(d.materials.map(material=>[material.id,material]))
+    const duplicate=duplicateNewStockOption(input.options,existing,input.newAddons,materials)
+    if(duplicate)throw new Error(duplicate)
+   }
    const entries=[...(input.newAddons||[]),...(input.updatedAddons||[])].map(addonCommand)
    entries.push({kind:'group',payload:{input:{id,name:input.name.trim(),active:input.isActive!==false,min:Number(input.minSelections),max:Number(input.maxSelections),allowRepeat:!!input.allowRepeat,pricingMode:input.pricingMode,optionIds:ids,optionPrices:Object.fromEntries(c.platformIds.map(p=>[p,{_:0,...Object.fromEntries(input.options.filter(o=>o.prices&&Object.hasOwn(o.prices,p)).map(o=>[o.addonId,scaled(o.prices[p])]))}]))},display:metadata({name:input.name.trim(),description:encodeGroupAvailability(input)},d.display.groups?.[id])}})
    if(input.menuIds!==undefined){

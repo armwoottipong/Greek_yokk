@@ -4,6 +4,30 @@ export const selectionKey = selections => JSON.stringify(selections.map(a => [
   a.groupId || '', a.id, selectionQty(a), Object.entries(a.prices || {}).sort(([a], [b]) => a.localeCompare(b)), a.recipe || []
 ]).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))))
 
+export function optionStockMaterialId(addon, materialMap) {
+  const recipe = addon.recipe || []
+  if (recipe.length === 1) return recipe[0].materialId
+  const ingredients = recipe.filter(row => materialMap[row.materialId] && materialMap[row.materialId].inventoryType !== 'packaging')
+  return ingredients.length === 1 && recipe.every(row =>
+    row === ingredients[0] || materialMap[row.materialId]?.inventoryType === 'packaging')
+    ? ingredients[0].materialId : null
+}
+
+export function duplicateNewStockOption(options, existingAddons, newAddons, materialMap) {
+  if (!newAddons.length || !Array.isArray(options)) return ''
+  const optionIds = new Set(options.map(option => option?.addonId))
+  const used = new Set(existingAddons.filter(addon => optionIds.has(addon.id))
+    .map(addon => optionStockMaterialId(addon, materialMap)).filter(Boolean))
+  for (const addon of newAddons) {
+    if (!optionIds.has(addon.id)) continue
+    const materialId = optionStockMaterialId(addon, materialMap)
+    if (!materialId) continue
+    if (used.has(materialId)) return 'วัตถุดิบนี้อยู่ในกลุ่มแล้ว กรุณาเลือกวัตถุดิบอื่น'
+    used.add(materialId)
+  }
+  return ''
+}
+
 export function groupError(group, addons) {
   if (!group || typeof group !== 'object' || Array.isArray(group)) return 'ข้อมูลกลุ่มตัวเลือกไม่ถูกต้อง'
   if (typeof group.name !== 'string' || !group.name.trim()) return 'กรุณาระบุชื่อกลุ่มตัวเลือก'

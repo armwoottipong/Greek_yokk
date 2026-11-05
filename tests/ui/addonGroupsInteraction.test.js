@@ -102,6 +102,16 @@ it('adds one ingredient and one package from stock to a paid group option', asyn
     expect(s.checkout()).toBeTruthy()
     expect(s.matMap.BLUEBERRY.stock).toBe(97.5)
     expect(s.matMap.SPOON.stock).toBe(9)
+    await wrapper.get('[aria-label="แก้ไขกลุ่ม กลุ่มจากคลัง"]').trigger('click')
+    await wrapper.get('[data-group-add-option]').trigger('click')
+    const reopenedPicker = wrapper.get('#group-stock-picker')
+    expect(reopenedPicker.get('input[aria-label="บลูเบอร์รีทดสอบ"]').element.disabled).toBe(true)
+    expect(reopenedPicker.text()).toContain('อยู่ในกลุ่มแล้ว')
+    const copy = { ...addon, id: 'ADDON-DUPLICATE' }
+    expect(s.saveAddonGroup({
+      ...group, options: [...group.options, { addonId: copy.id }], newAddons: [copy]
+    })).toMatchObject({ok:false})
+    expect(s.addons.some(item => item.id === copy.id)).toBe(false)
   } finally { wrapper.unmount() }
 })
 it('requires complete group choices, caps kinds and adds free selections', async () => {

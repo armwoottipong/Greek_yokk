@@ -36,7 +36,7 @@ import {
 import { MATERIAL_KIND_OPTIONS, getMaterialKind, getMaterialKindLabel, buildMaterialUsage } from '@/domain/materialClassification'
 import { validateLotDates } from '@/domain/lotDates'
 import { isValidGp } from '@/domain/pricing'
-import { groupError, optionPrices, resolveSelections, selectionPrice, selectionKey } from '@/domain/addonGroups'
+import { duplicateNewStockOption, groupError, optionPrices, resolveSelections, selectionPrice, selectionKey } from '@/domain/addonGroups'
 import {
   DEFAULT_MATERIALS,
   DEFAULT_MENUS,
@@ -1822,8 +1822,9 @@ const posDefinition = {
       const updatedRecipes = new Map(updatedAddons.map(addon => [addon.id, addon.recipe]))
       candidate.addons = candidate.addons.map(addon => updatedRecipes.has(addon.id)
         ? { ...addon, recipe: clone(updatedRecipes.get(addon.id)) } : addon)
+      let message = duplicateNewStockOption(data.options, candidate.addons, newAddons, this.matMap)
       candidate.addons.push(...clone(newAddons))
-      let message = groupError(data, candidate.addons)
+      message ||= groupError(data, candidate.addons)
       if (!message && menuIds !== undefined) {
         for (const menu of candidate.menus) {
           const current = menu.addonGroupIds || []
