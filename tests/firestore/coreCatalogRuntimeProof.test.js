@@ -4,6 +4,8 @@ import {assertFails} from '@firebase/rules-unit-testing'
 import {readFileSync} from 'node:fs'
 import {createRulesTest} from './helpers.js'
 import {buildCorePolicy} from '../../scripts/core-policy.mjs'
+import {encodeGroupAvailability} from '../../src/cloud/core/groupAvailability.js'
+import {catalogGroups} from '../../src/cloud/core/catalogPresentation.js'
 import {compileCoreImport} from '../../scripts/core-import.js'
 import {createCoreTransport} from '../../src/cloud/core/transport.js'
 import {planInventoryCommand} from '../../src/cloud/core/inventoryPlan.js'
@@ -24,6 +26,18 @@ async function seed(source=coreSource()){
 }
 function addon(shop,id='NEW'){return {kind:'addon',opId:`ADD_${id}`,payload:{entityId:id,input:{name:id,active:true,recipe:{[shop.catalog.summaryMaterials[0]]:100},pricesCents:Object.fromEntries(shop.catalog.platformIds.map(p=>[p,1000]))},display:{name:id,emoji:''}}}}
 function group(shop,id){return {kind:'group',opId:`GROUP_${id}`,payload:{input:{id,name:id,active:true,allowRepeat:false,pricingMode:'extra',min:0,max:3,optionIds:['NEW'],optionPrices:Object.fromEntries(shop.catalog.platformIds.map(p=>[p,{_:0,NEW:100}]))},display:{name:id,emoji:''}}}}
+it('commits and reloads unset channel metadata through the existing production catalog policy',async()=>{
+ const base=await seed(),{db,api}=setup()
+ await api.commit(addon(base.shop))
+ const command=group(base.shop,'UNSET'),platformIds=base.shop.catalog.platformIds
+ command.payload.input.optionPrices[platformIds[0]].NEW=0
+ command.payload.display.description=encodeGroupAvailability({options:[{addonId:'NEW',unpricedPlatformIds:[platformIds[0]]}]},platformIds)
+ await api.commit(command)
+ const data=await api.snapshot(),display=(await getDoc(doc(db,gen+'/display/catalog'))).data()
+ const loaded=catalogGroups({...data,display}).find(g=>g.id==='UNSET')
+ expect(loaded.options[0].unpricedPlatformIds).toEqual([platformIds[0]])
+ expect(loaded.options[0].prices[platformIds[0]]).toBe(0)
+})
 function menu(shop){return {kind:'menu',opId:'MENU',payload:{input:{id:'NEW_MENU',name:'New menu',active:true,pricesCents:Object.fromEntries(shop.catalog.platformIds.map(p=>[p,6900])),rawRecipe:{[shop.catalog.summaryMaterials[0]]:100},hasPackage:true,recipe:{[shop.catalog.summaryMaterials[0]]:100},optionIds:[],min:0,max:0,priceMode:'addon',optionPrices:Object.fromEntries(shop.catalog.platformIds.map(p=>[p,{_:0}])),groupIds:['G','H']},display:{name:'New menu',emoji:'',description:'Two choices'}}}}
 async function admissionParts(db,command,f,shop){for(let index=0;index*4<f.operation.validationIds.length;index++)await setDoc(doc(db,`${gen}/recipeAdmissions/${command.opId}/parts/${index}`),{opId:command.opId,index,uid:'cashier',sourceRevision:shop.revision,kind:command.kind,entityId:f.operation.entityId,input:f.operation.input,entitySnapshot:f.operation.entitySnapshot,materialIds:f.operation.validationIds.slice(index*4,index*4+4)})}
 function catalogBatch(db,command,f,display,{omitCheck=false,omitAdmitted=false,omitInputProof=false,omitShape=false,omitReference=false}={}){const b=writeBatch(db);b.set(doc(db,root),f.nextShop);b.set(doc(db,`${gen}/operations/${command.opId}`),f.operation);b.set(doc(db,`${gen}/display/catalog`),applyCatalogDisplay(display,f.displayChange));if(!omitInputProof)b.set(doc(db,`${gen}/operations/${command.opId}/referenceProofs/input`),f.inputProof);if(!omitAdmitted)b.set(doc(db,`${gen}/operations/${command.opId}/referenceProofs/admitted`),f.admittedProof);if(f.shapeProof&&!omitShape)b.set(doc(db,`${gen}/operations/${command.opId}/referenceProofs/shape`),f.shapeProof);if(f.referenceProof&&!omitReference)b.set(doc(db,`${gen}/operations/${command.opId}/referenceProofs/0`),f.referenceProof);for(const p of f.checkProofs||[])if(!omitCheck||p.index!==4)b.set(doc(db,`${gen}/operations/${command.opId}/referenceProofs/check${p.index}`),p.data);return b}

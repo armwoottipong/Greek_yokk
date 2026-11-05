@@ -40,6 +40,7 @@ export function groupError(group, addons) {
     if (ids.has(option.addonId)) return 'มีตัวเลือกเสริมซ้ำในกลุ่ม'
     ids.add(option.addonId)
     if (option.prices !== undefined && (!option.prices || typeof option.prices !== 'object' || Array.isArray(option.prices) || Object.values(option.prices).some(p => typeof p !== 'number' || !Number.isFinite(p) || p < 0))) return 'ราคาบวกเพิ่มต้องเป็นตัวเลขตั้งแต่ 0'
+    if (option.unpricedPlatformIds !== undefined && (!Array.isArray(option.unpricedPlatformIds) || option.unpricedPlatformIds.some(id => typeof id !== 'string'))) return 'สถานะราคาของช่องทางขายไม่ถูกต้อง'
   }
   if (!group.allowRepeat && group.minSelections > group.options.length) return 'จำนวนขั้นต่ำเกินจำนวนชนิดที่มีให้เลือก'
   return ''
@@ -57,9 +58,12 @@ export function menuGroups(menu, groups) {
   return (menu?.addonGroupIds || []).map(id => groups.find(g => g.id === id)).filter(Boolean)
 }
 
-export function optionPrices(group, option, addon) {
+export function optionPrices(group, option, addon, platformIds = []) {
   const prices = { ...addon.prices, ...option.prices }
-  return group.pricingMode === 'included' ? Object.fromEntries(Object.keys(prices).map(id => [id, 0])) : prices
+  const configured = group.pricingMode === 'included'
+    ? Object.fromEntries([...new Set([...Object.keys(prices), ...platformIds])].map(id => [id, 0])) : prices
+  for (const id of option.unpricedPlatformIds || []) delete configured[id]
+  return configured
 }
 
 export function optionAvailability(group, option, addon, materials, quantity = 1) {

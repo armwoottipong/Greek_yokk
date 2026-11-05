@@ -16,6 +16,49 @@ function setup() {
   s.menus[0].addonGroupIds = ['G']
   return s
 }
+it('uses the menu analysis popup and keeps blank, zero and paid prices distinct after saving', async () => {
+ const s=setup(),platform=s.platforms[0],addon=s.addons[0]
+ platform.gpPercent=25
+ s.materials.push(material('PRICE-FRUIT',100,{unitCost:1}))
+ addon.recipe=[{materialId:'PRICE-FRUIT',qty:10}]
+ s.addonGroups[0].options=[{addonId:addon.id,prices:{},unpricedPlatformIds:s.platforms.map(p=>p.id)}]
+ s.addonGroups[0].minSelections=0
+ const manager=mount(GroupManager,{attachTo:document.body,global:{stubs:{teleport:true}}})
+ try{
+  expect(manager.get('.group-item-price').text()).toContain('ยังไม่ได้ตั้งราคา')
+  await manager.get('.group-items-header button').trigger('click')
+  await openOptionAction(manager,manager.get('[data-group-addon]'),'ราคา')
+  const settings=manager.get('#group-option-settings')
+  expect(settings.text()).toContain('กรอก 0 เพื่อให้ฟรี')
+  await settings.get('[data-catalog-analysis="group-option-price"]').trigger('click')
+  let analysis=manager.get('#catalog-group-option-price-analysis')
+  expect(analysis.findAll('[data-menu-platform]')).toHaveLength(0)
+  expect(analysis.text()).toContain('ยังไม่ได้ตั้งราคา')
+  await analysis.get('[aria-label="ปิดหน้าต่าง"]').trigger('click')
+  const input=manager.get(`#group-price-${addon.id}-${platform.id}`)
+  await input.setValue(0)
+  await settings.get('[data-catalog-analysis="group-option-price"]').trigger('click')
+  analysis=manager.get('#catalog-group-option-price-analysis')
+  expect(analysis.get('[data-menu-financial="price"]').text()).toContain('ฟรี')
+  expect(analysis.get('[data-menu-financial="profit"]').text()).toContain('-฿10.00')
+  await analysis.get('[aria-label="ปิดหน้าต่าง"]').trigger('click')
+  await input.setValue(40)
+  await settings.get(`[aria-label="รายละเอียดราคา ${platform.name}"]`).trigger('click')
+  expect(settings.get(`[data-net-revenue="${platform.id}"]`).text()).toContain('30.00')
+  await settings.get(`[aria-label="รายละเอียดราคา ${platform.name}"]`).trigger('click')
+  await settings.get('[data-catalog-analysis="group-option-price"]').trigger('click')
+  analysis=manager.get('#catalog-group-option-price-analysis')
+  expect(analysis.get('[data-menu-financial="profit"]').text()).toContain('฿20.00')
+  expect(analysis.get('[aria-label="รูปแบบกราฟ"]').exists()).toBe(true)
+  await analysis.get('[aria-label="ปิดหน้าต่าง"]').trigger('click')
+  await settings.findAll('button').find(b=>b.text()==='เสร็จสิ้น').trigger('click')
+  await manager.findAll('button').find(b=>b.text()==='บันทึกกลุ่มตัวเลือก').trigger('click')
+  await flushPromises()
+  const saved=loadDatabase(localStorage).value.addonGroups[0].options[0]
+  expect(saved.prices).toEqual({[platform.id]:40})
+  expect(saved.unpricedPlatformIds).toEqual(s.platforms.slice(1).map(p=>p.id))
+ }finally{manager.unmount()}
+})
 async function chooseOne(wrapper) {
   await wrapper.get('[role="combobox"][aria-label="ลูกค้าเลือกอย่างไร"]').trigger('click')
   await wrapper.findAll('[role="option"]').find(option => option.text() === 'ต้องเลือก 1 อย่าง').trigger('click')
@@ -66,7 +109,7 @@ it('creates and selects a stock-free option from the group without losing its dr
     await flushPromises()
     const created = s.addons.find(option => option.name === 'ตัวเลือกใหม่')
     expect(created.recipe).toEqual([])
-    expect(loadDatabase(localStorage).value.addonGroups.find(group => group.name === 'กลุ่มใหม่')?.options).toEqual([{ addonId: created.id }])
+    expect(loadDatabase(localStorage).value.addonGroups.find(group => group.name === 'กลุ่มใหม่')?.options).toEqual([{ addonId: created.id, prices: {}, unpricedPlatformIds: s.platforms.map(p => p.id) }])
   } finally {
     wrapper.unmount()
   }
@@ -104,7 +147,9 @@ it('adds one ingredient and one package from stock to a paid group option', asyn
     await openOptionAction(wrapper, row, 'ราคา')
     const pricePopup = wrapper.get('#group-option-settings')
     await pricePopup.get('input[id^="group-price-"]').setValue(12)
-    expect(pricePopup.find('[data-group-option-profit]').exists()).toBe(true)
+    await pricePopup.get('[data-catalog-analysis="group-option-price"]').trigger('click')
+    expect(wrapper.get('#catalog-group-option-price-analysis [data-menu-financial="profit"]').exists()).toBe(true)
+    await wrapper.get('#catalog-group-option-price-analysis [aria-label="ปิดหน้าต่าง"]').trigger('click')
     await pricePopup.findAll('button').find(button => button.text() === 'เสร็จสิ้น').trigger('click')
     const menuId = s.menus[1].id
     await wrapper.get('[role="combobox"][aria-label="เชื่อมกับเมนู"]').trigger('click')
@@ -262,7 +307,9 @@ it('updates the paid option profit from the price draft and channel GP', async (
     await quantityPopup.findAll('button').find(button => button.text() === 'เสร็จสิ้น').trigger('click')
     await openOptionAction(manager, manager.get('[data-group-addon]'), 'ราคา')
     await manager.get(`#group-price-${s.addons[0].id}-${s.platforms[0].id}`).setValue(40)
-    expect(manager.get('[data-group-option-profit]').text()).toBe(new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(19))
+    await manager.get('[data-catalog-analysis="group-option-price"]').trigger('click')
+    expect(manager.get('#catalog-group-option-price-analysis [data-menu-financial="profit"] dd').text()).toBe(new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(19))
+    await manager.get('#catalog-group-option-price-analysis [aria-label="ปิดหน้าต่าง"]').trigger('click')
     await manager.get('#group-option-settings').findAll('button').find(button => button.text() === 'เสร็จสิ้น').trigger('click')
     await manager.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
     await flushPromises()

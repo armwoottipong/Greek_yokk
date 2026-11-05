@@ -70,8 +70,12 @@
     <div class="group-heading group-drawer-band">
      <h4>วิเคราะห์ต้นทุนและกำไร</h4>
      <CatalogAnalysisDialog entity="group-option" :reset-key="optionDetail.addon.id">
+      <section class="group-profit-overview" aria-label="ข้อมูลวิเคราะห์ตัวเลือกเสริม">
       <MenuPlatformOverview :menu="detailPricing" :platforms="store.platforms" :cost="detailCost"
-       unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="ตัวเลือกเสริม" show-free-prices/>
+       unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="ตัวเลือกเสริม" show-free-prices>
+       <template #controls><AnalysisInfo :reset-key="optionDetail.addon.id"><span>คำนวณทุกช่องทางจากราคาเพิ่ม หัก GP และต้นทุนวัตถุดิบรวมบรรจุภัณฑ์ต่อที่</span><span>ยังไม่หักค่าเช่า ค่าแรง และค่าใช้จ่ายอื่น</span></AnalysisInfo></template>
+      </MenuPlatformOverview>
+      </section>
      </CatalogAnalysisDialog>
     </div>
    </div>
@@ -149,21 +153,25 @@
     <template v-else-if="optionEditor.mode === 'price'">
      <AppCheckbox v-if="!editingOption.isDraft" :model-value="!optionFor(editingOption.id).paused" variant="switch"
       label="เปิดขายในกลุ่มนี้" @update:model-value="optionFor(editingOption.id).paused = !$event">เปิดขายในกลุ่มนี้</AppCheckbox>
-     <p class="group-help">เว้นราคาเพิ่มว่างเพื่อให้ฟรี</p>
+     <div class="group-heading"><p class="group-help">เว้นว่าง = ยังไม่ได้ตั้งราคา · กรอก 0 เพื่อให้ฟรี</p>
+      <CatalogAnalysisDialog entity="group-option-price" :reset-key="editingOption.id">
+       <section class="group-profit-overview" aria-label="ข้อมูลวิเคราะห์ตัวเลือกเสริม">
+       <MenuPlatformOverview :menu="{prices: optionFor(editingOption.id).prices || {}}" :platforms="store.platforms" :cost="editingOptionCost"
+        unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="ตัวเลือกเสริม" show-free-prices>
+        <template #controls><AnalysisInfo :reset-key="editingOption.id"><span>คำนวณทุกช่องทางจากราคาเพิ่ม หัก GP และต้นทุนวัตถุดิบรวมบรรจุภัณฑ์ต่อที่</span><span>ยังไม่หักค่าเช่า ค่าแรง และค่าใช้จ่ายอื่น</span></AnalysisInfo></template>
+       </MenuPlatformOverview>
+       </section>
+      </CatalogAnalysisDialog>
+     </div>
      <div class="group-fields">
       <FormField v-for="platform in store.platforms" :key="platform.id" :id="`group-price-${editingOption.id}-${platform.id}`" :label="platform.name" v-slot="{controlId}">
-       <AppInput :id="controlId" :model-value="optionFor(editingOption.id).prices?.[platform.id] ?? ''" placeholder="ฟรี" type="number" min="0" step="0.01" @update:model-value="setPrice(editingOption.id, platform.id, $event)"><template #prefix>฿</template></AppInput>
+       <AppInput :id="controlId" :model-value="optionFor(editingOption.id).prices?.[platform.id] ?? ''" placeholder="ยังไม่ได้ตั้งราคา" type="number" min="0" step="0.01" @update:model-value="setPrice(editingOption.id, platform.id, $event)">
+        <template #prefix>฿</template>
+        <template #suffix><MenuPriceInfo :platform="platform" :open="openPriceInfo === platform.id" :selling-price="optionFor(editingOption.id).prices?.[platform.id] ?? ''" :storefront-price="storefront ? optionFor(editingOption.id).prices?.[storefront.id] ?? '' : ''" :has-storefront="!!storefront" @toggle="openPriceInfo = openPriceInfo === platform.id ? null : platform.id" @close="openPriceInfo = null" @apply="setPrice(editingOption.id, platform.id, $event)"/></template>
+       </AppInput>
+       <small class="group-help">{{ priceLabel(optionFor(editingOption.id).prices?.[platform.id]) }}</small>
       </FormField>
      </div>
-     <details v-if="Object.values(optionFor(editingOption.id).prices || {}).some(price => Number(price) > 0)" class="group-price-analysis" data-group-price-analysis>
-      <summary>วิเคราะห์ต้นทุนกำไรต่อที่</summary>
-      <dl v-for="{ platform, cost, netRevenue, profit } in priceAnalysis(editingOption)" :key="platform.id">
-       <div><dt>ช่องทาง</dt><dd>{{ platform.name }}</dd></div>
-       <div><dt>รายรับหลังหัก GP</dt><dd>{{ analysisMoney(netRevenue) }}</dd></div>
-       <div><dt>ต้นทุนตัวเลือก</dt><dd>{{ analysisMoney(cost) }}</dd></div>
-       <div><dt>กำไรขั้นต้น</dt><dd data-group-option-profit>{{ analysisMoney(profit) }}</dd></div>
-      </dl>
-     </details>
     </template>
     <template v-else>
      <AppSelect v-if="optionEditor.mode === 'packaging'" :key="editingOption.recipe.length" model-value="" aria-label="บรรจุภัณฑ์เพิ่มเติม" @update:model-value="addPackaging(editingOption, $event)">
@@ -234,7 +242,10 @@ import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
 import { optionPrices, optionAvailability, optionAvailabilityLabel, optionStockMaterialId, cloudGroupBindingIssue } from '@/domain/addonGroups'
 import { MATERIAL_KIND_OPTIONS, getMaterialKind } from '@/domain/materialClassification'
-import { recipeCost, selectedItemCosts } from '@/domain/menuCosts'
+import { recipeCost } from '@/domain/menuCosts'
+import { parsePlatformPrice } from '@/domain/pricing'
+import MenuPriceInfo from './MenuPriceInfo.vue'
+import AnalysisInfo from './AnalysisInfo.vue'
 import CatalogAnalysisDialog from './CatalogAnalysisDialog.vue'
 import MenuPlatformOverview from './MenuPlatformOverview.vue'
 import Button from '@/components/ui/Button.vue'
@@ -304,18 +315,18 @@ const optionDetail = computed(() => {
 })
 const detailPricing = computed(() => {
   const { group, option, addon } = optionDetail.value
-  const prices = optionPrices(group, option, addon)
-  return { prices: Object.fromEntries(store.platforms.map(platform => [platform.id, prices[platform.id] ?? 0])) }
+  return { prices: optionPrices(group, option, addon, store.platforms.map(platform => platform.id)) }
 })
 const detailCost = computed(() => recipeCost({ recipe: [] }, [optionDetail.value.addon], 1, store.materials))
 const status = (group, option) => optionAvailability(group, option, addonMap.value.get(option.addonId), store.materials)
 function priceSummary(group, option) {
-  return formatPriceSummary(optionPrices(group, option, addonMap.value.get(option.addonId) || {}))
+  return formatPriceSummary(optionPrices(group, option, addonMap.value.get(option.addonId) || {}, store.platforms.map(platform => platform.id)))
 }
 function formatPriceSummary(prices = {}) {
-  const values = [...new Set(Object.values(prices).map(price => Number(price) || 0))]
-  return values.some(price => price > 0) ? values.sort((a, b) => a - b).map(price => price === 0 ? 'ฟรี' : analysisMoney(price)).join(' / ') : 'ฟรี'
+  const values = [...new Set(store.platforms.map(platform => parsePlatformPrice(prices[platform.id])))]
+  return values.sort((a, b) => (a ?? -1) - (b ?? -1)).map(price => priceLabel(price)).join(' / ')
 }
+const priceLabel = value => { const price = parsePlatformPrice(value); return price === null ? 'ยังไม่ได้ตั้งราคา' : price === 0 ? 'ฟรี' : analysisMoney(price) }
 const setOptionActive = (group, id, active) => runAction('availability', async () => {
   const options = group.options.map(option => option.addonId === id ? { ...option, paused: !active } : option)
   const result = await store.saveAddonGroup({ ...group, options, ...(store.cloud ? { expectedCatalogRevision: store.catalogRevision } : {}) })
@@ -328,12 +339,16 @@ const editorAddons = computed(() => (draft.value.options || []).flatMap(option =
   return addon ? [{ ...addon, recipe: draft.value.recipeChanges[addon.id] || addon.recipe || [] }] : []
 }))
 const optionEditor = ref(null)
+const openPriceInfo = ref(null)
+const storefront = computed(() => store.platforms.find(platform => platform.id === 'PLAT01'))
 const editingOption = computed(() => editorAddons.value.find(addon => addon.id === optionEditor.value?.id))
+const editingOptionCost = computed(() => editingOption.value ? recipeCost({recipe:[]}, [editingOption.value], 1, store.materials) : null)
 const optionEditorTitle = computed(() => ({ quantity: 'จำนวนต่อที่', packaging: 'บรรจุภัณฑ์', price: 'ราคาเพิ่ม' })[optionEditor.value?.mode] || 'ตั้งค่าตัวเลือก')
 const isPackaging = row => store.matMap[row.materialId]?.inventoryType === 'packaging'
 const ingredientRows = addon => addon.recipe.filter(row => !isPackaging(row))
 const editableRows = computed(() => editingOption.value?.recipe.filter(row => isPackaging(row) === (optionEditor.value?.mode === 'packaging')) || [])
 function showOptionEditor(addon, mode) {
+  openPriceInfo.value = null
   optionEditor.value = { id: addon.id, mode }
 }
 async function openOptionAction(mode) {
@@ -420,16 +435,6 @@ function addOption(material, recipe = [{ materialId: material.id, qty: 1 }]) {
 }
 const baht = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
 const analysisMoney = value => value === null ? 'คำนวณไม่ได้' : baht.format(value)
-function priceAnalysis(addon) {
-  return analyzeOption(addon, optionFor(addon.id).prices)
-}
-function analyzeOption(addon, channelPrices) {
-  const prices = Object.fromEntries(store.platforms.map(platform => [platform.id, channelPrices?.[platform.id] || 0]))
-  return store.platforms.map(platform => ({
-    platform,
-    ...selectedItemCosts({ prices }, [ { ...addon, recipe: addon.recipe, prices: {} } ], 1, store.materials, platform)
-  }))
-}
 async function edit(group) {
   editCatalogRevision.value=store.catalogRevision
   draft.value = group ? clone(group) : { name: '', minSelections: 0, maxSelections: 3, allowRepeat: false, pricingMode: 'included', options: [] }
@@ -440,7 +445,7 @@ async function edit(group) {
     : draft.value.minSelections === 1 && draft.value.maxSelections === 1 && !draft.value.allowRepeat ? 'one' : 'custom'
   if (group) {
     for (const option of draft.value.options) {
-      option.prices = optionPrices(group, option, addonMap.value.get(option.addonId) || {})
+      option.prices = optionPrices(group, option, addonMap.value.get(option.addonId) || {}, store.platforms.map(platform => platform.id))
     }
   }
   error.value = ''; fieldErrors.value = {}; open.value = true
@@ -486,14 +491,14 @@ async function performSave() {
   }
   let hasPaidOption = false
   for (const option of data.options) {
-    option.prices = Object.fromEntries(store.platforms.map(platform => [platform.id, Number(option.prices?.[platform.id] || 0)]))
+    option.unpricedPlatformIds = store.platforms.filter(platform => option.prices?.[platform.id] == null || String(option.prices[platform.id]).trim() === '').map(platform => platform.id)
+    option.prices = Object.fromEntries(store.platforms.filter(platform => !option.unpricedPlatformIds.includes(platform.id)).map(platform => [platform.id, Number(option.prices[platform.id])]))
     if (Object.values(option.prices).some(price => !Number.isFinite(price) || price < 0)) {
-      fieldErrors.value.options = 'กรอกราคาตั้งแต่ 0 หรือเว้นว่างเพื่อให้ฟรี'
+      fieldErrors.value.options = 'กรอกราคาตั้งแต่ 0 หรือเว้นว่างหากยังไม่ได้ตั้งราคา'
     }
     if (Object.values(option.prices).some(price => price > 0)) hasPaidOption = true
   }
   data.pricingMode = hasPaidOption ? 'extra' : 'included'
-  if (!hasPaidOption) for (const option of data.options) delete option.prices
   if (!data.name?.trim()) fieldErrors.value.name = 'กรอกชื่อกลุ่มตัวเลือก'
   if (!Number.isSafeInteger(data.minSelections) || data.minSelections < 0) fieldErrors.value.minSelections = 'กรอกจำนวนเต็มตั้งแต่ 0'
   if (!Number.isSafeInteger(data.maxSelections) || data.maxSelections < 1 || data.maxSelections < data.minSelections) fieldErrors.value.maxSelections = 'กรอกจำนวนเต็มตั้งแต่ 1 และไม่น้อยกว่าจำนวนขั้นต่ำ'
@@ -556,12 +561,8 @@ async function performRemove(group) {
 .group-empty{padding:32px 20px;background:var(--bg-card);border-radius:16px;text-align:center}.group-empty strong{font-size:.9375rem;font-weight:500}.group-empty p{max-width:48ch;margin:8px auto 0;color:var(--addon-text-secondary);font-size:.875rem;line-height:1.8}
 
 .group-form :deep(.field-hint),.group-form :deep(.app-input-affix){color:var(--addon-text-secondary)}
-.group-price-analysis{padding-top:12px;border-top:1px solid var(--border-subtle);font-size:.8125rem}
-.group-price-analysis summary{cursor:pointer;font-weight:600}
-.group-price-analysis dl{display:grid;gap:6px;margin:12px 0 0;padding-top:8px;border-top:1px solid var(--border-subtle)}
-.group-price-analysis dl div{display:flex;justify-content:space-between;gap:12px}
-.group-price-analysis dt{color:var(--text-muted)}
-.group-price-analysis dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.group-profit-overview{padding:24px;min-width:0}
+@media(max-width:767px){.group-profit-overview{padding:16px}}
 
 @media(max-width:767px){.group-form :deep(.app-input input){font-size:1rem}}
 .group-workspace{display:grid;grid-template-columns:minmax(12rem,1fr) minmax(0,3fr);grid-template-rows:minmax(0,1fr);min-height:0;border:1px solid var(--border-subtle);border-radius:16px;background:var(--bg-card);overflow:hidden}

@@ -6,6 +6,7 @@
   <ul v-if="rows.length" class="overview-legend" aria-label="ส่วนประกอบของราคาขาย"><li><i class="segment-cost" aria-hidden="true"/>ต้นทุน</li><li><i class="segment-gp" aria-hidden="true"/>GP</li><li><i class="segment-profit" aria-hidden="true"/>กำไร</li></ul>
   <PlatformFinanceLines v-if="mode==='line' && rows.length" :rows="rows" :unit-label="unitLabel"/>
   <div v-if="!rows.length" class="overview-empty">{{ platforms.length ? `ยังไม่ได้ตั้งราคาขาย แก้ไข${entityLabel}เพื่อเพิ่มราคาของช่องทางที่ต้องการ` : 'ยังไม่มีช่องทางขาย เพิ่มช่องทางในหน้าตั้งค่าเพื่อเปรียบเทียบราคา' }}</div>
+  <p v-else-if="showFreePrices && unpricedChannels.length" class="overview-empty" data-unpriced-channels>ยังไม่ได้ตั้งราคา · {{ unpricedChannels.join(' / ') }}</p>
   <div class="overview-platforms"><article v-for="row in rows" :key="row.id" :data-menu-platform="row.id" class="platform-report" :aria-labelledby="`${headingId}-${row.id}`">
    <header class="platform-report-heading"><h5 :id="`${headingId}-${row.id}`">{{ row.name }}</h5><div data-menu-financial="price"><span>{{ priceLabel }}</span><strong>{{ showFreePrices && row.price === 0 ? 'ฟรี' : money(row.price) }}</strong></div></header>
    <div v-if="row.complete && mode==='bar'" data-platform-chart class="platform-chart dashboard-bar-track" :class="{'has-active-point':active}" role="group" :aria-label="`สัดส่วนราคาขาย ${row.name}`">
@@ -43,6 +44,7 @@ const mode=ref('bar')
 const modes=[{value:'bar',label:'แท่ง',icon:ChartNoAxesColumn},{value:'donut',label:'วงกลม',icon:ChartPie},{value:'line',label:'เส้น',icon:ChartNoAxesCombined}]
 const round=value=>Math.round(value*100)/100
 const validCost=computed(()=>props.cost!==null && Number.isFinite(props.cost) && props.cost>=0 ? round(props.cost) : null)
+const unpricedChannels=computed(()=>props.platforms.filter(platform=>parsePlatformPrice(props.menu.prices?.[platform.id])===null).map(platform=>platform.name))
 const rows=computed(()=>props.platforms.map(platform=>{
  const parsedPrice=parsePlatformPrice(props.menu.prices?.[platform.id])
  const price=parsedPrice>0 || (props.showFreePrices && parsedPrice===0) ? parsedPrice : null

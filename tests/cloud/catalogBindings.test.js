@@ -4,12 +4,26 @@ import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
 import {createInventoryModel} from '../../src/cloud/core/inventoryModel.js'
 import {planInventoryCommand} from '../../src/cloud/core/inventoryPlan.js'
 import {applyCatalogDisplay} from '../../src/cloud/core/catalogPlan.js'
+import {optionPrices} from '../../src/domain/addonGroups.js'
 function fixture(beforeExecute=()=>null){
  sessionStorage.clear();const f=summaryFixture();let data={shop:materialRegistryShop(f.shop,f.materials),materials:f.materials,display:{menus:{SIMPLE:{name:'Original menu',emoji:'x'}},addons:{A0:{name:'Original addon',emoji:'y'}},groups:{},platforms:{P:{name:'Counter'}}}},model
  const execute=async command=>{const blocked=beforeExecute(command);if(blocked)return blocked;const plan=planInventoryCommand(data.shop,data.materials,command);data={...data,shop:plan.nextShop,materials:data.materials.map(m=>plan.nextMaterials.find(n=>n.id===m.id)||m),display:plan.displayChange?applyCatalogDisplay(data.display,plan.displayChange):data.display};return {ok:true,value:{opId:command.opId,kind:command.kind}}}
  model=createInventoryModel({getData:()=>data,loadServer:async()=>data,execute,isReady:()=>true,isBlocked:()=>false,storageKey:'catalog-bindings'})
  return {model,snapshot:()=>data}
 }
+it('round trips unset channel prices separately from an explicitly free option',async()=>{
+ const {model}=fixture()
+ try{
+  expect(await model.saveAddonGroup({name:'Price states',minSelections:0,maxSelections:1,allowRepeat:false,pricingMode:'included',options:[{addonId:'A0',prices:{},unpricedPlatformIds:['P']},{addonId:'A1',prices:{P:0},unpricedPlatformIds:[]}]})).toMatchObject({ok:true})
+  let group=model.addonGroups.find(g=>g.name==='Price states')
+  expect(group.options[0].unpricedPlatformIds).toEqual(['P'])
+  expect(optionPrices(group,group.options[0],model.addons.find(a=>a.id==='A0'))).not.toHaveProperty('P')
+  expect(optionPrices(group,group.options[1],model.addons.find(a=>a.id==='A1')).P).toBe(0)
+  expect(await model.saveAddonGroup({...group,name:'Renamed states'})).toMatchObject({ok:true})
+  group=model.addonGroups.find(g=>g.name==='Renamed states')
+  expect(group.options[0].unpricedPlatformIds).toEqual(['P'])
+ }finally{model.close()}
+})
 it('moves legacy choices to groups using a checked revision and preserves prices and recipes',async()=>{
  const {model,snapshot}=fixture()
  const before=structuredClone(snapshot().shop.catalog)

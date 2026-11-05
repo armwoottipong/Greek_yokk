@@ -99,7 +99,7 @@ export function createCatalogBindings({snapshot,mutate,error}){
     if(duplicate)throw new Error(duplicate)
    }
    const entries=[...(input.newAddons||[]),...(input.updatedAddons||[])].map(addonCommand)
-   entries.push({kind:'group',payload:{input:{id,name:input.name.trim(),active:input.isActive!==false,min:Number(input.minSelections),max:Number(input.maxSelections),allowRepeat:!!input.allowRepeat,pricingMode:input.pricingMode,optionIds:ids,optionPrices:Object.fromEntries(c.platformIds.map(p=>[p,{_:0,...Object.fromEntries(input.options.filter(o=>o.prices&&Object.hasOwn(o.prices,p)).map(o=>[o.addonId,scaled(o.prices[p])]))}]))},display:metadata({name:input.name.trim(),description:encodeGroupAvailability(input)},d.display.groups?.[id])}})
+   entries.push({kind:'group',payload:{input:{id,name:input.name.trim(),active:input.isActive!==false,min:Number(input.minSelections),max:Number(input.maxSelections),allowRepeat:!!input.allowRepeat,pricingMode:input.pricingMode,optionIds:ids,optionPrices:Object.fromEntries(c.platformIds.map(p=>[p,{_:0,...Object.fromEntries(input.options.filter(o=>o.prices&&Object.hasOwn(o.prices,p)).map(o=>[o.addonId,scaled(o.prices[p])]))}]))},display:metadata({name:input.name.trim(),description:encodeGroupAvailability(input,c.platformIds)},d.display.groups?.[id])}})
    return mutate([...detachBeforeGroup,...entries,...menuEntries])
   }),
   deleteAddonGroup:guarded((id,options={})=>{
