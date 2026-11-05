@@ -3,6 +3,7 @@
 // originals are archived separately so normalization cannot erase source records.
 import {projectCoreSource} from './core-source.js'
 import {encodeLegacyId as key} from '../src/cloud/paths.js'
+import {encodeGroupAvailability} from '../src/cloud/core/groupAvailability.js'
 import {auditMaterialProfile,commitMetrics} from '../src/cloud/core/model/metrics.js'
 import {summaryMenuQuantity} from '../src/cloud/core/model/recipe.js'
 import {maxSaleLines} from '../src/cloud/core/model/limits.js'
@@ -66,7 +67,8 @@ export function compileCoreImport(raw,{shopId='greek-yogg',generation,sourceSha2
  archive.push({path:`${base}/legacyRecords/header`,data:{kind:'header',index:0,json:JSON.stringify(header)}})
  for(const kind of collections)(raw[kind]||[]).forEach((row,index)=>archive.push({path:`${base}/legacyRecords/${kind}_${index}`,data:{kind,index,json:JSON.stringify(row)}}))
  const labels=kind=>Object.fromEntries((raw[kind]||[]).map(row=>[key(row.id),{name:row.name||row.id,emoji:row.emoji||''}]))
- const display={trial:true,sourceSha256,sourceDate:raw.exportDate||'',legacyOrderCount:raw.orders?.length||0,menus:labels('menus'),addons:labels('addons'),platforms:labels('platforms')}
+ const groups=Object.fromEntries((raw.addonGroups||[]).map(group=>[key(group.id),{name:group.name,emoji:'',description:encodeGroupAvailability(group,(raw.platforms||[]).map(p=>p.id))}]))
+ const display={trial:true,sourceSha256,sourceDate:raw.exportDate||'',legacyOrderCount:raw.orders?.length||0,menus:labels('menus'),addons:labels('addons'),platforms:labels('platforms'),groups}
  const documents=[...materials.map(m=>({path:`${base}/materials/${m.id}`,data:m})),{path:`${base}/display/catalog`,data:display},...archive]
  const writes=[{path:`shops/${shopId}`,data:shop},...documents]
  const metrics=commitMetrics('projects/yoggie-db/databases/(default)',writes)

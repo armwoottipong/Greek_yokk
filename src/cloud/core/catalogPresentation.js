@@ -17,4 +17,4 @@ export function catalogGroups(data){
   return {addonId,...(pausedIds?.has(addonId)?{paused:true}:{}),...(unpricedById?.[addonId]?.length?{unpricedPlatformIds:unpricedById[addonId]}:{}),...(Object.keys(override).length?{prices:override}:{})}
  })}})
 }
-export function catalogPlatforms(data){const c=data?.shop.catalog;return c?(c.platformIds||[]).map(id=>({id,...data.display?.platforms?.[id],name:data.display?.platforms?.[id]?.name||id,gpPercent:(c.platforms[id]?.gpBasisPoints||0)/100})):[]}
+export function catalogPlatforms(data){const c=data?.shop.catalog;return c?(c.platformIds||[]).map(id=>({id,...data.display?.platforms?.[id],name:data.display?.platforms?.[id]?.name||id,isActive:c.platforms[id]?.active!==false,gpPercent:(c.platforms[id]?.gpBasisPoints||0)/100})):[]}

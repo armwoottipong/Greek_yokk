@@ -13,6 +13,13 @@ export function optionStockMaterialId(addon, materialMap) {
     ? ingredients[0].materialId : null
 }
 
+export function optionImageSource(addon = {}, materialMap = {}) {
+  const material = materialMap[optionStockMaterialId(addon, materialMap)]
+  return material
+    ? { kind: 'materials', entityId: material.id, image: material.image, emoji: material.emoji }
+    : { kind: 'addons', entityId: addon.isDraft ? undefined : addon.id, image: addon.image, emoji: addon.emoji }
+}
+
 export function duplicateNewStockOption(options, existingAddons, newAddons, materialMap) {
   if (!newAddons.length || !Array.isArray(options)) return ''
   const optionIds = new Set(options.map(option => option?.addonId))
@@ -67,7 +74,7 @@ export function optionPrices(group, option, addon, platformIds = []) {
 }
 
 export function optionAvailability(group, option, addon, materials, quantity = 1) {
-  if (option?.paused || addon?.isActive === false || !addon) return 'paused'
+  if (group.isActive === false || option?.paused || addon?.isActive === false || !addon) return 'paused'
   let low = false
   for (const { materialId, qty } of addon.recipe || []) {
     const material = materials.find(row => row.id === materialId)
@@ -93,6 +100,7 @@ export function resolveSelections(menu, selected, groups, addons, materials, qua
     ? fail('กลุ่มตัวเลือกของเมนูเปลี่ยนแล้ว กรุณานำรายการออกจากตะกร้าและเลือกใหม่')
     : { ok: true, selections: selected }
   const assigned = menuGroups(menu, groups)
+  if (assigned.some(group => group.isActive === false)) return fail('กลุ่มตัวเลือกนี้พักใช้งาน กรุณาตรวจการตั้งค่าเมนู')
   if (menu.hasAddons !== false && assigned.length !== menu.addonGroupIds.length) return fail('ไม่พบกลุ่มตัวเลือก กรุณาตรวจการตั้งค่าเมนู')
   const selections = [], seen = new Set(), counts = new Map()
   for (const choice of selected) {

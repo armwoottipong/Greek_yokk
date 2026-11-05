@@ -240,7 +240,7 @@ import { Plus, Check, EllipsisVertical, Package, Scale, Tag, Trash2 } from 'luci
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
-import { optionPrices, optionAvailability, optionAvailabilityLabel, optionStockMaterialId, cloudGroupBindingIssue } from '@/domain/addonGroups'
+import { optionPrices, optionAvailability, optionAvailabilityLabel, optionStockMaterialId, optionImageSource, cloudGroupBindingIssue } from '@/domain/addonGroups'
 import { MATERIAL_KIND_OPTIONS, getMaterialKind } from '@/domain/materialClassification'
 import { recipeCost } from '@/domain/menuCosts'
 import { parsePlatformPrice, findStorefrontPlatform } from '@/domain/pricing'
@@ -414,10 +414,7 @@ function addManualOption() {
   manualOpen.value = false
 }
 function optionImage(addon) {
-  const material = store.matMap[optionStockMaterialId(addon, store.matMap)]
-  return material
-    ? { kind: 'materials', entityId: material.id, image: material.image, emoji: material.emoji }
-    : { kind: 'addons', entityId: addon.isDraft ? undefined : addon.id, image: addon.image, emoji: addon.emoji }
+  return optionImageSource(addon, store.matMap)
 }
 function recipeSummary(addon) {
   const rows = addon.recipe || []

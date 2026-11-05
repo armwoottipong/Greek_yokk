@@ -209,7 +209,7 @@ function initForMaterial(mat) {
   formError.value=''
   if (!mat) return
   const pSize = mat.packSize > 0 ? mat.packSize : 1
-  const pCost = Number(mat.packCost) || ((Number(mat.unitCost) || 0) * pSize)
+  const pCost = mat.packCost == null ? ((Number(mat.unitCost) || 0) * pSize) : Number(mat.packCost)
 
   if (mat.packUnit && mat.packSize > 1) {
     unitMode.value = 'pack'

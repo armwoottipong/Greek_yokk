@@ -8,7 +8,7 @@ function catalogImageWrite(s,g,id) {
  let root=get(/databases/$(database)/documents/shops/$(s)).data;
  return catalogImageRead(s,g) && n.keys().size()==6 &&
   n.keys().hasOnly(['kind','entityId','dataURL','revision','updatedAt','updatedBy']) &&
-  n.kind in ['menus','addons','materials'] && n.entityId is string && integer(n.entityId.size(),1,160) &&
+  n.kind in ['menus','addons','materials'] && n.entityId is string && integer(n.entityId.size(),1,200) &&
   id==n.kind+'_'+n.entityId && n.dataURL is string && n.dataURL.size()<=204823 &&
   (n.dataURL=='' || n.dataURL.matches('^data:image/jpeg;base64,/9j/[A-Za-z0-9+/]*={0,2}$')) &&
   n.revision is int && n.revision>0 && n.revision<=9007199254740991 &&

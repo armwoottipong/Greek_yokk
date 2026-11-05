@@ -7,7 +7,7 @@
     <div class="bowl-addon-grid">
      <div v-for="addon in groupOptions(group)" :key="addon.id" class="bowl-group-option">
       <button type="button" class="bowl-addon" :data-group-option="group.id" :class="{'is-selected':isGroupSelected(group.id,addon.id),'is-unavailable':addon.availability !== 'ready'}" :aria-pressed="isGroupSelected(group.id,addon.id)" :disabled="!isGroupSelected(group.id,addon.id) && (groupCount(group.id)>=group.maxSelections || ['paused','out'].includes(addon.availability))" @click="toggleGroupAddon(group,addon)">
-       <span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span><span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="addon.availability !== 'ready'">{{ optionAvailabilityLabel[addon.availability] }}</small></span><span class="bowl-addon-price font-number">{{ getAddonPrice(addon) === 0 ? 'รวมในราคา' : '+฿'+getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isGroupSelected(group.id,addon.id)" :size="15"/><Plus v-else :size="15"/></span>
+       <span class="bowl-addon-emoji" aria-hidden="true"><EntityImage v-bind="optionImageSource(addon, store.matMap)"/></span><span class="bowl-addon-name"><strong>{{ addon.name }}</strong><small v-if="addon.availability !== 'ready'">{{ optionAvailabilityLabel[addon.availability] }}</small></span><span class="bowl-addon-price font-number">{{ getAddonPrice(addon) === 0 ? 'รวมในราคา' : '+฿'+getAddonPrice(addon) }}</span><span class="bowl-addon-check" aria-hidden="true"><Check v-if="isGroupSelected(group.id,addon.id)" :size="15"/><Plus v-else :size="15"/></span>
       </button>
       <div v-if="group.allowRepeat && isGroupSelected(group.id,addon.id)" class="bowl-option-quantity"><span>จำนวน {{ addon.name }}</span><IconButton :label="`ลด ${group.name} ${addon.name}`" @click="adjustGroupQty(group,addon,-1)"><Minus :size="16" aria-hidden="true"/></IconButton><span class="font-number">{{ groupSelection(group.id,addon.id)?.selectionQty }}</span><IconButton :label="`เพิ่ม ${group.name} ${addon.name}`" :disabled="groupCount(group.id)>=group.maxSelections" @click="adjustGroupQty(group,addon,1)"><Plus :size="16" aria-hidden="true"/></IconButton></div>
      </div>
@@ -27,6 +27,7 @@
 </template>
 
 <script setup>
+import {optionImageSource} from '@/domain/addonGroups'
 import EntityImage from '@/components/images/EntityImage.vue'
 import { selectedItemCosts } from '@/domain/menuCosts'
 import DialogFrame from '@/components/ui/DialogFrame.vue'

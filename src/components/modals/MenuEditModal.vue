@@ -67,6 +67,7 @@ import {vSmoothDisclosure} from '@/directives/smoothDisclosure'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
 import MenuPriceInfo from '@/components/catalog/MenuPriceInfo.vue'
 import {findStorefrontPlatform} from '@/domain/pricing'
+import {matchesLegacyId} from '@/cloud/paths'
 import CatalogImageEditor from '@/components/images/CatalogImageEditor.vue'
 import FormField from '@/components/ui/FormField.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -201,11 +202,11 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
       })
     } else {
       // For new menu: if materials exist, add defaults if available
-      const defaultBase = store.activeMaterials.find(m => m.id === 'MAT001' && m.inventoryType === 'ingredient') || store.activeMaterials.find(m => m.inventoryType === 'ingredient')
+      const defaultBase = store.activeMaterials.find(m => matchesLegacyId(m.id, 'MAT001') && m.inventoryType === 'ingredient') || store.activeMaterials.find(m => m.inventoryType === 'ingredient')
       if (defaultBase) {
         baseRecipeRows.value.push({ materialId: defaultBase.id, qty: 100 })
       }
-      const defaultCup = packagingMaterials.value.find(m => m.id === 'MAT010') || packagingMaterials.value[0]
+      const defaultCup = packagingMaterials.value.find(m => matchesLegacyId(m.id, 'MAT010')) || packagingMaterials.value[0]
       if (defaultCup) {
         packageRecipeRows.value.push({ materialId: defaultCup.id, qty: 1 })
       }

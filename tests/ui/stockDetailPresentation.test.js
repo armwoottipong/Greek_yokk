@@ -3,6 +3,16 @@ import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore,material} from '../helpers/createStore'
 import Stock from '../../src/views/StockView.vue'
 import LotList from '../../src/components/inventory/StockLotList.vue'
+import StockIn from '../../src/components/modals/StockInModal.vue'
+it('keeps an explicitly free lot at zero instead of valuing it at the material fallback cost',()=>{
+ const w=mount(LotList,{props:{lots:[{id:'FREE',qty:10,unitCost:0}],unit:'ใบ',trackingMode:'none',fallbackUnitCost:5}})
+ try{expect(w.get('.lot-value').text()).toBe('มูลค่าคงเหลือ ฿0.00')}finally{w.unmount()}
+})
+it('keeps an explicit zero pack cost when opening the receiving form',async()=>{
+ const s=createTestStore();s.materials=[material('FREE',20,{packCost:0,unitCost:5})]
+ const w=mount(StockIn)
+ try{s.modals.stockIn={isOpen:true,materialId:'FREE'};await flushPromises();expect(Number(w.vm.inputPackCost)).toBe(0)}finally{w.unmount()}
+})
 it('distinguishes expiry, receive-only and untracked lots without hiding zero quantity',()=>{
  const lot={id:'LOT-X',qty:0,isInUse:true,receiveDate:'2026-10-01',expiryDate:'2000-01-01'}
  const w=mount(LotList,{props:{lots:[lot],unit:'ml',trackingMode:'expiry_and_receive'}})

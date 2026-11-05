@@ -17,6 +17,11 @@ function setup() {
   s.menus[0].addonGroupIds = ['G']
   return s
 }
+it('uses the same stock picture for a group option in the Local checkout picker',async()=>{
+ const s=setup();s.materials.push(material('PHOTO',20,{emoji:'🍌'}));s.addons[0].recipe=[{materialId:'PHOTO',qty:1}];s.addons[0].emoji='🍓'
+ const w=mount(Custom)
+ try{s.modals.customOrder={isOpen:true,menuId:s.menus[0].id};await flushPromises();expect(w.findAll('[data-group-option="G"]')[0].get('.entity-image').text()).toBe('🍌')}finally{w.unmount()}
+})
 it('uses the imported Firebase storefront for option price suggestions while preserving blank and free',async()=>{
  const s=setup(),storefrontId=encodeLegacyId('PLAT01'),deliveryId=encodeLegacyId('PLAT02')
  s.platforms.forEach(p=>{p.id=encodeLegacyId(p.id)})

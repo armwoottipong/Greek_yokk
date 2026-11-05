@@ -28,7 +28,7 @@ export function projectCoreSource(raw){
  const groups=Object.fromEntries(d.addonGroups.map(g=>{
   if(g.options.length>45||g.minSelections>11||g.maxSelections>11||g.options.some(o=>!addonIds.includes(key(o.addonId))))throw new Error('Unsupported source group')
   for(const o of g.options)for(const v of Object.values(o.prices||{}))scaled(v)
-  return [key(g.id),{id:key(g.id),name:g.name,revision:1,active:true,allowRepeat:g.allowRepeat,pricingMode:g.pricingMode,min:g.minSelections,max:g.maxSelections,
+  return [key(g.id),{id:key(g.id),name:g.name,revision:1,active:g.isActive!==false,allowRepeat:g.allowRepeat,pricingMode:g.pricingMode,min:g.minSelections,max:g.maxSelections,
    optionIds:g.options.map(o=>key(o.addonId)),menuIds:[],optionPrices:Object.fromEntries(d.platforms.map(p=>[key(p.id),{_:0,...Object.fromEntries(g.options.filter(o=>Object.hasOwn(o.prices||{},p.id)).map(o=>[key(o.addonId),scaled(o.prices[p.id])]))}]))}]
  }))
  const types=new Map(d.materials.map(m=>[key(m.id),m.inventoryType]))

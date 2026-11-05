@@ -8,6 +8,19 @@ vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({imag
 vi.mock('../../src/cloud/firebaseClient.js',()=>({getFirebaseClient:()=>({db:{}})}))
 vi.mock('../../src/cloud/shopAccess.js',async original=>({...await original(),createShopAccess:()=>({watch(){},watchInvitations(){},heartbeat:async()=>{},close(){}})}))
 const state={user:{uid:'u',email:'u@example.com'},shop:{generation:'g1',revision:1,allowedEmails:{'u@example.com':true},userRoles:{'u@example.com':'admin'}},serverReady:true}
+it.each([true,false])('uses the stock picture and group activation in cloud option picking (active=%s)',async active=>{
+ const d=await h.load()
+ d.shop.catalog.groups={G:{id:'G',name:'Choices',active,optionIds:['A'],min:0,max:1,allowRepeat:false,pricingMode:'included'}}
+ d.shop.catalog.addons={A:{active:true,recipe:{STOCK:100},pricesCents:{P:0}}};d.shop.catalog.addonIds=['A'];d.shop.catalog.menus.M.groupId='G'
+ d.materials=[{id:'STOCK',name:'Fruit',emoji:'🍌',unit:'ลูก',inventoryType:'ingredient',stock:1000,lotIds:[],unitCost:1}]
+ d.display.addons={A:{name:'Option',emoji:'🍓'}};h.load.mockResolvedValue(d)
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises();await w.get('[data-pos-menu="M"]').trigger('click')
+  expect(w.get('.bowl-addon .entity-image').text()).toBe('🍌')
+  expect(w.get('.bowl-addon').attributes('disabled')!==undefined).toBe(!active)
+ }finally{w.unmount()}
+})
 beforeEach(()=>{
  h.pending.mockReset();h.recover.mockReset().mockResolvedValue({ok:false,code:'PENDING_RESULT'});h.discardUnsent.mockReset()
  sessionStorage.clear();h.report.mockReset();h.report.mockResolvedValue({receipts:[],legacyOrders:[]});h.abandon.mockReset();h.orders.mockResolvedValue([]);h.history.mockResolvedValue([]);h.execute.mockClear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))

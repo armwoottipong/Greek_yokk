@@ -2,6 +2,13 @@ import {it,expect} from 'vitest'
 import {projectReportOrders,reportRangeBounds} from '../../src/cloud/core/reportProjection.js'
 import {buildDashboard} from '../../src/domain/dashboard.js'
 import {encodeLegacyId} from '../../src/cloud/paths.js'
+it('does not confuse a legacy ID that resembles an encoded ID with a different cloud entity',()=>{
+ const legacyId=encodeLegacyId('M'),correctId=encodeLegacyId(legacyId)
+ const d=structuredClone(data)
+ d.shop.catalog.menus[correctId]={};d.display.menus[correctId]={name:'Other menu'}
+ const rows=projectReportOrders({legacyOrders:[old({items:[{menuId:legacyId,menuName:'Other menu',qty:1,totalPrice:50}]})]},d)
+ expect(rows[0].items[0].menuId).toBe(correctId)
+})
 const platform=encodeLegacyId('P'),menu=encodeLegacyId('M')
 const data={shop:{catalog:{menus:{[menu]:{}},platforms:{[platform]:{}}}},display:{menus:{[menu]:{name:'Renamed'}},addons:{A:{name:'Extra'}},platforms:{[platform]:{name:'Store'}}},materials:[]}
 const native=(patch={})=>({opId:'N',status:'committed',createdAt:{seconds:Date.parse('2026-10-26T17:00:00Z')/1000,nanoseconds:0},platformId:platform,subtotalCents:10000,gpCents:3000,netCents:7000,ingredientCostCents:2000,packagingCostCents:500,grossProfitCents:4500,lines:[{menuId:menu,qty:1,totalCents:10000,catalog:{name:'Original',priceMode:'addon'},optionIds:['A'],optionQuantities:{A:1}}],inventory:[],...patch})

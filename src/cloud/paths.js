@@ -11,6 +11,8 @@ export function encodeLegacyId(id) {
   return encoded
 }
 
+export const matchesLegacyId = (value, legacyId) => value === legacyId || value === encodeLegacyId(legacyId)
+
 export function decodeLegacyId(encoded) {
   if (typeof encoded !== 'string' || !/^l_[A-Za-z0-9_-]+$/.test(encoded) || encoded.length > 1500) throw new Error('INVALID_LEGACY_ID')
   try {

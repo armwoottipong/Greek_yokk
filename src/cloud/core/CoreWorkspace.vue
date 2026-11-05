@@ -28,7 +28,7 @@
  <DialogFrame :open="!!menu" id="cloud-custom-order" title="รายละเอียดสินค้า" presentation="drawer" width="520px" :busy="busy" @request-close="selectedMenu=''">
   <form v-if="menu" id="cloud-line-form" class="line-form" @submit.prevent="addLine">
    <div class="product-detail"><div class="product-visual" aria-hidden="true"><EntityImage kind="menus" :entity-id="menu.id" :emoji="data.display.menus?.[menu.id]?.emoji"/></div><div class="bowl-heading"><h3>{{ name('menus',menu.id) }}</h3><strong class="product-base-price">{{ money(menu.pricesCents[platformId]) }}</strong></div></div>
-   <div class="bowl-groups"><section v-for="g in menuGroups" :key="g.id" class="bowl-options"><header><div><h4>{{ g.name }}</h4><p>เลือก {{ g.min===g.max?g.min:`${g.min}–${g.max}` }} อย่าง · {{ g.pricingMode==='included'?'รวมในราคา':'คิดเงินเพิ่ม' }}</p></div><span>{{ groupCount(g) }}/{{ g.max }}</span></header><div class="bowl-addon-grid"><div v-for="id in g.optionIds" :key="id" class="bowl-group-option"><button type="button" class="bowl-addon" :class="{'is-selected':choices[g.id][id]>0}" :aria-pressed="choices[g.id][id]>0" :disabled="locked||(!choices[g.id][id]&&(groupCount(g)>=g.max||blockedOption(g,id)))" @click="toggleChoice(g,id)"><span class="bowl-addon-emoji" aria-hidden="true"><EntityImage kind="addons" :entity-id="id" :emoji="data.display.addons?.[id]?.emoji"/></span><span class="bowl-addon-name"><strong>{{ name('addons',id) }}</strong><small v-if="availability(g,id)!=='ready'">{{ optionAvailabilityLabel[availability(g,id)] }}</small></span><span class="bowl-addon-price">{{ optionPrice(g,id) }}</span><span class="bowl-addon-check"><Check v-if="choices[g.id][id]>0" :size="15"/><Plus v-else :size="15"/></span></button><div v-if="g.allowRepeat&&choices[g.id][id]>0" class="bowl-option-quantity"><AppQuantityInput v-model="choices[g.id][id]" :label="`${g.name} ${name('addons',id)} จำนวน`" :min="0" :max="g.max" :disabled="locked"/></div></div></div></section></div>
+   <div class="bowl-groups"><section v-for="g in menuGroups" :key="g.id" class="bowl-options"><header><div><h4>{{ g.name }}</h4><p>เลือก {{ g.min===g.max?g.min:`${g.min}–${g.max}` }} อย่าง · {{ g.pricingMode==='included'?'รวมในราคา':'คิดเงินเพิ่ม' }}</p></div><span>{{ groupCount(g) }}/{{ g.max }}</span></header><div class="bowl-addon-grid"><div v-for="id in g.optionIds" :key="id" class="bowl-group-option"><button type="button" class="bowl-addon" :class="{'is-selected':choices[g.id][id]>0}" :aria-pressed="choices[g.id][id]>0" :disabled="locked||(!choices[g.id][id]&&(groupCount(g)>=g.max||blockedOption(g,id)))" @click="toggleChoice(g,id)"><span class="bowl-addon-emoji" aria-hidden="true"><EntityImage v-bind="optionImage(id)"/></span><span class="bowl-addon-name"><strong>{{ name('addons',id) }}</strong><small v-if="availability(g,id)!=='ready'">{{ optionAvailabilityLabel[availability(g,id)] }}</small></span><span class="bowl-addon-price">{{ optionPrice(g,id) }}</span><span class="bowl-addon-check"><Check v-if="choices[g.id][id]>0" :size="15"/><Plus v-else :size="15"/></span></button><div v-if="g.allowRepeat&&choices[g.id][id]>0" class="bowl-option-quantity"><AppQuantityInput v-model="choices[g.id][id]" :label="`${g.name} ${name('addons',id)} จำนวน`" :min="0" :max="g.max" :disabled="locked"/></div></div></div></section></div>
    <section class="product-note"><label class="field">หมายเหตุ<AppInput v-model="lineNote" maxlength="1000" placeholder="เช่น แยกท็อปปิ้ง" :disabled="locked"/></label></section>
    <p v-if="lineError" class="error" role="alert">{{ lineError }}</p>
   </form>
@@ -39,7 +39,7 @@
 </template>
 
 <script setup>
-import { optionAvailability, optionAvailabilityLabel } from '@/domain/addonGroups'
+import { optionAvailability, optionAvailabilityLabel, optionImageSource } from '@/domain/addonGroups'
 import { catalogAddons } from './catalogPresentation.js'
 import { groupAvailability } from './groupAvailability.js'
 import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive,provide} from 'vue'
@@ -171,11 +171,13 @@ function updateCartQty(index,qty){if(locked.value)return;try{const next=plain(ca
 function setPlatform(id){if(!locked.value)platformId.value=id}
 function groupCount(g){return Object.values(choices.value[g.id]||{}).reduce((n,q)=>n+Number(q),0)}
 const availabilityAddons = computed(() => new Map(catalogAddons(data.value).map(addon => [addon.id, addon])))
+const optionMaterials = computed(() => Object.fromEntries((data.value?.materials || []).map(material => [material.id, material])))
+const optionImage = id => optionImageSource(availabilityAddons.value.get(id), optionMaterials.value)
 const availabilityMaterials = computed(() => (data.value?.materials || []).map(material => ({
  id: material.id, stock: material.stock / 100, minAlert: (material.minAlertQ || 0) / 100, isDeleted: material.deleted
 })))
 function availability(group, id, qty = quantity.value) {
- const policy = groupAvailability(data.value, group)
+ const policy = {...groupAvailability(data.value, group), isActive: group.active !== false}
  return optionAvailability(policy, { paused: policy.pausedIds?.has(id) }, availabilityAddons.value.get(id), availabilityMaterials.value, qty)
 }
 const blockedOption = (group, id, qty) => ['paused', 'out'].includes(availability(group, id, qty))

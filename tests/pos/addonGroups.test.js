@@ -18,6 +18,11 @@ function setup() {
 const choose = (s, groupId, ids) => ids.map(id => ({ ...s.addons.find(a => a.id === id), groupId }))
 
 describe('menu option groups', () => {
+  it('rejects a paused group before accepting local cart selections, matching Firebase',()=>{
+    const s=setup();s.addonGroups[0].isActive=false
+    expect(s.addToCart(s.menus[0],choose(s,'FREE',['A','B','C']))).toBe(false)
+    expect(s.cart).toEqual([])
+  })
   it('keeps optional groups through canonical persistence and migrates old databases', () => {
     const s = setup()
     expect(s.persistLocal().ok).toBe(true)

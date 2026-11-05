@@ -4,7 +4,7 @@ const sdkDefault={doc,onSnapshot,runTransaction,serverTimestamp}
 const fail=code=>Object.assign(new Error(code),{code})
 const identity=['projectId','shopId','generation','uid']
 export const imageKey=(kind,id)=>{
- if(!['menus','addons','materials'].includes(kind)||typeof id!=='string'||!id||id.length>160||id.includes('/'))throw fail('INVALID_IMAGE_ENTITY')
+ if(!['menus','addons','materials'].includes(kind)||typeof id!=='string'||!id||id.length>200||id.includes('/'))throw fail('INVALID_IMAGE_ENTITY')
  return `${kind}_${id}`
 }
 export function createCatalogImages({db,getContext},sdk=sdkDefault){

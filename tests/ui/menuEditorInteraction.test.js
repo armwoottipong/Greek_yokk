@@ -2,6 +2,19 @@ import {it,expect,vi} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore,material} from '../helpers/createStore'
 import MenuEdit from '../../src/components/modals/MenuEditModal.vue'
+import {encodeLegacyId} from '../../src/cloud/paths.js'
+
+it.each([false,true])('selects the same default recipe with raw/imported identities (encoded=%s)',async encoded=>{
+ const s=createTestStore();s.resetDemoData()
+ const id=value=>encoded?encodeLegacyId(value):value
+ s.materials=[material(id('OTHER'),20),material(id('BOX'),20,{inventoryType:'packaging'}),material(id('MAT001'),20),material(id('MAT010'),20,{inventoryType:'packaging'})]
+ const w=mount(MenuEdit)
+ try{
+  s.modals.menuEdit={isOpen:true,menuId:null};await flushPromises()
+  expect(w.vm.baseRecipeRows[0].materialId).toBe(id('MAT001'))
+  expect(w.vm.packageRecipeRows[0].materialId).toBe(id('MAT010'))
+ }finally{w.unmount()}
+})
 import Frame from '../../src/components/ui/DialogFrame.vue'
 it('retains drafts in collapsible sections and marks a missing required name',async()=>{
  const store=createTestStore();store.resetDemoData();const w=mount(MenuEdit)

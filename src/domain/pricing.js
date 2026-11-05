@@ -1,8 +1,7 @@
-import {encodeLegacyId} from '../cloud/paths.js'
+import {matchesLegacyId} from '../cloud/paths.js'
 
 // Imports preserve channel identity while encoding its ID for Firebase paths.
-const storefrontIds=new Set(['PLAT01',encodeLegacyId('PLAT01')])
-export const isStorefrontPlatform=platform=>storefrontIds.has(platform?.id)
+export const isStorefrontPlatform=platform=>matchesLegacyId(platform?.id,'PLAT01')
 export const findStorefrontPlatform=platforms=>platforms.find(isStorefrontPlatform)
 
 function isNonNegativeNumber(value) {

@@ -1,5 +1,10 @@
 import {it,expect,vi} from 'vitest'
-import {createCatalogImages} from '../../src/cloud/core/catalogImages.js'
+import {createCatalogImages,imageKey} from '../../src/cloud/core/catalogImages.js'
+it('supports every valid canonical catalog ID length without truncating or re-encoding the ID',()=>{
+ const id='M'.repeat(200)
+ expect(imageKey('menus',id)).toBe('menus_'+id)
+ expect(()=>imageKey('menus',id+'M')).toThrow('INVALID_IMAGE_ENTITY')
+})
 function setup(){
  const context={projectId:'demo-test',shopId:'greek-yogg',generation:'g',uid:'u',role:'manager',online:true,ready:true}
  const rows={root:{status:'active',generation:'g'},entity:{id:'M'},image:{revision:2,dataURL:'data:image/jpeg;base64,/9j/2Q=='}}

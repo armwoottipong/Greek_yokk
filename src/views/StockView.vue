@@ -266,11 +266,11 @@
                           <!-- 5. Lot Unit Cost -->
                           <td class="py-3 px-4 font-number text-stone-700 text-xs tabular-nums text-right">
                             <div class="font-bold text-stone-800 text-xs tabular-nums">
-                              ฿{{ (lot.packCost || Math.round((lot.unitCost || mat.unitCost || 0) * (mat.packSize || 1) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) }}
+                              ฿{{ (lot.packCost ?? Math.round((lot.unitCost ?? mat.unitCost ?? 0) * (mat.packSize || 1) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) }}
                               <span class="font-normal text-stone-500 text-[12px]">/{{ mat.packUnit || mat.unit }}</span>
                             </div>
                             <div v-if="mat.packSize > 1" class="text-[12px] text-stone-500 tabular-nums mt-0.5">
-                              (≈ ฿{{ Number(lot.unitCost || mat.unitCost || 0).toFixed(2) }}/{{ mat.unit }})
+                              (≈ ฿{{ Number(lot.unitCost ?? mat.unitCost ?? 0).toFixed(2) }}/{{ mat.unit }})
                             </div>
                           </td>
 

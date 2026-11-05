@@ -22,6 +22,14 @@ it('lets Manager/Admin save square menu/material images and increment revisions'
  await assertSucceeds(setDoc(doc(db('admin'),`${base}/catalogImages/menus_MENU`),picture({kind:'menus',entityId:'MENU',updatedBy:'admin'})))
  expect((await getDoc(doc(d,imagePath))).data().revision).toBe(2)
 })
+it('accepts an existing 200-character catalog ID and rejects 201 characters',async()=>{
+ for(const size of [200,201]){
+  const id='M'.repeat(size)
+  await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),root),{catalog:{menus:{[id]:{id}}}},{merge:true}))
+  const write=setDoc(doc(db(),`${base}/catalogImages/menus_${id}`),picture({kind:'menus',entityId:id}))
+  if(size===200)await assertSucceeds(write);else await assertFails(write)
+ }
+})
 it('rejects Viewer, unknown email and non-Google writes and catalog-image reads',async()=>{
  for(const [role,provider] of [['viewer','google.com'],['stranger','google.com'],['manager','password']]){
   const d=db(role,provider);await assertFails(setDoc(doc(d,imagePath),picture({updatedBy:role})));await assertFails(getDoc(doc(d,imagePath)))
