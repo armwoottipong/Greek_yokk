@@ -1,5 +1,5 @@
 <template>
- <DialogFrame :busy="!!actionPending" :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไขตัวเลือกเสริม':'เพิ่มตัวเลือกเสริมใหม่'" :description="fromGroup ? 'เลือกของจากคลัง หรือสร้างตัวเลือกที่ไม่ตัดสต็อก' : 'ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่'" :presentation="fromGroup ? 'drawer' : 'dialog'" width="720px" :teleport="false" :initial-focus="fromGroup ? '#group-option-ingredient' : store.modals.addonEdit.initialSection==='recipe'?'[data-addon-recipe] button:not(:disabled)':'#addon-name'" @request-close="requestClose(close)">
+ <DialogFrame :busy="!!actionPending" :open="store.modals.addonEdit.isOpen" id="AddonEditModal" :title="isEditing?'แก้ไขตัวเลือกเสริม':'เพิ่มตัวเลือกเสริมใหม่'" :description="fromGroup ? 'เลือกของจากคลัง หรือสร้างตัวเลือกที่ไม่ตัดสต็อก' : 'ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 ที่'" :presentation="fromGroup ? 'side-drawer' : 'dialog'" :width="fromGroup ? '480px' : '720px'" :teleport="false" :initial-focus="fromGroup ? '#group-option-ingredient' : store.modals.addonEdit.initialSection==='recipe'?'[data-addon-recipe] button:not(:disabled)':'#addon-name'" @request-close="requestClose(close)">
   <div class="menu-editor">
    <section v-if="fromGroup" class="menu-editor-section-body" aria-label="รายการที่ตัดจากคลัง">
     <div v-for="kind in stockKinds" :key="kind.id" class="menu-editor-prices">

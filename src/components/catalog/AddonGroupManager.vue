@@ -54,12 +54,12 @@
     <p v-if="statusError" class="group-error" role="alert">{{ statusError }}</p>
    </section>
   </div>
-  <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="ตั้งชื่อ เพิ่มตัวเลือกจากคลัง แล้วกำหนดกติกา" presentation="drawer" width="720px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
-   <div class="group-form">
+  <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="ตั้งชื่อ เพิ่มตัวเลือกจากคลัง แล้วกำหนดกติกา" presentation="side-drawer" width="480px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
+   <div class="group-form group-drawer-form">
     <FormField id="addon-group-name" label="ชื่อกลุ่มตัวเลือก" required :error="fieldErrors.name" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="draft.name" :aria-invalid="invalid" :aria-describedby="describedBy" aria-required="true" placeholder="เช่น ผลไม้ฟรี 3 ชนิด"/></FormField>
-    <section ref="optionsSection" tabindex="-1" class="group-options" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p>
-     <div class="group-heading">
-      <div><h4>เลือกรายการเข้ากลุ่ม</h4><p class="group-help" aria-live="polite">เลือกแล้ว {{ draft.options?.length || 0 }} รายการ · เว้นราคาว่างเพื่อให้ฟรี</p></div>
+    <section ref="optionsSection" tabindex="-1" class="group-options group-drawer-section" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p>
+     <div class="group-heading group-drawer-band">
+      <div><h4>รายการตัวเลือก</h4><p class="group-help" aria-live="polite">เลือกแล้ว {{ draft.options?.length || 0 }} รายการ</p></div>
       <Button variant="secondary" data-group-add-option :disabled="!!actionPending || store.inventorySaving" @click="addOption"><Plus :size="16" aria-hidden="true"/>เพิ่มตัวเลือก</Button>
      </div>
      <p v-if="!store.addons.length" class="group-help">เพิ่มตัวเลือกเพื่อกำหนดสูตรและราคาของรายการแรกในกลุ่มนี้</p>
@@ -68,7 +68,7 @@
      <div v-for="addon in filteredAddons" :key="addon.id" class="group-option" :class="{ 'group-option--selected': optionFor(addon.id) }" data-group-addon>
       <div class="group-option-heading">
       <AppCheckbox :model-value="Boolean(optionFor(addon.id))" :label="addon.name" @update:model-value="toggleOption(addon.id, $event)"><span class="group-option-image"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span>{{ addon.name }} <small v-if="addon.isActive === false">(ปิดขาย)</small></AppCheckbox>
-      <Button variant="quiet" size="compact" :aria-label="`ดูสูตรและราคาของ ${addon.name}`" @click="detailId = addon.id">สูตรและราคา</Button>
+      <Button variant="quiet" size="compact" :aria-label="`ดูสูตรและราคาของ ${addon.name}`" @click="detailId = addon.id">ดูสูตร</Button>
       </div>
       <details v-if="optionFor(addon.id)" class="group-price-fields">
        <summary>ราคาและสถานะ <small>{{ formatPriceSummary(optionFor(addon.id).prices) }}</small></summary>
@@ -87,8 +87,8 @@
       </details>
      </div>
     </section>
-    <details ref="groupRules" class="group-rules">
-     <summary><strong>กติกาการเลือกและสต็อก</strong><small>{{ ruleSummary }}</small></summary>
+    <details ref="groupRules" class="group-rules" open>
+     <summary class="group-drawer-band"><strong>กติกาการเลือก</strong><small>{{ ruleSummary }}</small></summary>
      <FormField id="group-selection-rule" label="ลูกค้าเลือกอย่างไร" v-slot="{controlId}">
       <AppSelect :id="controlId" aria-label="ลูกค้าเลือกอย่างไร" :model-value="selectionRule" @update:model-value="applySelectionRule">
        <option value="optional">ไม่บังคับเลือก</option>
@@ -98,14 +98,15 @@
      </FormField>
     <div class="group-fields"><FormField id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
     <AppCheckbox v-model="draft.allowRepeat" variant="switch" label="เลือกชนิดเดิมซ้ำได้">เลือกชนิดเดิมซ้ำได้ · นับจำนวนเป็นที่</AppCheckbox>
-    <div class="group-stock-controls">
+    <details class="group-stock-controls">
+     <summary>การแจ้งเตือนและพักขาย</summary>
      <AppCheckbox v-model="draft.warnLowStock" variant="switch" label="เตือนเมื่อใกล้หมด">เตือนเมื่อใกล้หมด</AppCheckbox>
      <AppCheckbox v-model="draft.autoPauseOutOfStock" variant="switch" label="พักขายอัตโนมัติเมื่อของหมด">พักขายอัตโนมัติเมื่อของหมด</AppCheckbox>
      <p class="group-help">อิงจุดเตือนและจำนวนคงเหลือของวัตถุดิบในสูตร</p>
-    </div>
     </details>
-    <section class="group-options" aria-label="เมนูที่ใช้กลุ่มนี้">
-     <h4>เมนูที่ใช้กลุ่มนี้</h4>
+    </details>
+    <section class="group-options group-drawer-section" aria-label="เมนูที่ใช้กลุ่มนี้">
+     <h4 class="group-drawer-band">เมนูที่ใช้กลุ่มนี้</h4>
      <p v-if="!linkedMenus.length" class="group-help">{{ draft.id ? 'ยังไม่มีเมนูใช้กลุ่มนี้' : 'บันทึกกลุ่มก่อนเพื่อเชื่อมกับเมนู' }}</p>
      <ul v-else class="group-linked-menus"><li v-for="menu in linkedMenus" :key="menu.id">{{ menu.name }}</li></ul>
      <AppSelect v-if="draft.id && linkableMenus.length && !creationResolver" aria-label="เชื่อมกับเมนู" model-value="" @update:model-value="linkMenu">
@@ -407,4 +408,10 @@ async function performRemove(group) {
 .group-rules summary{cursor:pointer}
 .group-linked-menus{margin:0;padding-inline-start:20px;font-size:.875rem}
 .group-rules summary small,.group-price-fields summary small{margin-inline-start:8px;font-size:.75rem;color:var(--text-muted);font-weight:400}
+.group-drawer-form{gap:16px}
+.group-drawer-band{background:var(--bg-soft);padding:10px 12px;border-radius:8px}
+.group-drawer-section .group-drawer-band{font-size:.875rem}
+.group-drawer-form .group-rules{border:0;padding:0}
+.group-drawer-form .group-stock-controls:not([open]){display:block}
+.group-stock-controls summary{cursor:pointer;font-size:.8125rem;font-weight:600}
 </style>
