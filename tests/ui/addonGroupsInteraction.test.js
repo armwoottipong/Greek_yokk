@@ -158,6 +158,35 @@ it('persists both groups and deducts the base and selected recipes on checkout',
     expect(s.matMap.FRUIT.stock).toBe(870)
   } finally { order.unmount() }
 })
+it('opens option details with the selected group price, stock units and channel profit', async () => {
+  const s = setup()
+  const addon = s.addons[0]
+  const platform = s.platforms[0]
+  platform.gpPercent = 25
+  s.materials.push(material('DETAIL-FRUIT', 100, { name: 'ผลไม้ทดสอบ', unit: 'กรัม' }))
+  s.materials.push(material('DETAIL-CUP', 100, { name: 'ถ้วยทดสอบ', unit: 'ใบ', inventoryType: 'packaging' }))
+  addon.recipe = [{ materialId: 'DETAIL-FRUIT', qty: 10 }, { materialId: 'DETAIL-CUP', qty: 1 }]
+  addon.prices = { [platform.id]: 90 }
+  s.addonGroups.push({ ...s.addonGroups[0], id: 'PAID', name: 'ขายเพิ่ม', pricingMode: 'extra',
+    options: [{ addonId: addon.id, prices: { [platform.id]: 40 } }] })
+  const money = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
+  const manager = mount(GroupManager, { attachTo: document.body, global: { stubs: { teleport: true } } })
+  try {
+    await manager.get('.group-item-trigger .group-item-image').trigger('click')
+    const detail = manager.get('#group-option-detail')
+    expect(detail.text()).toContain('10 กรัม')
+    expect(detail.text()).toContain('1 ใบ')
+    expect(detail.get('.option-detail-channel').text()).toContain('ฟรี')
+    expect(detail.get('.option-detail-channel').text()).toContain(money.format(11))
+    await detail.get('[aria-label="ปิดหน้าต่าง"]').trigger('click')
+    await manager.findAll('.group-directory-button').find(button => button.text().includes('ขายเพิ่ม')).trigger('click')
+    await manager.get('.group-item-trigger').trigger('click')
+    const channel = manager.get('#group-option-detail .option-detail-channel')
+    expect(channel.text()).toContain(money.format(40))
+    expect(channel.get('.option-detail-profit dd').text()).toBe(money.format(19))
+    expect(s.addonGroups[1].options[0].paused).toBeUndefined()
+  } finally { manager.unmount() }
+})
 it('updates the paid option profit from the price draft and channel GP', async () => {
   const s = setup()
   s.materials.push(material('FRUIT', 1000))

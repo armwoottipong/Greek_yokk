@@ -38,11 +38,12 @@
     <div class="group-table-scroll" role="region" aria-label="เลื่อนดูรายการตัวเลือก" tabindex="0">
     <ul class="group-items-list" data-group-options>
      <li v-for="option in selectedGroup.options" :key="option.addonId" class="group-item">
-      <span class="group-item-image"><EntityImage kind="addons" :entity-id="option.addonId" :image="addonMap.get(option.addonId)?.image" :emoji="addonMap.get(option.addonId)?.emoji"/></span>
-      <div class="group-item-name">
-       <button v-if="addonMap.has(option.addonId)" type="button" @click="detailId = option.addonId">{{ addonMap.get(option.addonId).name }}</button>
-       <strong v-else>ไม่พบตัวเลือก</strong>
-      </div>
+      <button v-if="addonMap.has(option.addonId)" type="button" class="group-item-trigger" aria-haspopup="dialog"
+       @click="detailSelection = { groupId: selectedGroup.id, addonId: option.addonId }">
+       <span class="group-item-image"><EntityImage kind="addons" :entity-id="option.addonId" :image="addonMap.get(option.addonId).image" :emoji="addonMap.get(option.addonId).emoji"/></span>
+       <span class="group-item-name">{{ addonMap.get(option.addonId).name }}</span>
+      </button>
+      <strong v-else class="group-item-trigger">ไม่พบตัวเลือก</strong>
       <small class="group-item-price">{{ priceSummary(selectedGroup, option) }}</small>
       <span class="group-item-status" :data-status="status(selectedGroup, option)">{{ optionAvailabilityLabel[status(selectedGroup, option)] }}</span>
       <AppCheckbox :model-value="!option.paused" variant="switch" :disabled="!!actionPending || store.inventorySaving"
@@ -54,6 +55,34 @@
     <p v-if="statusError" class="group-error" role="alert">{{ statusError }}</p>
    </section>
   </div>
+  <DialogFrame id="group-option-detail" :open="!!optionDetail" :title="optionDetail?.addon.name || 'รายละเอียดตัวเลือก'"
+   :description="optionDetail?.group.name" presentation="side-drawer" width="480px" @request-close="detailSelection = null">
+   <div v-if="optionDetail" class="group-form option-detail">
+    <section class="group-options" aria-labelledby="group-option-recipe-title">
+     <h4 id="group-option-recipe-title" class="group-drawer-band">รายละเอียดต่อที่</h4>
+     <p v-if="!optionDetail.addon.recipe?.length" class="group-help">ตัวเลือกนี้ไม่มีรายการตัดสต๊อก</p>
+     <ul v-else class="option-detail-list">
+      <li v-for="row in optionDetail.addon.recipe" :key="row.materialId">
+       <span>{{ store.matMap[row.materialId]?.name || row.materialId }}</span>
+       <strong>{{ row.qty }} {{ store.matMap[row.materialId]?.unit }}</strong>
+      </li>
+     </ul>
+    </section>
+    <section class="group-options" aria-labelledby="group-option-financial-title">
+     <h4 id="group-option-financial-title" class="group-drawer-band">วิเคราะห์ต้นทุนและกำไรต่อที่</h4>
+     <p v-if="!detailAnalysis.length" class="group-help">ยังไม่มีช่องทางขายสำหรับวิเคราะห์ราคา</p>
+     <section v-for="channel in detailAnalysis" :key="channel.platform.id" class="option-detail-channel">
+      <h5>{{ channel.platform.name }}</h5>
+      <dl>
+       <div><dt>ราคาเพิ่ม</dt><dd>{{ channel.revenue === 0 ? 'ฟรี' : analysisMoney(channel.revenue) }}</dd></div>
+       <div><dt>รายรับหลังหัก GP</dt><dd>{{ analysisMoney(channel.netRevenue) }}</dd></div>
+       <div><dt>ต้นทุนตัวเลือก</dt><dd>{{ analysisMoney(channel.cost) }}</dd></div>
+       <div class="option-detail-profit"><dt>กำไรขั้นต้น</dt><dd>{{ analysisMoney(channel.profit) }}</dd></div>
+      </dl>
+     </section>
+    </section>
+   </div>
+  </DialogFrame>
   <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="ตั้งชื่อ เพิ่มตัวเลือกจากคลัง แล้วกำหนดกติกา" presentation="side-drawer" width="480px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
    <div class="group-form group-drawer-form">
     <FormField id="addon-group-name" label="ชื่อกลุ่มตัวเลือก" required :error="fieldErrors.name" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="draft.name" :aria-invalid="invalid" :aria-describedby="describedBy" aria-required="true" placeholder="เช่น ผลไม้ฟรี 3 ชนิด"/></FormField>
@@ -210,6 +239,18 @@ const selectedGroupId = ref(null)
 const statusError = ref('')
 const selectedGroup = computed(() => store.addonGroups.find(group => group.id === selectedGroupId.value) || store.addonGroups[0])
 const addonMap = computed(() => new Map(store.addons.map(addon => [addon.id, addon])))
+const detailSelection = ref(null)
+const optionDetail = computed(() => {
+  const group = store.addonGroups.find(item => item.id === detailSelection.value?.groupId)
+  const option = group?.options.find(item => item.addonId === detailSelection.value?.addonId)
+  const addon = addonMap.value.get(option?.addonId)
+  return addon ? { group, option, addon } : null
+})
+const detailAnalysis = computed(() => {
+  if (!optionDetail.value) return []
+  const { group, option, addon } = optionDetail.value
+  return analyzeOption(addon, optionPrices(group, option, addon))
+})
 const status = (group, option) => optionAvailability(group, option, addonMap.value.get(option.addonId), store.materials)
 function priceSummary(group, option) {
   return formatPriceSummary(optionPrices(group, option, addonMap.value.get(option.addonId) || {}))
@@ -268,7 +309,10 @@ watch(() => store.modals.addonEdit?.isOpen, isOpen => {
 const baht = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
 const analysisMoney = value => value === null ? 'คำนวณไม่ได้' : baht.format(value)
 function priceAnalysis(addon) {
-  const prices = Object.fromEntries(store.platforms.map(platform => [platform.id, optionFor(addon.id).prices?.[platform.id] || 0]))
+  return analyzeOption(addon, optionFor(addon.id).prices)
+}
+function analyzeOption(addon, channelPrices) {
+  const prices = Object.fromEntries(store.platforms.map(platform => [platform.id, channelPrices?.[platform.id] || 0]))
   return store.platforms.map(platform => ({
     platform,
     ...selectedItemCosts({ prices }, [ { ...addon, recipe: recipeFor(addon), prices: {} } ], 1, store.materials, platform)
@@ -400,9 +444,19 @@ async function performRemove(group) {
 .group-item>.app-checkbox{justify-self:center}
 .group-item-image{display:grid;place-items:center;width:48px;height:48px;border-radius:10px;background:var(--bg-soft);overflow:hidden}
 .group-item-image :deep(img){width:100%;height:100%;object-fit:cover}
-.group-item-name{display:grid;gap:3px;overflow-wrap:anywhere}
-.group-item-name button{text-align:start;font-weight:600;justify-self:start;overflow-wrap:anywhere}
-.group-item-name button:hover{text-decoration:underline}
+.group-item-trigger{grid-column:span 2;display:flex;align-items:center;gap:12px;min-width:0;text-align:start;font-weight:600;border-radius:10px}
+.group-item-trigger .group-item-image{flex:none}
+.group-item-name{min-width:0;overflow-wrap:anywhere}
+button.group-item-trigger:hover .group-item-name{text-decoration:underline;text-underline-offset:3px}
+button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.option-detail-list,.option-detail-channel dl{display:grid;gap:0;margin:0}
+.option-detail-list li,.option-detail-channel dl div{display:flex;justify-content:space-between;gap:16px;padding-block:9px}
+.option-detail-list li+li,.option-detail-profit{border-top:1px solid var(--border-subtle)}
+.option-detail-list strong,.option-detail-channel dd{margin:0;text-align:end;font-variant-numeric:tabular-nums}
+.option-detail-channel{padding:12px 16px;border:1px solid var(--border-subtle);border-radius:12px}
+.option-detail-channel h5,.option-detail-profit{font-weight:600}
+.option-detail-channel dt{color:var(--addon-text-secondary)}
+
 .group-item-status{font-size:.75rem;color:var(--text-muted)}
 .group-item-status[data-status=low],.group-item-status[data-status=out]{color:var(--state-danger)}
 .group-stock-controls,.group-price-fields{display:grid;gap:12px}
@@ -417,7 +471,7 @@ async function performRemove(group) {
  }
  .group-directory-header{border-bottom:0}
  .group-directory-button{border-top:1px solid var(--border-subtle);border-bottom:0}
- .group-directory-button strong,.group-items-header h4,.group-item-name button{
+ .group-directory-button strong,.group-items-header h4,.group-item-name{
   min-width:0;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -434,7 +488,7 @@ async function performRemove(group) {
  .group-items-header h4{display:none}
  .group-items-actions{flex-shrink:1}
  .group-item{grid-template-columns:40px minmax(0,1fr) auto;gap:8px}
- .group-item-image{width:40px;height:40px;grid-row:span 3}
+ .group-item-image{width:40px;height:40px}
  .group-item-price,.group-item-status{grid-column:2}
  .group-item>.app-checkbox{grid-column:3;grid-row:1 / span 3}
 }
