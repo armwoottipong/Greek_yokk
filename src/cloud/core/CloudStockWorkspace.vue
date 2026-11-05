@@ -1,6 +1,14 @@
 <template>
  <div :class="{ 'flex-1 min-h-0': currentTab === 'addon' }">
-  <StockView v-show="currentTab==='stock'" />
+  <section v-if="['menu','addon'].includes(currentTab) && model.hasCatalogDrafts && !model.inventorySaving && !model.unresolvedDraftCommand" class="catalog-pending" aria-label="การเปลี่ยนแปลงเมนูและตัวเลือกที่รอบันทึก">
+   <strong>การเปลี่ยนแปลงยังบันทึกไม่ครบ</strong>
+   <ul><li v-for="item in model.catalogDraftSummary" :key="item.id">{{ item.name }} · {{ item.title }}</li></ul>
+   <div>
+    <Button :disabled="blocked || !ready" @click="model.commitCatalogChanges()">ดำเนินการบันทึกต่อ</Button>
+    <Button variant="quiet" :disabled="blocked" @click="model.discardCatalogChanges()">ยกเลิกส่วนที่ยังไม่บันทึก</Button>
+   </div>
+  </section>
+  <StockView v-show="currentTab==='stock'" :active="currentTab==='stock'" />
   <MenuView v-if="visited.menu" v-show="currentTab==='menu'" />
   <AddonView v-if="visited.addon" v-show="currentTab==='addon'" />
   <Teleport to="body">
@@ -23,6 +31,7 @@
 <script setup>
 import { onUnmounted, provide, watch, reactive } from 'vue'
 import { createInventoryModel } from './inventoryModel.js'
+import Button from '@/components/ui/Button.vue'
 import MenuView from '@/views/MenuView.vue'
 import AddonView from '@/views/AddonView.vue'
 import MenuEditModal from '@/components/modals/MenuEditModal.vue'
@@ -69,3 +78,9 @@ onUnmounted(() => model.close())
 
 defineExpose({ acknowledge: model.acknowledge, model })
 </script>
+
+<style scoped>
+.catalog-pending{display:grid;gap:12px;padding:16px;margin-block-end:16px;border-radius:12px;background:var(--accent-soft);font-size:.875rem;line-height:1.7}
+.catalog-pending ul{display:grid;gap:4px}
+.catalog-pending>div{display:flex;flex-wrap:wrap;gap:8px}
+</style>

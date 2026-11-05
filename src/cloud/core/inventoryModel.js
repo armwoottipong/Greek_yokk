@@ -14,23 +14,25 @@ const view=m=>{const p=projectMaterial(m);return {...p,yieldQty:m.productionReci
 const snapshot=data=>clone({shop:data.shop,materials:data.materials,display:data.display})
 const apply=(before,plan)=>({...before,shop:plan.nextShop,display:plan.displayChange?{...before.display,[plan.displayChange.collection]:{...before.display[plan.displayChange.collection],[plan.displayChange.entityId]:plan.displayChange.value}}:before.display,materials:[...before.materials.filter(m=>!(plan.removedMaterialIds||[]).includes(m.id)).map(m=>plan.nextMaterials.find(n=>n.id===m.id)||m),...plan.nextMaterials.filter(m=>!before.materials.some(b=>b.id===m.id))]})
 const names={inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ปรับยอดนับจริง',switch_lot:'สลับล็อตใช้งาน',material_create:'เพิ่มวัตถุดิบ',material_archive:'จัดเก็บวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ',material_measure:'แก้หน่วยและต้นทุน',material_details:'แก้รายละเอียดวัตถุดิบ',material_type:'แก้ประเภทวัตถุดิบ',production_recipe:'แก้สูตรผลิต',material_delete:'ลบวัตถุดิบถาวร',history_clear:'ล้างหน้าประวัติ',menu:'บันทึกเมนู',addon:'บันทึกตัวเลือกเสริม',group:'บันทึกกลุ่มตัวเลือก'}
+const catalogKinds=new Set(['menu','addon','group'])
+const draftKindFor=commands=>commands.length&&commands.every(command=>catalogKinds.has(command.kind))?'catalog':'stock'
 export function createInventoryModel({getData,execute,loadServer,isReady,isBlocked,storageKey,readHistory=async()=>({logs:[]})}){
  let alive=true,historyRequest=0
  const latest=shallowRef(snapshot(getData())),virtual=shallowRef(latest.value)
- const state=reactive({base:null,commands:[],uncertain:false,conflict:false,saving:false,historyLoading:false,logs:[],toasts:[],modals:Object.fromEntries(['stockIn','stockAdjust','stocktake','waste','materialEdit','activityLog','confirm','lotDepletion','emojiPicker','menuEdit','addonEdit'].map(id=>[id,{isOpen:false}]))})
+ const state=reactive({base:null,commands:[],draftKind:'stock',uncertain:false,conflict:false,saving:false,historyLoading:false,logs:[],toasts:[],modals:Object.fromEntries(['stockIn','stockAdjust','stocktake','waste','materialEdit','activityLog','confirm','lotDepletion','emojiPicker','menuEdit','addonEdit'].map(id=>[id,{isOpen:false}]))})
  const error=message=>{model.showToast(message,'error');return {ok:false,message}}
- function persist(){try{sessionStorage.setItem(storageKey,JSON.stringify({base:state.base,commands:state.commands,uncertain:state.uncertain,conflict:state.conflict}));return true}catch{return false}}
+ function persist(){try{sessionStorage.setItem(storageKey,JSON.stringify({base:state.base,commands:state.commands,draftKind:state.draftKind,uncertain:state.uncertain,conflict:state.conflict}));return true}catch{return false}}
  function rebuild(){virtual.value=state.base?clone(state.base):latest.value;for(const c of state.commands)virtual.value=apply(virtual.value,planInventoryCommand(virtual.value.shop,virtual.value.materials,clone(c)))}
- try{const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null');if(saved?.commands?.length){state.base=saved.base;state.commands=saved.commands;state.uncertain=!!saved.uncertain;state.conflict=!!saved.conflict;rebuild();if(latest.value.shop.revision!==state.base.shop.revision)state.conflict=true}}catch{state.conflict=true}
+ try{const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null');if(saved?.commands?.length){state.base=saved.base;state.commands=saved.commands;state.draftKind=saved.draftKind==='catalog'?'catalog':saved.draftKind==='stock'?'stock':draftKindFor(saved.commands);state.uncertain=!!saved.uncertain;state.conflict=!!saved.conflict;rebuild();if(latest.value.shop.revision!==state.base.shop.revision)state.conflict=true}}catch{state.conflict=true}
  function guard(){if(!alive||!isReady()||isBlocked()||state.saving||state.uncertain||state.conflict)throw new Error(state.conflict?'ยอดร้านเปลี่ยนระหว่างทำแบบร่าง กรุณายกเลิกแบบร่างที่ยังไม่บันทึกและตรวจยอดใหม่':'ยังบันทึกไม่ได้ กรุณาเชื่อมต่อและตรวจผลรายการค้างก่อน')}
  function stageMany(entries){
   if(!entries.length)return {ok:true,success:true}
-  const before={base:state.base,commands:[...state.commands],projection:virtual.value}
-  try{guard();if(!state.base)state.base=clone(latest.value)
+  const before={base:state.base,commands:[...state.commands],draftKind:state.draftKind,projection:virtual.value}
+  try{guard();if(!state.base){state.base=clone(latest.value);state.draftKind=draftKindFor(entries)}
    for(const entry of entries){const command={opId:crypto.randomUUID(),kind:entry.kind,payload:{...clone(entry.payload),expectedRevision:virtual.value.shop.revision}};const result=planInventoryCommand(virtual.value.shop,virtual.value.materials,command);virtual.value=apply(virtual.value,result);state.commands.push(command)}
    if(!persist())throw new Error('พื้นที่เก็บแบบร่างไม่พร้อม กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก')
    return {ok:true,success:true}
-  }catch(e){state.base=before.base;state.commands=before.commands;virtual.value=before.projection;return error(e.message)}
+  }catch(e){state.base=before.base;state.commands=before.commands;state.draftKind=before.draftKind;virtual.value=before.projection;return error(e.message)}
  }
  function countRequest(materialId,newStock,reason,note,lotId){
   const m=virtual.value.materials.find(m=>m.id===materialId);if(!m)throw new Error('ไม่พบวัตถุดิบ')
@@ -97,11 +99,32 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   get materials(){return virtual.value.materials.map(view)},get activeMaterials(){return this.materials.filter(m=>!m.isDeleted)},get matMap(){return Object.fromEntries(this.materials.map(m=>[m.id,m]))},
   get materialKindOptions(){return MATERIAL_KIND_OPTIONS},getMaterialKind,get materialUsageById(){return buildMaterialUsage({materials:this.materials,menus:recipes('menus'),addons:recipes('addons')})},
   get lowStockMaterials(){return this.activeMaterials.filter(m=>m.stock<=m.minAlert)},get outOfStockMaterials(){return this.activeMaterials.filter(m=>m.stock<=0)},
-  get stockDraftSnapshot(){return (state.base?.materials||latest.value.materials).map(view)},get hasStockDrafts(){return state.commands.length>0},
+  get stockDraftSnapshot(){return (state.base?.materials||latest.value.materials).map(view)},get hasStockDrafts(){return state.commands.length>0&&state.draftKind==='stock'},get hasCatalogDrafts(){return state.commands.length>0&&state.draftKind==='catalog'},
   get totalInventoryValuation(){return valuation(this.stockDraftSnapshot)},get projectedInventoryValuation(){return valuation(this.materials)},get draftInventoryValuationDiff(){return this.projectedInventoryValuation-this.totalInventoryValuation},get reorderBudgetNeeded(){return this.activeMaterials.reduce((n,m)=>n+Math.max(0,2*m.minAlert-m.stock)*m.unitCost,0)},
-  get stockDraftSummary(){const ids=new Set(state.commands.flatMap(c=>c.payload.requests?.map(r=>r.materialId)||[c.payload.materialId||c.payload.input?.id]));const items=[...ids].filter(Boolean).map(id=>{const m=this.matMap[id],before=this.stockDraftSnapshot.find(m=>m.id===id),c=[...state.commands].reverse().find(c=>c.payload.materialId===id||c.payload.input?.id===id||c.payload.requests?.some(r=>r.materialId===id));return {id,materialId:id,name:m?.name||id,emoji:m?.emoji||'',unit:m?.unit||'',title:names[c?.kind]||'แก้ข้อมูล',description:c?.payload.requests?.find(r=>r.materialId===id)?.mode==='waste'?'บันทึกของเสีย':names[c?.kind]||'',delta:(m?.stock||0)-(before?.stock||0)}});return {count:items.length,items,text:items.map(i=>i.name).join(', ')}},
+  get catalogDraftSummary(){
+   const items=new Map()
+   for(const command of state.commands){
+    if(!catalogKinds.has(command.kind))continue
+    const id=command.payload.entityId||command.payload.input?.id
+    const collection={menu:'menus',addon:'addons',group:'groups'}[command.kind]
+    const name=virtual.value.display?.[collection]?.[id]?.name||state.base?.display?.[collection]?.[id]?.name||command.payload.input?.name||id
+    items.set(`${command.kind}:${id}`,{id:`${command.kind}:${id}`,name,title:names[command.kind]})
+   }
+   return [...items.values()]
+  },
+  get stockDraftSummary(){
+   const commands=this.hasStockDrafts?state.commands.filter(command=>!catalogKinds.has(command.kind)):[]
+   const ids=new Set(commands.flatMap(command=>command.payload.requests?.map(row=>row.materialId)||[command.payload.materialId||command.payload.input?.id]))
+   const items=[...ids].filter(Boolean).map(id=>{
+    const before=this.stockDraftSnapshot.find(material=>material.id===id),material=this.matMap[id]
+    const command=[...commands].reverse().find(command=>command.payload.materialId===id||command.payload.input?.id===id||command.payload.requests?.some(row=>row.materialId===id))
+    return {id,materialId:id,name:material?.name||before?.name||id,emoji:material?.emoji||before?.emoji||'',unit:material?.unit||before?.unit||'',title:names[command.kind]||'แก้ข้อมูล',description:command.payload.requests?.find(row=>row.materialId===id)?.mode==='waste'?'บันทึกของเสีย':names[command.kind]||'',delta:(material?.stock||0)-(before?.stock||0)}
+   })
+   return {count:items.length,items,text:items.map(item=>item.name).join(', ')}
+  },
   showToast(message,type='info'){state.toasts.push({id:crypto.randomUUID(),message,type})},dismissToast(id){state.toasts=state.toasts.filter(t=>t.id!==id)},
-  initStockDraftSnapshot(){},commitStockDrafts:commit,
+  initStockDraftSnapshot(){},commitStockDrafts:commit,commitCatalogChanges:commit,
+  discardCatalogChanges(){return this.discardStockDrafts()},
   discardStockDrafts(){if(state.saving||state.uncertain)return error('แบบร่างนี้มีคำสั่งที่รอตรวจผล กรุณาตรวจผลจากแถบสถานะด้านบนก่อนยกเลิก');state.commands=[];state.base=null;state.conflict=false;virtual.value=latest.value;persist();return {ok:true}},
   getMaterialTrackingMode:m=>!m||m.inventoryType==='packaging'?'none':'expiry_and_receive',
   getMaterialLots(m,showDepleted=false){return (m?.lots||[]).filter(l=>showDepleted||l.qty>0).sort((a,b)=>Number(b.isInUse)-Number(a.isInUse)||(a.expiryDate||'9999').localeCompare(b.expiryDate||'9999')||(a.receiveDate||'').localeCompare(b.receiveDate||''))},
@@ -166,7 +189,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   const request=++historyRequest;state.historyLoading=true
   try{const result=await readHistory({clearedThroughRevision:latest.value.shop.inventoryHistoryCutoff||0});if(alive&&request===historyRequest){state.logs=result.logs;if(result.truncated)model.showToast('แสดงประวัติ Firebase 500 รายการล่าสุดต่อประเภท','info')}}catch{if(alive&&request===historyRequest)model.showToast('โหลดประวัติไม่ได้ กรุณาเชื่อมต่อแล้วลองใหม่','error')}finally{if(request===historyRequest)state.historyLoading=false}
  }
- async function mutate(entries){if(state.commands.length)return error('กรุณาบันทึกแบบร่างคลังก่อนแก้ข้อมูล');const staged=stageMany(entries);return staged.ok?commit():staged}
+ async function mutate(entries){if(state.commands.length)return error(state.draftKind==='catalog'?'มีการเปลี่ยนแปลงเมนูหรือตัวเลือกที่ยังบันทึกไม่ครบ กรุณาดำเนินการต่อหรือยกเลิกก่อน':'กรุณาบันทึกแบบร่างคลังก่อนแก้ข้อมูล');const staged=stageMany(entries);return staged.ok?commit():staged}
  for(const method of ['stockIn','batchProduce','recordLotWaste','switchActiveLot','switchActiveLotSilently']){const action=model[method];model[method]=(...args)=>{try{return action.apply(model,args)}catch(e){return error(e.message)}}}
  return model
 }

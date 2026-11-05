@@ -350,7 +350,7 @@
       </div>
     </div>
 
-    <StockDraftReview :busy="actionBusy" :saving="actionPending==='commit'" :discarding="actionPending==='discard'" :open="showDraftDetails" :has-drafts="store.hasStockDrafts" :items="store.stockDraftSummary.items" :snapshot="store.stockDraftSnapshot" :materials="store.materials" @open="showDraftDetails=true" @close="showDraftDetails=false" @commit="savePendingChanges" @discard="revertPendingChanges" />
+    <StockDraftReview :busy="actionBusy" :saving="actionPending==='commit'" :discarding="actionPending==='discard'" :open="active && showDraftDetails && store.hasStockDrafts" :has-drafts="active && store.hasStockDrafts" :items="store.stockDraftSummary.items" :snapshot="store.stockDraftSnapshot" :materials="store.materials" @open="showDraftDetails=true" @close="showDraftDetails=false" @commit="savePendingChanges" @discard="revertPendingChanges" />
     <!-- Teleported Floating Action Menu (Never clipped by table rows or overflow-x container) -->
     <DialogFrame id="stock-material-actions" :busy="actionBusy" :open="Boolean(activeActionMenuId&&activeMenuMat)" :title="activeMenuMat?.name||'งานวัตถุดิบ'" presentation="sheet" description="เลือกงานที่ต้องการจัดการกับรายการนี้" @request-close="closeActionMenu">
  <div v-if="activeMenuMat" class="stock-context-actions">
@@ -376,6 +376,7 @@
 </template>
 
 <script setup>
+defineProps({active:{type:Boolean,default:true}})
 import EntityImage from '@/components/images/EntityImage.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import Button from '@/components/ui/Button.vue'
