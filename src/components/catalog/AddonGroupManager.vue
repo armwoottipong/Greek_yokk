@@ -546,7 +546,7 @@ async function performRemove(group) {
 .group-directory{border-inline-end:1px solid var(--border-subtle)}
 .group-directory-list,.group-table-scroll{min-height:0;overflow:auto;overscroll-behavior:contain}
 .group-table-scroll{flex:1}
-.group-table-scroll:focus-visible{outline:2px solid var(--accent-brand);outline-offset:-2px}
+.group-table-scroll:focus-visible{outline:none;background:var(--accent-soft)}
 .group-directory-header{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:72px;padding:12px 16px;flex-shrink:0;border-bottom:1px solid var(--border-subtle);font-size:.8125rem;font-weight:600}
 .group-directory-button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:52px;padding:12px 16px;text-align:start;border-bottom:1px solid var(--border-subtle);overflow-wrap:anywhere}
 .group-directory-button[aria-pressed=true]{background:var(--bg-soft);color:var(--accent-brand)}
@@ -564,7 +564,8 @@ async function performRemove(group) {
 .group-item-trigger .group-item-image{flex:none}
 .group-item-name{min-width:0;overflow-wrap:anywhere}
 button.group-item-trigger:hover .group-item-name{text-decoration:underline;text-underline-offset:3px}
-button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+button.group-item-trigger:focus-visible{outline:none;background:var(--accent-soft)}
+button.group-item-trigger:focus-visible .group-item-name{text-decoration:underline;text-underline-offset:3px}
 .option-detail-list{display:grid;gap:0;margin:0}
 .option-detail-list li{display:flex;justify-content:space-between;gap:16px;padding-block:9px}
 .option-detail-list li+li{border-top:1px solid var(--border-subtle)}
@@ -629,6 +630,10 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
 .group-option-identity > :is(strong,.group-help){display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .group-option-identity strong{font-weight:600}
 .group-option-heading :deep(.ui-icon-button){min-width:44px;min-height:44px}
+.group-option-heading :deep(.ui-icon-button:focus-visible){outline:none;background:var(--accent-soft);color:var(--accent-brand)}
+@media(forced-colors:active){
+ .group-table-scroll:focus-visible,button.group-item-trigger:focus-visible,.group-option-heading :deep(.ui-icon-button:focus-visible){outline:2px solid Highlight;outline-offset:-2px}
+}
 .group-option-menu{display:grid;gap:4px}
 .group-option-menu :deep(.ui-button){justify-content:flex-start}
 .group-option-quantity{display:flex;gap:8px;align-items:end}
