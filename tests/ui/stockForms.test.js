@@ -54,6 +54,18 @@ describe('failed form transactions',()=>{
   expect(state.store.modals.stocktake.isOpen).toBe(true)
   wrapper.unmount()
  })
+ it('preserves a stock material’s existing unit when editing other fields', async () => {
+  state.store.matMap.M1.unit = 'ใบ'
+  state.store.saveMaterial = vi.fn(() => ({ok:false}))
+  const wrapper = mount(MaterialEdit)
+  try {
+   state.store.modals.materialEdit.isOpen = true
+   await nextTick(); await nextTick()
+   expect(wrapper.vm.form.unit).toBe('ใบ')
+   await wrapper.vm.submit()
+   expect(state.store.saveMaterial).toHaveBeenCalledWith(expect.objectContaining({unit:'ใบ'}))
+  } finally { wrapper.unmount() }
+ })
  it('keeps material editor open when saving fails',async()=>{
   state.store.saveMaterial=()=>({ok:false,message:'Failed'})
   const wrapper=mount(MaterialEdit)

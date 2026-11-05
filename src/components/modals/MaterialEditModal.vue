@@ -46,7 +46,7 @@
           </label>
           <div class="grid grid-cols-3 gap-2 stock-unit-options">
             <Button :variant="form.unit===u.value?'primary':'secondary'" :aria-pressed="form.unit===u.value"
-              v-for="u in unitOptions"
+              v-for="u in availableUnits"
               :key="u.value"
               type="button"
               @click="setUnit(u.value)"
@@ -496,7 +496,7 @@ const materialKind = computed({
   }
 })
 
-// Unit Options restricted strictly to 3 choices: มล. (ml), กรัม (g), ชิ้น (pcs)
+// Standard choices for new materials. Existing stock can use other units.
 const unitOptions = [
   { value: 'g', label: 'กรัม (g)', icon: '⚖️' },
   { value: 'ml', label: 'มล. (ml)', icon: '🥛' },
@@ -546,6 +546,13 @@ const calculatedSubCost = computed(() => {
     const cost = sub ? sub.unitCost : 0
     return sum + ((Number(row.qty) || 0) * cost)
   }, 0)
+})
+
+const availableUnits = computed(() => {
+  const unit = form.value.unit
+  return unit && !unitOptions.some(option => option.value === unit)
+    ? [...unitOptions, { value: unit, label: unit }]
+    : unitOptions
 })
 
 const calculatedUnitCost = computed(() => {
@@ -854,7 +861,7 @@ watch(() => store.modals.materialEdit.isOpen, (open) => {
         name: mat.name,
         category: mat.category,
         inventoryType: mat.inventoryType,
-        unit: ['g', 'ml', 'ชิ้น'].includes(mat.unit) ? mat.unit : (mat.unit === 'pcs' ? 'ชิ้น' : 'g'),
+        unit: mat.unit?.trim() ? mat.unit : 'g',
         packUnit: pUnit,
         packSize: pSize,
         packCost: pCost,

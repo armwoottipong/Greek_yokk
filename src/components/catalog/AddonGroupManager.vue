@@ -187,8 +187,14 @@
         @update:model-value="toggleStock(material.id, $event)">
         <span class="stock-picker-item">
          <strong>{{ material.name }}</strong>
-         <small>คงเหลือ {{ stockNumber.format(material.stock) }} {{ material.unit }}</small>
-         <small>ต้นทุนต่อ{{ material.unit || 'หน่วย' }} {{ stockCost(material.unitCost) }}</small>
+         <small>
+          คงเหลือ {{ stockNumber.format(material.stock) }} {{ material.unit }}
+          <span v-if="hasStockPack(material)">≈ {{ stockNumber.format(material.stock / material.packSize) }} {{ material.packUnit }}</span>
+         </small>
+         <small>
+          ต้นทุนต่อ{{ material.unit || 'หน่วย' }} {{ stockCost(material.unitCost) }}
+          <span v-if="hasStockPack(material) && material.unitCost != null">≈ {{ stockCost(material.unitCost * material.packSize) }} / {{ material.packUnit }}</span>
+         </small>
         </span>
        </AppCheckbox>
       </li>
@@ -308,6 +314,7 @@ const stockPickerGroups = computed(() => {
 })
 const stockNumber = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 4 })
 const stockMoney = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 4 })
+const hasStockPack = material => !material.hasSubRecipe && material.packUnit && material.packUnit !== material.unit && Number(material.packSize) > 0
 const stockCost = value => value == null || !Number.isFinite(Number(value)) ? 'ยังไม่ทราบ' : stockMoney.format(value)
 function openStockPicker() {
   stockSearch.value = ''
@@ -558,6 +565,7 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
 .stock-picker-list :deep(.app-checkbox-content){flex:1}
 .stock-picker-item{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:4px 12px;align-items:center;width:100%}
 .stock-picker-item small{color:var(--addon-text-secondary, var(--text-muted));font-variant-numeric:tabular-nums}
+.stock-picker-item small span{display:block}
 @media(max-width:520px){
  .stock-picker-item{grid-template-columns:repeat(2,minmax(0,1fr))}
  .stock-picker-item strong{grid-column:1 / -1}
