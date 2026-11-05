@@ -46,7 +46,7 @@ it('creates and selects a stock-free option from the group without losing its dr
 })
 it('adds one ingredient and one package from stock to a paid group option', async () => {
   const s = setup()
-  s.materials.push(material('BLUEBERRY', 100, { name: 'บลูเบอร์รีทดสอบ', unit: 'กรัม', hasSubRecipe: true }))
+  s.materials.push(material('BLUEBERRY', 100, { name: 'บลูเบอร์รีทดสอบ', image: 'data:image/jpeg;base64,/9j/2Q==', unit: 'กรัม', hasSubRecipe: true }))
   s.materials.push(material('SPOON', 10, { name: 'ช้อนทดสอบ', inventoryType: 'packaging', unit: 'คัน' }))
   vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
   const wrapper = mount(AddonView, {
@@ -63,6 +63,8 @@ it('adds one ingredient and one package from stock to a paid group option', asyn
     await picker.findAll('button').find(button => button.text() === 'เพิ่ม 1 รายการ').trigger('click')
     const row = wrapper.get('[data-group-addon]')
     await row.get('[data-group-option-editor] summary').trigger('click')
+    expect(row.get('.group-option-image img').attributes('src')).toBe('data:image/jpeg;base64,/9j/2Q==')
+    await row.get('[data-group-packaging-editor] summary').trigger('click')
     await wrapper.get('[role="combobox"][aria-label="บรรจุภัณฑ์เพิ่มเติม"]').trigger('click')
     await wrapper.findAll('[role="option"]').find(option => option.text().includes('ช้อนทดสอบ')).trigger('click')
     expect(wrapper.get('[aria-label="ชื่อตัวเลือก"]').element.value).toBe('บลูเบอร์รีทดสอบ')
@@ -83,6 +85,8 @@ it('adds one ingredient and one package from stock to a paid group option', asyn
     expect(addon.recipe).toEqual([{ materialId: 'BLUEBERRY', qty: 2.5 }, { materialId: 'SPOON', qty: 1 }])
     const group = loadDatabase(localStorage).value.addonGroups.find(group => group.name === 'กลุ่มจากคลัง')
     expect(group.options[0].prices[platform.id]).toBe(12)
+    expect(wrapper.get('[data-group-options] img').attributes('src')).toBe('data:image/jpeg;base64,/9j/2Q==')
+    expect(addon.image).toBeFalsy()
     const menu = s.menus.find(item => item.id === menuId)
     expect(menu.addonGroupIds).toEqual([group.id])
     expect(s.addToCart(menu, [{ id: addon.id, groupId: group.id }])).toBe(true)

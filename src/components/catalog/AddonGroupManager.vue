@@ -40,7 +40,7 @@
      <li v-for="option in selectedGroup.options" :key="option.addonId" class="group-item">
       <button v-if="addonMap.has(option.addonId)" type="button" class="group-item-trigger" aria-haspopup="dialog"
        @click="detailSelection = { groupId: selectedGroup.id, addonId: option.addonId }">
-       <span class="group-item-image"><EntityImage kind="addons" :entity-id="option.addonId" :image="addonMap.get(option.addonId).image" :emoji="addonMap.get(option.addonId).emoji"/></span>
+       <span class="group-item-image"><EntityImage v-bind="optionImage(addonMap.get(option.addonId))"/></span>
        <span class="group-item-name">{{ addonMap.get(option.addonId).name }}</span>
       </button>
       <strong v-else class="group-item-trigger">ไม่พบตัวเลือก</strong>
@@ -88,9 +88,7 @@
      <div v-for="addon in editorAddons" :key="addon.id" class="group-option group-option--selected" data-group-addon>
       <div class="group-option-heading">
        <span class="group-option-image">
-        <EntityImage v-if="addon.stock?.main.materialId" kind="materials" :entity-id="addon.stock.main.materialId"
-         :image="store.matMap[addon.stock.main.materialId]?.image" :emoji="store.matMap[addon.stock.main.materialId]?.emoji"/>
-        <EntityImage v-else kind="addons" :entity-id="addon.stock ? undefined : addon.id" :image="addon.image" :emoji="addon.emoji"/>
+        <EntityImage v-bind="optionImage(addon)"/>
        </span>
        <div class="group-option-identity">
         <strong>{{ addon.name || 'ตัวเลือกใหม่' }}</strong>
@@ -101,27 +99,43 @@
       <details v-if="addon.stock" class="group-option-disclosure" data-group-option-editor>
        <summary>แก้รายละเอียด</summary>
        <div class="group-option-fields">
-        <div v-for="slot in stockSlots" :key="slot.key" class="group-fields">
-         <FormField :label="slot.label" v-slot="{controlId}">
-          <AppSelect :id="controlId" :aria-label="slot.label" :model-value="addon.stock[slot.key].materialId" @update:model-value="selectStock(addon, slot.key, $event)">
+        <FormField label="ชื่อตัวเลือก" required v-slot="{controlId}">
+         <AppInput :id="controlId" v-model="addon.name" aria-label="ชื่อตัวเลือก" aria-required="true"/>
+        </FormField>
+        <div class="group-fields">
+         <FormField label="เลือกของจากคลัง" v-slot="{controlId}">
+          <AppSelect :id="controlId" aria-label="เลือกของจากคลัง" :model-value="addon.stock.main.materialId" @update:model-value="selectStock(addon, 'main', $event)">
            <option value="">ไม่ระบุ</option>
-           <optgroup v-for="kind in stockGroups(slot.key, addon)" :key="kind.id" :label="kind.label">
+           <optgroup v-for="kind in stockGroups(addon)" :key="kind.id" :label="kind.label">
             <option v-for="material in kind.items" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
            </optgroup>
           </AppSelect>
          </FormField>
-         <FormField v-if="addon.stock[slot.key].materialId" :label="slot.quantity" v-slot="{controlId}">
-          <AppInput :id="controlId" v-model="addon.stock[slot.key].qty" :aria-label="slot.quantity" type="number" min="0.01" step="0.01">
-           <template #suffix>{{ store.matMap[addon.stock[slot.key].materialId]?.unit }}</template>
+         <FormField v-if="addon.stock.main.materialId" label="จำนวนต่อที่" v-slot="{controlId}">
+          <AppInput :id="controlId" v-model="addon.stock.main.qty" aria-label="จำนวนต่อที่" type="number" min="0.01" step="0.01">
+           <template #suffix>{{ store.matMap[addon.stock.main.materialId]?.unit }}</template>
           </AppInput>
          </FormField>
         </div>
-        <FormField label="ชื่อตัวเลือก" required v-slot="{controlId}">
-         <AppInput :id="controlId" v-model="addon.name" aria-label="ชื่อตัวเลือก" aria-required="true"/>
-        </FormField>
        </div>
       </details>
       <Button v-else variant="quiet" size="compact" class="group-option-edit" :aria-label="`แก้สูตร ${addon.name}`" @click="editRecipe(addon.id)">แก้สูตร</Button>
+      <details v-if="addon.stock" class="group-option-disclosure" data-group-packaging-editor>
+       <summary>{{ addon.stock.packaging.materialId ? 'แก้บรรจุภัณฑ์' : 'เพิ่มบรรจุภัณฑ์' }}</summary>
+       <div class="group-fields">
+        <FormField label="บรรจุภัณฑ์เพิ่มเติม" v-slot="{controlId}">
+         <AppSelect :id="controlId" aria-label="บรรจุภัณฑ์เพิ่มเติม" :model-value="addon.stock.packaging.materialId" @update:model-value="selectStock(addon, 'packaging', $event)">
+          <option value="">ไม่ระบุ</option>
+          <option v-for="material in packagingOptions(addon)" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
+         </AppSelect>
+        </FormField>
+        <FormField v-if="addon.stock.packaging.materialId" label="จำนวนบรรจุภัณฑ์ต่อที่" v-slot="{controlId}">
+         <AppInput :id="controlId" v-model="addon.stock.packaging.qty" aria-label="จำนวนบรรจุภัณฑ์ต่อที่" type="number" min="0.01" step="0.01">
+          <template #suffix>{{ store.matMap[addon.stock.packaging.materialId]?.unit }}</template>
+         </AppInput>
+        </FormField>
+       </div>
+      </details>
       <details class="group-option-disclosure" data-group-price-editor>
        <summary>ราคา <small>{{ formatPriceSummary(optionFor(addon.id).prices) }}</small></summary>
        <div class="group-price-fields">
@@ -341,17 +355,13 @@ function addManualOption() {
   addOption()
   stockPickerOpen.value = false
 }
-const stockSlots = [
-  { key: 'main', label: 'เลือกของจากคลัง', quantity: 'จำนวนต่อที่' },
-  { key: 'packaging', label: 'บรรจุภัณฑ์เพิ่มเติม', quantity: 'จำนวนบรรจุภัณฑ์ต่อที่' }
-]
-function stockGroups(slot, addon) {
-  const otherId = addon.stock[slot === 'main' ? 'packaging' : 'main'].materialId
-  return MATERIAL_KIND_OPTIONS.filter(kind => slot === 'main' || kind.id === 'packaging').map(kind => ({
+function stockGroups(addon) {
+  return MATERIAL_KIND_OPTIONS.map(kind => ({
     ...kind,
-    items: stockMaterials.value.filter(material => material.id !== otherId && getMaterialKind(material) === kind.id)
+    items: stockMaterials.value.filter(material => material.id !== addon.stock.packaging.materialId && getMaterialKind(material) === kind.id)
   })).filter(kind => kind.items.length)
 }
+const packagingOptions = addon => stockMaterials.value.filter(material => material.id !== addon.stock.main.materialId && getMaterialKind(material) === 'packaging')
 function selectStock(addon, slot, id) {
   const previous = store.matMap[addon.stock[slot].materialId]
   addon.stock[slot] = { materialId: id, qty: 1 }
@@ -360,6 +370,18 @@ function selectStock(addon, slot, id) {
 const recipeFor = addon => addon.stock
   ? Object.values(addon.stock).filter(row => row.materialId).map(row => ({ ...row, qty: Number(row.qty) }))
   : addon.recipe
+function optionImage(addon) {
+  const recipe = addon.recipe || []
+  const ingredients = recipe.filter(row => store.matMap[row.materialId] && getMaterialKind(store.matMap[row.materialId]) !== 'packaging')
+  const materialId = addon.stock ? addon.stock.main.materialId || addon.stock.packaging.materialId
+    : recipe.length === 1 ? recipe[0].materialId
+      : ingredients.length === 1 && recipe.every(row => row === ingredients[0] || store.matMap[row.materialId]?.inventoryType === 'packaging')
+        ? ingredients[0].materialId : null
+  const material = store.matMap[materialId]
+  return material
+    ? { kind: 'materials', entityId: material.id, image: material.image, emoji: material.emoji }
+    : { kind: 'addons', entityId: addon.stock ? undefined : addon.id, image: addon.image, emoji: addon.emoji }
+}
 function recipeSummary(addon) {
   const rows = recipeFor(addon) || []
   if (!rows.length) return 'ไม่มีรายการตัดสต๊อก'
@@ -576,6 +598,8 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
 .group-option{padding:10px 12px;border:1px solid var(--border-subtle);background:var(--bg-card)}
 .group-option--selected{grid-template-columns:minmax(0,max-content) minmax(0,1fr);align-items:start;gap:8px;background:var(--bg-soft)}
 .group-option-heading,.group-option-disclosure[open]{grid-column:1 / -1}
+.group-option--selected:has([data-group-packaging-editor]){grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:400px){.group-option--selected:has([data-group-packaging-editor]){grid-template-columns:repeat(2,minmax(0,1fr))}}
 .stock-picker-list{margin:0;padding:0}
 .stock-picker-list li+li{border-top:1px solid var(--border-subtle)}
 .stock-picker-list :deep(.app-checkbox){display:flex;width:100%;padding:10px 4px}
