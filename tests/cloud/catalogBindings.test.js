@@ -58,6 +58,13 @@ it('saves a new option, its group price and menu assignment through one group ac
  expect(catalog.addons[addonId].recipe.S0).toBe(250)
  expect(catalog.groups[group.id].menuIds).toContain(menuId)
  expect(catalog.menus[menuId]).toMatchObject({recipe:before.recipe,pricesCents:before.pricesCents})
+ const addon=model.addons.find(item=>item.id===addonId)
+ expect(await model.saveAddonGroup({
+  ...group, expectedCatalogRevision:model.catalogRevision,
+  updatedAddons:[{...addon,recipe:[{materialId:'S0',qty:3.5}]}]
+ })).toMatchObject({ok:true})
+ expect(snapshot().shop.catalog.addons[addonId].recipe.S0).toBe(350)
+ expect(snapshot().shop.catalog.groups[group.id].menuIds).toContain(menuId)
  expect((await model.deleteAddonGroup(group.id)).ok).toBe(false)
  expect((await model.deleteAddon(addonId)).ok).toBe(false)
  model.close()

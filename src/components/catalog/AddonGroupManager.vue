@@ -94,65 +94,13 @@
         <strong>{{ addon.name || 'ตัวเลือกใหม่' }}</strong>
         <p class="group-help">{{ recipeSummary(addon) }}</p>
        </div>
-       <Button variant="quiet" size="compact" :aria-label="`นำ ${addon.name || 'ตัวเลือก'} ออกจากกลุ่ม`" @click="toggleOption(addon.id, false)">นำออก</Button>
       </div>
-      <details v-if="addon.stock" class="group-option-disclosure" data-group-option-editor>
-       <summary>แก้รายละเอียด</summary>
-       <div class="group-option-fields">
-        <FormField label="ชื่อตัวเลือก" required v-slot="{controlId}">
-         <AppInput :id="controlId" v-model="addon.name" aria-label="ชื่อตัวเลือก" aria-required="true"/>
-        </FormField>
-        <div class="group-fields">
-         <FormField label="เลือกของจากคลัง" v-slot="{controlId}">
-          <AppSelect :id="controlId" aria-label="เลือกของจากคลัง" :model-value="addon.stock.main.materialId" @update:model-value="selectStock(addon, 'main', $event)">
-           <option value="">ไม่ระบุ</option>
-           <optgroup v-for="kind in stockGroups(addon)" :key="kind.id" :label="kind.label">
-            <option v-for="material in kind.items" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
-           </optgroup>
-          </AppSelect>
-         </FormField>
-         <FormField v-if="addon.stock.main.materialId" label="จำนวนต่อที่" v-slot="{controlId}">
-          <AppInput :id="controlId" v-model="addon.stock.main.qty" aria-label="จำนวนต่อที่" type="number" min="0.01" step="0.01">
-           <template #suffix>{{ store.matMap[addon.stock.main.materialId]?.unit }}</template>
-          </AppInput>
-         </FormField>
-        </div>
-       </div>
-      </details>
-      <Button v-else variant="quiet" size="compact" class="group-option-edit" :aria-label="`แก้สูตร ${addon.name}`" @click="editRecipe(addon.id)">แก้สูตร</Button>
-      <details v-if="addon.stock" class="group-option-disclosure" data-group-packaging-editor>
-       <summary>{{ addon.stock.packaging.materialId ? 'แก้บรรจุภัณฑ์' : 'เพิ่มบรรจุภัณฑ์' }}</summary>
-       <div class="group-fields">
-        <FormField label="บรรจุภัณฑ์เพิ่มเติม" v-slot="{controlId}">
-         <AppSelect :id="controlId" aria-label="บรรจุภัณฑ์เพิ่มเติม" :model-value="addon.stock.packaging.materialId" @update:model-value="selectStock(addon, 'packaging', $event)">
-          <option value="">ไม่ระบุ</option>
-          <option v-for="material in packagingOptions(addon)" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
-         </AppSelect>
-        </FormField>
-        <FormField v-if="addon.stock.packaging.materialId" label="จำนวนบรรจุภัณฑ์ต่อที่" v-slot="{controlId}">
-         <AppInput :id="controlId" v-model="addon.stock.packaging.qty" aria-label="จำนวนบรรจุภัณฑ์ต่อที่" type="number" min="0.01" step="0.01">
-          <template #suffix>{{ store.matMap[addon.stock.packaging.materialId]?.unit }}</template>
-         </AppInput>
-        </FormField>
-       </div>
-      </details>
-      <details class="group-option-disclosure" data-group-price-editor>
-       <summary>ราคา <small>{{ formatPriceSummary(optionFor(addon.id).prices) }}</small></summary>
-       <div class="group-price-fields">
-        <AppCheckbox v-if="!addon.stock" :model-value="!optionFor(addon.id).paused" variant="switch" :label="`เปิดขาย ${addon.name} ในกลุ่มนี้`" @update:model-value="optionFor(addon.id).paused = !$event">เปิดขายในกลุ่มนี้</AppCheckbox>
-        <p class="group-help">ราคาเพิ่ม · เว้นว่างเพื่อให้ฟรี</p>
-        <div class="group-fields"><FormField v-for="platform in store.platforms" :key="platform.id" :id="`group-price-${addon.id}-${platform.id}`" :label="platform.name" v-slot="{controlId}"><AppInput :id="controlId" :model-value="optionFor(addon.id).prices?.[platform.id] ?? ''" placeholder="ฟรี" type="number" min="0" step="0.01" @update:model-value="setPrice(addon.id, platform.id, $event)"><template #prefix>฿</template></AppInput></FormField></div>
-        <details v-if="Object.values(optionFor(addon.id).prices || {}).some(price => Number(price) > 0)" class="group-price-analysis" data-group-price-analysis>
-         <summary>วิเคราะห์ต้นทุนกำไรต่อที่</summary>
-         <dl v-for="{ platform, cost, netRevenue, profit } in priceAnalysis(addon)" :key="platform.id">
-          <div><dt>ช่องทาง</dt><dd>{{ platform.name }}</dd></div>
-          <div><dt>รายรับหลังหัก GP</dt><dd>{{ analysisMoney(netRevenue) }}</dd></div>
-          <div><dt>ต้นทุนตัวเลือก</dt><dd>{{ analysisMoney(cost) }}</dd></div>
-          <div><dt>กำไรขั้นต้น</dt><dd data-group-option-profit>{{ analysisMoney(profit) }}</dd></div>
-         </dl>
-        </details>
-       </div>
-      </details>
+      <div class="group-option-actions">
+       <IconButton v-if="ingredientRows(addon).length" label="แก้จำนวนต่อที่" @click="showOptionEditor(addon, 'quantity')"><Scale :size="17" aria-hidden="true"/></IconButton>
+       <IconButton label="บรรจุภัณฑ์" @click="showOptionEditor(addon, 'packaging')"><Package :size="17" aria-hidden="true"/></IconButton>
+       <IconButton label="ราคา" @click="showOptionEditor(addon, 'price')"><Tag :size="17" aria-hidden="true"/></IconButton>
+       <IconButton :label="`นำ ${addon.name} ออกจากกลุ่ม`" @click="toggleOption(addon.id, false)"><Trash2 :size="17" aria-hidden="true"/></IconButton>
+      </div>
      </div>
     </section>
     <details ref="groupRules" class="group-rules" open>
@@ -193,6 +141,45 @@
    </div>
    <template #footer><Button variant="quiet" :disabled="!!actionPending" @click="requestEditorClose">ยกเลิก</Button><Button :loading="actionPending==='save'" @click="save"><Check :size="18" aria-hidden="true"/>บันทึกกลุ่มตัวเลือก</Button></template>
   </DialogFrame>
+  <DialogFrame id="group-option-settings" :open="!!optionEditor" :title="optionEditorTitle"
+   :description="editingOption?.name" width="480px" @request-close="optionEditor = null">
+   <div v-if="editingOption && optionEditor" class="group-options">
+    <template v-if="optionEditor.mode === 'price'">
+     <AppCheckbox v-if="!editingOption.isDraft" :model-value="!optionFor(editingOption.id).paused" variant="switch"
+      label="เปิดขายในกลุ่มนี้" @update:model-value="optionFor(editingOption.id).paused = !$event">เปิดขายในกลุ่มนี้</AppCheckbox>
+     <p class="group-help">เว้นราคาเพิ่มว่างเพื่อให้ฟรี</p>
+     <div class="group-fields">
+      <FormField v-for="platform in store.platforms" :key="platform.id" :id="`group-price-${editingOption.id}-${platform.id}`" :label="platform.name" v-slot="{controlId}">
+       <AppInput :id="controlId" :model-value="optionFor(editingOption.id).prices?.[platform.id] ?? ''" placeholder="ฟรี" type="number" min="0" step="0.01" @update:model-value="setPrice(editingOption.id, platform.id, $event)"><template #prefix>฿</template></AppInput>
+      </FormField>
+     </div>
+     <details v-if="Object.values(optionFor(editingOption.id).prices || {}).some(price => Number(price) > 0)" class="group-price-analysis" data-group-price-analysis>
+      <summary>วิเคราะห์ต้นทุนกำไรต่อที่</summary>
+      <dl v-for="{ platform, cost, netRevenue, profit } in priceAnalysis(editingOption)" :key="platform.id">
+       <div><dt>ช่องทาง</dt><dd>{{ platform.name }}</dd></div>
+       <div><dt>รายรับหลังหัก GP</dt><dd>{{ analysisMoney(netRevenue) }}</dd></div>
+       <div><dt>ต้นทุนตัวเลือก</dt><dd>{{ analysisMoney(cost) }}</dd></div>
+       <div><dt>กำไรขั้นต้น</dt><dd data-group-option-profit>{{ analysisMoney(profit) }}</dd></div>
+      </dl>
+     </details>
+    </template>
+    <template v-else>
+     <AppSelect v-if="optionEditor.mode === 'packaging'" :key="editingOption.recipe.length" model-value="" aria-label="บรรจุภัณฑ์เพิ่มเติม" @update:model-value="addPackaging(editingOption, $event)">
+      <option value="" disabled>เลือกบรรจุภัณฑ์จากคลัง</option>
+      <option v-for="material in packagingOptions(editingOption)" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
+     </AppSelect>
+     <div v-for="row in editableRows" :key="row.materialId" class="group-option-quantity">
+      <FormField :label="store.matMap[row.materialId]?.name || row.materialId" v-slot="{controlId}">
+       <AppInput :id="controlId" :model-value="row.qty" aria-label="จำนวนต่อที่" type="number" min="0.01" step="0.01" @update:model-value="updateQuantity(editingOption, row.materialId, $event)">
+        <template #suffix>{{ store.matMap[row.materialId]?.unit }}</template>
+       </AppInput>
+      </FormField>
+      <IconButton v-if="optionEditor.mode === 'packaging'" :label="`นำ ${store.matMap[row.materialId]?.name || row.materialId} ออก`" @click="removePackaging(editingOption, row.materialId)"><Trash2 :size="17" aria-hidden="true"/></IconButton>
+     </div>
+    </template>
+   </div>
+   <template #footer><Button @click="optionEditor = null">เสร็จสิ้น</Button></template>
+  </DialogFrame>
   <DialogFrame id="group-stock-picker" :open="stockPickerOpen" title="เลือกตัวเลือกจากคลัง"
    description="เลือกได้หลายรายการ แต่ละรายการจะเป็นตัวเลือกในกลุ่ม" width="640px"
    initial-focus="#group-stock-search" @request-close="stockPickerOpen = false">
@@ -225,15 +212,21 @@
     </section>
    </div>
    <template #footer>
-    <Button variant="quiet" @click="addManualOption">สร้างตัวเลือกเอง</Button>
+    <Button variant="quiet" @click="stockPickerOpen = false; manualOpen = true">สร้างตัวเลือกเอง</Button>
     <Button :disabled="!selectedStockIds.length" @click="addPickedOptions">เพิ่ม {{ selectedStockIds.length }} รายการ</Button>
    </template>
+  </DialogFrame>
+  <DialogFrame id="group-manual-option" :open="manualOpen" title="สร้างตัวเลือกเอง" width="480px" @request-close="manualOpen = false">
+   <FormField id="group-manual-name" label="ชื่อตัวเลือก" required v-slot="{controlId}">
+    <AppInput :id="controlId" v-model="manualName" aria-label="ชื่อตัวเลือก"/>
+   </FormField>
+   <template #footer><Button :disabled="!manualName.trim()" @click="addManualOption">เพิ่มตัวเลือก</Button></template>
   </DialogFrame>
  </section>
 </template>
 <script setup>
-import { ref, computed, nextTick, watch } from 'vue'
-import { Plus, Check } from 'lucide-vue-next'
+import { ref, computed, nextTick } from 'vue'
+import { Plus, Check, Package, Scale, Tag, Trash2 } from 'lucide-vue-next'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
@@ -243,6 +236,7 @@ import { recipeCost, selectedItemCosts } from '@/domain/menuCosts'
 import CatalogAnalysisDialog from './CatalogAnalysisDialog.vue'
 import MenuPlatformOverview from './MenuPlatformOverview.vue'
 import Button from '@/components/ui/Button.vue'
+import IconButton from '@/components/ui/IconButton.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import FormField from '@/components/ui/FormField.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -320,8 +314,32 @@ const setOptionActive = (group, id, active) => runAction('availability', async (
 })
 const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const optionFor = id => draft.value.options?.find(option => option.addonId === id)
-const editorAddons = computed(() => (draft.value.options || []).map(option =>
-  draft.value.newOptions?.find(item => item.id === option.addonId) || addonMap.value.get(option.addonId)).filter(Boolean))
+const editorAddons = computed(() => (draft.value.options || []).flatMap(option => {
+  const addon = draft.value.newOptions?.find(item => item.id === option.addonId) || addonMap.value.get(option.addonId)
+  return addon ? [{ ...addon, recipe: draft.value.recipeChanges[addon.id] || addon.recipe || [] }] : []
+}))
+const optionEditor = ref(null)
+const editingOption = computed(() => editorAddons.value.find(addon => addon.id === optionEditor.value?.id))
+const optionEditorTitle = computed(() => ({ quantity: 'จำนวนต่อที่', packaging: 'บรรจุภัณฑ์', price: 'ราคาเพิ่ม' })[optionEditor.value?.mode] || 'ตั้งค่าตัวเลือก')
+const isPackaging = row => store.matMap[row.materialId]?.inventoryType === 'packaging'
+const ingredientRows = addon => addon.recipe.filter(row => !isPackaging(row))
+const editableRows = computed(() => editingOption.value?.recipe.filter(row => isPackaging(row) === (optionEditor.value?.mode === 'packaging')) || [])
+function showOptionEditor(addon, mode) {
+  optionEditor.value = { id: addon.id, mode }
+}
+function updateQuantity(addon, id, qty) {
+  draft.value.recipeChanges[addon.id] = addon.recipe.map(row => row.materialId === id ? { ...row, qty } : row)
+}
+const packagingOptions = addon => stockMaterials.value.filter(material =>
+  material.inventoryType === 'packaging' && !addon.recipe.some(row => row.materialId === material.id))
+function addPackaging(addon, id) {
+  if (packagingOptions(addon).some(material => material.id === id)) {
+    draft.value.recipeChanges[addon.id] = [...addon.recipe, { materialId: id, qty: 1 }]
+  }
+}
+function removePackaging(addon, id) {
+  draft.value.recipeChanges[addon.id] = addon.recipe.filter(row => row.materialId !== id)
+}
 const stockPickerOpen = ref(false)
 const stockSearch = ref('')
 const selectedStockIds = ref([])
@@ -351,39 +369,27 @@ function addPickedOptions() {
   }
   stockPickerOpen.value = false
 }
+const manualOpen = ref(false)
+const manualName = ref('')
 function addManualOption() {
-  addOption()
-  stockPickerOpen.value = false
+  if (!manualName.value.trim()) return
+  addOption({ name: manualName.value.trim() }, [])
+  manualName.value = ''
+  manualOpen.value = false
 }
-function stockGroups(addon) {
-  return MATERIAL_KIND_OPTIONS.map(kind => ({
-    ...kind,
-    items: stockMaterials.value.filter(material => material.id !== addon.stock.packaging.materialId && getMaterialKind(material) === kind.id)
-  })).filter(kind => kind.items.length)
-}
-const packagingOptions = addon => stockMaterials.value.filter(material => material.id !== addon.stock.main.materialId && getMaterialKind(material) === 'packaging')
-function selectStock(addon, slot, id) {
-  const previous = store.matMap[addon.stock[slot].materialId]
-  addon.stock[slot] = { materialId: id, qty: 1 }
-  if (id && (!addon.name.trim() || (slot === 'main' && addon.name === previous?.name))) addon.name = store.matMap[id].name
-}
-const recipeFor = addon => addon.stock
-  ? Object.values(addon.stock).filter(row => row.materialId).map(row => ({ ...row, qty: Number(row.qty) }))
-  : addon.recipe
 function optionImage(addon) {
   const recipe = addon.recipe || []
   const ingredients = recipe.filter(row => store.matMap[row.materialId] && getMaterialKind(store.matMap[row.materialId]) !== 'packaging')
-  const materialId = addon.stock ? addon.stock.main.materialId || addon.stock.packaging.materialId
-    : recipe.length === 1 ? recipe[0].materialId
+  const materialId = recipe.length === 1 ? recipe[0].materialId
       : ingredients.length === 1 && recipe.every(row => row === ingredients[0] || store.matMap[row.materialId]?.inventoryType === 'packaging')
         ? ingredients[0].materialId : null
   const material = store.matMap[materialId]
   return material
     ? { kind: 'materials', entityId: material.id, image: material.image, emoji: material.emoji }
-    : { kind: 'addons', entityId: addon.stock ? undefined : addon.id, image: addon.image, emoji: addon.emoji }
+    : { kind: 'addons', entityId: addon.isDraft ? undefined : addon.id, image: addon.image, emoji: addon.emoji }
 }
 function recipeSummary(addon) {
-  const rows = recipeFor(addon) || []
+  const rows = addon.recipe || []
   if (!rows.length) return 'ไม่มีรายการตัดสต๊อก'
   const quantities = rows.map(row => {
     const material = store.matMap[row.materialId]
@@ -391,22 +397,11 @@ function recipeSummary(addon) {
   })
   return `${quantities.join(' + ')} / ที่`
 }
-function addOption(material) {
+function addOption(material, recipe = [{ materialId: material.id, qty: 1 }]) {
   const id = `ADDON-${crypto.randomUUID()}`
-  draft.value.newOptions.push({ id, name: material?.name || '', stock: { main: { materialId: material?.id || '', qty: 1 }, packaging: { materialId: '', qty: 1 } } })
+  draft.value.newOptions.push({ id, name: material.name, recipe, isDraft: true })
   toggleOption(id, true)
 }
-let recipeEditRevision
-function editRecipe(id) {
-  recipeEditRevision = store.catalogRevision
-  store.modals.addonEdit = { isOpen: true, addonId: id, initialSection: 'recipe', recipeOnly: true }
-}
-watch(() => store.modals.addonEdit?.isOpen, isOpen => {
-  if (isOpen || !open.value || !store.modals.addonEdit?.recipeOnly || !store.modals.addonEdit.savedAddonId) return
-  if (recipeEditRevision === editCatalogRevision.value && store.catalogRevision === recipeEditRevision + 1) {
-    editCatalogRevision.value = store.catalogRevision
-  }
-})
 const baht = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' })
 const analysisMoney = value => value === null ? 'คำนวณไม่ได้' : baht.format(value)
 function priceAnalysis(addon) {
@@ -416,13 +411,14 @@ function analyzeOption(addon, channelPrices) {
   const prices = Object.fromEntries(store.platforms.map(platform => [platform.id, channelPrices?.[platform.id] || 0]))
   return store.platforms.map(platform => ({
     platform,
-    ...selectedItemCosts({ prices }, [ { ...addon, recipe: recipeFor(addon), prices: {} } ], 1, store.materials, platform)
+    ...selectedItemCosts({ prices }, [ { ...addon, recipe: addon.recipe, prices: {} } ], 1, store.materials, platform)
   }))
 }
 async function edit(group) {
   editCatalogRevision.value=store.catalogRevision
   draft.value = group ? clone(group) : { name: '', minSelections: 0, maxSelections: 3, allowRepeat: false, pricingMode: 'included', options: [] }
   draft.value.newOptions = []
+  draft.value.recipeChanges = {}
   draft.value.menuIds = group ? store.menus.filter(menu => menu.addonGroupIds?.includes(group.id)).map(menu => menu.id) : []
   selectionRule.value = !draft.value.minSelections ? 'optional'
     : draft.value.minSelections === 1 && draft.value.maxSelections === 1 && !draft.value.allowRepeat ? 'one' : 'custom'
@@ -443,6 +439,7 @@ function toggleOption(id, checked) {
   else {
     draft.value.options = draft.value.options.filter(o => o.addonId !== id)
     draft.value.newOptions = draft.value.newOptions.filter(option => option.id !== id)
+    delete draft.value.recipeChanges[id]
   }
 }
 function setPrice(addonId, platformId, value) {
@@ -455,11 +452,17 @@ async function performSave() {
   const data = clone(draft.value)
   data.minSelections = data.minSelections === '' ? NaN : Number(data.minSelections)
   data.maxSelections = data.maxSelections === '' ? NaN : Number(data.maxSelections)
-  const newAddons = data.newOptions.map(addon => ({
-    id: addon.id, name: addon.name.trim(), recipe: recipeFor(addon), prices: {}, isActive: true
-  }))
+  const newAddons = []
+  const updatedAddons = []
+  for (const addon of editorAddons.value) {
+    if (!addon.isDraft && !Object.hasOwn(data.recipeChanges, addon.id)) continue
+    const recipe = addon.recipe.map(row => ({ materialId: row.materialId, qty: Number(row.qty) }))
+    if (addon.isDraft) newAddons.push({ id: addon.id, name: addon.name, recipe, prices: {}, isActive: true })
+    else updatedAddons.push({ ...addon, recipe })
+  }
   delete data.newOptions
-  for (const addon of newAddons) {
+  delete data.recipeChanges
+  for (const addon of [...newAddons, ...updatedAddons]) {
     if (!addon.name) fieldErrors.value.options = 'กรอกชื่อให้ครบทุกตัวเลือก'
     else if (addon.recipe.some(row => !Number.isFinite(row.qty) || row.qty <= 0 || !store.activeMaterials.some(material => material.id === row.materialId && !material.isArchived))) {
       fieldErrors.value.options = 'ตรวจรายการจากคลังและกรอกจำนวนต่อที่มากกว่า 0'
@@ -492,7 +495,7 @@ async function performSave() {
     return
   }
   const previousIds=new Set(store.addonGroups.map(group=>group.id))
-  const result = await store.saveAddonGroup({...data,newAddons,...(store.cloud?{expectedCatalogRevision:editCatalogRevision.value}:{})})
+  const result = await store.saveAddonGroup({...data,newAddons,updatedAddons,...(store.cloud?{expectedCatalogRevision:editCatalogRevision.value}:{})})
   if (result.ok) {
     const id = data.id || store.addonGroups.find(group => !previousIds.has(group.id))?.id || null
     selectedGroupId.value = id
@@ -557,7 +560,6 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
 
 .group-item-status{font-size:.75rem;color:var(--text-muted)}
 .group-item-status[data-status=low],.group-item-status[data-status=out]{color:var(--state-danger)}
-.group-price-fields{display:grid;gap:12px}
 .option-groups{container-type:inline-size;grid-template-rows:auto minmax(0,1fr)}
 .group-mobile-picker{display:none}
 @container(min-width:681px){
@@ -596,10 +598,7 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
  .group-workspace{--group-row-height:52px}
 }
 .group-option{padding:10px 12px;border:1px solid var(--border-subtle);background:var(--bg-card)}
-.group-option--selected{grid-template-columns:minmax(0,max-content) minmax(0,1fr);align-items:start;gap:8px;background:var(--bg-soft)}
-.group-option-heading,.group-option-disclosure[open]{grid-column:1 / -1}
-.group-option--selected:has([data-group-packaging-editor]){grid-template-columns:repeat(3,minmax(0,1fr))}
-@media(max-width:400px){.group-option--selected:has([data-group-packaging-editor]){grid-template-columns:repeat(2,minmax(0,1fr))}}
+.group-option--selected{gap:8px;background:var(--bg-soft)}
 .stock-picker-list{margin:0;padding:0}
 .stock-picker-list li+li{border-top:1px solid var(--border-subtle)}
 .stock-picker-list :deep(.app-checkbox){display:flex;width:100%;padding:10px 4px}
@@ -613,14 +612,13 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
  .stock-picker-item{grid-template-columns:repeat(2,minmax(0,1fr))}
  .stock-picker-item strong{grid-column:1 / -1}
 }
-.group-option-heading{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
+.group-option-heading{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px}
 .group-option-identity{min-width:0;overflow-wrap:anywhere}
 .group-option-identity strong{font-weight:600}
-.group-option-disclosure summary{width:fit-content;padding:6px 10px;border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-card);cursor:pointer}
-.group-option-disclosure summary small{margin-inline-start:4px;color:var(--text-muted)}
-.group-option-disclosure[open] summary{margin-block-end:8px}
-.group-option-fields{display:grid;gap:12px}
-.group-option-edit{justify-self:start}
+.group-option-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.group-option-actions :deep(.ui-icon-button){background:var(--bg-card);min-width:44px;min-height:44px}
+.group-option-quantity{display:flex;gap:8px;align-items:end}
+.group-option-quantity > :first-child{flex:1;min-width:0}
 .group-option-image{display:block;width:32px;height:32px;flex-shrink:0;border-radius:8px}
 .group-rules{padding:12px;border:1px solid var(--border-subtle);border-radius:12px}
 .group-rules summary{cursor:pointer}

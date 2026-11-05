@@ -1816,9 +1816,12 @@ const posDefinition = {
       const option = group?.options.find(o => o.addonId === selection.id)
       return group && option ? optionPrices(group, option, addon) : selection.prices || {}
     },
-    saveAddonGroup({ newAddons = [], menuIds, ...data }) {
+    saveAddonGroup({ newAddons = [], updatedAddons = [], menuIds, ...data }) {
       const candidate = this.databaseSnapshot()
       const id = data.id || createEntityId('GROUP', this.addonGroups.map(g => g.id))
+      const updatedRecipes = new Map(updatedAddons.map(addon => [addon.id, addon.recipe]))
+      candidate.addons = candidate.addons.map(addon => updatedRecipes.has(addon.id)
+        ? { ...addon, recipe: clone(updatedRecipes.get(addon.id)) } : addon)
       candidate.addons.push(...clone(newAddons))
       let message = groupError(data, candidate.addons)
       if (!message && menuIds !== undefined) {
