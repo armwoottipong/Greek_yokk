@@ -3,7 +3,7 @@
   <p v-if="data?.display.trial" class="trial-banner"><strong>ข้อมูลทดสอบ — ยังไม่ใช่ยอดร้านปัจจุบัน</strong><br>จากไฟล์สำรอง {{ sourceDate }} · <a :href="localUrl">เปิดระบบเดิม</a></p>
   <p v-if="!state.serverReady||!online" class="connection-warning" role="status">ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว กรุณาเชื่อมต่อก่อนบันทึก</p>
   <p v-if="error" class="error" role="alert">{{ error }}</p>
-  <section v-if="pendingCommand&&operator" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>{{ pendingLabel }} · เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนบันทึกรายการใหม่ เพื่อไม่บันทึกซ้ำ</p><p v-if="pendingCause">{{ explain({code:pendingCause}) }}</p><details><summary>รายละเอียดรายการรอตรวจผล</summary><p>รหัสรายการ: {{ pendingCommand.opId }}</p><p v-if="pendingCause">รหัสสาเหตุ: {{ pendingCause }}</p></details><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button><Button v-else-if="pendingCommand.payload?.expectedRevision!==undefined" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='stop'" @click="stopPending">หยุดรายการที่ยังไม่สำเร็จและเก็บแบบร่าง</Button></section>
+  <section v-if="showPendingPanel" class="pending-panel" aria-label="รายการรอตรวจผล"><h3>ยังไม่ทราบผลการบันทึก</h3><p>{{ pendingLabel }} · เก็บคำสั่งเดิมไว้แล้ว ตรวจผลก่อนบันทึกรายการใหม่ เพื่อไม่บันทึกซ้ำ</p><p v-if="pendingCause">{{ explain({code:pendingCause}) }}</p><details><summary>รายละเอียดรายการรอตรวจผล</summary><p>รหัสรายการ: {{ pendingCommand.opId }}</p><p v-if="pendingCause">รหัสสาเหตุ: {{ pendingCause }}</p></details><Button data-retry-command :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลที่ยังไม่สำเร็จและเก็บตะกร้า</Button><Button v-else-if="pendingCommand.payload?.expectedRevision!==undefined" variant="secondary" :disabled="!ready||busy" :loading="activeAction==='stop'" @click="stopPending">หยุดรายการที่ยังไม่สำเร็จและเก็บแบบร่าง</Button></section>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
    <section v-if="operator" v-show="tab==='sale'" ref="saleRoot" class="pos-workspace" :class="{'is-split':split,'is-cart-page':!split&&cartOpen}" aria-label="ขายสินค้า">
@@ -14,7 +14,7 @@
        <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ · เมนู ตัวเลือก และหมายเหตุที่เหมือนกันจะรวมจำนวน</p>
        <section v-if="shortages.length" class="shortage"><h3>สต็อกไม่พอ</h3><p v-for="[id,q] in shortages" :key="id">{{ materialName(id) }} ขาด {{ amount(q) }} {{ material(id)?.unit }}</p><label><input v-model="approveShortage" type="checkbox" :disabled="locked"> ยืนยันขายตามจำนวนที่ขาดข้างต้น</label></section>
        <p v-if="previewError" class="error" role="alert">{{ previewError }}</p>
-       <div v-if="pendingCommand"><strong>ยังไม่ทราบผลการบันทึก</strong><p>ตรวจผลด้วยคำสั่งเดิมก่อนเริ่มบิลใหม่</p><Button :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="quiet" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลและเก็บตะกร้า</Button></div>
+       <div v-if="showPendingPanel"><strong>ยังไม่ทราบผลการบันทึก</strong><p>ตรวจผลด้วยคำสั่งเดิมก่อนเริ่มบิลใหม่</p><Button :disabled="!ready||busy" :loading="activeAction==='retry'" @click="retry">ตรวจผลและลองต่อ</Button><Button v-if="pendingCommand.kind==='sale'" variant="quiet" :disabled="!ready||busy" :loading="activeAction==='abandon'" @click="abandon">หยุดบิลและเก็บตะกร้า</Button></div>
        <p>ยืนยันจากเซิร์ฟเวอร์ก่อนถือว่าขายสำเร็จ · บรรจุภัณฑ์ตัดตามสูตรที่บันทึกไว้</p>
       </div>
      </template>
@@ -105,6 +105,7 @@ try{
 }catch{storageReady.value=false;error.value='เก็บตะกร้าบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วเปิดหน้านี้ใหม่'}
 const context=()=>({projectId:props.connection.config.projectId,shopId:props.connection.shopId,generation:props.state.shop?.generation,uid:props.state.user?.uid,deviceId,online:online.value,ready:props.state.serverReady===true,protocolCertified:true,role:role.value})
 const ready=computed(()=>initialized.value&&storageReady.value&&online.value&&props.state.serverReady===true&&!!data.value)
+const showPendingPanel=computed(()=>!!pendingCommand.value&&operator.value&&!busy.value&&!loading.value&&!reloading.value)
 const locked=computed(()=>!operator.value||busy.value||!!pendingCommand.value||!storageReady.value)
 const saleLimit=computed(()=>data.value?maxSaleLines(data.value.shop):0)
 const menus=computed(()=>Object.values(data.value?.shop.catalog.menus||{}).filter(m=>m.active))

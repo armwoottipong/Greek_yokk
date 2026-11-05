@@ -56,8 +56,12 @@ it('does not lock the shop for a new sale refused before journal submission',asy
 it('shows the real access failure and operation identity for an uncertain sale',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
- h.execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT',causeCode:'permission-denied',outcome:'uncertain'})
+ let finishRequest
+ h.execute.mockImplementationOnce(()=>new Promise(resolve=>{finishRequest=resolve}))
  await w.get('[data-checkout]').trigger('click');await flushPromises()
+ expect(w.find('.pending-panel').exists()).toBe(false)
+ finishRequest({ok:false,code:'PENDING_RESULT',causeCode:'permission-denied',outcome:'uncertain'})
+ await flushPromises()
  expect(w.get('.pending-panel').text()).toContain('สิทธิ์');expect(w.get('.pending-panel').text()).toContain(h.execute.mock.calls.at(-1)[0].opId)
  w.unmount()
 })
@@ -255,7 +259,7 @@ it('holds the same visible cancellation button through the receipt and order rel
 })
 
 
-it('spins on stop-pending-sale and suppresses duplicates until server data has reloaded',async()=>{
+it('hides pending sale actions until stopping and reloading finish',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
  h.execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT'})
@@ -265,7 +269,7 @@ it('spins on stop-pending-sale and suppresses duplicates until server data has r
  h.abandon.mockResolvedValue({ok:true,value:{kind:'sale',abandoned:true,opId:'stopped'}})
  const button=()=>w.get('.pending-panel .ui-button--secondary')
  await button().trigger('click');await flushPromises()
- expect(button().attributes('aria-busy')).toBe('true');await button().trigger('click');expect(h.abandon).toHaveBeenCalledTimes(1)
+ expect(w.find('.pending-panel').exists()).toBe(false);expect(h.abandon).toHaveBeenCalledTimes(1)
  resolveLoad(d);await flushPromises();expect(w.find('.pending-panel').exists()).toBe(false);expect(w.findAll('[data-cart-line]')).toHaveLength(1);w.unmount()
 })
 
