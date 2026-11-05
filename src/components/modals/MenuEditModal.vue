@@ -51,7 +51,7 @@
  <DialogFrame :open="pickerOpen" id="menu-group-picker" title="เลือกกลุ่มตัวเลือก" description="ใช้กลุ่มที่รวมในราคาและกลุ่มที่คิดเพิ่มด้วยกันได้" :presentation="mobile?'drawer':'dialog'" width="640px" @request-close="closePicker">
   <div class="group-picker-list">
    <p class="menu-editor-help" role="status">เลือกแล้ว {{ pickerIds.length }} จาก 2 กลุ่ม</p>
-   <label v-for="group in store.addonGroups" :key="group.id" class="group-picker-row" :data-picker-group="group.id"><span><strong>{{ group.name }}</strong><small>{{ group.pricingMode==='included'?'รวมในราคาเมนู':'คิดเงินเพิ่มตามตัวเลือก' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat?'ที่':'ชนิด' }} · {{ group.options.length }} ตัวเลือก</small></span><input type="checkbox" :checked="pickerIds.includes(group.id)" :disabled="!pickerIds.includes(group.id)&&pickerIds.length>=2" :aria-label="`เลือกกลุ่ม ${group.name}`" @change="togglePickerGroup(group.id,$event.target.checked)"/></label>
+   <label v-for="group in store.addonGroups" :key="group.id" class="group-picker-row" :data-picker-group="group.id"><span><strong>{{ group.name }}</strong><small>{{ group.pricingMode==='included'?'รวมในราคาเมนู':'คิดเงินเพิ่มตามตัวเลือก' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat?'ที่':'ชนิด' }} · {{ group.options.length }} ตัวเลือก</small><small v-if="!pickerIds.includes(group.id) && pickerIssue(group.id)">{{ pickerIssue(group.id) }}</small></span><input type="checkbox" :checked="pickerIds.includes(group.id)" :disabled="!pickerIds.includes(group.id) && !!pickerIssue(group.id)" :aria-label="`เลือกกลุ่ม ${group.name}`" @change="togglePickerGroup(group.id,$event.target.checked)"/></label>
    <p v-if="!store.addonGroups.length" class="menu-editor-empty">ยังไม่มีกลุ่มตัวเลือก สร้างกลุ่มแรกได้ด้านล่าง</p>
    <p v-if="store.cloud" class="menu-editor-help">เมื่อใช้ 2 กลุ่ม แต่ละกลุ่มต้องกำหนดให้เลือกได้สูงสุด 3</p>
    <Button variant="quiet" data-create-group-from-menu @click="createGroupFromPicker"><Plus :size="16" aria-hidden="true"/>สร้างกลุ่มตัวเลือก</Button>
@@ -61,6 +61,7 @@
  <AddonGroupManager ref="groupCreator" v-show="false"/>
 </template>
 <script setup>
+import {cloudGroupBindingIssue} from '@/domain/addonGroups'
 import '@/components/catalog/menuFocus.css'
 import {vSmoothDisclosure} from '@/directives/smoothDisclosure'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
@@ -242,7 +243,15 @@ function addBaseRecipeRow() {
 
 function openGroupPicker(){pickerIds.value=[...(form.value.addonGroupIds||[])];pickerOpen.value=true}
 function closePicker(){pickerOpen.value=false}
-function togglePickerGroup(id,checked){pickerIds.value=checked?pickerIds.value.includes(id)?pickerIds.value:pickerIds.value.length<2?[...pickerIds.value,id]:pickerIds.value:pickerIds.value.filter(value=>value!==id)}
+function pickerIssue(id){
+  if(pickerIds.value.length>=2)return 'เมนูหนึ่งใช้ได้สูงสุด 2 กลุ่มตัวเลือก'
+  if(!store.cloud)return ''
+  return cloudGroupBindingIssue([...pickerIds.value,id].map(key=>store.addonGroups.find(group=>group.id===key)))
+}
+function togglePickerGroup(id,checked){
+  if(!checked)pickerIds.value=pickerIds.value.filter(value=>value!==id)
+  else if(!pickerIds.value.includes(id)&&!pickerIssue(id))pickerIds.value=[...pickerIds.value,id]
+}
 function finishPicker() {
   if (pickerIds.value.length || Array.isArray(form.value.addonGroupIds)) {
     form.value.addonGroupIds = [...pickerIds.value]
@@ -254,8 +263,9 @@ async function createGroupFromPicker(){
  const id=await groupCreator.value?.openNew()
  if(id){
   editCatalogRevision.value=store.catalogRevision
-  if(pickerIds.value.length<2)togglePickerGroup(id,true)
-  else store.showToast('สร้างกลุ่มแล้ว แต่เมนูนี้เลือกได้สูงสุด 2 กลุ่ม กรุณายกเลิกกลุ่มเดิมก่อน', 'info')
+  const issue=pickerIssue(id)
+  if(issue)store.showToast(`สร้างกลุ่มแล้ว · ${issue}`, 'info')
+  else togglePickerGroup(id,true)
  }
  if(store.modals.menuEdit.isOpen)pickerOpen.value=true
 }

@@ -45,6 +45,13 @@ export function groupError(group, addons) {
   return ''
 }
 
+export function cloudGroupBindingIssue(groups) {
+  if (groups.length > 2) return 'เมนูหนึ่งใช้ได้สูงสุด 2 กลุ่มตัวเลือก'
+  if (groups.some(group => !group || group.isActive === false)) return 'เลือกได้เฉพาะกลุ่มที่เปิดใช้งาน'
+  const oversized = groups.length === 2 && groups.find(group => Number(group.maxSelections) > 3)
+  return oversized ? `เมื่อใช้ 2 กลุ่ม แต่ละกลุ่มต้องเลือกได้ไม่เกิน 3 รายการ · ${oversized.name} ตั้งไว้ ${oversized.maxSelections}` : ''
+}
+
 export function menuGroups(menu, groups) {
   if (menu?.hasAddons === false) return []
   return (menu?.addonGroupIds || []).map(id => groups.find(g => g.id === id)).filter(Boolean)

@@ -131,7 +131,7 @@
      </ul>
      <AppSelect v-if="linkableMenus.length && !creationResolver" aria-label="เชื่อมกับเมนู" :key="`menu-link-${draft.menuIds?.length}`" model-value="" @update:model-value="draft.menuIds.push($event)">
       <option value="" disabled>เลือกเมนูที่จะเชื่อม</option>
-      <option v-for="menu in linkableMenus" :key="menu.id" :value="menu.id">{{ menu.name }}</option>
+      <option v-for="menu in linkableMenus" :key="menu.id" :value="menu.id" :disabled="!!menuLinkIssue(menu)">{{ menu.name }}{{ menuLinkIssue(menu) ? ` · ${menuLinkIssue(menu)}` : '' }}</option>
      </AppSelect>
     </section>
     <p v-if="error" role="alert" class="group-error">{{ error }}</p>
@@ -233,7 +233,7 @@ import { Plus, Check, EllipsisVertical, Package, Scale, Tag, Trash2 } from 'luci
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
-import { optionPrices, optionAvailability, optionAvailabilityLabel, optionStockMaterialId } from '@/domain/addonGroups'
+import { optionPrices, optionAvailability, optionAvailabilityLabel, optionStockMaterialId, cloudGroupBindingIssue } from '@/domain/addonGroups'
 import { MATERIAL_KIND_OPTIONS, getMaterialKind } from '@/domain/materialClassification'
 import { recipeCost, selectedItemCosts } from '@/domain/menuCosts'
 import CatalogAnalysisDialog from './CatalogAnalysisDialog.vue'
@@ -271,6 +271,12 @@ const groupRules = ref(null)
 const linkedMenus = computed(() => store.menus.filter(menu => draft.value.menuIds?.includes(menu.id)))
 const linkableMenus = computed(() => store.menus.filter(menu => !draft.value.menuIds?.includes(menu.id) &&
   (menu.addonGroupIds?.includes(draft.value.id) || (menu.addonGroupIds?.length || 0) < 2)))
+function menuLinkIssue(menu) {
+  if (!store.cloud) return ''
+  const otherGroups = (menu.addonGroupIds || []).filter(id => id !== draft.value.id)
+    .map(id => store.addonGroups.find(group => group.id === id))
+  return cloudGroupBindingIssue([...otherGroups, draft.value])
+}
 const selectionRule = ref('optional')
 function applySelectionRule(rule) {
   selectionRule.value = rule
@@ -493,6 +499,10 @@ async function performSave() {
   if (!Number.isSafeInteger(data.maxSelections) || data.maxSelections < 1 || data.maxSelections < data.minSelections) fieldErrors.value.maxSelections = 'กรอกจำนวนเต็มตั้งแต่ 1 และไม่น้อยกว่าจำนวนขั้นต่ำ'
   if (!data.options.length) fieldErrors.value.options = 'เลือกตัวเลือกเสริมอย่างน้อย 1 รายการ'
   else if (!data.allowRepeat && data.minSelections > data.options.length) fieldErrors.value.minSelections = 'ลดจำนวนขั้นต่ำ หรือเพิ่มชนิดตัวเลือกเสริมให้เพียงพอ'
+  const conflictingMenu = linkedMenus.value.find(menu => menuLinkIssue(menu))
+  if (conflictingMenu && !fieldErrors.value.maxSelections) {
+    fieldErrors.value.maxSelections = `${conflictingMenu.name} · ${menuLinkIssue(conflictingMenu)}`
+  }
   if (Object.keys(fieldErrors.value).length) {
     await nextTick()
     const key = ['name', 'minSelections', 'maxSelections'].find(key => fieldErrors.value[key])

@@ -74,6 +74,28 @@ it('saves a new option, its group price and menu assignment through one group ac
  expect((await model.deleteAddon(addonId)).ok).toBe(false)
  model.close()
 })
+it('explains the two-group selection limit before creating or attaching records',async()=>{
+ const {model,snapshot}=fixture()
+ const input={name:'Many choices',minSelections:0,maxSelections:4,pricingMode:'included',allowRepeat:false,options:[{addonId:'A0'}]}
+ expect(await model.saveAddonGroup({...input,menuIds:['SIMPLE']})).toMatchObject({ok:true})
+ const large=model.addonGroups.find(group=>group.name===input.name)
+ const next={...input,name:'Second group',maxSelections:2}
+ const revision=snapshot().shop.revision
+ const issue='แต่ละกลุ่มต้องเลือกได้ไม่เกิน 3 รายการ'
+ expect(await model.saveAddonGroup({...next,menuIds:['SIMPLE']})).toMatchObject({ok:false,message:expect.stringContaining(issue)})
+ expect(snapshot().shop.revision).toBe(revision)
+ expect(await model.saveAddonGroup(next)).toMatchObject({ok:true})
+ const second=model.addonGroups.find(group=>group.name===next.name)
+ const menu=model.menus.find(item=>item.id==='SIMPLE')
+ expect(await model.saveMenu({...menu,addonGroupIds:[large.id,second.id]})).toMatchObject({ok:false,message:expect.stringContaining(issue)})
+ expect(await model.saveAddonGroup({...large,maxSelections:3})).toMatchObject({ok:true})
+ expect(await model.saveAddonGroup({...second,menuIds:['SIMPLE']})).toMatchObject({ok:true})
+ expect(snapshot().shop.catalog.menus.SIMPLE.groupIds).toEqual([large.id,second.id])
+ expect(await model.saveAddonGroup({...large,maxSelections:4})).toMatchObject({ok:false,message:expect.stringContaining(issue)})
+ expect(await model.saveAddonGroup({...large,maxSelections:4,menuIds:[]})).toMatchObject({ok:true})
+ expect(snapshot().shop.catalog.menus.SIMPLE.groupId).toBe(second.id)
+ model.close()
+})
 it('retires a menu from the original management list and detaches its option groups while retaining the canonical identity',async()=>{
  const {model,snapshot}=fixture()
  expect((await model.deleteMenu('SIMPLE')).ok).toBe(true)
