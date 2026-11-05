@@ -94,12 +94,9 @@
         <strong>{{ addon.name || 'ตัวเลือกใหม่' }}</strong>
         <p class="group-help">{{ recipeSummary(addon) }}</p>
        </div>
-      </div>
-      <div class="group-option-actions">
-       <IconButton v-if="ingredientRows(addon).length" label="แก้จำนวนต่อที่" @click="showOptionEditor(addon, 'quantity')"><Scale :size="17" aria-hidden="true"/></IconButton>
-       <IconButton label="บรรจุภัณฑ์" @click="showOptionEditor(addon, 'packaging')"><Package :size="17" aria-hidden="true"/></IconButton>
-       <IconButton label="ราคา" @click="showOptionEditor(addon, 'price')"><Tag :size="17" aria-hidden="true"/></IconButton>
-       <IconButton :label="`นำ ${addon.name} ออกจากกลุ่ม`" @click="toggleOption(addon.id, false)"><Trash2 :size="17" aria-hidden="true"/></IconButton>
+       <IconButton :label="`จัดการ ${addon.name}`" aria-haspopup="dialog" @click="showOptionEditor(addon, 'more')">
+        <EllipsisVertical :size="18" aria-hidden="true"/>
+       </IconButton>
       </div>
      </div>
     </section>
@@ -144,7 +141,13 @@
   <DialogFrame id="group-option-settings" :open="!!optionEditor" :title="optionEditorTitle"
    :description="editingOption?.name" width="480px" @request-close="optionEditor = null">
    <div v-if="editingOption && optionEditor" class="group-options">
-    <template v-if="optionEditor.mode === 'price'">
+    <div v-if="optionEditor.mode === 'more'" class="group-option-menu">
+     <Button v-if="ingredientRows(editingOption).length" variant="quiet" @click="openOptionAction('quantity')"><Scale :size="17" aria-hidden="true"/>แก้จำนวนต่อที่</Button>
+     <Button variant="quiet" @click="openOptionAction('packaging')"><Package :size="17" aria-hidden="true"/>บรรจุภัณฑ์</Button>
+     <Button variant="quiet" @click="openOptionAction('price')"><Tag :size="17" aria-hidden="true"/>ราคา</Button>
+     <Button variant="quiet" @click="removeEditingOption"><Trash2 :size="17" aria-hidden="true"/>นำออกจากกลุ่ม</Button>
+    </div>
+    <template v-else-if="optionEditor.mode === 'price'">
      <AppCheckbox v-if="!editingOption.isDraft" :model-value="!optionFor(editingOption.id).paused" variant="switch"
       label="เปิดขายในกลุ่มนี้" @update:model-value="optionFor(editingOption.id).paused = !$event">เปิดขายในกลุ่มนี้</AppCheckbox>
      <p class="group-help">เว้นราคาเพิ่มว่างเพื่อให้ฟรี</p>
@@ -178,7 +181,7 @@
      </div>
     </template>
    </div>
-   <template #footer><Button @click="optionEditor = null">เสร็จสิ้น</Button></template>
+   <template v-if="optionEditor?.mode !== 'more'" #footer><Button @click="optionEditor = null">เสร็จสิ้น</Button></template>
   </DialogFrame>
   <DialogFrame id="group-stock-picker" :open="stockPickerOpen" title="เลือกตัวเลือกจากคลัง"
    description="เลือกได้หลายรายการ แต่ละรายการจะเป็นตัวเลือกในกลุ่ม" width="640px"
@@ -226,7 +229,7 @@
 </template>
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import { Plus, Check, Package, Scale, Tag, Trash2 } from 'lucide-vue-next'
+import { Plus, Check, EllipsisVertical, Package, Scale, Tag, Trash2 } from 'lucide-vue-next'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
@@ -326,6 +329,15 @@ const ingredientRows = addon => addon.recipe.filter(row => !isPackaging(row))
 const editableRows = computed(() => editingOption.value?.recipe.filter(row => isPackaging(row) === (optionEditor.value?.mode === 'packaging')) || [])
 function showOptionEditor(addon, mode) {
   optionEditor.value = { id: addon.id, mode }
+}
+async function openOptionAction(mode) {
+  showOptionEditor(editingOption.value, mode)
+  await nextTick()
+  document.querySelector('#group-option-settings .dialog-frame-body :is(input:not([hidden]), button:not(:disabled))')?.focus()
+}
+function removeEditingOption() {
+  toggleOption(editingOption.value.id, false)
+  optionEditor.value = null
 }
 function updateQuantity(addon, id, qty) {
   draft.value.recipeChanges[addon.id] = addon.recipe.map(row => row.materialId === id ? { ...row, qty } : row)
@@ -612,11 +624,12 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
  .stock-picker-item{grid-template-columns:repeat(2,minmax(0,1fr))}
  .stock-picker-item strong{grid-column:1 / -1}
 }
-.group-option-heading{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px}
+.group-option-heading{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
 .group-option-identity{min-width:0;overflow-wrap:anywhere}
 .group-option-identity strong{font-weight:600}
-.group-option-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
-.group-option-actions :deep(.ui-icon-button){background:var(--bg-card);min-width:44px;min-height:44px}
+.group-option-heading :deep(.ui-icon-button){min-width:44px;min-height:44px}
+.group-option-menu{display:grid;gap:4px}
+.group-option-menu :deep(.ui-button){justify-content:flex-start}
 .group-option-quantity{display:flex;gap:8px;align-items:end}
 .group-option-quantity > :first-child{flex:1;min-width:0}
 .group-option-image{display:block;width:32px;height:32px;flex-shrink:0;border-radius:8px}

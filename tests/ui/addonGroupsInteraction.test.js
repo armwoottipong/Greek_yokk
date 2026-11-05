@@ -27,6 +27,11 @@ async function addManualOption(wrapper, name) {
   await manual.get('[aria-label="ชื่อตัวเลือก"]').setValue(name)
   await manual.findAll('button').find(button => button.text() === 'เพิ่มตัวเลือก').trigger('click')
 }
+async function openOptionAction(wrapper, row, label) {
+  await row.get('[aria-haspopup="dialog"]').trigger('click')
+  const popup = wrapper.get('#group-option-settings')
+  await popup.findAll('button').find(button => button.text() === label).trigger('click')
+}
 it('creates and selects a stock-free option from the group without losing its draft', async () => {
   const s = setup()
   vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
@@ -64,18 +69,18 @@ it('adds one ingredient and one package from stock to a paid group option', asyn
     await picker.findAll('button').find(button => button.text() === 'เพิ่ม 1 รายการ').trigger('click')
     const row = wrapper.get('[data-group-addon]')
     expect(row.get('.group-option-image img').attributes('src')).toBe('data:image/jpeg;base64,/9j/2Q==')
-    await row.get('[aria-label="บรรจุภัณฑ์"]').trigger('click')
+    await openOptionAction(wrapper, row, 'บรรจุภัณฑ์')
     await wrapper.get('[role="combobox"][aria-label="บรรจุภัณฑ์เพิ่มเติม"]').trigger('click')
     await wrapper.findAll('[role="option"]').find(option => option.text().includes('ช้อนทดสอบ')).trigger('click')
     await wrapper.get('#group-option-settings').findAll('button').find(button => button.text() === 'เสร็จสิ้น').trigger('click')
     expect(row.text()).toContain('บลูเบอร์รีทดสอบ')
-    await row.get('[aria-label="แก้จำนวนต่อที่"]').trigger('click')
+    await openOptionAction(wrapper, row, 'แก้จำนวนต่อที่')
     const platform = s.platforms[0]
     await wrapper.get('[aria-label="จำนวนต่อที่"]').setValue(2.5)
     expect(wrapper.get('[data-group-addon]').text()).toContain('กรัม')
     expect(wrapper.get('[data-group-addon]').text()).toContain('คัน')
     await wrapper.get('#group-option-settings').findAll('button').find(button => button.text() === 'เสร็จสิ้น').trigger('click')
-    await row.get('[aria-label="ราคา"]').trigger('click')
+    await openOptionAction(wrapper, row, 'ราคา')
     const pricePopup = wrapper.get('#group-option-settings')
     await pricePopup.get('input[id^="group-price-"]').setValue(12)
     expect(pricePopup.find('[data-group-option-profit]').exists()).toBe(true)
@@ -219,12 +224,12 @@ it('updates the paid option profit from the price draft and channel GP', async (
   const manager = mount(GroupManager, { attachTo: document.body, global: { stubs: { teleport: true } } })
   try {
     await manager.get('[aria-label="แก้ไขกลุ่ม เลือกผลไม้"]').trigger('click')
-    await manager.get('[data-group-addon] [aria-label="แก้จำนวนต่อที่"]').trigger('click')
+    await openOptionAction(manager, manager.get('[data-group-addon]'), 'แก้จำนวนต่อที่')
     const quantityPopup = manager.get('#group-option-settings')
     await quantityPopup.get('[aria-label="จำนวนต่อที่"]').setValue(11)
     expect(s.addons[0].recipe[0].qty).toBe(10)
     await quantityPopup.findAll('button').find(button => button.text() === 'เสร็จสิ้น').trigger('click')
-    await manager.get('[data-group-addon] [aria-label="ราคา"]').trigger('click')
+    await openOptionAction(manager, manager.get('[data-group-addon]'), 'ราคา')
     await manager.get(`#group-price-${s.addons[0].id}-${s.platforms[0].id}`).setValue(40)
     expect(manager.get('[data-group-option-profit]').text()).toBe(new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(19))
     await manager.get('#group-option-settings').findAll('button').find(button => button.text() === 'เสร็จสิ้น').trigger('click')
