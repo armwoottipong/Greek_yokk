@@ -243,7 +243,7 @@ import { clone } from '@/domain/database'
 import { optionPrices, optionAvailability, optionAvailabilityLabel, optionStockMaterialId, cloudGroupBindingIssue } from '@/domain/addonGroups'
 import { MATERIAL_KIND_OPTIONS, getMaterialKind } from '@/domain/materialClassification'
 import { recipeCost } from '@/domain/menuCosts'
-import { parsePlatformPrice } from '@/domain/pricing'
+import { parsePlatformPrice, findStorefrontPlatform } from '@/domain/pricing'
 import MenuPriceInfo from './MenuPriceInfo.vue'
 import AnalysisInfo from './AnalysisInfo.vue'
 import CatalogAnalysisDialog from './CatalogAnalysisDialog.vue'
@@ -340,7 +340,7 @@ const editorAddons = computed(() => (draft.value.options || []).flatMap(option =
 }))
 const optionEditor = ref(null)
 const openPriceInfo = ref(null)
-const storefront = computed(() => store.platforms.find(platform => platform.id === 'PLAT01'))
+const storefront = computed(() => findStorefrontPlatform(store.platforms))
 const editingOption = computed(() => editorAddons.value.find(addon => addon.id === optionEditor.value?.id))
 const editingOptionCost = computed(() => editingOption.value ? recipeCost({recipe:[]}, [editingOption.value], 1, store.materials) : null)
 const optionEditorTitle = computed(() => ({ quantity: 'จำนวนต่อที่', packaging: 'บรรจุภัณฑ์', price: 'ราคาเพิ่ม' })[optionEditor.value?.mode] || 'ตั้งค่าตัวเลือก')

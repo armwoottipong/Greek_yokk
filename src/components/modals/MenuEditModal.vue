@@ -66,6 +66,7 @@ import '@/components/catalog/menuFocus.css'
 import {vSmoothDisclosure} from '@/directives/smoothDisclosure'
 import {getMaterialKindLabel} from '@/domain/materialClassification'
 import MenuPriceInfo from '@/components/catalog/MenuPriceInfo.vue'
+import {findStorefrontPlatform} from '@/domain/pricing'
 import CatalogImageEditor from '@/components/images/CatalogImageEditor.vue'
 import FormField from '@/components/ui/FormField.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -130,7 +131,7 @@ const initialFocus = computed(() => ({
   groups: '[data-open-group-picker]'
 })[store.modals.menuEdit.initialSection] || '#menu-name')
 const isEditing = computed(() => Boolean(store.modals.menuEdit.menuId))
-const storefront = computed(() => store.platforms.find(p => p.id === 'PLAT01'))
+const storefront = computed(() => findStorefrontPlatform(store.platforms))
 
 const recipeMaterialsByCategory = computed(() => {
   const nonPkgs = store.activeMaterials.filter(m => m.inventoryType === 'ingredient')

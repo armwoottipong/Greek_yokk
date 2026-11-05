@@ -4,8 +4,26 @@ import { createTestStore } from '../helpers/createStore'
 import { DATABASE_KEY } from '../../src/services/localDatabase'
 import Settings from '../../src/views/SettingsView.vue'
 import MenuEdit from '../../src/components/modals/MenuEditModal.vue'
+import {encodeLegacyId} from '../../src/cloud/paths.js'
 
 let wrapper
+it('finds the imported Firebase storefront by identity after its label is renamed',async()=>{
+ const store=createTestStore();store.resetDemoData()
+ const menu=store.menus[0]
+ store.platforms.forEach(p=>{p.id=encodeLegacyId(p.id)})
+ const storefrontId=encodeLegacyId('PLAT01'),deliveryId=encodeLegacyId('PLAT02')
+ store.platforms[0].name='ซื้อที่ร้าน'
+ menu.prices={[storefrontId]:100,[deliveryId]:90}
+ wrapper=mount(MenuEdit)
+ store.modals.menuEdit={isOpen:true,menuId:menu.id};await flushPromises()
+ await wrapper.get('[aria-label="รายละเอียดราคา GrabFood"]').trigger('click')
+ expect(wrapper.get(`[data-price-recommendation="${deliveryId}"]`).text()).toContain('142.86')
+ await wrapper.get(`[data-price-recommendation="${deliveryId}"] button`).trigger('click')
+ expect(wrapper.get('[aria-label="ราคา GrabFood"]').element.value).toBe('142.86')
+ expect(menu.prices[deliveryId]).toBe(90)
+ await wrapper.get('[aria-label="รายละเอียดราคา ซื้อที่ร้าน"]').trigger('click')
+ expect(wrapper.find(`[data-price-recommendation="${storefrontId}"]`).exists()).toBe(false)
+})
 afterEach(() => wrapper?.unmount())
 
 it('saves independent GP rates only on explicit save and preserves prices and past orders', async () => {

@@ -8,7 +8,7 @@
    <strong class="menu-price-info-heading">{{ platform.name }}</strong>
    <span>GP {{ platform.gpPercent ?? 0 }}%</span>
    <span :data-net-revenue="platform.id">หลังหัก GP ได้รับ <strong>{{ formatPrice(netAfterGp(sellingPrice, platform.gpPercent ?? 0)) }}</strong> บาท</span>
-   <span v-if="platform.id !== 'PLAT01'" :data-price-recommendation="platform.id" class="menu-price-info-suggestion">
+   <span v-if="!isStorefrontPlatform(platform)" :data-price-recommendation="platform.id" class="menu-price-info-suggestion">
     <span v-if="suggestion !== null">ราคาแนะนำ <strong>฿{{ formatPrice(suggestion) }}</strong></span>
     <span v-else>{{ hasStorefront ? 'กรอกราคาหน้าร้านและตรวจ GP เพื่อดูราคาแนะนำ' : 'ไม่พบช่องทางหน้าร้านสำหรับคำนวณ' }}</span>
     <Button variant="secondary" size="compact" :disabled="suggestion === null" :aria-label="`ใช้ราคาแนะนำ ${platform.name}`" @click="$emit('apply', suggestion)">ใช้ราคาแนะนำ</Button>
@@ -22,7 +22,7 @@
 import { ref, computed, watch, nextTick, onUnmounted, useId } from 'vue'
 import { Info } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
-import { recommendedPrice, netAfterGp } from '@/domain/pricing'
+import { recommendedPrice, netAfterGp, isStorefrontPlatform } from '@/domain/pricing'
 import { topOverlayLayer } from '@/composables/overlayState'
 import {floatingInfoPlacement} from './floatingInfoPlacement'
 

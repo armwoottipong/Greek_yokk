@@ -9,6 +9,7 @@ import AddonView from '../../src/views/AddonView.vue'
 import GroupManager from '../../src/components/catalog/AddonGroupManager.vue'
 import Confirm from '../../src/components/modals/ConfirmModal.vue'
 import Frame from '../../src/components/ui/DialogFrame.vue'
+import {encodeLegacyId} from '../../src/cloud/paths.js'
 
 function setup() {
   const s = createTestStore(); s.resetDemoData()
@@ -16,6 +17,31 @@ function setup() {
   s.menus[0].addonGroupIds = ['G']
   return s
 }
+it('uses the imported Firebase storefront for option price suggestions while preserving blank and free',async()=>{
+ const s=setup(),storefrontId=encodeLegacyId('PLAT01'),deliveryId=encodeLegacyId('PLAT02')
+ s.platforms.forEach(p=>{p.id=encodeLegacyId(p.id)})
+ s.platforms[0].name='ซื้อที่ร้าน'
+ s.addonGroups[0].pricingMode='extra'
+ s.addonGroups[0].options[0].prices={[storefrontId]:100}
+ const manager=mount(GroupManager,{attachTo:document.body,global:{stubs:{teleport:true}}})
+ try{
+  await manager.get('[aria-label="แก้ไขกลุ่ม เลือกผลไม้"]').trigger('click')
+  await openOptionAction(manager,manager.get('[data-group-addon]'),'ราคา')
+  const input=manager.get(`#group-price-${s.addons[0].id}-${storefrontId}`)
+  await manager.get('[aria-label="รายละเอียดราคา GrabFood"]').trigger('click')
+  const recommendation=()=>manager.get(`[data-price-recommendation="${deliveryId}"]`)
+  expect(recommendation().text()).toContain('142.86')
+  await recommendation().get('button').trigger('click')
+  expect(manager.get(`#group-price-${s.addons[0].id}-${deliveryId}`).element.value).toBe('142.86')
+  await input.setValue('')
+  expect(recommendation().get('button').attributes('disabled')).toBeDefined()
+  await input.setValue(0)
+  expect(recommendation().text()).toContain('0.00')
+  expect(recommendation().get('button').attributes('disabled')).toBeUndefined()
+  await manager.get('[aria-label="รายละเอียดราคา ซื้อที่ร้าน"]').trigger('click')
+  expect(manager.find(`[data-price-recommendation="${storefrontId}"]`).exists()).toBe(false)
+ }finally{manager.unmount()}
+})
 it('uses the menu analysis popup and keeps blank, zero and paid prices distinct after saving', async () => {
  const s=setup(),platform=s.platforms[0],addon=s.addons[0]
  platform.gpPercent=25
