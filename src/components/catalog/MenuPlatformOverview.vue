@@ -7,7 +7,7 @@
   <PlatformFinanceLines v-if="mode==='line' && rows.length" :rows="rows" :unit-label="unitLabel"/>
   <div v-if="!rows.length" class="overview-empty">{{ platforms.length ? `ยังไม่ได้ตั้งราคาขาย แก้ไข${entityLabel}เพื่อเพิ่มราคาของช่องทางที่ต้องการ` : 'ยังไม่มีช่องทางขาย เพิ่มช่องทางในหน้าตั้งค่าเพื่อเปรียบเทียบราคา' }}</div>
   <div class="overview-platforms"><article v-for="row in rows" :key="row.id" :data-menu-platform="row.id" class="platform-report" :aria-labelledby="`${headingId}-${row.id}`">
-   <header class="platform-report-heading"><h5 :id="`${headingId}-${row.id}`">{{ row.name }}</h5><div data-menu-financial="price"><span>{{ priceLabel }}</span><strong>{{ money(row.price) }}</strong></div></header>
+   <header class="platform-report-heading"><h5 :id="`${headingId}-${row.id}`">{{ row.name }}</h5><div data-menu-financial="price"><span>{{ priceLabel }}</span><strong>{{ showFreePrices && row.price === 0 ? 'ฟรี' : money(row.price) }}</strong></div></header>
    <div v-if="row.complete && mode==='bar'" data-platform-chart class="platform-chart dashboard-bar-track" :class="{'has-active-point':active}" role="group" :aria-label="`สัดส่วนราคาขาย ${row.name}`">
     <ChartMark as="span" v-for="segment in segmentsFor(row)" :key="segment.key" data-chart-segment :data-profit-segment="segment.key==='profit'?'':undefined" class="finance-bar-segment" :class="[`segment-${segment.key}`,{'is-active':active===`${row.id}-${segment.key}`}]" :style="{width:barWidth(segment.value)}" :aria-label="`${row.name} ${segment.label} ${money(segment.value)}`" :aria-describedby="active===`${row.id}-${segment.key}` ? tooltipId : undefined" @highlight="highlight(`${row.id}-${segment.key}`)" @clear="clearHover" @activate="selectSegment($event,row,segment)"/>
     <span v-if="row.profit<0" class="sale-price-marker" :style="{insetInlineStart:barWidth(row.price)}"/>
@@ -37,7 +37,7 @@ import ChartTooltip from '@/components/ui/ChartTooltip.vue'
 import {useChartMarks} from '@/composables/useChartMarks'
 import PlatformFinanceDonut from './PlatformFinanceDonut.vue'
 import PlatformFinanceLines from './PlatformFinanceLines.vue'
-const props=defineProps({menu:{type:Object,required:true},platforms:{type:Array,default:()=>[]},cost:{type:Number,default:null},estimated:Boolean,worst:Boolean,unitLabel:{type:String,default:'เสิร์ฟ'},priceLabel:{type:String,default:'ราคาขาย'},entityLabel:{type:String,default:'เมนู'}})
+const props=defineProps({menu:{type:Object,required:true},platforms:{type:Array,default:()=>[]},cost:{type:Number,default:null},estimated:Boolean,worst:Boolean,showFreePrices:Boolean,unitLabel:{type:String,default:'เสิร์ฟ'},priceLabel:{type:String,default:'ราคาขาย'},entityLabel:{type:String,default:'เมนู'}})
 const headingId=useId()
 const mode=ref('bar')
 const modes=[{value:'bar',label:'แท่ง',icon:ChartNoAxesColumn},{value:'donut',label:'วงกลม',icon:ChartPie},{value:'line',label:'เส้น',icon:ChartNoAxesCombined}]
@@ -45,7 +45,7 @@ const round=value=>Math.round(value*100)/100
 const validCost=computed(()=>props.cost!==null && Number.isFinite(props.cost) && props.cost>=0 ? round(props.cost) : null)
 const rows=computed(()=>props.platforms.map(platform=>{
  const parsedPrice=parsePlatformPrice(props.menu.prices?.[platform.id])
- const price=parsedPrice>0 ? parsedPrice : null
+ const price=parsedPrice>0 || (props.showFreePrices && parsedPrice===0) ? parsedPrice : null
  const rate=Number(platform.gpPercent ?? 0)
  const gpPercent=Number.isFinite(rate) && rate>=0 && rate<=100 ? rate : null
  const gpAmount=price!==null && gpPercent!==null ? round(price*gpPercent/100) : null

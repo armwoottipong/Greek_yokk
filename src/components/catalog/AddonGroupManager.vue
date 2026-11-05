@@ -68,19 +68,13 @@
       </li>
      </ul>
     </section>
-    <section class="group-options" aria-labelledby="group-option-financial-title">
-     <h4 id="group-option-financial-title" class="group-drawer-band">วิเคราะห์ต้นทุนและกำไรต่อที่</h4>
-     <p v-if="!detailAnalysis.length" class="group-help">ยังไม่มีช่องทางขายสำหรับวิเคราะห์ราคา</p>
-     <section v-for="channel in detailAnalysis" :key="channel.platform.id" class="option-detail-channel">
-      <h5>{{ channel.platform.name }}</h5>
-      <dl>
-       <div><dt>ราคาเพิ่ม</dt><dd>{{ channel.revenue === 0 ? 'ฟรี' : analysisMoney(channel.revenue) }}</dd></div>
-       <div><dt>รายรับหลังหัก GP</dt><dd>{{ analysisMoney(channel.netRevenue) }}</dd></div>
-       <div><dt>ต้นทุนตัวเลือก</dt><dd>{{ analysisMoney(channel.cost) }}</dd></div>
-       <div class="option-detail-profit"><dt>กำไรขั้นต้น</dt><dd>{{ analysisMoney(channel.profit) }}</dd></div>
-      </dl>
-     </section>
-    </section>
+    <div class="group-heading group-drawer-band">
+     <h4>วิเคราะห์ต้นทุนและกำไร</h4>
+     <CatalogAnalysisDialog entity="group-option" :reset-key="optionDetail.addon.id">
+      <MenuPlatformOverview :menu="detailPricing" :platforms="store.platforms" :cost="detailCost"
+       unit-label="ที่" price-label="ราคาบวกเพิ่ม" entity-label="ตัวเลือกเสริม" show-free-prices/>
+     </CatalogAnalysisDialog>
+    </div>
    </div>
   </DialogFrame>
   <DialogFrame :busy="!!actionPending" id="addon-group-editor" :open="open" :title="draft.id ? 'แก้ไขกลุ่มตัวเลือก' : 'เพิ่มกลุ่มตัวเลือก'" description="ตั้งชื่อ เพิ่มตัวเลือกจากคลัง แล้วกำหนดกติกา" presentation="side-drawer" width="480px" initial-focus="#addon-group-name" @request-close="requestEditorClose">
@@ -189,7 +183,9 @@ import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
 import { optionPrices, optionAvailability, optionAvailabilityLabel } from '@/domain/addonGroups'
 import { MATERIAL_KIND_OPTIONS, getMaterialKind } from '@/domain/materialClassification'
-import { selectedItemCosts } from '@/domain/menuCosts'
+import { recipeCost, selectedItemCosts } from '@/domain/menuCosts'
+import CatalogAnalysisDialog from './CatalogAnalysisDialog.vue'
+import MenuPlatformOverview from './MenuPlatformOverview.vue'
 import Button from '@/components/ui/Button.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import FormField from '@/components/ui/FormField.vue'
@@ -246,11 +242,12 @@ const optionDetail = computed(() => {
   const addon = addonMap.value.get(option?.addonId)
   return addon ? { group, option, addon } : null
 })
-const detailAnalysis = computed(() => {
-  if (!optionDetail.value) return []
+const detailPricing = computed(() => {
   const { group, option, addon } = optionDetail.value
-  return analyzeOption(addon, optionPrices(group, option, addon))
+  const prices = optionPrices(group, option, addon)
+  return { prices: Object.fromEntries(store.platforms.map(platform => [platform.id, prices[platform.id] ?? 0])) }
 })
+const detailCost = computed(() => recipeCost({ recipe: [] }, [optionDetail.value.addon], 1, store.materials))
 const status = (group, option) => optionAvailability(group, option, addonMap.value.get(option.addonId), store.materials)
 function priceSummary(group, option) {
   return formatPriceSummary(optionPrices(group, option, addonMap.value.get(option.addonId) || {}))
@@ -449,13 +446,10 @@ async function performRemove(group) {
 .group-item-name{min-width:0;overflow-wrap:anywhere}
 button.group-item-trigger:hover .group-item-name{text-decoration:underline;text-underline-offset:3px}
 button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-offset:3px}
-.option-detail-list,.option-detail-channel dl{display:grid;gap:0;margin:0}
-.option-detail-list li,.option-detail-channel dl div{display:flex;justify-content:space-between;gap:16px;padding-block:9px}
-.option-detail-list li+li,.option-detail-profit{border-top:1px solid var(--border-subtle)}
-.option-detail-list strong,.option-detail-channel dd{margin:0;text-align:end;font-variant-numeric:tabular-nums}
-.option-detail-channel{padding:12px 16px;border:1px solid var(--border-subtle);border-radius:12px}
-.option-detail-channel h5,.option-detail-profit{font-weight:600}
-.option-detail-channel dt{color:var(--addon-text-secondary)}
+.option-detail-list{display:grid;gap:0;margin:0}
+.option-detail-list li{display:flex;justify-content:space-between;gap:16px;padding-block:9px}
+.option-detail-list li+li{border-top:1px solid var(--border-subtle)}
+.option-detail-list strong{margin:0;text-align:end;font-variant-numeric:tabular-nums}
 
 .group-item-status{font-size:.75rem;color:var(--text-muted)}
 .group-item-status[data-status=low],.group-item-status[data-status=out]{color:var(--state-danger)}
