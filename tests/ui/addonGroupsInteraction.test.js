@@ -7,6 +7,7 @@ import Custom from '../../src/components/modals/CustomOrderModal.vue'
 import MenuEdit from '../../src/components/modals/MenuEditModal.vue'
 import AddonView from '../../src/views/AddonView.vue'
 import GroupManager from '../../src/components/catalog/AddonGroupManager.vue'
+import Confirm from '../../src/components/modals/ConfirmModal.vue'
 import Frame from '../../src/components/ui/DialogFrame.vue'
 
 function setup() {
@@ -32,6 +33,26 @@ async function openOptionAction(wrapper, row, label) {
   const popup = wrapper.get('#group-option-settings')
   await popup.findAll('button').find(button => button.text() === label).trigger('click')
 }
+it('requires the group name before deleting and detaching linked menus', async () => {
+  const s=setup()
+  const wrapper=mount({render:()=>h('div',[h(AddonView),h(Confirm)])},{attachTo:document.body,global:{stubs:{teleport:true}}})
+  try {
+    await wrapper.findAll('button').find(button=>button.text()==='ลบกลุ่ม').trigger('click')
+    await flushPromises()
+    const popup=wrapper.get('#ConfirmModal')
+    expect(popup.text()).toContain(s.menus[0].name)
+    expect(popup.get('[data-confirm-submit]').attributes('disabled')).toBeDefined()
+    await popup.get('#confirm-required-text').setValue('ผิดชื่อ')
+    expect(popup.get('[data-confirm-submit]').attributes('disabled')).toBeDefined()
+    expect(s.addonGroups).toHaveLength(1)
+    await popup.get('#confirm-required-text').setValue('เลือกผลไม้')
+    await popup.get('[data-confirm-submit]').trigger('click')
+    await flushPromises()
+    expect(s.addonGroups).toHaveLength(0)
+    expect(s.menus[0]).toMatchObject({addonGroupIds:[],hasAddons:false})
+    expect(loadDatabase(localStorage).value.addonGroups).toHaveLength(0)
+  } finally {wrapper.unmount()}
+})
 it('creates and selects a stock-free option from the group without losing its draft', async () => {
   const s = setup()
   vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)

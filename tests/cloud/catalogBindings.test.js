@@ -4,9 +4,9 @@ import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
 import {createInventoryModel} from '../../src/cloud/core/inventoryModel.js'
 import {planInventoryCommand} from '../../src/cloud/core/inventoryPlan.js'
 import {applyCatalogDisplay} from '../../src/cloud/core/catalogPlan.js'
-function fixture(){
+function fixture(beforeExecute=()=>null){
  sessionStorage.clear();const f=summaryFixture();let data={shop:materialRegistryShop(f.shop,f.materials),materials:f.materials,display:{menus:{SIMPLE:{name:'Original menu',emoji:'x'}},addons:{A0:{name:'Original addon',emoji:'y'}},groups:{},platforms:{P:{name:'Counter'}}}},model
- const execute=async command=>{const plan=planInventoryCommand(data.shop,data.materials,command);data={...data,shop:plan.nextShop,materials:data.materials.map(m=>plan.nextMaterials.find(n=>n.id===m.id)||m),display:plan.displayChange?applyCatalogDisplay(data.display,plan.displayChange):data.display};return {ok:true,value:{opId:command.opId,kind:command.kind}}}
+ const execute=async command=>{const blocked=beforeExecute(command);if(blocked)return blocked;const plan=planInventoryCommand(data.shop,data.materials,command);data={...data,shop:plan.nextShop,materials:data.materials.map(m=>plan.nextMaterials.find(n=>n.id===m.id)||m),display:plan.displayChange?applyCatalogDisplay(data.display,plan.displayChange):data.display};return {ok:true,value:{opId:command.opId,kind:command.kind}}}
  model=createInventoryModel({getData:()=>data,loadServer:async()=>data,execute,isReady:()=>true,isBlocked:()=>false,storageKey:'catalog-bindings'})
  return {model,snapshot:()=>data}
 }
@@ -70,8 +70,12 @@ it('saves a new option, its group price and menu assignment through one group ac
  })).toMatchObject({ok:false,message:expect.stringContaining('วัตถุดิบนี้อยู่ในกลุ่มแล้ว')})
  expect(snapshot().shop.catalog.addons[duplicate.id]).toBeUndefined()
  expect(snapshot().shop.catalog.groups[group.id].menuIds).toContain(menuId)
- expect((await model.deleteAddonGroup(group.id)).ok).toBe(false)
  expect((await model.deleteAddon(addonId)).ok).toBe(false)
+ const beforeDelete=structuredClone(snapshot())
+ expect(await model.deleteAddonGroup(group.id)).toMatchObject({ok:true})
+ expect(model.menus.find(menu=>menu.id===menuId).addonGroupIds).toEqual([])
+ expect(snapshot().shop.catalog.addons).toEqual(beforeDelete.shop.catalog.addons)
+ expect(snapshot().materials.map(m=>m.stock)).toEqual(beforeDelete.materials.map(m=>m.stock))
  model.close()
 })
 it('explains the two-group selection limit before creating or attaching records',async()=>{
@@ -94,6 +98,45 @@ it('explains the two-group selection limit before creating or attaching records'
  expect(await model.saveAddonGroup({...large,maxSelections:4})).toMatchObject({ok:false,message:expect.stringContaining(issue)})
  expect(await model.saveAddonGroup({...large,maxSelections:4,menuIds:[]})).toMatchObject({ok:true})
  expect(snapshot().shop.catalog.menus.SIMPLE.groupId).toBe(second.id)
+ model.close()
+})
+it('detaches only the deleted group from two-group menus and rejects a stale confirmation',async()=>{
+ const {model,snapshot}=fixture()
+ const input={name:'First group',minSelections:0,maxSelections:2,allowRepeat:false,pricingMode:'included',options:[{addonId:'A0'}]}
+ expect(await model.saveAddonGroup({...input,menuIds:['SIMPLE']})).toMatchObject({ok:true})
+ const first=model.addonGroups.find(group=>group.name===input.name)
+ expect(await model.saveAddonGroup({...input,name:'Second group',menuIds:['SIMPLE']})).toMatchObject({ok:true})
+ const second=model.addonGroups.find(group=>group.name==='Second group')
+ const revision=model.catalogRevision
+ expect(await model.deleteAddonGroup(first.id,{expectedCatalogRevision:revision-1})).toMatchObject({ok:false})
+ expect(model.menus.find(menu=>menu.id==='SIMPLE').addonGroupIds).toEqual([first.id,second.id])
+ const before=JSON.parse(JSON.stringify(model.menus.find(menu=>menu.id==='SIMPLE')))
+ expect(await model.deleteAddonGroup(first.id,{expectedCatalogRevision:revision})).toMatchObject({ok:true})
+ expect(model.menus.find(menu=>menu.id==='SIMPLE')).toMatchObject({addonGroupIds:[second.id],hasAddons:true,recipe:before.recipe,prices:before.prices})
+ expect(snapshot().shop.catalog.groups[second.id].menuIds).toContain('SIMPLE')
+ expect(snapshot().shop.catalog.groups[second.id].multiMenuIds).toEqual([])
+ expect(model.addonGroups.some(group=>group.id===first.id)).toBe(false)
+ expect(await model.deleteAddonGroup(first.id)).toMatchObject({ok:true})
+ model.close()
+})
+it('retains the unfinished deletion and resumes after menus have been detached',async()=>{
+ let interrupt=false
+ const {model,snapshot}=fixture(command=>{
+  if(interrupt&&command.kind==='group'){interrupt=false;return {ok:false,outcome:'not_submitted',message:'Disconnected'}}
+ })
+ const input={name:'Delete after reconnect',minSelections:0,maxSelections:2,allowRepeat:false,pricingMode:'included',options:[{addonId:'A0'}],menuIds:['SIMPLE']}
+ expect(await model.saveAddonGroup(input)).toMatchObject({ok:true})
+ const group=model.addonGroups.find(item=>item.name===input.name)
+ const stock=snapshot().materials.map(material=>material.stock)
+ interrupt=true
+ expect(await model.deleteAddonGroup(group.id)).toMatchObject({ok:false})
+ expect(snapshot().shop.catalog.menus.SIMPLE.groupId).toBeUndefined()
+ expect(snapshot().shop.catalog.groups[group.id].active).toBe(true)
+ expect(model.hasStockDrafts).toBe(true)
+ expect(await model.commitStockDrafts()).toMatchObject({ok:true})
+ expect(model.hasStockDrafts).toBe(false)
+ expect(snapshot().shop.catalog.groups[group.id].active).toBe(false)
+ expect(snapshot().materials.map(material=>material.stock)).toEqual(stock)
  model.close()
 })
 it('retires a menu from the original management list and detaches its option groups while retaining the canonical identity',async()=>{

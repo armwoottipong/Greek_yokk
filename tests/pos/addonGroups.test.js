@@ -75,16 +75,20 @@ describe('menu option groups', () => {
     expect(h.post('syncAll', { snapshot }, 'GROUP-ROUNDTRIP').status).toBe('success')
     expect(h.get({ action: 'getSnapshot' }).data.snapshot.addonGroups).toEqual(snapshot.addonGroups)
   })
-  it('saves reusable groups and prevents deleting groups and options still in use', () => {
+  it('detaches a deleted group and preserves other groups and option records', () => {
     const s = setup()
     expect(s.saveAddonGroup({ ...s.addonGroups[0], id: undefined, name: 'another' }).ok).toBe(true)
     expect(s.addonGroups).toHaveLength(3)
-    expect(s.deleteAddonGroup('FREE').ok).toBe(false)
+    const stock=s.materials[0].stock
+    expect(s.deleteAddonGroup('FREE').ok).toBe(true)
+    expect(s.menus[0].addonGroupIds).toEqual(['EXTRA'])
+    expect(s.menus[0].hasAddons).toBe(true)
+    expect(s.materials[0].stock).toBe(stock)
     expect(s.deleteAddon('A').ok).toBe(false)
     expect(s.addons).toHaveLength(4)
-    const id = s.addonGroups[2].id
+    const id = s.addonGroups.find(group=>group.name==='another').id
     expect(s.deleteAddonGroup(id).ok).toBe(true)
-    expect(s.addonGroups).toHaveLength(2)
+    expect(s.addonGroups).toHaveLength(1)
   })
   it('supports optional groups and explicitly empty menu options without falling back to all addons', () => {
     const s = setup()

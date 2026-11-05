@@ -102,6 +102,26 @@ export function createCatalogBindings({snapshot,mutate,error}){
    entries.push({kind:'group',payload:{input:{id,name:input.name.trim(),active:input.isActive!==false,min:Number(input.minSelections),max:Number(input.maxSelections),allowRepeat:!!input.allowRepeat,pricingMode:input.pricingMode,optionIds:ids,optionPrices:Object.fromEntries(c.platformIds.map(p=>[p,{_:0,...Object.fromEntries(input.options.filter(o=>o.prices&&Object.hasOwn(o.prices,p)).map(o=>[o.addonId,scaled(o.prices[p])]))}]))},display:metadata({name:input.name.trim(),description:encodeGroupAvailability(input)},d.display.groups?.[id])}})
    return mutate([...detachBeforeGroup,...entries,...menuEntries])
   }),
-  deleteAddonGroup:guarded(id=>{const d=snapshot(),old=d.shop.catalog.groups[id];if(!old)return error('ไม่พบกลุ่มตัวเลือก');if(old.menuIds.length)return error('ยังลบไม่ได้: กลุ่มนี้ยังถูกใช้ในเมนู กรุณานำออกจากเมนูก่อน');const input=clone(old);delete input.revision;delete input.menuIds;delete input.multiMenuIds;input.active=false;return mutate([{kind:'group',payload:{input,display:{...metadata({name:old.name},d.display.groups?.[id]),deleted:true}}}])})
+  deleteAddonGroup:guarded((id,options={})=>{
+   version(options)
+   const d=snapshot(),old=d.shop.catalog.groups[id]
+   if(!old)return error('ไม่พบกลุ่มตัวเลือก')
+   if(old.active===false&&d.display.groups?.[id]?.deleted)return {ok:true}
+   const menus=new Map(catalogMenus({...d,display:{...d.display,menus:{}}}).map(menu=>[menu.id,menu]))
+   const entries=[]
+   for(const menuId of old.menuIds){
+    const menu=menus.get(menuId)
+    if(!menu)throw new Error('ไม่พบเมนูที่เชื่อมกับกลุ่ม กรุณาโหลดข้อมูลล่าสุด')
+    const addonGroupIds=(menu.addonGroupIds||[]).filter(groupId=>groupId!==id)
+    const payload=menuPayload({...menu,addonGroupIds,hasAddons:addonGroupIds.length>0})
+    if(d.display.menus?.[menuId])payload.display=clone(d.display.menus[menuId])
+    entries.push({kind:'menu',payload})
+   }
+   const input=clone(old)
+   delete input.revision;delete input.menuIds;delete input.multiMenuIds
+   input.active=false
+   entries.push({kind:'group',payload:{input,display:{...metadata({name:old.name},d.display.groups?.[id]),deleted:true}}})
+   return mutate(entries)
+  })
  }
 }

@@ -1847,12 +1847,19 @@ const posDefinition = {
       if (result.ok) {this.addActivityLog({module:'addon',action:index<0?'create':'edit',title:index<0?'เพิ่มกลุ่มตัวเลือก':'แก้ไขกลุ่มตัวเลือก',targetId:id,targetName:group.name});this.showToast(`บันทึกกลุ่ม "${group.name}" แล้ว`, 'success')}
       return result
     },
-    deleteAddonGroup(id) {
-      if (this.menus.some(m => m.addonGroupIds?.includes(id))) {
-        const message = 'กลุ่มนี้ใช้ในเมนูอยู่ กรุณานำออกจากเมนูก่อนลบ'
-        this.showToast(message, 'error'); return { ok: false, message }
+    deleteAddonGroup(id, { expectedRevision } = {}) {
+      if (expectedRevision !== undefined && expectedRevision !== this.databaseRevision) {
+        const message = 'ข้อมูลเปลี่ยนระหว่างยืนยัน กรุณาตรวจกลุ่มและเมนูใหม่ก่อนลบ'
+        this.showToast(message, 'error')
+        return { ok: false, message }
       }
+      if (!this.addonGroups.some(group => group.id === id)) return { ok: true }
       const candidate = this.databaseSnapshot()
+      for (const menu of candidate.menus) {
+        if (!menu.addonGroupIds?.includes(id)) continue
+        menu.addonGroupIds = menu.addonGroupIds.filter(groupId => groupId !== id)
+        menu.hasAddons = menu.addonGroupIds.length > 0
+      }
       candidate.addonGroups = candidate.addonGroups.filter(g => g.id !== id)
       const name=this.addonGroups.find(g=>g.id===id)?.name||id
       const result=this.commitDatabase(candidate, { preserveDraft: true })

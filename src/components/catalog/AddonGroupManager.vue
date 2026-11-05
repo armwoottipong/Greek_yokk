@@ -7,6 +7,7 @@
     <Button :disabled="!!actionPending||store.inventorySaving" @click="edit()"><Plus :size="16" aria-hidden="true"/>เพิ่มกลุ่มตัวเลือก</Button>
    </div>
   </header>
+  <p v-if="statusError" class="group-error" role="alert">{{ statusError }}</p>
   <div v-if="!store.addonGroups.length" class="group-empty"><strong>จัดตัวเลือกเสริมเป็นชุดให้เลือก</strong><p>เช่น ผลไม้ฟรี 3 ชนิด หรือเพิ่มพิเศษ สร้างกลุ่มแล้วนำไปใช้กับหลายเมนูได้</p></div>
   <div v-else class="group-workspace">
    <nav class="group-directory" aria-label="รายชื่อกลุ่มตัวเลือก">
@@ -52,7 +53,6 @@
      </li>
     </ul>
     </div>
-    <p v-if="statusError" class="group-error" role="alert">{{ statusError }}</p>
    </section>
   </div>
   <DialogFrame id="group-option-detail" :open="!!optionDetail" :title="optionDetail?.addon.name || 'รายละเอียดตัวเลือก'"
@@ -530,8 +530,24 @@ async function performSave() {
 }
 const remove=group=>runAction('delete-'+group.id,()=>performRemove(group))
 async function performRemove(group) {
-  if (await store.confirmDialog({ title: 'ลบกลุ่มตัวเลือก?', message: group.name, confirmText: 'ลบกลุ่ม', cancelText: 'ยกเลิก', type: 'danger' })) await store.deleteAddonGroup(group.id)
+  statusError.value = ''
+  const affected = store.menus.filter(menu => menu.addonGroupIds?.includes(group.id))
+  const options = store.cloud
+    ? { expectedCatalogRevision: store.catalogRevision }
+    : { expectedRevision: store.databaseRevision }
+  const accepted = await store.confirmDialog({
+    title: 'ลบกลุ่มตัวเลือก?',
+    message: `ลบ “${group.name}” และถอนออกจาก ${affected.length} เมนูที่เชื่อมไว้${affected.length ? '\n' + affected.map(menu => menu.name).join(' · ') : ''}`,
+    confirmationValue: group.name.trim(),
+    confirmText: 'ถอนจากเมนูและลบกลุ่ม',
+    cancelText: 'ยกเลิก',
+    type: 'danger'
+  })
+  if (!accepted) return
+  const result = await store.deleteAddonGroup(group.id, options)
+  if (!result?.ok) statusError.value = result?.message || 'ลบกลุ่มไม่สำเร็จ กรุณาตรวจผลรายการก่อนลองอีกครั้ง'
 }
+
 </script>
 <style scoped>
 .option-groups{--addon-text-secondary:#705C50;display:grid;gap:16px;min-width:0}.group-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}.group-heading h3{font-size:1rem;font-weight:600}.group-heading p,.group-help{font-size:.8125rem;line-height:1.7;color:var(--addon-text-secondary)}.group-heading p{margin-top:4px}.group-form{display:grid;gap:20px}.group-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.group-options{display:grid;gap:12px}.group-options h4{font-size:.9375rem;font-weight:600}.group-option{display:grid;gap:12px;padding:16px;background:var(--bg-soft);border-radius:12px}.group-error{font-size:.875rem;color:var(--state-danger);line-height:1.7}.group-option :deep(.app-checkbox-content){flex-wrap:wrap;overflow-wrap:anywhere}.group-heading>.ui-button{flex-shrink:0}
