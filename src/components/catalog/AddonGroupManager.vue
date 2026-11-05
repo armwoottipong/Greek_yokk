@@ -85,11 +85,6 @@
       <h4>รายการตัวเลือก</h4>
       <Button variant="secondary" data-group-add-option :disabled="!!actionPending || store.inventorySaving" @click="openStockPicker"><Plus :size="16" aria-hidden="true"/>เพิ่มตัวเลือก</Button>
      </div>
-     <details v-if="availableAddons.length">
-      <summary>ใช้ตัวเลือกที่มีอยู่</summary>
-      <AppSearch v-model="search" label="ค้นหาตัวเลือก" placeholder="ค้นหาตัวเลือก"/>
-      <AppCheckbox v-for="addon in availableAddons.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase()))" :key="addon.id" :label="addon.name" data-existing-option @update:model-value="toggleOption(addon.id, $event)">{{ addon.name }}</AppCheckbox>
-     </details>
      <div v-for="addon in editorAddons" :key="addon.id" class="group-option group-option--selected" data-group-addon>
       <template v-if="newOptionFor(addon.id)">
        <div v-for="slot in stockSlots" :key="slot.key" class="group-fields">
@@ -245,7 +240,7 @@ const migrateLegacyOptions = () => runAction('migration', async () => {
   })
   if (accepted) await store.migrateLegacyOptions(plan.revision)
 })
-const store = useInventoryStore(), open = ref(false), error = ref(''), search = ref('')
+const store = useInventoryStore(), open = ref(false), error = ref('')
 const draft = ref({}),editCatalogRevision=ref(null)
 const creationResolver=ref(null)
 const fieldErrors = ref({})
@@ -301,7 +296,6 @@ const setOptionActive = (group, id, active) => runAction('availability', async (
 const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const optionFor = id => draft.value.options?.find(option => option.addonId === id)
 const newOptionFor = id => draft.value.newOptions?.find(option => option.id === id)
-const availableAddons = computed(() => store.addons.filter(addon => !optionFor(addon.id)))
 const editorAddons = computed(() => (draft.value.options || []).map(option =>
   newOptionFor(option.addonId) || addonMap.value.get(option.addonId)).filter(Boolean))
 const stockPickerOpen = ref(false)
@@ -396,7 +390,7 @@ async function edit(group) {
       option.prices = optionPrices(group, option, addonMap.value.get(option.addonId) || {})
     }
   }
-  error.value = ''; fieldErrors.value = {}; search.value = ''; open.value = true
+  error.value = ''; fieldErrors.value = {}; open.value = true
   await nextTick(); saveSnapshot()
 }
 function close(savedId=null) { open.value = false;creationResolver.value?.(savedId);creationResolver.value=null }

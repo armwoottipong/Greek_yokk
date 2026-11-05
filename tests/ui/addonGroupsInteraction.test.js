@@ -19,6 +19,12 @@ async function chooseOne(wrapper) {
   await wrapper.get('[role="combobox"][aria-label="ลูกค้าเลือกอย่างไร"]').trigger('click')
   await wrapper.findAll('[role="option"]').find(option => option.text() === 'ต้องเลือก 1 อย่าง').trigger('click')
 }
+async function addManualOption(wrapper, name) {
+  await wrapper.get('[data-group-add-option]').trigger('click')
+  const picker = wrapper.get('#group-stock-picker')
+  await picker.findAll('button').find(button => button.text() === 'สร้างตัวเลือกเอง').trigger('click')
+  await wrapper.get('[aria-label="ชื่อตัวเลือก"]').setValue(name)
+}
 it('creates and selects a stock-free option from the group without losing its draft', async () => {
   const s = setup()
   vi.spyOn(s, 'confirmDialog').mockResolvedValue(true)
@@ -26,9 +32,7 @@ it('creates and selects a stock-free option from the group without losing its dr
   try {
     await wrapper.findAll('button').find(button => button.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
     await wrapper.get('#addon-group-name').setValue('กลุ่มใหม่')
-    await wrapper.get('[data-group-add-option]').trigger('click')
-    await wrapper.get('#group-stock-picker').findAll('button').find(button => button.text() === 'สร้างตัวเลือกเอง').trigger('click')
-    await wrapper.get('[aria-label="ชื่อตัวเลือก"]').setValue('ตัวเลือกใหม่')
+    await addManualOption(wrapper, 'ตัวเลือกใหม่')
     expect(s.addons.some(option => option.name === 'ตัวเลือกใหม่')).toBe(false)
     await wrapper.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
     await flushPromises()
@@ -272,7 +276,7 @@ it('creates and reopens a reusable group in the option workspace', async () => {
     expect(w.get('[aria-label="พักขายอัตโนมัติเมื่อของหมด"]').element.checked).toBe(false)
     await w.get('#addon-group-name').setValue('ฟรี 1 ชนิด')
     await chooseOne(w)
-    await w.get('input[data-existing-option]').setValue(true)
+    await addManualOption(w, 'ผลไม้ฟรี')
     await w.findAll('button').find(b => b.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
     await flushPromises()
     expect(s.addonGroups.find(g => g.name === 'ฟรี 1 ชนิด')).toMatchObject({ minSelections: 1, maxSelections: 1, pricingMode: 'included' })
@@ -320,7 +324,7 @@ it('returns to the menu picker with a newly created group selected',async()=>{
   const group=w.getComponent(GroupManager)
   await group.get('#addon-group-name').setValue('รับช้อนหรือไม่')
   await chooseOne(group)
-  await group.get('input[data-existing-option]').setValue(true)
+  await addManualOption(group, 'รับช้อน')
   await group.findAll('button').find(b=>b.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click');await flushPromises()
   const created=s.addonGroups.find(g=>g.name==='รับช้อนหรือไม่')
   expect(created).toBeTruthy()
