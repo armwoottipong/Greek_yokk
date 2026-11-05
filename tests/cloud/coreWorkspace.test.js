@@ -38,6 +38,22 @@ it('retries journal initialization on manual reload and enables recovery without
  await w.get('button[aria-label="โหลดข้อมูลล่าสุด"]').trigger('click');await flushPromises()
  expect(w.get('[data-retry-command]').attributes('disabled')).toBeUndefined();expect(h.pending.mock.calls.length).toBeGreaterThan(1);w.unmount()
 })
+it('hides a restored pending command while initial recovery is still checking',async()=>{
+ const key=JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u'])
+ const command={opId:'RESTORED',kind:'sale',payload:{}}
+ sessionStorage.setItem(key,JSON.stringify({command}))
+ let finishRecovery
+ h.recover.mockImplementationOnce(()=>new Promise(resolve=>{finishRecovery=resolve}))
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises()
+  expect(h.recover).toHaveBeenCalledWith(command)
+  expect(w.find('.pending-panel').exists()).toBe(false)
+  finishRecovery({ok:false,code:'PENDING_RESULT'})
+  await flushPromises()
+  expect(w.get('.pending-panel').text()).toContain('RESTORED')
+ }finally{w.unmount()}
+})
 it('recovers another tab’s resolved command during reload without resubmission',async()=>{
  const key=JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u']),command={opId:'OLD',kind:'material_metadata',payload:{expectedRevision:1}}
  sessionStorage.setItem(key,JSON.stringify({command}))

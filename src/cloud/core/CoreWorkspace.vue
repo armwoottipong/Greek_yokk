@@ -88,7 +88,7 @@ const activeUsers=computed(()=>{
 })
 function updatePresence(){presenceClock.value=Date.now();if(online.value&&props.state.serverReady&&document.visibilityState==='visible')void shopAccess?.heartbeat()}
 defineEmits(['sign-out'])
-const activeAction=ref(''),reloading=ref(false)
+const activeAction=ref(''),reloading=ref(false),pendingChecks=ref(1)
 const pendingCause=ref('')
 const pendingLabel=computed(()=>({sale:'บันทึกยอดขาย',cancel:'คืนบิล',inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ตรวจนับสต็อก',menu:'บันทึกเมนู',addon:'บันทึกตัวเลือกเสริม',group:'บันทึกกลุ่มตัวเลือก',material_archive:'จัดเก็บวัตถุดิบ',material_delete:'ลบวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ'}[pendingCommand.value?.kind]||'บันทึกข้อมูลร้าน'))
 const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),tab=ref(operator.value?'sale':'dashboard'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
@@ -105,7 +105,7 @@ try{
 }catch{storageReady.value=false;error.value='เก็บตะกร้าบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วเปิดหน้านี้ใหม่'}
 const context=()=>({projectId:props.connection.config.projectId,shopId:props.connection.shopId,generation:props.state.shop?.generation,uid:props.state.user?.uid,deviceId,online:online.value,ready:props.state.serverReady===true,protocolCertified:true,role:role.value})
 const ready=computed(()=>initialized.value&&storageReady.value&&online.value&&props.state.serverReady===true&&!!data.value)
-const showPendingPanel=computed(()=>!!pendingCommand.value&&operator.value&&!busy.value&&!loading.value&&!reloading.value)
+const showPendingPanel=computed(()=>!!pendingCommand.value&&operator.value&&!busy.value&&!loading.value&&!reloading.value&&!pendingChecks.value&&!inventoryWorkspace.value?.model.inventorySaving)
 const locked=computed(()=>!operator.value||busy.value||!!pendingCommand.value||!storageReady.value)
 const saleLimit=computed(()=>data.value?maxSaleLines(data.value.shop):0)
 const menus=computed(()=>Object.values(data.value?.shop.catalog.menus||{}).filter(m=>m.active))
@@ -248,6 +248,7 @@ function refresh(){
 async function updatePending(){const p=await service.pending();if(disposed)return;if(p.length)pendingCommand.value=p[0].envelope;else if(!storedCommand)pendingCommand.value=null;save()}
 async function recoverPending(){
  if(busy.value||!service||!online.value||!props.state.serverReady)return
+ pendingChecks.value++
  try{
   await updatePending();if(disposed)return;initialized.value=true
   if(!pendingCommand.value&&inventoryWorkspace.value?.model.unresolvedDraftCommand){pendingCommand.value=plain(inventoryWorkspace.value.model.unresolvedDraftCommand);storedCommand=pendingCommand.value;save()}
@@ -257,7 +258,7 @@ async function recoverPending(){
    if(result.ok&&result.value)finish(result.value)
    else if(result.causeCode){pendingCause.value=result.causeCode;save()}
   }
- }catch(e){if(!disposed)error.value=explain(e)}
+ }catch(e){if(!disposed)error.value=explain(e)}finally{pendingChecks.value--}
 }
 async function send(command,action=command.kind){
  if(!operator.value||command.kind==='platform_gp'&&role.value!=='admin')return {ok:false,code:'ACCESS_DENIED',outcome:'blocked'}
@@ -363,7 +364,7 @@ onMounted(async()=>{
   shopAccess=createShopAccess({db,shopId:props.connection.shopId,getUser:()=>props.state.user,getShop:()=>props.state.shop,onInvitations:rows=>{invitations.value=rows},onPresence:users=>{presentUsers.value=users}})
   shopAccess.watch();shopAccess.watchInvitations();updatePresence();presenceTimer=setInterval(updatePresence,60000);document.addEventListener('visibilitychange',updatePresence)
  }
- try{service=createCoreWorkspace({connection:props.connection,getContext:context});await refresh();if(disposed)return;await recoverPending()}catch(e){error.value=explain(e)}
+ try{service=createCoreWorkspace({connection:props.connection,getContext:context});await refresh();if(disposed)return;await recoverPending()}catch(e){error.value=explain(e)}finally{pendingChecks.value--}
 })
 onUnmounted(()=>{disposed=true;answerClear(false);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity);document.removeEventListener('visibilitychange',updatePresence);clearInterval(presenceTimer);shopAccess?.close();void service?.close()})
 </script>
