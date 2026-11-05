@@ -83,7 +83,7 @@
     <section ref="optionsSection" tabindex="-1" class="group-options group-drawer-section" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p>
      <div class="group-heading group-drawer-band">
       <h4>รายการตัวเลือก</h4>
-      <Button variant="secondary" data-group-add-option :disabled="!!actionPending || store.inventorySaving" @click="addOption"><Plus :size="16" aria-hidden="true"/>เพิ่มตัวเลือก</Button>
+      <Button variant="secondary" data-group-add-option :disabled="!!actionPending || store.inventorySaving" @click="openStockPicker"><Plus :size="16" aria-hidden="true"/>เพิ่มตัวเลือก</Button>
      </div>
      <details v-if="availableAddons.length">
       <summary>ใช้ตัวเลือกที่มีอยู่</summary>
@@ -172,6 +172,33 @@
     <p v-if="error" role="alert" class="group-error">{{ error }}</p>
    </div>
    <template #footer><Button variant="quiet" :disabled="!!actionPending" @click="requestEditorClose">ยกเลิก</Button><Button :loading="actionPending==='save'" @click="save"><Check :size="18" aria-hidden="true"/>บันทึกกลุ่มตัวเลือก</Button></template>
+  </DialogFrame>
+  <DialogFrame id="group-stock-picker" :open="stockPickerOpen" title="เลือกตัวเลือกจากคลัง"
+   description="เลือกได้หลายรายการ แต่ละรายการจะเป็นตัวเลือกในกลุ่ม" width="640px"
+   initial-focus="#group-stock-search" @request-close="stockPickerOpen = false">
+   <div class="group-options">
+    <AppSearch id="group-stock-search" v-model="stockSearch" label="ค้นหาของจากคลัง" placeholder="ค้นหาด้วยชื่อรายการ"/>
+    <p v-if="!stockPickerGroups.length" class="group-help">ไม่พบรายการในคลัง</p>
+    <section v-for="kind in stockPickerGroups" :key="kind.id" class="group-options">
+     <h4 class="group-drawer-band">{{ kind.label }}</h4>
+     <ul class="stock-picker-list">
+      <li v-for="material in kind.items" :key="material.id">
+       <AppCheckbox :model-value="selectedStockIds.includes(material.id)" :label="material.name"
+        @update:model-value="toggleStock(material.id, $event)">
+        <span class="stock-picker-item">
+         <strong>{{ material.name }}</strong>
+         <small>คงเหลือ {{ stockNumber.format(material.stock) }} {{ material.unit }}</small>
+         <small>ต้นทุนต่อ{{ material.unit || 'หน่วย' }} {{ stockCost(material.unitCost) }}</small>
+        </span>
+       </AppCheckbox>
+      </li>
+     </ul>
+    </section>
+   </div>
+   <template #footer>
+    <Button variant="quiet" @click="addManualOption">สร้างตัวเลือกเอง</Button>
+    <Button :disabled="!selectedStockIds.length" @click="addPickedOptions">เพิ่ม {{ selectedStockIds.length }} รายการ</Button>
+   </template>
   </DialogFrame>
  </section>
 </template>
@@ -268,6 +295,38 @@ const newOptionFor = id => draft.value.newOptions?.find(option => option.id === 
 const availableAddons = computed(() => store.addons.filter(addon => !optionFor(addon.id)))
 const editorAddons = computed(() => (draft.value.options || []).map(option =>
   newOptionFor(option.addonId) || addonMap.value.get(option.addonId)).filter(Boolean))
+const stockPickerOpen = ref(false)
+const stockSearch = ref('')
+const selectedStockIds = ref([])
+const stockMaterials = computed(() => store.activeMaterials.filter(material => !material.isArchived))
+const stockPickerGroups = computed(() => {
+  const query = stockSearch.value.trim().toLowerCase()
+  return MATERIAL_KIND_OPTIONS.map(kind => ({
+    ...kind,
+    items: stockMaterials.value.filter(material => getMaterialKind(material) === kind.id && material.name.toLowerCase().includes(query))
+  })).filter(kind => kind.items.length)
+})
+const stockNumber = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 4 })
+const stockMoney = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 4 })
+const stockCost = value => value == null || !Number.isFinite(Number(value)) ? 'ยังไม่ทราบ' : stockMoney.format(value)
+function openStockPicker() {
+  stockSearch.value = ''
+  selectedStockIds.value = []
+  stockPickerOpen.value = true
+}
+function toggleStock(id, checked) {
+  selectedStockIds.value = checked ? [...selectedStockIds.value, id] : selectedStockIds.value.filter(value => value !== id)
+}
+function addPickedOptions() {
+  for (const material of stockMaterials.value.filter(item => selectedStockIds.value.includes(item.id))) {
+    addOption(material)
+  }
+  stockPickerOpen.value = false
+}
+function addManualOption() {
+  addOption()
+  stockPickerOpen.value = false
+}
 const stockSlots = [
   { key: 'main', label: 'เลือกของจากคลัง', quantity: 'จำนวนต่อที่' },
   { key: 'packaging', label: 'บรรจุภัณฑ์เพิ่มเติม', quantity: 'จำนวนบรรจุภัณฑ์ต่อที่' }
@@ -276,7 +335,7 @@ function stockGroups(slot, addon) {
   const otherId = addon.stock[slot === 'main' ? 'packaging' : 'main'].materialId
   return MATERIAL_KIND_OPTIONS.filter(kind => slot === 'main' || kind.id === 'packaging').map(kind => ({
     ...kind,
-    items: store.activeMaterials.filter(material => !material.isArchived && material.id !== otherId && getMaterialKind(material) === kind.id)
+    items: stockMaterials.value.filter(material => material.id !== otherId && getMaterialKind(material) === kind.id)
   })).filter(kind => kind.items.length)
 }
 function selectStock(addon, slot, id) {
@@ -287,9 +346,9 @@ function selectStock(addon, slot, id) {
 const recipeFor = addon => addon.stock
   ? Object.values(addon.stock).filter(row => row.materialId).map(row => ({ ...row, qty: Number(row.qty) }))
   : addon.recipe
-function addOption() {
+function addOption(material) {
   const id = `ADDON-${crypto.randomUUID()}`
-  draft.value.newOptions.push({ id, name: '', stock: { main: { materialId: '', qty: 1 }, packaging: { materialId: '', qty: 1 } } })
+  draft.value.newOptions.push({ id, name: material?.name || '', stock: { main: { materialId: material?.id || '', qty: 1 }, packaging: { materialId: '', qty: 1 } } })
   toggleOption(id, true)
 }
 let recipeEditRevision
@@ -493,6 +552,16 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
 }
 .group-option{padding:10px 12px;border:1px solid var(--border-subtle);background:var(--bg-card)}
 .group-option--selected{background:var(--bg-soft)}
+.stock-picker-list{margin:0;padding:0}
+.stock-picker-list li+li{border-top:1px solid var(--border-subtle)}
+.stock-picker-list :deep(.app-checkbox){display:flex;width:100%;padding:10px 4px}
+.stock-picker-list :deep(.app-checkbox-content){flex:1}
+.stock-picker-item{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:4px 12px;align-items:center;width:100%}
+.stock-picker-item small{color:var(--addon-text-secondary, var(--text-muted));font-variant-numeric:tabular-nums}
+@media(max-width:520px){
+ .stock-picker-item{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .stock-picker-item strong{grid-column:1 / -1}
+}
 .group-option-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .group-option-heading strong{display:flex;align-items:center;gap:8px;min-width:0;overflow-wrap:anywhere}
 .group-option-heading .ui-button{flex-shrink:0}

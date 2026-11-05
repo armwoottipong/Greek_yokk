@@ -27,6 +27,7 @@ it('creates and selects a stock-free option from the group without losing its dr
     await wrapper.findAll('button').find(button => button.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
     await wrapper.get('#addon-group-name').setValue('กลุ่มใหม่')
     await wrapper.get('[data-group-add-option]').trigger('click')
+    await wrapper.get('#group-stock-picker').findAll('button').find(button => button.text() === 'สร้างตัวเลือกเอง').trigger('click')
     await wrapper.get('[aria-label="ชื่อตัวเลือก"]').setValue('ตัวเลือกใหม่')
     expect(s.addons.some(option => option.name === 'ตัวเลือกใหม่')).toBe(false)
     await wrapper.findAll('button').find(button => button.text().includes('บันทึกกลุ่มตัวเลือก')).trigger('click')
@@ -50,10 +51,13 @@ it('adds one ingredient and one package from stock to a paid group option', asyn
     await wrapper.findAll('button').find(button => button.text().includes('เพิ่มกลุ่มตัวเลือก')).trigger('click')
     await wrapper.get('#addon-group-name').setValue('กลุ่มจากคลัง')
     await wrapper.get('[data-group-add-option]').trigger('click')
-    for (const [id, name] of [['เลือกของจากคลัง', 'บลูเบอร์รีทดสอบ'], ['บรรจุภัณฑ์เพิ่มเติม', 'ช้อนทดสอบ']]) {
-      await wrapper.get(`[role="combobox"][aria-label="${id}"]`).trigger('click')
-      await wrapper.findAll('[role="option"]').find(option => option.text().includes(name)).trigger('click')
-    }
+    const picker = wrapper.get('#group-stock-picker')
+    expect(picker.text()).toContain('คงเหลือ 100 กรัม')
+    expect(picker.text()).toContain('ต้นทุนต่อกรัม')
+    await picker.get('input[aria-label="บลูเบอร์รีทดสอบ"]').setValue(true)
+    await picker.findAll('button').find(button => button.text() === 'เพิ่ม 1 รายการ').trigger('click')
+    await wrapper.get('[role="combobox"][aria-label="บรรจุภัณฑ์เพิ่มเติม"]').trigger('click')
+    await wrapper.findAll('[role="option"]').find(option => option.text().includes('ช้อนทดสอบ')).trigger('click')
     expect(wrapper.get('[aria-label="ชื่อตัวเลือก"]').element.value).toBe('บลูเบอร์รีทดสอบ')
     const platform = s.platforms[0]
     await wrapper.get('[aria-label="จำนวนต่อที่"]').setValue(2.5)
