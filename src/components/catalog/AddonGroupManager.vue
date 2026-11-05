@@ -143,7 +143,6 @@
       </AppSelect>
      </FormField>
     <div v-if="selectionRule !== 'one'" class="group-fields"><FormField v-if="selectionRule === 'custom'" id="addon-group-min" label="เลือกอย่างน้อย" :error="fieldErrors.minSelections" hint="0 = ไม่บังคับเลือก" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.minSelections" type="number" min="0" step="1"/></FormField><FormField id="addon-group-max" label="เลือกได้สูงสุด" :error="fieldErrors.maxSelections" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" :aria-invalid="invalid" :aria-describedby="describedBy" v-model="draft.maxSelections" type="number" min="1" step="1"/></FormField></div>
-    <AppCheckbox v-if="selectionRule !== 'one'" v-model="draft.allowRepeat" variant="switch" label="เลือกชนิดเดิมซ้ำได้">เลือกชนิดเดิมซ้ำได้ · นับจำนวนเป็นที่</AppCheckbox>
     <details class="group-stock-controls">
      <summary>การแจ้งเตือนและพักขาย</summary>
      <AppCheckbox v-model="draft.warnLowStock" variant="switch" label="เตือนเมื่อใกล้หมด">เตือนเมื่อใกล้หมด</AppCheckbox>
