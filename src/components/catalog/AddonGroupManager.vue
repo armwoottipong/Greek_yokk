@@ -91,7 +91,7 @@
         <EntityImage v-bind="optionImage(addon)"/>
        </span>
        <div class="group-option-identity">
-        <strong>{{ addon.name || 'ตัวเลือกใหม่' }}</strong>
+        <strong :title="addon.name">{{ addon.name || 'ตัวเลือกใหม่' }}</strong>
         <p class="group-help">{{ recipeSummary(addon) }}</p>
        </div>
        <IconButton :label="`จัดการ ${addon.name}`" aria-haspopup="dialog" @click="showOptionEditor(addon, 'more')">
@@ -625,7 +625,8 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
  .stock-picker-item strong{grid-column:1 / -1}
 }
 .group-option-heading{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
-.group-option-identity{min-width:0;overflow-wrap:anywhere}
+.group-option-identity{min-width:0}
+.group-option-identity > :is(strong,.group-help){display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .group-option-identity strong{font-weight:600}
 .group-option-heading :deep(.ui-icon-button){min-width:44px;min-height:44px}
 .group-option-menu{display:grid;gap:4px}
