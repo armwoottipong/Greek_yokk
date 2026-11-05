@@ -23,6 +23,7 @@ async function addManualOption(wrapper, name) {
   await wrapper.get('[data-group-add-option]').trigger('click')
   const picker = wrapper.get('#group-stock-picker')
   await picker.findAll('button').find(button => button.text() === 'สร้างตัวเลือกเอง').trigger('click')
+  await wrapper.get('[data-group-option-editor] summary').trigger('click')
   await wrapper.get('[aria-label="ชื่อตัวเลือก"]').setValue(name)
 }
 it('creates and selects a stock-free option from the group without losing its draft', async () => {
@@ -60,6 +61,8 @@ it('adds one ingredient and one package from stock to a paid group option', asyn
     expect(picker.text()).toContain('ต้นทุนต่อกรัม')
     await picker.get('input[aria-label="บลูเบอร์รีทดสอบ"]').setValue(true)
     await picker.findAll('button').find(button => button.text() === 'เพิ่ม 1 รายการ').trigger('click')
+    const row = wrapper.get('[data-group-addon]')
+    await row.get('[data-group-option-editor] summary').trigger('click')
     await wrapper.get('[role="combobox"][aria-label="บรรจุภัณฑ์เพิ่มเติม"]').trigger('click')
     await wrapper.findAll('[role="option"]').find(option => option.text().includes('ช้อนทดสอบ')).trigger('click')
     expect(wrapper.get('[aria-label="ชื่อตัวเลือก"]').element.value).toBe('บลูเบอร์รีทดสอบ')
@@ -67,7 +70,8 @@ it('adds one ingredient and one package from stock to a paid group option', asyn
     await wrapper.get('[aria-label="จำนวนต่อที่"]').setValue(2.5)
     expect(wrapper.get('[data-group-addon]').text()).toContain('กรัม')
     expect(wrapper.get('[data-group-addon]').text()).toContain('คัน')
-    const row = wrapper.get('[data-group-addon]')
+    expect(row.get('[data-group-price-editor]').element.open).toBe(false)
+    await row.get('[data-group-price-editor] summary').trigger('click')
     await row.get('input[id^="group-price-"]').setValue(12)
     expect(row.find('[data-group-option-profit]').exists()).toBe(true)
     const menuId = s.menus[1].id

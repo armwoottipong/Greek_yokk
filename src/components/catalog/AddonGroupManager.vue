@@ -86,51 +86,59 @@
       <Button variant="secondary" data-group-add-option :disabled="!!actionPending || store.inventorySaving" @click="openStockPicker"><Plus :size="16" aria-hidden="true"/>เพิ่มตัวเลือก</Button>
      </div>
      <div v-for="addon in editorAddons" :key="addon.id" class="group-option group-option--selected" data-group-addon>
-      <template v-if="newOptionFor(addon.id)">
-       <div v-for="slot in stockSlots" :key="slot.key" class="group-fields">
-        <FormField :label="slot.label" v-slot="{controlId}">
-         <AppSelect :id="controlId" :aria-label="slot.label" :model-value="addon.stock[slot.key].materialId" @update:model-value="selectStock(addon, slot.key, $event)">
-          <option value="">ไม่ระบุ</option>
-          <optgroup v-for="kind in stockGroups(slot.key, addon)" :key="kind.id" :label="kind.label">
-           <option v-for="material in kind.items" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
-          </optgroup>
-         </AppSelect>
-        </FormField>
-        <FormField v-if="addon.stock[slot.key].materialId" :label="slot.quantity" v-slot="{controlId}">
-         <AppInput :id="controlId" v-model="addon.stock[slot.key].qty" :aria-label="slot.quantity" type="number" min="0.01" step="0.01">
-          <template #suffix>{{ store.matMap[addon.stock[slot.key].materialId]?.unit }}</template>
-         </AppInput>
-        </FormField>
-       </div>
-       <FormField label="ชื่อตัวเลือก" required v-slot="{controlId}">
-        <AppInput :id="controlId" v-model="addon.name" aria-label="ชื่อตัวเลือก" aria-required="true"/>
-       </FormField>
-      </template>
       <div class="group-option-heading">
-       <strong v-if="!newOptionFor(addon.id)"><span class="group-option-image"><EntityImage kind="addons" :entity-id="addon.id" :image="addon.image" :emoji="addon.emoji"/></span>{{ addon.name }}</strong>
-       <Button v-if="!newOptionFor(addon.id)" variant="quiet" size="compact" :aria-label="`แก้สูตร ${addon.name}`" @click="editRecipe(addon.id)">แก้สูตร</Button>
+       <span class="group-option-image">
+        <EntityImage v-if="addon.stock?.main.materialId" kind="materials" :entity-id="addon.stock.main.materialId"
+         :image="store.matMap[addon.stock.main.materialId]?.image" :emoji="store.matMap[addon.stock.main.materialId]?.emoji"/>
+        <EntityImage v-else kind="addons" :entity-id="addon.stock ? undefined : addon.id" :image="addon.image" :emoji="addon.emoji"/>
+       </span>
+       <div class="group-option-identity">
+        <strong>{{ addon.name || 'ตัวเลือกใหม่' }}</strong>
+        <p class="group-help">{{ recipeSummary(addon) }}</p>
+       </div>
        <Button variant="quiet" size="compact" :aria-label="`นำ ${addon.name || 'ตัวเลือก'} ออกจากกลุ่ม`" @click="toggleOption(addon.id, false)">นำออก</Button>
       </div>
-      <p v-if="!newOptionFor(addon.id) && addon.recipe?.length" class="group-help">
-       {{ addon.recipe.map(row => {
-        const material = store.matMap[row.materialId]
-        return `${material?.name || row.materialId} ${row.qty} ${material?.unit || ''}`.trim()
-       }).join(' · ') }}
-      </p>
-      <div class="group-price-fields">
-       <AppCheckbox v-if="!newOptionFor(addon.id)" :model-value="!optionFor(addon.id).paused" variant="switch" :label="`เปิดขาย ${addon.name} ในกลุ่มนี้`" @update:model-value="optionFor(addon.id).paused = !$event">เปิดขายในกลุ่มนี้</AppCheckbox>
-       <p class="group-help">ราคาเพิ่ม · เว้นว่างเพื่อให้ฟรี</p>
-       <div class="group-fields"><FormField v-for="platform in store.platforms" :key="platform.id" :id="`group-price-${addon.id}-${platform.id}`" :label="platform.name" v-slot="{controlId}"><AppInput :id="controlId" :model-value="optionFor(addon.id).prices?.[platform.id] ?? ''" placeholder="ฟรี" type="number" min="0" step="0.01" @update:model-value="setPrice(addon.id, platform.id, $event)"><template #prefix>฿</template></AppInput></FormField></div>
-       <details v-if="Object.values(optionFor(addon.id).prices || {}).some(price => Number(price) > 0)" class="group-price-analysis" data-group-price-analysis>
-        <summary>วิเคราะห์ต้นทุนกำไรต่อที่</summary>
-        <dl v-for="{ platform, cost, netRevenue, profit } in priceAnalysis(addon)" :key="platform.id">
-         <div><dt>ช่องทาง</dt><dd>{{ platform.name }}</dd></div>
-         <div><dt>รายรับหลังหัก GP</dt><dd>{{ analysisMoney(netRevenue) }}</dd></div>
-         <div><dt>ต้นทุนตัวเลือก</dt><dd>{{ analysisMoney(cost) }}</dd></div>
-         <div><dt>กำไรขั้นต้น</dt><dd data-group-option-profit>{{ analysisMoney(profit) }}</dd></div>
-        </dl>
-       </details>
-      </div>
+      <details v-if="addon.stock" class="group-option-disclosure" data-group-option-editor>
+       <summary>แก้รายละเอียด</summary>
+       <div class="group-option-fields">
+        <div v-for="slot in stockSlots" :key="slot.key" class="group-fields">
+         <FormField :label="slot.label" v-slot="{controlId}">
+          <AppSelect :id="controlId" :aria-label="slot.label" :model-value="addon.stock[slot.key].materialId" @update:model-value="selectStock(addon, slot.key, $event)">
+           <option value="">ไม่ระบุ</option>
+           <optgroup v-for="kind in stockGroups(slot.key, addon)" :key="kind.id" :label="kind.label">
+            <option v-for="material in kind.items" :key="material.id" :value="material.id">{{ material.name }} ({{ material.unit }})</option>
+           </optgroup>
+          </AppSelect>
+         </FormField>
+         <FormField v-if="addon.stock[slot.key].materialId" :label="slot.quantity" v-slot="{controlId}">
+          <AppInput :id="controlId" v-model="addon.stock[slot.key].qty" :aria-label="slot.quantity" type="number" min="0.01" step="0.01">
+           <template #suffix>{{ store.matMap[addon.stock[slot.key].materialId]?.unit }}</template>
+          </AppInput>
+         </FormField>
+        </div>
+        <FormField label="ชื่อตัวเลือก" required v-slot="{controlId}">
+         <AppInput :id="controlId" v-model="addon.name" aria-label="ชื่อตัวเลือก" aria-required="true"/>
+        </FormField>
+       </div>
+      </details>
+      <Button v-else variant="quiet" size="compact" class="group-option-edit" :aria-label="`แก้สูตร ${addon.name}`" @click="editRecipe(addon.id)">แก้สูตร</Button>
+      <details class="group-option-disclosure" data-group-price-editor>
+       <summary>ราคา <small>{{ formatPriceSummary(optionFor(addon.id).prices) }}</small></summary>
+       <div class="group-price-fields">
+        <AppCheckbox v-if="!addon.stock" :model-value="!optionFor(addon.id).paused" variant="switch" :label="`เปิดขาย ${addon.name} ในกลุ่มนี้`" @update:model-value="optionFor(addon.id).paused = !$event">เปิดขายในกลุ่มนี้</AppCheckbox>
+        <p class="group-help">ราคาเพิ่ม · เว้นว่างเพื่อให้ฟรี</p>
+        <div class="group-fields"><FormField v-for="platform in store.platforms" :key="platform.id" :id="`group-price-${addon.id}-${platform.id}`" :label="platform.name" v-slot="{controlId}"><AppInput :id="controlId" :model-value="optionFor(addon.id).prices?.[platform.id] ?? ''" placeholder="ฟรี" type="number" min="0" step="0.01" @update:model-value="setPrice(addon.id, platform.id, $event)"><template #prefix>฿</template></AppInput></FormField></div>
+        <details v-if="Object.values(optionFor(addon.id).prices || {}).some(price => Number(price) > 0)" class="group-price-analysis" data-group-price-analysis>
+         <summary>วิเคราะห์ต้นทุนกำไรต่อที่</summary>
+         <dl v-for="{ platform, cost, netRevenue, profit } in priceAnalysis(addon)" :key="platform.id">
+          <div><dt>ช่องทาง</dt><dd>{{ platform.name }}</dd></div>
+          <div><dt>รายรับหลังหัก GP</dt><dd>{{ analysisMoney(netRevenue) }}</dd></div>
+          <div><dt>ต้นทุนตัวเลือก</dt><dd>{{ analysisMoney(cost) }}</dd></div>
+          <div><dt>กำไรขั้นต้น</dt><dd data-group-option-profit>{{ analysisMoney(profit) }}</dd></div>
+         </dl>
+        </details>
+       </div>
+      </details>
      </div>
     </section>
     <details ref="groupRules" class="group-rules" open>
@@ -298,9 +306,8 @@ const setOptionActive = (group, id, active) => runAction('availability', async (
 })
 const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const optionFor = id => draft.value.options?.find(option => option.addonId === id)
-const newOptionFor = id => draft.value.newOptions?.find(option => option.id === id)
 const editorAddons = computed(() => (draft.value.options || []).map(option =>
-  newOptionFor(option.addonId) || addonMap.value.get(option.addonId)).filter(Boolean))
+  draft.value.newOptions?.find(item => item.id === option.addonId) || addonMap.value.get(option.addonId)).filter(Boolean))
 const stockPickerOpen = ref(false)
 const stockSearch = ref('')
 const selectedStockIds = ref([])
@@ -353,6 +360,15 @@ function selectStock(addon, slot, id) {
 const recipeFor = addon => addon.stock
   ? Object.values(addon.stock).filter(row => row.materialId).map(row => ({ ...row, qty: Number(row.qty) }))
   : addon.recipe
+function recipeSummary(addon) {
+  const rows = recipeFor(addon) || []
+  if (!rows.length) return 'ไม่มีรายการตัดสต๊อก'
+  const quantities = rows.map(row => {
+    const material = store.matMap[row.materialId]
+    return [material?.name === addon.name ? '' : material?.name || row.materialId, String(row.qty), material?.unit].filter(Boolean).join(' ')
+  })
+  return `${quantities.join(' + ')} / ที่`
+}
 function addOption(material) {
   const id = `ADDON-${crypto.randomUUID()}`
   draft.value.newOptions.push({ id, name: material?.name || '', stock: { main: { materialId: material?.id || '', qty: 1 }, packaging: { materialId: '', qty: 1 } } })
@@ -558,7 +574,8 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
  .group-workspace{--group-row-height:52px}
 }
 .group-option{padding:10px 12px;border:1px solid var(--border-subtle);background:var(--bg-card)}
-.group-option--selected{background:var(--bg-soft)}
+.group-option--selected{grid-template-columns:minmax(0,max-content) minmax(0,1fr);align-items:start;gap:8px;background:var(--bg-soft)}
+.group-option-heading,.group-option-disclosure[open]{grid-column:1 / -1}
 .stock-picker-list{margin:0;padding:0}
 .stock-picker-list li+li{border-top:1px solid var(--border-subtle)}
 .stock-picker-list :deep(.app-checkbox){display:flex;width:100%;padding:10px 4px}
@@ -572,9 +589,14 @@ button.group-item-trigger:focus-visible{outline:2px solid currentColor;outline-o
  .stock-picker-item{grid-template-columns:repeat(2,minmax(0,1fr))}
  .stock-picker-item strong{grid-column:1 / -1}
 }
-.group-option-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.group-option-heading strong{display:flex;align-items:center;gap:8px;min-width:0;overflow-wrap:anywhere}
-.group-option-heading .ui-button{flex-shrink:0}
+.group-option-heading{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
+.group-option-identity{min-width:0;overflow-wrap:anywhere}
+.group-option-identity strong{font-weight:600}
+.group-option-disclosure summary{width:fit-content;padding:6px 10px;border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-card);cursor:pointer}
+.group-option-disclosure summary small{margin-inline-start:4px;color:var(--text-muted)}
+.group-option-disclosure[open] summary{margin-block-end:8px}
+.group-option-fields{display:grid;gap:12px}
+.group-option-edit{justify-self:start}
 .group-option-image{display:block;width:32px;height:32px;flex-shrink:0;border-radius:8px}
 .group-rules{padding:12px;border:1px solid var(--border-subtle);border-radius:12px}
 .group-rules summary{cursor:pointer}
