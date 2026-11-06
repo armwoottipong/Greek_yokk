@@ -7,6 +7,7 @@ import {projectMaterial} from './productPresentation.js'
 import {buildMaterialUsage,getMaterialKind,MATERIAL_KIND_OPTIONS} from '@/domain/materialClassification'
 import {EMOJI_CATALOG} from '@/data/initialData'
 import {toScaledExact} from '../conversion.js'
+import {reorderExact,withLatestMenuOrder,menuOrderFields} from '../../domain/catalogOrdering.js'
 const clone=v=>JSON.parse(JSON.stringify(v))
 const scaled=v=>{const q=toScaledExact(Number(v),100);if(!q.ok||q.value<0)throw new Error('จำนวนต้องไม่ติดลบและมีทศนิยมไม่เกิน 2 ตำแหน่ง');return q.value}
 const day=value=>value?Math.floor(Date.parse(`${value}T00:00:00Z`)/86400000):999999
@@ -16,13 +17,13 @@ const apply=(before,plan)=>({...before,shop:plan.nextShop,display:plan.displayCh
 const names={inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ปรับยอดนับจริง',switch_lot:'สลับล็อตใช้งาน',material_create:'เพิ่มวัตถุดิบ',material_archive:'จัดเก็บวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ',material_measure:'แก้หน่วยและต้นทุน',material_details:'แก้รายละเอียดวัตถุดิบ',material_type:'แก้ประเภทวัตถุดิบ',production_recipe:'แก้สูตรผลิต',material_delete:'ลบวัตถุดิบถาวร',history_clear:'ล้างหน้าประวัติ',menu:'บันทึกเมนู',addon:'บันทึกตัวเลือกเสริม',group:'บันทึกกลุ่มตัวเลือก'}
 const catalogKinds=new Set(['menu','addon','group'])
 const draftKindFor=commands=>commands.length&&commands.every(command=>catalogKinds.has(command.kind))?'catalog':'stock'
-export function createInventoryModel({getData,execute,loadServer,isReady,isBlocked,storageKey,readHistory=async()=>({logs:[]})}){
+export function createInventoryModel({getData,execute,loadServer,isReady,isBlocked,storageKey,readHistory=async()=>({logs:[]}),saveMenuOrder}){
  let alive=true,historyRequest=0
  const latest=shallowRef(snapshot(getData())),virtual=shallowRef(latest.value)
  const state=reactive({base:null,commands:[],draftKind:'stock',uncertain:false,conflict:false,saving:false,historyLoading:false,logs:[],toasts:[],modals:Object.fromEntries(['stockIn','stockAdjust','stocktake','waste','materialEdit','activityLog','confirm','lotDepletion','emojiPicker','menuEdit','addonEdit'].map(id=>[id,{isOpen:false}]))})
  const error=message=>{model.showToast(message,'error');return {ok:false,message}}
  function persist(){try{sessionStorage.setItem(storageKey,JSON.stringify({base:state.base,commands:state.commands,draftKind:state.draftKind,uncertain:state.uncertain,conflict:state.conflict}));return true}catch{return false}}
- function rebuild(){virtual.value=state.base?clone(state.base):latest.value;for(const c of state.commands)virtual.value=apply(virtual.value,planInventoryCommand(virtual.value.shop,virtual.value.materials,clone(c)))}
+ function rebuild(){virtual.value=state.base?{...clone(state.base),display:withLatestMenuOrder(clone(state.base.display),menuOrderFields(latest.value.display))}:latest.value;for(const c of state.commands)virtual.value=apply(virtual.value,planInventoryCommand(virtual.value.shop,virtual.value.materials,clone(c)))}
  try{const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null');if(saved?.commands?.length){state.base=saved.base;state.commands=saved.commands;state.draftKind=saved.draftKind==='catalog'?'catalog':saved.draftKind==='stock'?'stock':draftKindFor(saved.commands);state.uncertain=!!saved.uncertain;state.conflict=!!saved.conflict;rebuild();if(latest.value.shop.revision!==state.base.shop.revision)state.conflict=true}}catch{state.conflict=true}
  function guard(){if(!alive||!isReady()||isBlocked()||state.saving||state.uncertain||state.conflict)throw new Error(state.conflict?'ยอดร้านเปลี่ยนระหว่างทำแบบร่าง กรุณายกเลิกแบบร่างที่ยังไม่บันทึกและตรวจยอดใหม่':'ยังบันทึกไม่ได้ กรุณาเชื่อมต่อและตรวจผลรายการค้างก่อน')}
  function stageMany(entries){
@@ -83,6 +84,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   if(!alive||!value||state.commands[0]?.opId!==value.opId)return
   if(value.rejected){state.uncertain=false;state.conflict=true;persist();return}
   const command=clone(state.commands[0]),confirmed=apply(clone(state.base),planInventoryCommand(clone(state.base.shop),clone(state.base.materials),command))
+  confirmed.display=withLatestMenuOrder(confirmed.display,menuOrderFields(latest.value.display))
   state.commands.shift();state.base=state.commands.length?confirmed:null;state.uncertain=false
   if(latest.value.shop.revision<=confirmed.shop.revision)latest.value=confirmed
   if(!state.commands.length)state.conflict=false
@@ -94,6 +96,19 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
  const model=reactive({
   ...createCatalogBindings({snapshot:()=>virtual.value,mutate,error}),
   get catalogRevision(){return virtual.value.shop.catalogRevision},
+  get menuOrderRevision(){return virtual.value.display.menuOrderRevision||0},
+  async reorderMenus(ids,options={}){
+   try{
+    guard();if(state.commands.length)throw new Error('กรุณาบันทึกหรือยกเลิกแบบร่างก่อนจัดลำดับเมนู')
+    reorderExact(model.menus,ids)
+    if(!saveMenuOrder)throw new Error('ยังบันทึกลำดับไม่ได้ กรุณาโหลดหน้าใหม่')
+    state.saving=true
+    await saveMenuOrder(ids,{expectedOrderRevision:options.expectedOrderRevision??model.menuOrderRevision,expectedCatalogRevision:options.expectedCatalogRevision??model.catalogRevision})
+    const next=await loadServer();if(!alive)return {ok:false};model.update(next)
+    model.showToast('บันทึกลำดับเมนูแล้ว','success');return {ok:true}
+   }catch(e){return error(['CATALOG_ORDER_CHANGED','INVALID_CATALOG_ORDER'].includes(e.code||e.message)?'รายการหรือลำดับเปลี่ยนแล้ว กรุณาปิดแล้วเปิดจัดลำดับใหม่':e.message||'บันทึกลำดับไม่ได้ กรุณาตรวจการเชื่อมต่อ')}
+   finally{state.saving=false}
+  },
   get menus(){return catalogMenus(virtual.value)},get addons(){return catalogAddons(virtual.value)},get addonGroups(){return catalogGroups(virtual.value)},get platforms(){return catalogPlatforms(virtual.value)},
   get inventorySaving(){return state.saving},get unresolvedDraftCommand(){return state.uncertain?state.commands[0]||null:null},modals:state.modals,emojiCatalog:EMOJI_CATALOG,get toasts(){return state.toasts},get activityLogs(){return state.logs},get orders(){return []},
   get materials(){return virtual.value.materials.map(view)},get activeMaterials(){return this.materials.filter(m=>!m.isDeleted)},get matMap(){return Object.fromEntries(this.materials.map(m=>[m.id,m]))},
@@ -186,7 +201,7 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
     return mutate(entries)
    }catch(e){return error(e.message)}
   },
-  update(data){if(data.shop.revision<latest.value.shop.revision)return;const oldCutoff=latest.value.shop.inventoryHistoryCutoff||0;latest.value=snapshot(data);if((data.shop.inventoryHistoryCutoff||0)!==oldCutoff){state.logs=[];if(state.modals.activityLog.isOpen)void refreshHistory()}if(!state.commands.length)virtual.value=latest.value;else if(latest.value.shop.revision!==state.base.shop.revision&&!state.saving&&!state.uncertain)state.conflict=true},
+  update(data){if(data.shop.revision<latest.value.shop.revision)return;const oldCutoff=latest.value.shop.inventoryHistoryCutoff||0;const incoming=snapshot(data);incoming.display=withLatestMenuOrder(incoming.display,menuOrderFields(latest.value.display));latest.value=incoming;if((data.shop.inventoryHistoryCutoff||0)!==oldCutoff){state.logs=[];if(state.modals.activityLog.isOpen)void refreshHistory()}if(!state.commands.length)virtual.value=latest.value;else{virtual.value={...virtual.value,display:withLatestMenuOrder(virtual.value.display,menuOrderFields(latest.value.display))};if(latest.value.shop.revision!==state.base.shop.revision&&!state.saving&&!state.uncertain)state.conflict=true}},
   acknowledge,
   close(){alive=false;for(const modal of Object.values(state.modals)){modal.onCancel?.();modal.isOpen=false}}
  })

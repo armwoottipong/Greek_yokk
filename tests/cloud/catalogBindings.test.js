@@ -11,6 +11,18 @@ function fixture(beforeExecute=()=>null){
  model=createInventoryModel({getData:()=>data,loadServer:async()=>data,execute,isReady:()=>true,isBlocked:()=>false,storageKey:'catalog-bindings'})
  return {model,snapshot:()=>data}
 }
+it('reorders only group options without moving that group behind other groups on its menus',async()=>{
+ const {model,snapshot}=fixture()
+ try{
+  for(const name of ['First','Second'])expect(await model.saveAddonGroup({name,minSelections:0,maxSelections:2,allowRepeat:false,pricingMode:'included',options:[{addonId:'A0'},{addonId:'A1'}]})).toMatchObject({ok:true})
+  const groups=model.addonGroups.filter(g=>['First','Second'].includes(g.name))
+  expect(await model.saveMenu({...model.menus.find(m=>m.id==='SIMPLE'),addonGroupIds:groups.map(g=>g.id)})).toMatchObject({ok:true})
+  const before=structuredClone(snapshot().shop.catalog.menus.SIMPLE)
+  expect(await model.saveAddonGroup({...groups[0],options:[...groups[0].options].reverse()})).toMatchObject({ok:true})
+  expect(snapshot().shop.catalog.menus.SIMPLE.groupIds).toEqual(before.groupIds)
+  expect(snapshot().shop.catalog.menus.SIMPLE.revision).toBe(before.revision)
+ }finally{model.close()}
+})
 it('round trips unset channel prices separately from an explicitly free option',async()=>{
  const {model}=fixture()
  try{

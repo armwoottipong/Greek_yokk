@@ -3,9 +3,9 @@
   <p v-if="data?.display.trial" class="trial-banner"><strong>ข้อมูลทดสอบ — ยังไม่ใช่ยอดร้านปัจจุบัน</strong><br>จากไฟล์สำรอง {{ sourceDate }} · <a :href="localUrl">เปิดระบบเดิม</a></p>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
-   <section v-if="operator" v-show="tab==='sale'" ref="saleRoot" class="pos-workspace" :class="{'is-split':split,'is-cart-page':!split&&cartOpen}" aria-label="ขายสินค้า">
-    <PosCatalog v-show="split||!cartOpen" :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="locked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
-    <CartPanel :model="productModel" :presentation="split?'panel':'page'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
+   <section v-if="operator" v-show="tab==='sale'" class="pos-workspace" aria-label="ขายสินค้า">
+    <PosCatalog :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="locked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
+    <CartPanel :model="productModel" :presentation="mobileCart?'drawer':'side-drawer'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
      <template #review>
       <div class="cart-cloud-review">
        <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ · เมนู ตัวเลือก และหมายเหตุที่เหมือนกันจะรวมจำนวน</p>
@@ -15,7 +15,7 @@
       </div>
      </template>
     </CartPanel>
-    <CartReviewBar v-if="!split&&!cartOpen" :quantity="cartQuantity" :subtotal="(preview?.subtotalCents||0)/100" :open="cartOpen" @open="cartOpen=true"/>
+    <CartLauncher ref="cartLauncher" :active="tab==='sale'" :quantity="cartQuantity" :open="cartOpen" :busy="busy" @open="cartOpen=true"/>
    </section>
    <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :read-only="!operator" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
    <CloudStockWorkspace v-if="operator" ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory" @open-orders="navigate('orders')"/>
@@ -49,8 +49,7 @@ import Button from '@/components/ui/Button.vue'
 import CloudProductShell from './CloudProductShell.vue'
 import PosCatalog from '@/components/pos/PosCatalog.vue'
 import CartPanel from '@/components/pos/CartPanel.vue'
-import CartReviewBar from '@/components/pos/CartReviewBar.vue'
-import {useCartPageFocus} from '@/composables/useCartPageFocus'
+import CartLauncher from '@/components/pos/CartLauncher.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import AppQuantityInput from '@/components/ui/AppQuantityInput.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -67,10 +66,11 @@ import {shopRole,roleTabs,canOperate} from '../roles.js'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import ReceiptModal from '@/components/modals/ReceiptModal.vue'
 import {Check,Plus} from 'lucide-vue-next'
-import {useElementWidth} from '@/composables/useElementWidth'
+import {useMediaQuery} from '@/composables/useMediaQuery'
 import {projectMenus,projectCart,optionCents,projectReceipt} from './productPresentation.js'
 import {createCoreWorkspace} from './workspace.js'
 import {commandErrorMessage} from './commandErrors.js'
+import {withLatestMenuOrder} from '../../domain/catalogOrdering.js'
 import {maxSaleLines} from './model/limits.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
 provide('catalog-images',{watch:(...args)=>service.images.watch(...args),save:(...args)=>service.images.save(...args)})
@@ -92,7 +92,7 @@ const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
 const legacyLookup=ref(''),legacySources=new Map()
 const localUrl=`${import.meta.env.BASE_URL}local.html`
-let service,storageKey,deviceId,disposed=false,refreshAgain=false,storedCommand=null,cartCommandId=null
+let service,storageKey,deviceId,disposed=false,refreshAgain=false,storedCommand=null,cartCommandId=null,stopOrderWatch
 try{
  deviceId=localStorage.getItem('gy-cloud-device-v1')||crypto.randomUUID();localStorage.setItem('gy-cloud-device-v1',deviceId)
  storageKey=JSON.stringify(['gy-core-cart-v1',props.connection.config.projectId,props.connection.shopId,props.state.shop.generation,props.state.user.uid])
@@ -122,9 +122,8 @@ const money=c=>new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB'}).
 const amount=q=>new Intl.NumberFormat('th-TH',{maximumFractionDigits:2}).format(q/100)
 const plain=v=>JSON.parse(JSON.stringify(toRaw(v)))
 
-const saleRoot=ref(null),saleWidth=useElementWidth(saleRoot),split=computed(()=>saleWidth.value>=696)
+const mobileCart=useMediaQuery('(max-width: 767px)'),cartLauncher=ref(null)
 const cartOpen=ref(false),searchQuery=ref(''),lineError=ref(''),clearConfirm=ref(false),receiptState=reactive({isOpen:false,order:null})
-useCartPageFocus(saleRoot,split,cartOpen)
 let clearAnswer
 const productMenus=computed(()=>projectMenus(data.value))
 const productPlatforms=computed(()=>platformIds.value.map(id=>({id,name:name('platforms',id),isActive:true,gpPercent:(data.value.shop.catalog.platforms[id].gpBasisPoints||0)/100})))
@@ -201,14 +200,13 @@ function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(c
 function navigate(id){const target=id==='sale'?'pos':id;if(!roleTabs(role.value).includes(target)&&!(target==='orders'&&operator.value))return;tab.value=target==='pos'?'sale':target}
 const inventoryWorkspace=ref(null),reportVisited=ref(!operator.value),settingsVisited=ref(false),reportRefreshKey=ref(0)
 async function readStockHistory(options={}){const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config});return loadInventoryHistory({db,shopId:props.connection.shopId,generation:props.state.shop.generation,materials:data.value.materials,display:data.value.display,clearedThroughRevision:Math.max(data.value.shop.inventoryHistoryCutoff||0,options.clearedThroughRevision||0),includePageHistory:true})}
-watch(split,value=>{if(value)cartOpen.value=false})
 
 function material(id){return data.value?.materials.find(m=>m.id===id)}
 function materialName(id){return material(id)?.name||id}
 function name(kind,id){return data.value?.display[kind]?.[id]?.name||id}
 function orderDate(o){return o.createdAt?.toDate?o.createdAt.toDate().toLocaleString('th-TH'):''}
 function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g,id,platformId.value);return cents===0?'รวมในราคา':`+${money(cents)}`}
-function selectMenu(id){if(locked.value)return;selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
+function selectMenu(id){if(locked.value)return;cartLauncher.value?.capture(id);selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
 function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
 function draftLine(){
@@ -226,7 +224,7 @@ function addLine(){
  const next=plain(cart.value)
  if(existingIndex>=0)next[existingIndex].qty+=line.qty
  else next.push(line)
- assertOptionAvailability(next);service.previewSale({platformId:platformId.value,lines:next});cart.value=next;error.value='';lineError.value='';selectedMenu.value='';if(!split.value)cartOpen.value=true}catch(e){lineError.value=explain(e)}
+ assertOptionAvailability(next);service.previewSale({platformId:platformId.value,lines:next});cart.value=next;error.value='';lineError.value='';selectedMenu.value=''}catch(e){lineError.value=explain(e)}
 }
 function explain(e){const known=commandErrorMessage(e);if(known)return known;const code=e?.code||e?.message||'';if(code==='OPTION_UNAVAILABLE')return 'ตัวเลือกพักขายหรือสต็อกไม่พอ กรุณาแก้รายการในตะกร้า';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SALE_MATERIAL_LIMIT')return 'บิลนี้ใช้วัตถุดิบรวมเกิน 16 รายการ กรุณาแบ่งเป็นหลายบิล';if(code==='RECIPE_MATERIAL_LIMIT')return 'หนึ่งสูตรใช้วัตถุดิบได้ไม่เกิน 16 รายการ';if(code==='PREPARATION_LIMIT')return 'มีคำสั่งค้างหลายรายการ กรุณาตรวจและจัดการคำสั่งค้างก่อนลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
 let refreshTask=null
@@ -360,10 +358,20 @@ async function reloadAfterWrite(){
 }
 
 const connectivity=()=>{online.value=navigator.onLine;updatePresence();if(online.value&&props.state.serverReady)void reloadEverything()}
+function startOrderWatch(){
+ stopOrderWatch?.();stopOrderWatch=null
+ if(!service?.watchMenuOrder||!operator.value||!online.value||!props.state.serverReady)return
+ try{stopOrderWatch=service.watchMenuOrder(value=>{
+  if(disposed||!data.value)return
+  const display=withLatestMenuOrder(data.value.display,value)
+  if(display!==data.value.display)data.value={...data.value,display}
+ },()=>{if(!disposed&&operator.value&&online.value)showToast('โหลดลำดับเมนูไม่ได้ กรุณาโหลดข้อมูลล่าสุด','error')})}catch{showToast('ยังโหลดลำดับเมนูไม่ได้ กรุณาโหลดข้อมูลล่าสุด','error')}
+}
+watch([role,online,()=>props.state.serverReady],startOrderWatch)
 watch([cart,platformId,packageAdjustments],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
 watch(()=>JSON.stringify(shortages.value),()=>{approveShortage.value=false})
 watch(role,()=>{shopAccess?.watchInvitations();const current=tab.value==='sale'?'pos':tab.value;if(!roleTabs(role.value).includes(current)&&!(current==='orders'&&operator.value))tab.value='dashboard';if(!operator.value){selectedMenu.value='';cancelId.value='';cartOpen.value=false;packageReviewState.isOpen=false;reportVisited.value=true}})
-watch(tab,value=>{if(value==='orders')void loadOrders();if(value==='dashboard')reportVisited.value=true;if(value==='settings')settingsVisited.value=true})
+watch(tab,value=>{if(value!=='sale')cartOpen.value=false;if(value==='orders')void loadOrders();if(value==='dashboard')reportVisited.value=true;if(value==='settings')settingsVisited.value=true})
 watch(()=>data.value?.shop.catalogRevision,(revision,previous)=>{
  if(previous===undefined||revision===previous)return
  approveShortage.value=false
@@ -383,9 +391,9 @@ onMounted(async()=>{
   shopAccess=createShopAccess({db,shopId:props.connection.shopId,getUser:()=>props.state.user,getShop:()=>props.state.shop,onInvitations:rows=>{invitations.value=rows},onPresence:users=>{presentUsers.value=users}})
   shopAccess.watch();shopAccess.watchInvitations();updatePresence();presenceTimer=setInterval(updatePresence,60000);document.addEventListener('visibilitychange',updatePresence)
  }
- try{service=createCoreWorkspace({connection:props.connection,getContext:context});await refresh();if(disposed)return;await recoverPending()}catch(e){error.value=explain(e)}finally{pendingChecks.value--}
+ try{service=createCoreWorkspace({connection:props.connection,getContext:context});startOrderWatch();await refresh();if(disposed)return;await recoverPending()}catch(e){error.value=explain(e)}finally{pendingChecks.value--}
 })
-onUnmounted(()=>{disposed=true;answerClear(false);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity);document.removeEventListener('visibilitychange',updatePresence);clearInterval(presenceTimer);shopAccess?.close();void service?.close()})
+onUnmounted(()=>{disposed=true;stopOrderWatch?.();answerClear(false);window.removeEventListener('online',connectivity);window.removeEventListener('offline',connectivity);document.removeEventListener('visibilitychange',updatePresence);clearInterval(presenceTimer);shopAccess?.close();void service?.close()})
 </script>
 
 

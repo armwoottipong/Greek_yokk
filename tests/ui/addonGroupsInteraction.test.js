@@ -57,7 +57,7 @@ it('uses the menu analysis popup and keeps blank, zero and paid prices distinct 
  const manager=mount(GroupManager,{attachTo:document.body,global:{stubs:{teleport:true}}})
  try{
   expect(manager.get('.group-item-price').text()).toContain('ยังไม่ได้ตั้งราคา')
-  await manager.get('.group-items-header button').trigger('click')
+  await manager.get('.group-items-header button[aria-label^="แก้ไขกลุ่ม"]').trigger('click')
   await openOptionAction(manager,manager.get('[data-group-addon]'),'ราคา')
   const settings=manager.get('#group-option-settings')
   expect(settings.text()).toContain('กรอก 0 เพื่อให้ฟรี')

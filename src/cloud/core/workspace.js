@@ -1,6 +1,8 @@
 import {createReportReader} from './reportReader.js'
 import {createBackupReader} from './backupReader.js'
 import {createCatalogImages} from './catalogImages.js'
+import {createCatalogOrdering} from './catalogOrdering.js'
+import {withLatestMenuOrder} from '../../domain/catalogOrdering.js'
 import {doc,collection,getDocFromServer,getDocsFromServer,query,orderBy,limit} from 'firebase/firestore'
 import {getFirebaseClient} from '../firebaseClient.js'
 import {createCommandJournal} from '../journal.js'
@@ -14,6 +16,8 @@ export function createCoreWorkspace({connection,getContext}){
  const reports=createReportReader({db,getContext})
  const backups=createBackupReader({db,getContext})
  const images=createCatalogImages({db,getContext})
+ const ordering=createCatalogOrdering({db,getContext})
+ let latestMenuOrder=null
  let current
  const base=()=>{const c=getContext();return `shops/${c.shopId}/generations/${c.generation}`}
  async function load(){
@@ -27,7 +31,7 @@ export function createCoreWorkspace({connection,getContext}){
    if(root.data().revision!==snapshot.shop.revision)continue
    const ids=snapshot.materials.map(m=>m.id)
    if(!display.exists()||snapshot.shop.materialIds.length!==ids.length||snapshot.shop.materialIds.some(id=>!ids.includes(id))||snapshot.materials.some(m=>m.stock!==m.lotIds.reduce((n,id)=>n+m.lotQty[id],0)))throw new Error('INCOMPLETE_INVENTORY')
-   current={...snapshot,display:display.data(),orders:current?.orders||[]};return current
+   current={...snapshot,display:withLatestMenuOrder(display.data(),latestMenuOrder),orders:current?.orders||[]};return current
   }
   throw new Error('SHOP_BUSY')
  }
@@ -47,5 +51,7 @@ export function createCoreWorkspace({connection,getContext}){
   if(!receipt||receipt.origin!=='legacy'||receipt.sourceLegacyId!==orderId)throw new Error('LEGACY_MIGRATION_REQUIRED')
   return receipt
  }
- return {...commands,images,load,orders,previewSale,previewInventory,previewCommand,history,legacyReceipt,backup:()=>backups.read(),report:range=>{if(!current)throw new Error('NOT_READY');return reports.read(range,{legacyOrderCount:current.display.legacyOrderCount??0})},close:()=>{images.close();reports.close();backups.close();return journal.close()}}
+ const watchMenuOrder=(onValue,onError)=>ordering.watchMenuOrder(value=>{latestMenuOrder=withLatestMenuOrder(latestMenuOrder,value);if(current)current={...current,display:withLatestMenuOrder(current.display,latestMenuOrder)};onValue(latestMenuOrder)},onError)
+ const saveMenuOrder=async(ids,options)=>{const saved=await ordering.saveMenuOrder(ids,options);return saved}
+ return {...commands,images,load,orders,watchMenuOrder,saveMenuOrder,previewSale,previewInventory,previewCommand,history,legacyReceipt,backup:()=>backups.read(),report:range=>{if(!current)throw new Error('NOT_READY');return reports.read(range,{legacyOrderCount:current.display.legacyOrderCount??0})},close:()=>{ordering.close();images.close();reports.close();backups.close();return journal.close()}}
 }

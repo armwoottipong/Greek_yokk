@@ -1,10 +1,12 @@
 import {groupAvailability} from './groupAvailability.js'
+import {applyDisplayOrder} from '../../domain/catalogOrdering.js'
 const recipeRows=recipe=>Object.entries(recipe||{}).filter(([,q])=>q>0).map(([materialId,q])=>({materialId,qty:q/100}))
 const prices=values=>Object.fromEntries(Object.entries(values||{}).map(([id,v])=>[id,v/100]))
 const visible=(data,collection,id)=>!data.display?.[collection]?.[id]?.deleted
 export function catalogMenus(data){
  const c=data?.shop.catalog;if(!c)return []
- return (c.menuIds||Object.keys(c.menus||{})).filter(id=>visible(data,'menus',id)).map(id=>{const m=c.menus[id],groups=m.groupIds?.length?m.groupIds:m.groupId?[m.groupId]:[];return {id,...data.display?.menus?.[id],name:data.display?.menus?.[id]?.name||m.name||id,isActive:m.active,recipe:recipeRows(m.rawRecipe||m.recipe),hasPackage:m.hasPackage!==false,hasAddons:!!(groups.length||m.optionIds?.length),...(groups.length?{addonGroupIds:[...groups]}:m.optionIds?.length?{}:{addonGroupIds:[]}),prices:prices(m.pricesCents)}})
+ const rows=(c.menuIds||Object.keys(c.menus||{})).filter(id=>visible(data,'menus',id)).map(id=>{const m=c.menus[id],groups=m.groupIds?.length?m.groupIds:m.groupId?[m.groupId]:[];return {id,...data.display?.menus?.[id],name:data.display?.menus?.[id]?.name||m.name||id,isActive:m.active,recipe:recipeRows(m.rawRecipe||m.recipe),hasPackage:m.hasPackage!==false,hasAddons:!!(groups.length||m.optionIds?.length),...(groups.length?{addonGroupIds:[...groups]}:m.optionIds?.length?{}:{addonGroupIds:[]}),prices:prices(m.pricesCents)}})
+ return applyDisplayOrder(rows,data.display?.menuOrder)
 }
 export function catalogAddons(data){
  const c=data?.shop.catalog;if(!c)return []

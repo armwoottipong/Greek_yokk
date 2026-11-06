@@ -2,7 +2,7 @@
  <div class="product-shell">
   <a class="skip-content" href="#cloud-main" @click.prevent="focusMain">ข้ามไปเนื้อหาหลัก</a>
   <Sidebar :model="model" :items="items" :mobile-open="mobileOpen" @close="closeMenu"/>
-  <div class="product-main" :class="{ 'product-main--stock': model.currentTab === 'stock' }">
+  <div class="product-main">
    <header class="brand-page-header">
     <button id="mobile-menu-toggle" ref="toggle" class="mobile-menu-toggle" :aria-expanded="mobileOpen" aria-controls="main-sidebar" :aria-label="mobileOpen?'ปิดเมนูหลัก':'เปิดเมนูหลัก'" @click="mobileOpen=!mobileOpen"><Menu v-if="!mobileOpen" :size="22"/><X v-else :size="22"/></button>
     <div class="header-page-title" :inert="mobileOpen||undefined"><h2>{{ title }}</h2><p>{{ model.connected?'ข้อมูลร้านจาก Firebase · ใช้ร่วมกันทุกเครื่อง':'ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว ยังบันทึกไม่ได้' }}</p></div>
@@ -35,12 +35,6 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
   --stock-page-inset: 24px;
   background: var(--bg-card);
   padding-inline: var(--stock-page-inset);
-}
-
-@media (min-width: 768px) {
-  .product-main--stock {
-    border-inline-start: 1px solid var(--border-subtle);
-  }
 }
 
 @media (max-width: 767px) {

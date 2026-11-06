@@ -1,7 +1,8 @@
 <template>
  <CatalogWorkspace ref="workbench" entity="menu" :mobile-detail="mobileDetail">
+  <template #before><CatalogOrderDialog id="menu-order" :open="menuOrderOpen" title="จัดลำดับเมนู" :items="store.menus" :revision="menuOrderRevision" :busy="actionPending==='ordering'" @reset="captureMenuOrder" @save="saveMenuOrder" @request-close="menuOrderOpen=false"/></template>
   <template #header><CatalogHeader :busy="!!actionPending||store.inventorySaving" :removing="!!actionPending" entity="menu" :selected="selectedMenu" :platform-count="pricedPlatformCount" @back="requestAction({type:'back'})" @add="requestAction({type:'new'})" @edit="requestAction({type:'edit',id:$event})" @delete="deleteMenu"/></template>
-  <template #browser><CatalogBrowser v-model="searchQuery" entity="menu" :items="filteredMenus" :selected-id="selectedId" @select="requestAction({type:'select',id:$event})" @add="requestAction({type:'new'})"/></template>
+  <template #browser><CatalogBrowser v-model="searchQuery" entity="menu" :items="filteredMenus" :selected-id="selectedId" @select="requestAction({type:'select',id:$event})" @add="requestAction({type:'new'})"><template #actions><IconButton label="จัดลำดับเมนู" :disabled="store.menus.length<2||!!actionPending||store.inventorySaving" @click="menuOrderOpen=true"><GripVertical :size="19" aria-hidden="true"/></IconButton></template></CatalogBrowser></template>
   <template v-if="selectedMenu"><MenuRecipeDetails :menu="selectedMenu" :items="detailedRecipeItems" :food-cost="selectedMenuFoodCost" :cost-estimate="selectedMenuCostEstimate" :platforms="store.platforms" :addon-groups="selectedGroups" analysis-trigger-target="#menu-analysis-anchor" @edit="requestAction({type:'edit',id:selectedMenu.id,section:$event?.section})"/></template>
   <CatalogEmptyState v-else entity="menu" @add="requestAction({type:'new'})"/>
  </CatalogWorkspace>
@@ -19,8 +20,15 @@ import {parsePlatformPrice} from '@/domain/pricing'
 import {useInventoryStore} from '@/composables/useInventoryStore'
 import MenuRecipeDetails from '@/components/catalog/MenuRecipeDetails.vue'
 import {useActionPending} from '@/composables/useActionPending'
+import CatalogOrderDialog from '@/components/catalog/CatalogOrderDialog.vue'
+import IconButton from '@/components/ui/IconButton.vue'
+import {GripVertical} from 'lucide-vue-next'
 const {pending:actionPending,run:runAction}=useActionPending()
 const store=useInventoryStore()
+const menuOrderOpen=ref(false),menuOrderSource=ref({})
+const menuOrderRevision=computed(()=>`${store.menuOrderRevision??store.databaseRevision}:${store.catalogRevision??''}`)
+function captureMenuOrder(){menuOrderSource.value={expectedOrderRevision:store.menuOrderRevision??store.databaseRevision,expectedCatalogRevision:store.catalogRevision}}
+const saveMenuOrder=ids=>runAction('ordering',async()=>{const result=await store.reorderMenus(ids,menuOrderSource.value);if(result?.ok)menuOrderOpen.value=false})
 const searchQuery=ref(''),selectedId=ref(store.menus[0]?.id||null),mobileDetail=ref(false)
 const workbench=ref(null),pendingHeadingFocus=ref(false)
 let pendingNewMenuIds=null

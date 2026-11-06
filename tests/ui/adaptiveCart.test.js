@@ -3,18 +3,17 @@ import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore} from '../helpers/createStore'
 import Pos from '../../src/views/PosView.vue'
 import CartPanel from '../../src/components/pos/CartPanel.vue'
-import {overlayStack} from '../../src/composables/overlayState'
+import DialogFrame from '../../src/components/ui/DialogFrame.vue'
 
-it('waits for a closing product overlay before focusing the cart page',async()=>{
+it('opens a modal cart from the launcher while retaining the catalog',async()=>{
  const store=createTestStore();store.resetDemoData()
- const w=mount(Pos,{attachTo:document.body}),overlay={node:null}
+ const w=mount(Pos,{attachTo:document.body})
  try{
-  overlayStack.push(overlay)
   await w.get('[data-cart-open]').trigger('click');await flushPromises()
-  expect(document.activeElement).not.toBe(w.get('[data-cart-page]').element)
-  overlayStack.splice(overlayStack.indexOf(overlay),1);await flushPromises()
-  expect(document.activeElement).toBe(w.get('[data-cart-page]').element)
- }finally{if(overlayStack.includes(overlay))overlayStack.splice(overlayStack.indexOf(overlay),1);w.unmount()}
+  expect(document.getElementById('pos-cart-review').getAttribute('role')).toBe('dialog')
+  expect(w.get('.pos-catalog').isVisible()).toBe(true)
+  expect(w.getComponent(CartPanel).getComponent(DialogFrame).props('open')).toBe(true)
+ }finally{w.unmount()}
 })
 it('does not discard an order draft until clearing is confirmed',async()=>{
  const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],1,false,'แยกชาม')
@@ -25,26 +24,24 @@ it('does not discard an order draft until clearing is confirmed',async()=>{
   store.modals.confirm.onCancel();await flushPromises();expect(store.cart[0].note).toBe('แยกชาม')
  }finally{w.unmount()}
 })
-it('retains one shared cart, note and payment when review closes or rotates to split mode',async()=>{
- let resize
- vi.stubGlobal('ResizeObserver',class{constructor(cb){resize=cb}observe(){resize([{contentRect:{width:340}}])}disconnect(){}})
+it('retains one shared cart, note and payment when the drawer closes or rotates',async()=>{
+ let update
+ const media={matches:true,addEventListener:(_,cb)=>{update=cb},removeEventListener:vi.fn()}
+ vi.stubGlobal('matchMedia',()=>media)
  const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],2,false,'แยกท็อปปิ้ง')
  store.paymentMethod='เงินสด'
  const w=mount(Pos,{attachTo:document.body})
  try{
   await flushPromises();await w.get('[data-cart-open]').trigger('click');await flushPromises()
+  const cart=w.getComponent(CartPanel)
   expect(w.findAllComponents(CartPanel)).toHaveLength(1)
-  expect(w.get('[data-cart-page]').isVisible()).toBe(true)
-  expect(document.activeElement).toBe(w.get('[data-cart-page]').element)
-  expect(w.get('.pos-catalog').isVisible()).toBe(false)
-  expect(w.find('[role="dialog"]').exists()).toBe(false)
-  await w.get('[data-cart-back]').trigger('click');await flushPromises()
-  expect(w.get('.pos-catalog').isVisible()).toBe(true)
-  expect(document.activeElement).toBe(w.get('[data-cart-open]').element)
+  expect(cart.props('presentation')).toBe('drawer')
+  cart.vm.$emit('request-close');await flushPromises()
+  expect(cart.props('open')).toBe(false)
   expect(store.cart[0].qty).toBe(2);expect(store.cart[0].note).toBe('แยกท็อปปิ้ง');expect(store.paymentMethod).toBe('เงินสด')
-  resize([{contentRect:{width:850}}]);await flushPromises()
-  expect(w.findAllComponents(CartPanel)).toHaveLength(1)
-  expect(w.getComponent(CartPanel).props('presentation')).toBe('panel')
+  media.matches=false;update();await flushPromises()
+  await w.get('[data-cart-open]').trigger('click');await flushPromises()
+  expect(cart.props('presentation')).toBe('side-drawer')
   expect(store.cart[0].qty).toBe(2)
  }finally{w.unmount();vi.unstubAllGlobals()}
 })
@@ -53,8 +50,7 @@ it('shows quantity rather than row count and an empty review cannot checkout',as
  const checkout=vi.spyOn(store,'checkout')
  const w=mount(Pos,{attachTo:document.body})
  try{
-  await flushPromises();expect(w.get('[data-cart-open]').text()).toContain('5 ชาม')
-  expect(w.get('[data-cart-open]').text()).toContain('฿435')
+  await flushPromises();expect(w.get('[data-cart-open]').attributes('aria-label')).toContain('5 รายการ')
   store.clearCart();await flushPromises();await w.get('[data-cart-open]').trigger('click');await flushPromises()
   expect(document.getElementById('pos-cart-review').textContent).toContain('เลือกเมนู')
   expect(checkout).not.toHaveBeenCalled()

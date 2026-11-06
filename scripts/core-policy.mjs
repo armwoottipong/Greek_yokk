@@ -11,6 +11,7 @@ import {recipeAdmissionPolicy} from './recipe-admission-policy.mjs'
 import {dynamicRecipePolicy} from './dynamic-recipe-policy.mjs'
 import {catalogPolicy} from './catalog-policy.mjs'
 import {catalogImagePolicy} from './catalog-image-policy.mjs'
+import {catalogOrderPolicy} from './catalog-order-policy.mjs'
 import {readFileSync} from 'node:fs'
 import {inventoryHistoryPolicy} from './inventory-history-policy.mjs'
 import {inventoryDeletePolicy} from './inventory-delete-policy.mjs'
@@ -26,7 +27,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
  if(!/^[A-Za-z0-9_-]{1,120}$/.test(shopId))throw new Error('Invalid shop')
  if(legacyTestAuth&&shopId==='greek-yogg')throw new Error('Legacy authentication is test-only')
  const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8').replace(/\r\n/g,'\n')+'\n'+inventoryDeletePolicy+'\n'+inventoryHistoryPolicy+'\n'+catalogPolicy+'\n'+dynamicRecipePolicy+'\n'+recipeAdmissionPolicy+'\n'+materialReferencePolicy+'\n'+materialTypePolicy+'\n'+platformSettingsPolicy+'\n'+smallShopPolicy+'\n'+packageSalePolicy
- const policySource=source+'\n'+commandAbortPolicy+'\n'+catalogImagePolicy
+ const policySource=source+'\n'+commandAbortPolicy+'\n'+catalogImagePolicy+'\n'+catalogOrderPolicy
  const mask=policySource.replace(/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g,s=>' '.repeat(s.length))
  const functions=new Map()
  for(const m of mask.matchAll(/function\s+(\w+)\s*\([^)]*\)\s*\{/g)){
@@ -131,7 +132,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
    ${Object.entries(inventoryKinds).filter(([kind])=>kind!=='history_clear').map(([kind,name])=>`allow ${kind==='material_create'?'create':'update'}: if request.resource.data.lastOpKind=='${kind}' && ${name}Material(s,g,id);`).join('\n')}
    allow delete: if materialDeleteMaterial(s,g,id);
   }
-  match /generations/{g}/display/{id} { allow read: if active(s,g); allow update: if catalogDisplayWrite(s,g,id); }
+  match /generations/{g}/display/{id} { allow read: if active(s,g); allow update: if (request.resource.data.get('menuOrderRevision',0)!=resource.data.get('menuOrderRevision',0) ? catalogMenuOrderWrite(s,g,id) : catalogDisplayWrite(s,g,id)); }
   match /generations/{g}/catalogImages/{id} { allow read: if ${legacyTestAuth?'active(s,g)':'catalogImageRead(s,g)'}; allow create,update: if ${legacyTestAuth?'false':'catalogImageWrite(s,g,id)'}; }
   match /generations/{g}/legacyRecords/{id} { allow read: if active(s,g); }
  }

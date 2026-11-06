@@ -36,6 +36,7 @@ import {
 import { MATERIAL_KIND_OPTIONS, getMaterialKind, getMaterialKindLabel, buildMaterialUsage } from '@/domain/materialClassification'
 import { validateLotDates } from '@/domain/lotDates'
 import { isValidGp } from '@/domain/pricing'
+import {reorderExact} from '@/domain/catalogOrdering'
 import { duplicateNewStockOption, groupError, optionPrices, resolveSelections, selectionPrice, selectionKey } from '@/domain/addonGroups'
 import {
   DEFAULT_MATERIALS,
@@ -1759,6 +1760,16 @@ const posDefinition = {
       const result = this.commitDatabase(candidate, { preserveDraft: true })
       if (result.ok) {this.addActivityLog({module:'system',action:'edit',title:'แก้ไขอัตรา GP',description:'บันทึกอัตรา GP ของช่องทางขาย'});this.showToast('บันทึกอัตรา GP แล้ว ราคาเมนูเดิมยังคงเดิม', 'success')}
       return result
+    },
+    reorderMenus(ids,{expectedOrderRevision=this.databaseRevision}={}) {
+      try {
+        if(expectedOrderRevision!==this.databaseRevision)throw new Error('CATALOG_ORDER_CHANGED')
+        const candidate=this.databaseSnapshot()
+        candidate.menus=reorderExact(candidate.menus,ids)
+        const result=this.commitDatabase(candidate,{preserveDraft:true})
+        if(result.ok)this.showToast('บันทึกลำดับเมนูแล้ว','success')
+        return result
+      }catch{const message='รายการเปลี่ยนแล้ว กรุณาปิดแล้วเปิดจัดลำดับใหม่';this.showToast(message,'error');return {ok:false,message}}
     },
     saveMenu(menuData) {
       const creating=!menuData.id

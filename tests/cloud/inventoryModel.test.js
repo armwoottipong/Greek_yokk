@@ -164,3 +164,18 @@ it('invalidates an older in-flight history read when a retried clear receipt is 
  resolve({logs:[{id:'BEFORE-CLEAR'}]});await read
  expect(model.activityLogs).toEqual([]);expect(model.historyLoading).toBe(false);model.close()
 })
+
+it('retains realtime menu order through stock draft acknowledgement and stale equal-revision reads',async()=>{
+ const {model,data,setData}=setup(),m=data.materials[0],ids=Object.keys(data.shop.catalog.menus)
+ data.shop.catalog.menuIds=ids;model.update(data)
+ model.stockAdjust(m.id,m.stock/100-1,'count','')
+ const next=structuredClone(data);Object.assign(next.display,{menuOrder:[...ids].reverse(),menuOrderRevision:3})
+ setData(next)
+ expect(model.menuOrderRevision).toBe(3)
+ expect((await model.commitStockDrafts()).ok).toBe(true)
+ expect(model.menuOrderRevision).toBe(3)
+ expect(model.menus.map(menu=>menu.id)).toEqual([...ids].reverse())
+ const stale=structuredClone(next);stale.shop.revision++;delete stale.display.menuOrder;delete stale.display.menuOrderRevision
+ model.update(stale);expect(model.menuOrderRevision).toBe(3)
+ model.close()
+})

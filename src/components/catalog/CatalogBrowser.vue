@@ -1,5 +1,5 @@
 <template>
- <aside class="menu-browser" :aria-label="labels.listLabel"><div class="menu-browser-tools"><AppSearch :model-value="modelValue" :label="labels.search" :placeholder="labels.placeholder" @update:model-value="$emit('update:modelValue',$event)"/><p>{{ items.length }} {{ labels.countUnit }}</p></div>
+ <aside class="menu-browser" :aria-label="labels.listLabel"><div class="menu-browser-tools"><div class="menu-browser-search"><AppSearch :model-value="modelValue" :label="labels.search" :placeholder="labels.placeholder" @update:model-value="$emit('update:modelValue',$event)"/><slot name="actions"/></div><p>{{ items.length }} {{ labels.countUnit }}</p></div>
   <div class="menu-browser-list"><button v-for="item in items" :key="item.id" type="button" v-bind="itemAttrs(item)" :aria-pressed="selectedId===item.id" class="menu-browser-item" @click="$emit('select',item.id)"><span class="menu-list-emoji" aria-hidden="true"><EntityImage :kind="entity==='menu'?'menus':'addons'" :entity-id="item.id" :image="item.image" :emoji="item.emoji"/></span><span><strong>{{ item.name }}</strong><small>{{ item.isActive===false?'ปิดขาย':'เปิดขาย' }} · {{ (item.recipe||[]).length }} รายการในสูตร</small></span><ChevronRight :size="14" aria-hidden="true"/></button></div>
   <div v-if="!items.length" class="menu-browser-empty"><strong>{{ modelValue?labels.notFound:labels.empty }}</strong><p>{{ modelValue?`ลองชื่ออื่น หรือ${labels.showAll}`:labels.description }}</p><Button v-if="modelValue" v-bind="{[`data-${entity}-clear-search`]:''}" variant="secondary" @click="$emit('update:modelValue','')">{{ labels.showAll }}</Button><Button v-else @click="$emit('add')">{{ labels.addFirst }}</Button></div>
  </aside>
@@ -16,3 +16,4 @@ const labels=computed(()=>catalogLabels[props.entity])
 function itemAttrs(item){return {[`data-${props.entity}-select`]:item.id,[props.entity==='menu'?'data-catalog-details':'data-addon-details']:item.id}}
 defineEmits(['update:modelValue','select','add'])
 </script>
+<style scoped>.menu-browser-search{display:flex;align-items:center;gap:8px}.menu-browser-search>.app-search{flex:1;min-width:0}</style>

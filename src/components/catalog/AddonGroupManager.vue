@@ -31,6 +31,7 @@
       <p>เลือก {{ selectedGroup.minSelections }}–{{ selectedGroup.maxSelections }} {{ selectedGroup.allowRepeat ? 'ที่ · เลือกซ้ำได้' : 'ชนิด' }}</p>
      </div>
      <div class="group-items-actions">
+      <IconButton label="จัดลำดับตัวเลือก" :disabled="selectedGroup.options.length<2||!!actionPending||store.inventorySaving" @click="orderingGroupId=selectedGroup.id"><GripVertical :size="19" aria-hidden="true"/></IconButton>
       <Button variant="secondary" :disabled="!!actionPending || store.inventorySaving" :aria-label="`แก้ไขกลุ่ม ${selectedGroup.name}`" @click="edit(selectedGroup)">แก้ไขกลุ่ม</Button>
       <Button variant="quiet" :disabled="!!actionPending || store.inventorySaving" @click="remove(selectedGroup)">ลบกลุ่ม</Button>
      </div>
@@ -54,6 +55,7 @@
     </div>
    </section>
   </div>
+  <CatalogOrderDialog id="group-option-order" :open="!!orderingGroupId" :title="`จัดลำดับตัวเลือก · ${orderingGroup?.name||'กลุ่มตัวเลือก'}`" :items="orderingItems" :revision="store.catalogRevision??store.databaseRevision" :busy="actionPending==='ordering'" @reset="orderSourceRevision=store.catalogRevision" @save="saveOptionOrder" @request-close="orderingGroupId=null"/>
   <DialogFrame id="group-option-detail" :open="!!optionDetail" :title="optionDetail?.addon.name || 'รายละเอียดตัวเลือก'"
    :description="optionDetail?.group.name" presentation="side-drawer" width="480px" @request-close="detailSelection = null">
    <div v-if="optionDetail" class="group-form option-detail">
@@ -236,7 +238,9 @@
 </template>
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import { Plus, Check, EllipsisVertical, Package, Scale, Tag, Trash2 } from 'lucide-vue-next'
+import { Plus, Check, EllipsisVertical, Package, Scale, Tag, Trash2, GripVertical } from 'lucide-vue-next'
+import CatalogOrderDialog from './CatalogOrderDialog.vue'
+import {reorderExact} from '@/domain/catalogOrdering'
 import { useInventoryStore } from '@/composables/useInventoryStore'
 import { useModalForm } from '@/composables/useModalForm'
 import { clone } from '@/domain/database'
@@ -306,6 +310,15 @@ function reportActionError(message) {
 }
 const selectedGroup = computed(() => store.addonGroups.find(group => group.id === selectedGroupId.value) || store.addonGroups[0])
 const addonMap = computed(() => new Map(store.addons.map(addon => [addon.id, addon])))
+const orderingGroupId=ref(null),orderSourceRevision=ref(null)
+const orderingGroup=computed(()=>store.addonGroups.find(group=>group.id===orderingGroupId.value))
+const orderingItems=computed(()=>(orderingGroup.value?.options||[]).map(option=>{const addon=addonMap.value.get(option.addonId)||{id:option.addonId,name:'ไม่พบตัวเลือก'};return {id:option.addonId,name:addon.name,imageProps:optionImage(addon)}}))
+const saveOptionOrder=ids=>runAction('ordering',async()=>{
+ const group=orderingGroup.value;if(!group)return
+ const options=reorderExact(group.options.map(option=>({id:option.addonId,option})),ids).map(row=>row.option)
+ const result=await store.saveAddonGroup({...clone(group),options,...(store.cloud?{expectedCatalogRevision:orderSourceRevision.value}:{})})
+ if(result?.ok)orderingGroupId.value=null
+})
 const detailSelection = ref(null)
 const optionDetail = computed(() => {
   const group = store.addonGroups.find(item => item.id === detailSelection.value?.groupId)

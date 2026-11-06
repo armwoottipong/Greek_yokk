@@ -6,7 +6,7 @@
   <footer v-if="store.cart.length"><CartPaymentFooter :model="model" :busy="checkoutPending" @checkout="$emit('checkout')"/></footer>
  </section>
  </Transition>
- <DialogFrame v-if="presentation!=='page'&&presentation!=='panel'" :open="open" id="pos-cart-review" title="ตรวจออเดอร์" :description="store.currentPlatform?.name" presentation="sheet" :busy="checkoutPending" @request-close="$emit('request-close')">
+ <DialogFrame v-if="presentation!=='page'&&presentation!=='panel'" :open="open" id="pos-cart-review" title="รายการในรถเข็น" :description="store.currentPlatform?.name" :presentation="presentation==='side-drawer'?'side-drawer':presentation==='drawer'?'drawer':'sheet'" width="480px" :busy="checkoutPending" @request-close="$emit('request-close')">
   <CartBody :model="model" :busy="checkoutPending||disabled" @switch-lot="$emit('switch-lot',$event)"/><slot name="review"/>
   <template v-if="store.cart.length" #footer><CartPaymentFooter :model="model" :busy="checkoutPending" @checkout="$emit('checkout')"/></template>
  </DialogFrame>

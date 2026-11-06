@@ -1,30 +1,27 @@
 <template>
-  <div ref="workspace" class="pos-workspace" :class="{'is-split':split,'is-cart-page':!split&&cartOpen}">
-    <PosCatalog v-show="split||!cartOpen" :menus="filteredMenus" :platforms="store.platforms" :platform-id="store.currentPlatformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :price-for="getMenuPrice" :unavailable-for="isMenuOutOfStock" @platform="store.setPlatform($event)" @select-menu="selectMenu" />
+  <div class="pos-workspace">
+    <PosCatalog :menus="filteredMenus" :platforms="store.platforms" :platform-id="store.currentPlatformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :price-for="getMenuPrice" :unavailable-for="isMenuOutOfStock" @platform="store.setPlatform($event)" @select-menu="selectMenu" />
 
-    <CartPanel :presentation="split?'panel':'page'" :open="cartOpen" :checkout-pending="checkoutPending" @request-close="cartOpen=false" @checkout="handleCheckout" @switch-lot="handleSwitchLot"/>
-    <CartReviewBar v-if="!split&&!cartOpen" :quantity="cartQuantity" :subtotal="Number(cartSummary.subtotal)" :open="cartOpen" @open="cartOpen=true"/>
+    <CartPanel :presentation="mobile?'drawer':'side-drawer'" :open="cartOpen" :checkout-pending="checkoutPending" @request-close="cartOpen=false" @checkout="handleCheckout" @switch-lot="handleSwitchLot"/>
+    <CartLauncher ref="launcher" :quantity="cartQuantity" :open="cartOpen" :busy="checkoutPending" @open="cartOpen=true"/>
   </div>
 </template>
 
 <script setup>
 import PosCatalog from '@/components/pos/PosCatalog.vue'
-import {useElementWidth} from '@/composables/useElementWidth'
-import { ref, computed,watch } from 'vue'
+import {useMediaQuery} from '@/composables/useMediaQuery'
+import { ref, computed,watch,onDeactivated } from 'vue'
 import { usePosStore } from '@/stores/posStore'
 import CartPanel from '@/components/pos/CartPanel.vue'
-import CartReviewBar from '@/components/pos/CartReviewBar.vue'
-import {useCartPageFocus} from '@/composables/useCartPageFocus'
+import CartLauncher from '@/components/pos/CartLauncher.vue'
 
 const store = usePosStore()
-const workspace=ref(null),width=useElementWidth(workspace)
-const split=computed(()=>width.value>=696)
+const mobile=useMediaQuery('(max-width: 767px)'),launcher=ref(null)
 const cartOpen=ref(false),checkoutPending=ref(false)
-useCartPageFocus(workspace,split,cartOpen)
 const cartQuantity=computed(()=>store.cart.reduce((n,item)=>n+item.qty,0))
 const cartQuantities=computed(()=>store.cart.reduce((counts,item)=>{counts[item.menu.id]=(counts[item.menu.id]||0)+item.qty;return counts},{}))
-watch(split,value=>{if(value)cartOpen.value=false})
-function selectMenu(id){const menu=store.menus.find(m=>m.id===id);if(menu)handleMenuClick(menu)}
+onDeactivated(()=>{cartOpen.value=false})
+function selectMenu(id){const menu=store.menus.find(m=>m.id===id);if(menu){launcher.value?.capture(id);handleMenuClick(menu)}}
 
 const searchQuery = ref('')
 const filteredMenus = computed(() => {
@@ -35,8 +32,6 @@ const filteredMenus = computed(() => {
     return matchQ
   })
 })
-
-const cartSummary = computed(() => store.cartSummary)
 
 function getMenuPrice(menu) {
   const platId = store.currentPlatformId
@@ -94,7 +89,5 @@ watch(()=>[store.modals.lowStockWarning?.isOpen,store.modals.lotDepletion?.isOpe
 
 <style scoped>
 .pos-workspace{position:relative;overflow-x:clip;display:flex;flex-direction:column;gap:24px;min-width:0}
-.pos-workspace.is-split{flex-direction:row;gap:16px;height:var(--pos-workspace-height,calc(100dvh - var(--sidebar-header-height,var(--panel-header-height)) - 48px));min-height:0;overflow:hidden}
-.pos-workspace:not(.is-split){padding-bottom:84px}.pos-workspace.is-cart-page{padding-bottom:0}
-.pos-workspace.is-split :deep(.pos-catalog-scroll){overflow-y:auto;padding-right:2px;overscroll-behavior:contain}
+.pos-workspace{padding-bottom:84px}
 </style>

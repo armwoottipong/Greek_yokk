@@ -61,6 +61,7 @@ const model = createInventoryModel({
   isBlocked: () => props.blocked,
   storageKey: props.storageKey,
   readHistory: options => props.readHistory?.(options) ?? Promise.resolve({ logs: [], truncated: false }),
+  saveMenuOrder: (ids,options) => props.service.saveMenuOrder(ids,options),
 })
 
 watch(()=>({
