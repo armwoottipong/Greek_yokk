@@ -14,7 +14,7 @@
       </div>
 
       <!-- Active View Content -->
-      <main id="main-content" ref="contentRoot" tabindex="-1" :aria-busy="contentLoading && !contentError" :style="contentLoading || store.currentTab === 'addon' ? { overflowY: 'hidden' } : undefined" :inert="mobileMenuOpen ? true : undefined" class="relative flex-1 overflow-y-auto p-4 md:p-6 outline-none">
+      <main id="main-content" ref="contentRoot" tabindex="-1" :aria-busy="contentLoading && !contentError" :style="contentLoading || store.currentTab === 'addon' ? { overflowY: 'hidden' } : undefined" :inert="mobileMenuOpen ? true : undefined" :class="{ 'options-content': store.currentTab === 'addon' }" class="relative flex-1 overflow-y-auto p-4 md:p-6 outline-none">
         <div ref="pageContent" data-page-content :class="{ 'h-full': store.currentTab === 'addon' }" :inert="contentLoading ? true : undefined" :aria-hidden="contentLoading ? true : undefined" :style="contentLoading ? { visibility: 'hidden' } : undefined">
           <Suspense @resolve="finishStartup">
             <KeepAlive>
@@ -201,3 +201,6 @@ onUnmounted(() => {
   }
 })
 </script>
+<style scoped>
+#main-content.options-content{padding:0;background:var(--bg-card)}
+</style>
