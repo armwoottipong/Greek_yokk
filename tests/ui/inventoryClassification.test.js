@@ -6,16 +6,16 @@ import MaterialEdit from '../../src/components/modals/MaterialEditModal.vue'
 import StockIn from '../../src/components/modals/StockInModal.vue'
 import StockAdjust from '../../src/components/modals/StockAdjustModal.vue'
 
-it('distinguishes adjustment lots by expiry and identifier with identical origin and quantity', async () => {
+it('distinguishes adjustment lots by position and expiry while retaining internal selection identity', async () => {
   const s=createTestStore();s.materials=[material('M',20,{lots:[
     {id:'LOT-A',qty:10,isInUse:true,receiveDate:'2026-10-13',expiryDate:'2026-10-20'},
     {id:'LOT-B',qty:10,isInUse:false,receiveDate:'2026-10-13',expiryDate:null}
   ]})]
   const w=mount(StockAdjust)
   s.modals.stockAdjust={isOpen:true,materialId:'M'};await flushPromises()
-  expect(w.get('option[value="LOT-A"]').text()).toContain('LOT-A')
+  expect(w.get('option[value="LOT-A"]').text()).toContain('ล็อตที่ 1');expect(w.get('option[value="LOT-A"]').text()).not.toContain('LOT-A')
   expect(w.get('option[value="LOT-A"]').text()).toContain('หมดอายุ')
-  expect(w.get('option[value="LOT-B"]').text()).toContain('LOT-B')
+  expect(w.get('option[value="LOT-B"]').text()).toContain('ล็อตที่ 2')
   expect(w.get('option[value="LOT-B"]').text()).toContain('ไม่ระบุวันหมดอายุ')
   await w.get('[aria-label="เลือกล็อต"]').setValue('LOT-B')
   expect(w.vm.selectedLotId).toBe('LOT-B');w.unmount()
