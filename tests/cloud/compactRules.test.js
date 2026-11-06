@@ -44,3 +44,27 @@ it('does not rename an outer database binding shadowed by a recursive wildcard',
  expect(text).toContain('match /databases/{database}/documents')
  expect(text).toContain("if database == 'hello'")
 })
+
+it('uses unoccupied one-letter function names without capturing generated local bindings',()=>{
+ const source=`function hot(material) {let quantity=material.quantity;return quantity;} function caller(material){return hot(material)+hot(material);}`
+ const result=compactRules(source,{shortFunctionNames:true})
+ expect(result).toContain('function A(a)');expect(result).toContain('return A(a)+A(a)')
+ expect(result).not.toContain('let A=')
+ const occupied=compactRules('function hot(A){return A.hot;} function caller(A){return hot(A);}',{shortFunctionNames:true})
+ expect(occupied).not.toContain('function A(');expect(occupied).toContain('function B(A)')
+})
+
+it('shortens wildcard bindings after locals while retaining fields and static path segments',()=>{
+ const source=`service cloud.firestore {match /databases/{database}/documents {function valid(index){return index.index=='/{index}';} match /index/{index}{allow read:if valid(index);}}}`
+ const result=compactRules(source,{shortFunctionNames:true})
+ expect(result).toContain('match /databases/{_}/documents')
+ expect(result).toContain('match /index/{v0}')
+ expect(result).toContain("a.index=='/{index}'");expect(result).toMatch(/allow read:if [A-Za-z]+\(v0\)/)
+})
+
+it('keeps two-letter aliases outside lowercase language keywords',()=>{
+ const source=Array.from({length:300},(_,i)=>`function helper${i}(a){return a;}`).join('\n')
+ const names=[...compactRules(source,{shortFunctionNames:true}).matchAll(/function (\w+)\(/g)].map(match=>match[1])
+ expect(new Set(names).size).toBe(300)
+ expect(names.every(name=>/^(?:[A-Za-z]|[A-Z]{2})$/.test(name))).toBe(true)
+})

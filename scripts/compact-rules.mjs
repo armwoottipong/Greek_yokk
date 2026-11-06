@@ -1,6 +1,6 @@
 // Keep reviewed Rules readable; compact only lexical identifiers in the emitted
 // artifact. Strings, member names and static path segments must remain exact.
-export function compactRules(source){
+export function compactRules(source,{shortFunctionNames=false}={}){
  const token=/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|[A-Za-z_][A-Za-z0-9_]*/g
  function rewrite(text,names){
   const code=text.replace(/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g,s=>' '.repeat(s.length))
@@ -33,7 +33,7 @@ export function compactRules(source){
  const shadowed=/\blet\s+database\b|\bfunction\s+database\b/.test(outerMask)||Array.from(outerMask.matchAll(/function\s+\w+\s*\(([^)]*)\)/g)).some(m=>m[1].split(',').some(p=>p.trim()==='database'))
  if(outer&&!shadowed&&(outerMask.match(/\{\s*database\s*(?:=|\})/g)||[]).length===1){
   let n=0;while(new RegExp('\\bd'+n+'\\b').test(outerMask))n++
-  const alias='d'+n,header=source.slice(outer.index,outer.index+outer[0].length).replace('{database}','{'+alias+'}')
+  const alias=shortFunctionNames&&!/\b_\b/.test(outerMask)?'_':'d'+n,header=source.slice(outer.index,outer.index+outer[0].length).replace('{database}','{'+alias+'}')
   source=rewrite(source.slice(0,outer.index)+header+source.slice(outer.index+outer[0].length),new Map([['database',alias]]))
  }
  const mask=source.replace(/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g,s=>' '.repeat(s.length))
@@ -49,19 +49,33 @@ export function compactRules(source){
  const alias=index=>{let name='';do{name=alphabet[index%52]+name;index=Math.floor(index/52)-1}while(index>=0);return '_'+name}
  const frequency=new Map(spans.map(s=>[s.name,0]))
  for(const match of mask.matchAll(/\b(\w+)\s*\(/g))if(frequency.has(match[1]))frequency.set(match[1],frequency.get(match[1])+1)
- const functions=new Map();let index=0
+ const shortNames=shortFunctionNames?[...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'].filter(name=>!occupied.has(name)):[]
+ const functions=new Map();let index=0,shortIndex=0
  for(const name of [...frequency.keys()].sort((a,b)=>frequency.get(b)-frequency.get(a))){
-  let next;do{next=alias(index++)}while(occupied.has(next))
+  let next=shortNames[shortIndex++];if(!next){do{const position=index++;next=shortFunctionNames&&position<676?'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(position/26)]+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[position%26]:alias(position)}while(occupied.has(next))}
   functions.set(name,next);occupied.add(next)
  }
  let result=source
  for(const span of spans.reverse()){
   const body=source.slice(span.headEnd,span.end-1),bodyMask=mask.slice(span.headEnd,span.end-1)
   const bindings=[...new Set([...span.params.split(',').map(p=>p.trim()).filter(Boolean),...Array.from(bodyMask.matchAll(/\blet\s+(\w+)/g),m=>m[1])])]
-  const used=new Set(bindings.filter(b=>b.length===1)),letters=[...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'].filter(c=>!used.has(c)),names=new Map()
+  const used=new Set(bindings.filter(b=>b.length===1)),letters=[...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'].filter(c=>!used.has(c)&&![...functions.values()].includes(c)),names=new Map()
   for(const binding of bindings)if(binding.length>1){if(!letters.length)throw new Error('Too many compact bindings');names.set(binding,letters.shift())}
   const next='function '+span.name+'('+rewrite(span.params,names)+') {'+rewrite(body,names)+'}'
   result=result.slice(0,span.start)+next+result.slice(span.end)
  }
- return rewrite(result,functions)
+ let emitted=rewrite(result,functions)
+ if(shortFunctionNames){
+  // Function locals have already been renamed, so remaining long wildcard
+  // bindings can use fresh short names without touching member/static paths.
+  const wildcardToken=/'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|\/\/[^\n]*|\{([A-Za-z_]\w*)(?=[}=])/g
+  const wildcards=[...new Set(Array.from(emitted.matchAll(wildcardToken),match=>match[1]).filter(Boolean))].filter(name=>name.length>2)
+  let bindingIndex=0
+  for(const name of wildcards){
+   let next;do{next='v'+bindingIndex++}while(new RegExp('\\b'+next+'\\b').test(emitted))
+   emitted=emitted.replace(wildcardToken,(token,binding)=>binding===name?'{'+next:token)
+   emitted=rewrite(emitted,new Map([[name,next]]))
+  }
+ }
+ return emitted
 }

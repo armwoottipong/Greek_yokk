@@ -28,3 +28,8 @@ Verification before release:
 - Design detector: zero anti-patterns; intentional 22px launcher radius has one advisory. Lint and production build passed; Vite retains the existing large-chunk advisory.
 - Before release, live Rules matched baseline HEAD; no remote Git changes to integrate.
 - Final normal suite: 1618 passed, 1 skipped (210 files); no failures. Lint, production build and diff whitespace checks passed.
+
+- Release blocker: Firebase's compiled executable limit rejected the first generator output (257360 bytes). Eager-field caching and trivia removal were tried and reverted because they did not reduce the executable sufficiently.
+- Final release uses collision-safe one/two-letter function aliases and short wildcard bindings only in production compaction. Predicates, data fields, static paths and quoted contents are preserved; default compactor behavior remains unchanged. Reserved keywords and binding captures have regression coverage.
+- Final compactor tests: 35 passed. Final production Rules Emulator suite: 57 passed, 1 optional workflow skipped, including production-structure group deletion. Focused reviewer found no blocker.
+- Firebase Rules release succeeded and remote source matched the working tree: ruleset 147a14f1-aa50-4dd2-958b-a99c7dd3d0b6. Earlier failed uploads were never attached to the live release. Pages release verification follows the source push.

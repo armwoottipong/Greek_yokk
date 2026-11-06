@@ -356,5 +356,5 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   return `match ${path} {\n${local.join('\n')}\n${gated}\n}`
  }).join('\n')
  const result=`rules_version = '2';\nservice cloud.firestore {\nmatch /databases/{database}/documents {\n${shared.join('\n')}\n${scoped}\n}\n}\n`.replace(/[ \t]+$/gm,'')
- return compact ? compactRules(factorRootData(specializeShopRules(factorRequestData(factorRequestUid(factorRuleFields(result))),shopId),shopId)) : result
+ return compact ? compactRules(factorRootData(specializeShopRules(factorRequestData(factorRequestUid(factorRuleFields(result))),shopId),shopId),{shortFunctionNames:true}) : result
 }
