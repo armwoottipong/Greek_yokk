@@ -16,7 +16,7 @@ it('keeps an explicit zero pack cost when opening the receiving form',async()=>{
 it('distinguishes expiry, receive-only and untracked lots without hiding zero quantity',()=>{
  const lot={id:'LOT-X',qty:0,isInUse:true,receiveDate:'2026-10-01',expiryDate:'2000-01-01'}
  const w=mount(LotList,{props:{lots:[lot],unit:'ml',trackingMode:'expiry_and_receive'}})
- expect(w.text()).toContain('0 ml');expect(w.text()).toContain('หมดอายุแล้ว');w.unmount()
+ expect(w.text()).not.toContain('LOT-X');expect(w.text()).not.toContain('รหัสอ้างอิง');expect(w.get('[data-lot-adjust]').attributes('aria-label')).toBe('ปรับยอดล็อตที่ 1');expect(w.text()).toContain('0 ml');expect(w.text()).toContain('หมดอายุแล้ว');w.unmount()
  const receive=mount(LotList,{props:{lots:[{...lot,expiryDate:null}],unit:'ml',trackingMode:'receive_only'}})
  expect(receive.text()).toContain('รับเข้า');expect(receive.text()).not.toContain('หมดอายุ');receive.unmount()
  const none=mount(LotList,{props:{lots:[lot],unit:'pcs',trackingMode:'none',archived:true}})

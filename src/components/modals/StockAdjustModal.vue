@@ -48,11 +48,11 @@
               📦 ปรับยอดรวมคลังทั้งหมด (ตัด/เพิ่มที่ล็อตกำลังใช้งานก่อน)
             </option>
             <option
-              v-for="l in selectedMaterial.lots"
+              v-for="(l,index) in selectedMaterial.lots"
               :key="l.id"
               :value="l.id"
             >
-              {{ l.isInUse ? '⭐ [กำลังใช้งาน] ' : '• ' }}{{ l.id }} · วันที่รับเข้า/ผลิต {{ formatThaiDate(l.receiveDate) }} · {{ l.expiryDate ? 'หมดอายุ ' + formatThaiDate(l.expiryDate) : 'ไม่ระบุวันหมดอายุ' }} (คงเหลือ: {{ Number(l.qty || 0).toLocaleString() }} {{ selectedMaterial.unit }})
+              {{ l.isInUse ? '⭐ [กำลังใช้งาน] ' : '• ' }}ล็อตที่ {{ index+1 }} · วันที่รับเข้า/ผลิต {{ formatThaiDate(l.receiveDate) }} · {{ l.expiryDate ? 'หมดอายุ ' + formatThaiDate(l.expiryDate) : 'ไม่ระบุวันหมดอายุ' }} (คงเหลือ: {{ Number(l.qty || 0).toLocaleString() }} {{ selectedMaterial.unit }})
             </option>
           </AppSelect>
         </div>
