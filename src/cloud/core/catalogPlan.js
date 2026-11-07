@@ -64,5 +64,8 @@ export function planCatalogCommand(shop,materials,command,uid='preview'){
  return f
 }
 export function applyCatalogDisplay(display,change){
- const result=structuredClone(display||{});result[change.collection]??={};result[change.collection][change.entityId]=structuredClone(change.value);return result
+ // Preserve unrelated Firestore values (notably menuOrderUpdatedAt Timestamp).
+ // structuredClone strips SDK prototypes and would rewrite that timestamp as a
+ // map, violating Rules' requirement that only this catalog entity may change.
+ return {...display,[change.collection]:{...display?.[change.collection],[change.entityId]:structuredClone(change.value)}}
 }
