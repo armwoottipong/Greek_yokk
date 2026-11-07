@@ -8,12 +8,16 @@
     <PosCatalog :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="locked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
     <CartPanel :model="productModel" :presentation="mobileCart?'drawer':'side-drawer'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
      <template #review>
-      <div class="cart-cloud-review">
-       <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ · เมนู ตัวเลือก และหมายเหตุที่เหมือนกันจะรวมจำนวน</p>
+      <div v-if="shortages.length||previewError" class="cart-cloud-review">
        <section v-if="shortages.length" class="shortage"><h3>สต็อกไม่พอ</h3><p v-for="[id,q] in shortages" :key="id">{{ materialName(id) }} ขาด {{ amount(q) }} {{ material(id)?.unit }}</p><label><input v-model="approveShortage" type="checkbox" :disabled="locked"> ยืนยันขายตามจำนวนที่ขาดข้างต้น</label></section>
        <p v-if="previewError" class="error" role="alert">{{ previewError }}</p>
-       <p>ยืนยันจากเซิร์ฟเวอร์ก่อนถือว่าขายสำเร็จ · บรรจุภัณฑ์ตัดตามสูตรที่บันทึกไว้</p>
       </div>
+     </template>
+     <template #details>
+      <section aria-label="ข้อมูลการขาย">
+       <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ ระบบจะรวมจำนวนเมื่อเมนู ตัวเลือก และหมายเหตุตรงกัน</p>
+       <p>ระบบยืนยันการขายจากเซิร์ฟเวอร์และตัดบรรจุภัณฑ์ตามจำนวนของออเดอร์</p>
+      </section>
      </template>
     </CartPanel>
     <CartLauncher ref="cartLauncher" :active="tab==='sale'" :quantity="cartQuantity" :open="cartOpen" :busy="busy" @open="cartOpen=true"/>

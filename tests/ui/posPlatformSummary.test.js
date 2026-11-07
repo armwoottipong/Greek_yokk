@@ -5,15 +5,18 @@ import CartPanel from '../../src/components/pos/CartPanel.vue'
 import PosCatalog from '../../src/components/pos/PosCatalog.vue'
 import Receipt from '../../src/components/modals/ReceiptModal.vue'
 
-it('shows GP deductions and net revenue without expanding cost details and updates after switching',async()=>{
+it('shows GP deductions and net revenue in the details popup and updates after switching',async()=>{
  const store=createTestStore();store.resetDemoData();store.executeAddToCart(store.menus[0],[],2)
- const w=mount(CartPanel,{props:{presentation:'panel'}})
+ const w=mount(CartPanel,{props:{presentation:'panel'},attachTo:document.body})
  try{
-  expect(w.get('[data-order-gp]').text()).toContain('0%')
+  expect(w.find('[data-order-gp]').exists()).toBe(false)
+  await w.get('[data-cart-details]').trigger('click')
+  const popup=document.getElementById('pos-cart-details')
+  expect(popup.querySelector('[data-order-gp]').textContent).toContain('0%')
   store.setPlatform('PLAT02');await flushPromises()
-  expect(w.get('[data-order-gp]').text()).toContain('30%')
-  expect(w.get('[data-order-gp]').text()).toContain('57.00')
-  expect(w.get('[data-order-net]').text()).toContain('133.00')
+  expect(popup.querySelector('[data-order-gp]').textContent).toContain('30%')
+  expect(popup.querySelector('[data-order-gp]').textContent).toContain('57.00')
+  expect(popup.querySelector('[data-order-net]').textContent).toContain('133.00')
  }finally{w.unmount()}
 })
 
@@ -32,11 +35,14 @@ it('shows the saved fractional GP rate on a receipt even after settings change',
 })
 
 it('supports keyboard channel tabs and skips inactive platforms',async()=>{
- const w=mount(PosCatalog,{props:{menus:[],platforms:[{id:'A',name:'หน้าร้าน'},{id:'H',name:'ซ่อน',isActive:false},{id:'B',name:'GrabFood'}],platformId:'A',search:'',priceFor:()=>0,unavailableFor:()=>false},attachTo:document.body})
+ const w=mount(PosCatalog,{props:{menus:[],platforms:[{id:'A',name:'หน้าร้าน'},{id:'H',name:'ซ่อน',isActive:false},{id:'B',name:'GrabFood',gpPercent:25.5}],platformId:'A',search:'',priceFor:()=>0,unavailableFor:()=>false},attachTo:document.body})
  try{
   expect(w.findAll('[role="tab"]')).toHaveLength(2)
   await w.get('[role="tab"]').trigger('keydown',{key:'ArrowRight'})
   expect(w.emitted('platform').at(-1)).toEqual(['B'])
-  expect(document.activeElement.textContent).toBe('GrabFood')
+  expect(document.activeElement.textContent).toContain('GrabFood')
+  expect(w.findAll('[role="tab"]')[1].text()).toContain('GP 25.5%')
+  expect(w.findAll('[role="tab"]')[0].text()).toContain('ไม่มี GP')
+  expect(w.get('[role="tablist"]').text()).not.toContain('ซ่อน')
  }finally{w.unmount()}
 })

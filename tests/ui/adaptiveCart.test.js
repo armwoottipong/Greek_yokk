@@ -61,9 +61,34 @@ it('opens package review from a compact summary without changing subtotal',async
  const subtotal=store.cartSummary.subtotal,w=mount(CartPanel,{props:{presentation:'panel'},attachTo:document.body})
  try{await flushPromises();const button=w.findAll('button').find(b=>b.text().includes('ตรวจ/ปรับ Package'));expect(button).toBeTruthy();await button.trigger('click');expect(store.modals.packageReview.isOpen).toBe(true);expect(store.cartSummary.subtotal).toBe(subtotal)}finally{w.unmount()}
 })
-it('shows estimated ingredient and package costs as separate non-charge lines',async()=>{
- const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],1);const w=mount(CartPanel,{props:{presentation:'panel'}})
- try{await flushPromises();const text=w.text();expect(text).toContain('ต้นทุนวัตถุดิบประมาณ');expect(text).toContain('ต้นทุนบรรจุภัณฑ์ประมาณ');expect(store.cartSummary.subtotal).toBeGreaterThan(0)}finally{w.unmount()}
+it('keeps the mobile cart compact and opens order details above the drawer',async()=>{
+ const store=createTestStore();store.resetDemoData();store.addToCart(store.menus[0],[],1,false,'แยกช้อน')
+ store.cart[0].selectedAddons=[{id:'EXTRA',name:'น้ำผึ้งเพิ่ม',groupName:'ท็อปปิ้ง',selectionQty:2,prices:{[store.currentPlatformId]:5},recipe:[]}]
+ const w=mount(CartPanel,{props:{presentation:'drawer',open:true},attachTo:document.body,global:{stubs:{transition:false}}})
+ try{
+  await flushPromises()
+  const drawer=document.getElementById('pos-cart-review')
+  expect(drawer.querySelector('[data-cart-line]').textContent).toContain('฿')
+  expect(drawer.textContent).not.toContain('แยกช้อน')
+  expect(drawer.textContent).not.toContain('น้ำผึ้งเพิ่ม')
+  expect(drawer.textContent).not.toContain('ต้นทุนวัตถุดิบประมาณ')
+  drawer.querySelector('[data-cart-line] button[aria-label^="เพิ่มจำนวน"]').click();await flushPromises()
+  expect(drawer.querySelector('[data-cart-line] output').textContent).toBe('2')
+  const info=drawer.querySelector('[data-cart-details]')
+  info.focus();info.click();await flushPromises()
+  const popup=document.getElementById('pos-cart-details')
+  expect(popup.querySelector('.dialog-frame-panel--sheet')).toBeTruthy()
+  expect(drawer.hasAttribute('inert')).toBe(true)
+  expect(popup.textContent).toContain('แยกช้อน')
+  expect(popup.textContent).toContain('น้ำผึ้งเพิ่ม ×2')
+  expect(popup.textContent).toContain('+฿10')
+  expect(popup.textContent).toContain('ต้นทุนวัตถุดิบประมาณ')
+  expect(popup.textContent).toContain('ต้นทุนบรรจุภัณฑ์ประมาณ')
+  popup.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))
+  await vi.waitFor(()=>expect(document.getElementById('pos-cart-details')).toBeNull())
+  expect(drawer.hasAttribute('inert')).toBe(false)
+  expect(document.activeElement).toBe(info)
+ }finally{w.unmount()}
 })
 it('opens package review for a package-free order and estimates adjusted fulfilled package cost',async()=>{
  const store=createTestStore();store.resetDemoData();const food=store.materials.find(x=>x.inventoryType==='ingredient');store.materials=[food];store.cart=[{menu:{id:'M',name:'เปล่า',prices:{PLAT01:10},recipe:[{materialId:food.id,qty:1}],hasPackage:false},selectedAddons:[],qty:1}]
