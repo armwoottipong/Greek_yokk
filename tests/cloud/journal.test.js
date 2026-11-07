@@ -12,6 +12,11 @@ const make = (ownerId = 'tab-a', options = {}) => createCommandJournal({ indexed
 beforeEach(() => { indexedDB = new IDBFactory(); now = 1000 })
 
 describe('durable scoped command journal', () => {
+  it('persists a platform settings command before transport is allowed to send it', async () => {
+    const journal=make(), envelope={opId:'gp-1',kind:'platform_gp',payload:{expectedRevision:7,rates:{P:2550}}}
+    await journal.prepare(scope,envelope)
+    expect((await journal.inspect(scope,envelope.opId)).envelope).toEqual(envelope)
+  })
   it('atomically closes a never-sent command and keeps its terminal record for other tabs',async()=>{
     const journal=make();await journal.prepare(scope,command())
     expect(await journal.rejectUnsent(scope,'sale-1')).toMatchObject({receipt:{rejected:true,code:'NOT_SUBMITTED'}})

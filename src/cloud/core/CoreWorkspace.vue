@@ -4,6 +4,7 @@
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
    <section v-if="operator" v-show="tab==='sale'" class="pos-workspace" aria-label="ขายสินค้า">
+    <p v-if="channelPaused" class="error" role="status">{{ explain({code:'CHANNEL_PAUSED'}) }}</p>
     <PosCatalog :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="locked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
     <CartPanel :model="productModel" :presentation="mobileCart?'drawer':'side-drawer'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
      <template #review>
@@ -106,6 +107,7 @@ const locked=computed(()=>!operator.value||busy.value||!!pendingCommand.value||!
 const saleLimit=computed(()=>data.value?maxSaleLines(data.value.shop):0)
 const menus=computed(()=>Object.values(data.value?.shop.catalog.menus||{}).filter(m=>m.active))
 const platformIds=computed(()=>data.value?.shop.catalog.platformIds.filter(id=>data.value.shop.catalog.platforms[id].active)||[])
+const channelPaused=computed(()=>!!platformId.value&&!platformIds.value.includes(platformId.value))
 const menu=computed(()=>data.value?.shop.catalog.menus[selectedMenu.value])
 const menuGroups = computed(() => {
  const current = menu.value
@@ -114,7 +116,7 @@ const menuGroups = computed(() => {
  return ids.map(id => groups[id])
 })
 const sourceDate=computed(()=>String(data.value?.display.sourceDate||'ไม่ระบุวันที่').slice(0,10))
-const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return {};assertOptionAvailability(cart.value);return {order:service.previewSale({platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value)})}}catch(e){return {error:explain(e)}}})
+const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return {};if(!platformIds.value.includes(platformId.value))return {error:explain({code:'CHANNEL_PAUSED'})};assertOptionAvailability(cart.value);return {order:service.previewSale({platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value)})}}catch(e){return {error:explain(e)}}})
 const preview=computed(()=>previewResult.value.order),previewError=computed(()=>previewResult.value.error)
 const shortages=computed(()=>Object.entries(preview.value?.approvedShortages||{}).filter(([,q])=>q>0))
 const canCheckout=computed(()=>ready.value&&!locked.value&&!!preview.value&&(!shortages.value.length||approveShortage.value))
@@ -141,11 +143,11 @@ const settingsModel=reactive({cloud:true,showToast,
  get userRoles(){return props.state.shop?.userRoles||{}},
  saveAllowedEmails(emails,expected,roles,baselineRoles){if(role.value!=='admin'||!ready.value||locked.value||!shopAccess)throw new Error('NOT_READY');return shopAccess.save(emails,expected,roles,baselineRoles)},
  exportCloudBackup:()=>service.backup(),
- get platforms(){const c=data.value?.shop.catalog;return c?c.platformIds.map(id=>({id,name:name('platforms',id),gpPercent:c.platforms[id].gpBasisPoints/100})):[]},
+ get platforms(){const c=data.value?.shop.catalog;return c?c.platformIds.map(id=>({id,name:name('platforms',id),gpPercent:c.platforms[id].gpBasisPoints/100,isActive:c.platforms[id].active})):[]},
  get revision(){return data.value?.shop.revision},get connected(){return ready.value},get settingsBlocked(){return role.value!=='admin'||!ready.value||locked.value},
  get projectId(){return props.connection.config.projectId},get shopId(){return props.connection.shopId},get account(){return props.state.user?.email||''},
  get materials(){return data.value?.materials||[]},get menus(){return productMenus.value},get addons(){return inventoryWorkspace.value?.model.addons||[]},get orders(){return data.value?.orders||[]},
- async savePlatformGpRates(draft,expectedRevision){
+ async savePlatformGpRates(draft,expectedRevision,enabled){
   if(role.value!=='admin'||!ready.value||locked.value)return {ok:false}
   const rates={}
   for(const [id,value] of Object.entries(draft)){
@@ -153,8 +155,9 @@ const settingsModel=reactive({cloud:true,showToast,
    if(!Number.isFinite(n)||Math.abs(n-rounded)>0.000001||rounded<0||rounded>=10000)return {ok:false,message:'GP ต้องอยู่ระหว่าง 0 ถึง 99.99% และมีทศนิยมไม่เกิน 2 ตำแหน่ง'}
    rates[id]=rounded
   }
-  const result=await send({kind:'platform_gp',opId:crypto.randomUUID(),payload:{rates,expectedRevision}})
-  return result.value?.rejected?{ok:false,message:'ข้อมูลร้านเปลี่ยนแล้ว กรุณาโหลดค่าปัจจุบันและตรวจ GP ใหม่'}:result
+  const result=await send({kind:'platform_gp',opId:crypto.randomUUID(),payload:{rates,expectedRevision,...(enabled===undefined?{}:{enabled})}})
+  if(result.value?.rejected)return {ok:false,message:'ข้อมูลร้านเปลี่ยนแล้ว กรุณาโหลดค่าปัจจุบันและตรวจช่องทางกับ GP ใหม่'}
+  return result.ok?result:{...result,message:commandErrorMessage(result)||'ยังยืนยันการบันทึกช่องทางและ GP ไม่ได้ กรุณาตรวจคำสั่งเดิมก่อนลองใหม่'}
  }
 })
 function savePackageAdjustment(input){
@@ -167,7 +170,7 @@ function savePackageAdjustment(input){
 }
 function answerClear(value){clearConfirm.value=false;clearAnswer?.(value);clearAnswer=null}
 function updateCartQty(index,qty){if(locked.value)return;try{const next=plain(cart.value);next[index].qty=qty;service.previewSale({platformId:platformId.value,lines:next});cart.value=next}catch(e){error.value=explain(e)}}
-function setPlatform(id){if(!locked.value)platformId.value=id}
+function setPlatform(id){if(!locked.value&&platformIds.value.includes(id))platformId.value=id}
 function groupCount(g){return Object.values(choices.value[g.id]||{}).reduce((n,q)=>n+Number(q),0)}
 const availabilityAddons = computed(() => new Map(catalogAddons(data.value).map(addon => [addon.id, addon])))
 const optionMaterials = computed(() => Object.fromEntries((data.value?.materials || []).map(material => [material.id, material])))
@@ -198,7 +201,7 @@ function assertOptionAvailability(lines) {
  }
 }
 function toggleChoice(g,id){if(!locked.value)choices.value[g.id][id]=choices.value[g.id][id]?0:1}
-function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(c.groupId||c.groupIds?.length)return false;return Object.values(service.previewSale({platformId:platformId.value,lines:[{menuId:m.id,qty:1,optionIds:[]}]}).approvedShortages||{}).some(q=>q>0)}catch{return false}}
+function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(channelPaused.value||c.groupId||c.groupIds?.length)return false;return Object.values(service.previewSale({platformId:platformId.value,lines:[{menuId:m.id,qty:1,optionIds:[]}]}).approvedShortages||{}).some(q=>q>0)}catch{return false}}
 function navigate(id){const target=id==='sale'?'pos':id;if(!roleTabs(role.value).includes(target)&&!(target==='orders'&&operator.value))return;tab.value=target==='pos'?'sale':target}
 const inventoryWorkspace=ref(null),reportVisited=ref(!operator.value),settingsVisited=ref(false),reportRefreshKey=ref(0)
 async function readStockHistory(options={}){const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config});return loadInventoryHistory({db,shopId:props.connection.shopId,generation:props.state.shop.generation,materials:data.value.materials,display:data.value.display,clearedThroughRevision:Math.max(data.value.shop.inventoryHistoryCutoff||0,options.clearedThroughRevision||0),includePageHistory:true})}
@@ -208,7 +211,7 @@ function materialName(id){return material(id)?.name||id}
 function name(kind,id){return data.value?.display[kind]?.[id]?.name||id}
 function orderDate(o){return o.createdAt?.toDate?o.createdAt.toDate().toLocaleString('th-TH'):''}
 function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g,id,platformId.value);return cents===null?'ยังไม่ตั้งราคา':cents===0?'รวมในราคา':`+${money(cents)}`}
-function selectMenu(id){if(locked.value)return;cartLauncher.value?.capture(id);selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
+function selectMenu(id){if(locked.value||channelPaused.value)return;cartLauncher.value?.capture(id);selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
 function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
 function draftLine(){
@@ -220,6 +223,7 @@ function draftLine(){
 const canMergeLine=computed(()=>{try{return !!menu.value&&cart.value.some(existing=>sameCartPreparation(existing,draftLine()))}catch{return false}})
 function addLine(){
  if(locked.value||!menu.value)return
+ if(channelPaused.value){lineError.value=explain({code:'CHANNEL_PAUSED'});return}
  try{
  const line=draftLine(),existingIndex=cart.value.findIndex(existing=>sameCartPreparation(existing,line))
  if(existingIndex<0&&cart.value.length>=saleLimit.value)return
@@ -371,6 +375,9 @@ function startOrderWatch(){
 }
 watch([role,online,()=>props.state.serverReady],startOrderWatch)
 watch([cart,platformId,packageAdjustments],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
+watch([platformIds,()=>cart.value.length],()=>{
+ if(!cart.value.length&&!pendingCommand.value&&!platformIds.value.includes(platformId.value))platformId.value=platformIds.value[0]||''
+})
 watch(()=>JSON.stringify(shortages.value),()=>{approveShortage.value=false})
 watch(role,()=>{shopAccess?.watchInvitations();const current=tab.value==='sale'?'pos':tab.value;if(!roleTabs(role.value).includes(current)&&!(current==='orders'&&operator.value))tab.value='dashboard';if(!operator.value){selectedMenu.value='';cancelId.value='';cartOpen.value=false;packageReviewState.isOpen=false;reportVisited.value=true}})
 watch(tab,value=>{if(value!=='sale')cartOpen.value=false;if(value==='orders')void loadOrders();if(value==='dashboard')reportVisited.value=true;if(value==='settings')settingsVisited.value=true})

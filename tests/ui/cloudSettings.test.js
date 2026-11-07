@@ -30,3 +30,11 @@ it('retains failed drafts, never announces success, and blocks offline requests'
  expect(wrapper.get('[data-gp-settings] input').element.value).toBe('20');expect(wrapper.text()).not.toContain('บันทึก GP สำเร็จ')
  m.settingsBlocked=true;await flushPromises();await wrapper.get('[data-gp-settings]').trigger('submit');expect(m.savePlatformGpRates).toHaveBeenCalledTimes(1)
 })
+it('lets the admin pause one channel while keeping the last channel available',async()=>{
+ const m=await setup();m.platforms.push({id:'p2',name:'หน้าร้าน',gpPercent:0,isActive:true});await flushPromises()
+ await wrapper.get('[aria-label="เปิดขายผ่าน Grab"]').setValue(false)
+ expect(wrapper.text()).toContain('เปิดขาย 1 จาก 4 ช่องทาง')
+ expect(wrapper.get('[aria-label="เปิดขายผ่าน หน้าร้าน"]').element.disabled).toBe(true)
+ await wrapper.get('[data-gp-settings]').trigger('submit');await flushPromises()
+ expect(m.savePlatformGpRates).toHaveBeenCalledWith({p1:30,p2:0},6,{p1:false,p2:true})
+})

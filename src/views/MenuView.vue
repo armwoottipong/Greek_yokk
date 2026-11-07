@@ -1,5 +1,5 @@
 <template>
- <CatalogWorkspace ref="workbench" entity="menu" :mobile-detail="mobileDetail">
+ <CatalogWorkspace ref="workbench" class="menu-management" entity="menu" :mobile-detail="mobileDetail">
   <template #before><CatalogOrderDialog id="menu-order" :open="menuOrderOpen" title="จัดลำดับเมนู" :items="store.menus" :revision="menuOrderRevision" :busy="actionPending==='ordering'" @reset="captureMenuOrder" @save="saveMenuOrder" @request-close="menuOrderOpen=false"/></template>
   <template #header><CatalogHeader :busy="!!actionPending||store.inventorySaving" :removing="!!actionPending" entity="menu" :selected="selectedMenu" :platform-count="pricedPlatformCount" @back="requestAction({type:'back'})" @add="requestAction({type:'new'})" @edit="requestAction({type:'edit',id:$event})" @delete="deleteMenu"/></template>
   <template #browser><CatalogBrowser v-model="searchQuery" entity="menu" :items="filteredMenus" :selected-id="selectedId" @select="requestAction({type:'select',id:$event})" @add="requestAction({type:'new'})"><template #actions><IconButton label="จัดลำดับเมนู" :disabled="store.menus.length<2||!!actionPending||store.inventorySaving" @click="menuOrderOpen=true"><GripVertical :size="19" aria-hidden="true"/></IconButton></template></CatalogBrowser></template>
@@ -82,3 +82,9 @@ async function performDelete(menu){
  }
 }
 </script>
+<style scoped>
+.menu-management{gap:0}
+.menu-management :deep(.menu-header-panel){border-radius:0;border-bottom:1px solid var(--border-subtle)}
+.menu-management :deep(.workbench-columns){gap:0}
+@media(min-width:768px){.menu-management :deep(.menu-content){border-inline-start:1px solid var(--border-subtle)}}
+</style>

@@ -96,6 +96,18 @@ async function mountRealPreview(data){
  wrapper=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises();return wrapper
 }
 describe('POS save audit: original UI using real source preview',()=>{
+ it('retains the original cart and blocks checkout when its sales channel is paused',async()=>{
+  const f=fixture(),data=viewData(f),key=JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u'])
+  const line={menuId:'SIMPLE',qty:1,selections:choices}
+  data.shop.catalog.platforms.P.active=false
+  sessionStorage.setItem(key,JSON.stringify({platformId:'P',cart:[line]}))
+  const w=await mountRealPreview(data),model=w.getComponent(CartPanel).props('model')
+  expect(model.checkoutDisabled).toBe(true)
+  expect(JSON.parse(sessionStorage.getItem(key))).toMatchObject({platformId:'P',cart:[line]})
+  await w.get('[data-cart-open]').trigger('click');await flushPromises()
+  expect(w.text()).toContain('ช่องทางนี้พักขายแล้ว')
+  expect(h.preview).not.toHaveBeenCalled()
+ })
  it('keeps single-group identity in newly generated operands while retaining canonical receipt shape',async()=>{
   const f=fixture();f.shop.catalog.groups.G.min=0
   const edited=summaryPreparedMenu(f.shop,f.materials,{...f.shop.catalog.menus.SIMPLE,groupIds:['G']})

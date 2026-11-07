@@ -2,7 +2,7 @@
  <section class="pos-catalog" aria-label="เลือกสินค้า">
   <header class="pos-catalog-heading"><div><h3>เลือกเมนู</h3><p>เลือกชามโปรด แล้วเพิ่มลงออเดอร์</p></div><span>{{ menus.length }} เมนู</span></header>
   <div class="pos-catalog-controls">
-   <div class="pos-channel"><span>ช่องทางขาย</span><div role="tablist" aria-label="ช่องทางขาย" class="pos-platform-tabs"><button v-for="p in activePlatforms" :id="`${tabsId}-${p.id}`" :key="p.id" :disabled="disabled" type="button" role="tab" :aria-selected="platformId === p.id" :tabindex="platformId === p.id ? 0 : -1" :aria-controls="`${tabsId}-panel`" @click="$emit('platform',p.id)" @keydown="switchTab($event,p.id)">{{ p.name }}</button></div></div>
+   <div class="pos-channel"><span>ช่องทางขาย</span><div role="tablist" aria-label="ช่องทางขาย" class="pos-platform-tabs"><button v-for="p in activePlatforms" :id="`${tabsId}-${p.id}`" :key="p.id" :disabled="disabled" type="button" role="tab" :aria-selected="platformId === p.id" :tabindex="focusPlatformId === p.id ? 0 : -1" :aria-controls="`${tabsId}-panel`" @click="$emit('platform',p.id)" @keydown="switchTab($event,p.id)">{{ p.name }}</button></div></div>
    <label class="pos-search"><span>ค้นหาเมนู</span><div><Search :size="17" aria-hidden="true"/><input type="search" data-pos-search aria-label="ค้นหาเมนู" :value="search" placeholder="ชื่อเมนูหรือรายละเอียด" @input="$emit('update:search',$event.target.value)"></div></label>
   </div>
   <p class="pos-channel-context">{{ selectedPlatform?.gpPercent ? 'ค่าธรรมเนียมช่องทาง '+selectedPlatform.gpPercent+'%' : selectedPlatform ? 'ไม่มีค่าธรรมเนียมช่องทาง' : 'เลือกช่องทางขายก่อนเริ่มออเดอร์' }}</p>
@@ -21,6 +21,7 @@ const props=defineProps({disabled:Boolean,menus:{type:Array,required:true},platf
 const emit=defineEmits(['update:search','platform','select-menu'])
 const tabsId=`pos-platform-${useId()}`
 const activePlatforms=computed(()=>props.platforms.filter(p=>p.isActive!==false))
+const focusPlatformId=computed(()=>activePlatforms.value.find(p=>p.id===props.platformId)?.id??activePlatforms.value[0]?.id)
 function switchTab(event,id){
  if(props.disabled)return
  if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return

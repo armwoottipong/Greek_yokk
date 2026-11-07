@@ -53,7 +53,7 @@ export function createCoreTransport({db,getContext}){
   if(r.opId!==command.opId||r.uid!==s.uid||!kinds[command.kind]?.includes(r.kind))throw fail('COMMAND_ID_COLLISION')
   const p=command.payload
   if(p){
-   if(command.kind==='platform_gp'&&!equal(r.rates,p.rates))throw fail('COMMAND_ID_COLLISION')
+   if(command.kind==='platform_gp'&&(!equal(r.rates,p.rates)||!equal(r.enabled,p.enabled)))throw fail('COMMAND_ID_COLLISION')
    if(['menu','addon','group'].includes(command.kind)&&(!equal(r.input,p.input)||!equal(r.display,p.display)||r.entityId!==(command.kind==='addon'?p.entityId:p.input.id)))throw fail('COMMAND_ID_COLLISION')
    if(command.kind==='cancel'&&r.orderId!==p.orderId)throw fail('COMMAND_ID_COLLISION')
    if(['inventory','receive','produce'].includes(command.kind)){

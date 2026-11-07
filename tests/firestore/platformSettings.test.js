@@ -1,19 +1,28 @@
 import {beforeAll,beforeEach,afterAll,it,expect} from 'vitest'
+import {readFileSync} from 'node:fs'
+import {IDBFactory} from 'fake-indexeddb'
 import {doc,getDocFromServer,writeBatch,setLogLevel} from 'firebase/firestore'
 import {assertFails} from '@firebase/rules-unit-testing'
 import {createRulesTest} from './helpers.js'
-import {buildCorePolicy} from '../../scripts/core-policy.mjs'
 import {summaryFixture} from './summaryFixture.js'
 import {planInventoryCommand} from '../../src/cloud/core/inventoryPlan.js'
 import {createCoreTransport} from '../../src/cloud/core/transport.js'
+import {createCoreCommands} from '../../src/cloud/core/commands.js'
+import {createCommandJournal} from '../../src/cloud/journal.js'
 let env,f,db,api
 setLogLevel('silent')
-const root='shops/proof-shop',path=()=>`${root}/generations/${f.shop.generation}`
+const shopId='greek-yogg',root=`shops/${shopId}`,path=()=>`${root}/generations/${f.shop.generation}`
 const command=(opId='GP',expectedRevision=f.shop.revision)=>({kind:'platform_gp',opId,payload:{expectedRevision,rates:Object.fromEntries(f.shop.catalog.platformIds.map(id=>[id,2550]))}})
-const client=uid=>{const db=env.authenticatedContext(uid).firestore();return {db,api:createCoreTransport({db,getContext:()=>({projectId:'demo-greek-yogg',shopId:'proof-shop',generation:f.shop.generation,uid,deviceId:uid,ready:true,online:true})})}}
-beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
+const client=uid=>{
+ const db=env.authenticatedContext(uid,{email:`${uid}@example.com`,email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore()
+ const getContext=()=>({projectId:'demo-greek-yogg',shopId,generation:f.shop.generation,uid,deviceId:uid,ready:true,online:true,protocolCertified:true})
+ return {db,getContext,api:createCoreTransport({db,getContext})}
+}
+beforeAll(async()=>{env=await createRulesTest({rules:readFileSync('firestore.rules','utf8')})})
 beforeEach(async()=>{
  await env.clearFirestore();f=summaryFixture()
+ f.shop.allowedEmails={'alice@example.com':true,'bob@example.com':true,'manager@example.com':true}
+ f.shop.userRoles={'alice@example.com':'admin','bob@example.com':'admin','manager@example.com':'manager'}
  // Exercise all four deployed channel slots, including the last Rules branch.
  const c=f.shop.catalog,source=c.platformIds[0]
  for(const id of ['P2','P3','P4']){
@@ -24,10 +33,12 @@ beforeEach(async()=>{
 })
 afterAll(async()=>env.cleanup())
 async function direct(change=()=>{},actor=db,mode='both'){
- const planned=planInventoryCommand(f.shop,f.materials,command(),'alice');change(planned)
+ const planned=planInventoryCommand(f.shop,f.materials,command(),'alice')
+ planned.nextShop=structuredClone(planned.nextShop)
+ change(planned)
  const b=writeBatch(actor);if(mode!=='receipt')b.set(doc(actor,root),planned.nextShop);if(mode!=='root')b.set(doc(actor,`${path()}/operations/GP`),planned.operation);return b.commit()
 }
-it('saves atomically for equal accounts, retries once and rejects stale drafts/collisions',async()=>{
+it('saves atomically for admins, retries once and rejects stale drafts/collisions',async()=>{
  const b=client('bob'),c=command();const saved=await api.commit(c);expect(saved.rates).toEqual(c.payload.rates)
  expect(await api.commit(c)).toEqual(saved)
  const snapshot=await b.api.snapshot();expect(snapshot.shop.catalogRevision).toBe(f.shop.catalogRevision+1);expect(Object.fromEntries(snapshot.materials.map(m=>[m.id,m]))).toEqual(Object.fromEntries(f.materials.map(m=>[m.id,m])))
@@ -36,6 +47,30 @@ it('saves atomically for equal accounts, retries once and rejects stale drafts/c
  expect((await b.api.rejectStaleInventory(command('STALE'))).rejected).toBe(true)
  await expect(api.commit({...c,payload:{...c.payload,rates:{...c.payload.rates,[f.shop.catalog.platformIds[0]]:3000}}})).rejects.toThrow('COMMAND_ID_COLLISION')
  expect((await b.api.commit(command('BOB',snapshot.shop.revision))).uid).toBe('bob')
+})
+it('journals a GP and channel change, reads it in another session and refuses sales on the paused channel',async()=>{
+ const writer=client('alice'),reader=client('bob'),journal=createCommandJournal({indexedDB:new IDBFactory(),ownerId:'channel-test'})
+ const commands=createCoreCommands({journal,transport:writer.api,getContext:writer.getContext}),c=command('CHANNELS')
+ c.payload.enabled=Object.fromEntries(f.shop.catalog.platformIds.map((id,i)=>[id,i!==0]))
+ try{
+  const result=await commands.execute(c)
+  expect(result,result.causeCode).toMatchObject({ok:true,value:{result:{enabled:c.payload.enabled,rates:c.payload.rates}}})
+  const {shop}=await reader.api.snapshot(),id=f.shop.catalog.platformIds[0]
+  expect(shop.catalog.platforms[id]).toMatchObject({active:false,gpBasisPoints:2550})
+  expect(shop.catalog.platformIds).toEqual(f.shop.catalog.platformIds)
+  expect(shop.catalog.menus).toEqual(f.shop.catalog.menus)
+  expect(shop.catalog.addons).toEqual(f.shop.catalog.addons)
+  await expect(writer.api.receipt(c.kind,c.opId,{...c,payload:{...c.payload,enabled:{...c.payload.enabled,[id]:true}}})).rejects.toMatchObject({code:'COMMAND_ID_COLLISION'})
+  await expect(reader.api.commit({kind:'sale',opId:'PAUSED',payload:{platformId:id,lines:[{menuId:f.shop.catalog.menuIds[0],qty:1}]}})).rejects.toThrow('Unsupported sale')
+ }finally{await journal.close()}
+})
+it('denies Manager writes, all-disabled channels, and extra or non-boolean flags',async()=>{
+ await assertFails(direct(()=>{},client('manager').db))
+ const flags=Object.fromEntries(f.shop.catalog.platformIds.map(id=>[id,true]))
+ await assertFails(direct(p=>{p.operation.enabled=Object.fromEntries(Object.keys(flags).map(id=>[id,false]));for(const id of Object.keys(flags))p.nextShop.catalog.platforms[id].active=false}))
+ await assertFails(direct(p=>{p.operation.enabled={...flags,extra:false}}))
+ await assertFails(direct(p=>{p.operation.enabled={...flags,[Object.keys(flags)[0]]:1}}))
+ expect((await getDocFromServer(doc(db,root))).data()).toEqual(f.shop)
 })
 it('denies root-only and receipt-only writes and unauthenticated writes',async()=>{
  await assertFails(direct(()=>{},db,'root'));await assertFails(direct(()=>{},db,'receipt'))

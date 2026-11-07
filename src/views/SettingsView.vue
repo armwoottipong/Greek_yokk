@@ -128,7 +128,8 @@
 
       <form data-gp-settings novalidate @submit.prevent="saveGpRates" class="settings-gp-form">
         <div class="settings-gp-fields">
-          <FormField v-for="plat in store.platforms" :key="plat.id" :id="`gp-${plat.id}`"
+          <div v-for="plat in store.platforms" :key="plat.id" class="settings-channel-row">
+          <FormField :id="`gp-${plat.id}`"
             :label="plat.name" :error="gpErrors[plat.id]" v-slot="{controlId,describedBy,invalid}">
             <AppInput :id="controlId" v-model="gpDraft[plat.id]" type="number" min="0" max="100" :step="store.cloud ? '0.01' : 'any'"
               :disabled="gpSaving || store.settingsBlocked"
@@ -136,12 +137,18 @@
               <template #suffix>%</template>
             </AppInput>
           </FormField>
+          <AppCheckbox v-if="store.cloud" v-model="gpEnabled[plat.id]" variant="switch" :label="`เปิดขายผ่าน ${plat.name}`"
+            :disabled="gpSaving || store.settingsBlocked || (gpEnabled[plat.id] && gpActiveCount === 1)">
+            {{ gpEnabled[plat.id] ? 'เปิดขาย' : 'พักขาย' }}
+          </AppCheckbox>
+          </div>
         </div>
+        <p v-if="store.cloud" class="settings-gp-help" aria-live="polite">เปิดขาย {{ gpActiveCount }} จาก 4 ช่องทาง · เปิดไว้อย่างน้อย 1 ช่องทาง</p>
         <p class="settings-gp-help">กรอกตั้งแต่ 0 และน้อยกว่า 100% · ใช้กับบิลใหม่และราคาแนะนำ ไม่เปลี่ยนราคาขายเมนูหรือบิลที่บันทึกแล้ว</p>
         <p v-if="store.cloud" class="settings-gp-help">รองรับทศนิยมไม่เกิน 2 ตำแหน่ง · บันทึก GP ของทุกช่องทางพร้อมกัน</p>
         <p v-if="gpSaveError" data-gp-save-error role="alert" class="settings-gp-error">{{ gpSaveError }}</p>
         <p v-if="gpConflict" role="alert">ข้อมูลร้านเปลี่ยนแล้ว กรุณาโหลดค่าใหม่และตรวจ GP อีกครั้งก่อนบันทึก</p>
-        <div class="settings-gp-actions"><Button type="submit" :loading="gpSaving" :disabled="!gpDirty || gpConflict || store.settingsBlocked || Object.keys(gpErrors).length > 0">บันทึก GP</Button><Button v-if="store.cloud" variant="secondary" :disabled="gpSaving || store.settingsBlocked" @click="resetGpDraft">โหลดค่าปัจจุบัน</Button></div>
+        <div class="settings-gp-actions"><Button type="submit" :loading="gpSaving" :disabled="!gpDirty || gpConflict || store.settingsBlocked || Object.keys(gpErrors).length > 0 || (store.cloud && !gpActiveCount)">{{ store.cloud ? 'บันทึกช่องทางและ GP' : 'บันทึก GP' }}</Button><Button v-if="store.cloud" variant="secondary" :disabled="gpSaving || store.settingsBlocked" @click="resetGpDraft">โหลดค่าปัจจุบัน</Button></div>
       </form>
     </div>
 
@@ -274,6 +281,7 @@ import FormField from '@/components/ui/FormField.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import Button from '@/components/ui/Button.vue'
 import { isValidGp } from '@/domain/pricing'
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import { usePosStore } from '@/stores/posStore'
 import {
   Cloud,
@@ -312,26 +320,31 @@ const fileInput = ref(null)
 const gpDraft = ref({})
 const gpSaveError = ref('')
 const gpSaving=ref(false),gpConflict=ref(false),gpRevision=ref(null)
+const gpEnabled=ref({}),gpBaseline=ref({})
 function resetGpDraft(){
   gpDraft.value = Object.fromEntries(store.platforms.map(p => [p.id, p.gpPercent]))
+  gpEnabled.value = Object.fromEntries(store.platforms.map(p => [p.id,p.isActive!==false]))
+  gpBaseline.value = {rates:{...gpDraft.value},enabled:{...gpEnabled.value}}
   gpSaveError.value = '';gpConflict.value=false;gpRevision.value=store.revision
 }
 resetGpDraft()
-watch(() => JSON.stringify(store.platforms.map(p => [p.id, p.gpPercent])), () => {
+watch(() => JSON.stringify(store.platforms.map(p => [p.id, p.gpPercent,p.isActive])), () => {
   if(store.cloud && gpDirty.value){if(!gpSaving.value)gpConflict.value=true;return}
   resetGpDraft()
 })
 const gpErrors = computed(() => Object.fromEntries(store.platforms
-  .filter(p => !isValidGp(gpDraft.value[p.id]))
-  .map(p => [p.id, 'กรอก GP ตั้งแต่ 0 และน้อยกว่า 100%'])))
-const gpDirty = computed(() => store.platforms.some(p => Number(gpDraft.value[p.id]) !== p.gpPercent || !isValidGp(gpDraft.value[p.id])))
+  .filter(p => !isValidGp(gpDraft.value[p.id]) || store.cloud && Math.abs(Number(gpDraft.value[p.id])*100-Math.round(Number(gpDraft.value[p.id])*100))>0.000001)
+  .map(p => [p.id, store.cloud ? 'กรอก GP 0–99.99% ทศนิยมไม่เกิน 2 ตำแหน่ง' : 'กรอก GP ตั้งแต่ 0 และน้อยกว่า 100%'])))
+const gpAvailabilityDirty=computed(()=>store.cloud&&Object.keys(gpBaseline.value.enabled).some(id=>gpEnabled.value[id]!==gpBaseline.value.enabled[id]))
+const gpActiveCount=computed(()=>store.platforms.filter(p=>gpEnabled.value[p.id]).length)
+const gpDirty = computed(() => gpAvailabilityDirty.value || Object.keys(gpBaseline.value.rates).some(id=>Number(gpDraft.value[id])!==gpBaseline.value.rates[id]||!isValidGp(gpDraft.value[id])))
 watch(()=>store.revision,()=>{if(!store.cloud||gpSaving.value)return;if(gpDirty.value)gpConflict.value=true;else resetGpDraft()})
 async function saveGpRates() {
   gpSaveError.value = ''
-  if (gpSaving.value || store.settingsBlocked || gpConflict.value || Object.keys(gpErrors.value).length || !gpDirty.value) return
+  if (gpSaving.value || store.settingsBlocked || gpConflict.value || Object.keys(gpErrors.value).length || !gpDirty.value || (store.cloud && !gpActiveCount.value)) return
   gpSaving.value=true
   try{
-    const result = await store.savePlatformGpRates({...gpDraft.value},gpRevision.value)
+    const result = await store.savePlatformGpRates({...gpDraft.value},gpRevision.value,...(gpAvailabilityDirty.value?[{...gpEnabled.value}]:[]))
     if (!result.ok) gpSaveError.value = result.message || 'ยังยืนยันการบันทึกไม่ได้ กรุณาตรวจคำสั่งค้างก่อนลองใหม่'
     else if(store.cloud)resetGpDraft()
   }catch{gpSaveError.value='ยังยืนยันการบันทึกไม่ได้ กรุณาตรวจคำสั่งค้างก่อนลองใหม่'}
