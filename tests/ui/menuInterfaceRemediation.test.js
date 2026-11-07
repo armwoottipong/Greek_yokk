@@ -4,6 +4,27 @@ import {createTestStore,material} from '../helpers/createStore'
 import Menu from '../../src/views/MenuView.vue'
 import Editor from '../../src/components/modals/MenuEditModal.vue'
 
+it('shows ingredient and packaging subtotals and excludes disabled packaging from the recipe total', async () => {
+ const store=createTestStore();store.resetDemoData()
+ store.materials.push(material('FOOD',100,{unitCost:2}),material('CUP',100,{unitCost:3,inventoryType:'packaging'}))
+ const menu=store.menus[0]
+ menu.recipe=[{materialId:'FOOD',qty:10},{materialId:'CUP',qty:2}]
+ menu.hasPackage=true
+ const w=mount(Menu)
+ try{
+  expect(w.get('[aria-label="ต้นทุนวัตถุดิบรวม"] dd').text()).toBe('฿20.00')
+  expect(w.get('[aria-label="ต้นทุนบรรจุภัณฑ์รวม"] dd').text()).toBe('฿6.00')
+  expect(w.get('[aria-label="ต้นทุนสูตรรวมต่อเสิร์ฟ"] dd').text()).toBe('฿26.00')
+  menu.hasPackage=false
+  await flushPromises()
+  expect(w.get('[aria-label="ต้นทุนบรรจุภัณฑ์รวม"] dd').text()).toBe('฿6.00')
+  expect(w.get('[aria-label="ต้นทุนสูตรรวมต่อเสิร์ฟ"] dd').text()).toBe('฿20.00')
+  store.materials.find(item=>item.id==='FOOD').unitCost=null
+  await flushPromises()
+  expect(w.get('[aria-label="ต้นทุนสูตรรวมต่อเสิร์ฟ"] dd').text()).toBe('ยังไม่ทราบต้นทุน')
+ }finally{w.unmount()}
+})
+
 it.each([null,undefined,'',NaN,Infinity,-1])('shows unknown recipe cost instead of zero for invalid unit cost %s',unitCost=>{
  const s=createTestStore();s.resetDemoData();s.materials.push(material('AUDIT',100,{unitCost}));s.menus[0].recipe=[{materialId:'AUDIT',qty:10}]
  const w=mount(Menu)
@@ -76,6 +97,7 @@ it.each([false,true])('opens recipe editing at its first usable control (empty=%
  try{
   await w.get('[data-menu-recipe-panel] button').trigger('click');await flushPromises()
   expect(s.modals.menuEdit).toMatchObject({isOpen:true,menuId:s.menus[0].id,initialSection:'recipe'})
+  expect(e.get('#MenuEditModal .dialog-frame-panel').classes()).toContain('dialog-frame-panel--side-drawer')
   expect(e.get('[data-menu-recipe]').attributes('open')).toBeDefined()
   expect(document.activeElement).toBe(e.get('[data-menu-recipe] button').element)
   expect(e.get('#menu-name').element.value).toBe(s.menus[0].name)
@@ -85,6 +107,7 @@ it('keeps identity entry and name validation in the original popup',async()=>{
  const s=createTestStore();s.resetDemoData();const w=mount(Menu,{attachTo:document.body}),e=mount(Editor,{attachTo:document.body})
  try{
   await w.get('[data-menu-edit]').trigger('click');await flushPromises()
+  expect(e.get('#MenuEditModal .dialog-frame-panel').classes()).toContain('dialog-frame-panel--dialog')
   expect(document.activeElement).toBe(e.get('#menu-name').element)
   await e.get('#menu-name').setValue('');await e.vm.submit();await flushPromises()
   expect(document.activeElement).toBe(e.get('#menu-name').element)

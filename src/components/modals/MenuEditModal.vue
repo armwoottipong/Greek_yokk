@@ -1,6 +1,10 @@
 <template>
- <DialogFrame :busy="!!actionPending" :open="store.modals.menuEdit.isOpen" id="MenuEditModal" :title="isEditing?'แก้ไขเมนู':'เพิ่มเมนูใหม่'" description="ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 เสิร์ฟ" width="720px" :teleport="false" :initial-focus="initialFocus" @request-close="requestClose(close)">
-  <div class="menu-editor">
+ <DialogFrame :busy="!!actionPending" :open="store.modals.menuEdit.isOpen" id="MenuEditModal"
+  :title="recipeDrawer ? 'แก้ไขสูตร' : isEditing ? 'แก้ไขเมนู' : 'เพิ่มเมนูใหม่'"
+  :description="recipeDrawer ? form.name : 'ชื่อและราคา ตามด้วยสูตรที่ใช้ต่อ 1 เสิร์ฟ'"
+  :presentation="recipeDrawer ? 'side-drawer' : 'dialog'" :width="recipeDrawer ? '560px' : '720px'"
+  :teleport="false" :initial-focus="initialFocus" @request-close="requestClose(close)">
+  <div class="menu-editor" :class="{'menu-editor--recipe-drawer':recipeDrawer}">
    <section class="menu-editor-basics" aria-label="ข้อมูลเมนู">
     <div class="menu-editor-identity"><FormField label="ไอคอน"><Button variant="secondary" class="menu-editor-emoji" aria-label="เปลี่ยนไอคอนเมนู" @click="openEmojiPicker"><span aria-hidden="true">{{ form.emoji }}</span></Button></FormField><FormField id="menu-name" label="ชื่อเมนู" required :error="nameError" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="form.name" :aria-describedby="describedBy" :aria-invalid="invalid" aria-required="true" placeholder="เช่น Greek Yogurt Bowl (M)"/></FormField></div>
     <FormField id="menu-description" label="คำอธิบายสั้น" v-slot="{controlId}"><AppInput :id="controlId" v-model="form.description" placeholder="เช่น กรีกโยเกิร์ตแท้ 160g พร้อมผลไม้สด"/></FormField>
@@ -131,6 +135,7 @@ const initialFocus = computed(() => ({
   recipe: '[data-menu-recipe] button:not(:disabled)',
   groups: '[data-open-group-picker]'
 })[store.modals.menuEdit.initialSection] || '#menu-name')
+const recipeDrawer = computed(() => store.modals.menuEdit.initialSection === 'recipe')
 const isEditing = computed(() => Boolean(store.modals.menuEdit.menuId))
 const storefront = computed(() => findStorefrontPlatform(store.platforms))
 
@@ -223,7 +228,7 @@ watch(() => store.modals.menuEdit.isOpen, (open) => {
           form.value.hasAddons = true
         }
       }
-      if(store.modals.menuEdit.initialSection==='recipe'){
+      if(recipeDrawer.value){
         const section=document.getElementById('MenuEditModal')?.querySelector('[data-menu-recipe]')
         if(section){section.open=true;section.querySelector('button:not(:disabled)')?.scrollIntoView?.({block:'nearest'})}
       }
@@ -423,11 +428,16 @@ async function savePictureAndClose(){
 <style scoped src="@/components/ui/catalogEditor.css"></style>
 
 <style>
-#MenuEditModal:focus,#MenuEditModal :focus,#MenuEditModal :focus-visible{outline:none!important;box-shadow:none!important}
+#MenuEditModal:not(.dialog-frame-shell--side-drawer):focus,#MenuEditModal:not(.dialog-frame-shell--side-drawer) :focus,#MenuEditModal:not(.dialog-frame-shell--side-drawer) :focus-visible{outline:none!important;box-shadow:none!important}
 </style>
 
 
 <style scoped>
 .menu-editor{container:menu-editor / inline-size}
+.menu-editor.menu-editor--recipe-drawer{gap:12px}
+.menu-editor--recipe-drawer .menu-editor-section>summary{min-height:48px}
+.menu-editor--recipe-drawer .menu-editor-recipe-list{gap:0}
+.menu-editor--recipe-drawer .menu-editor-recipe-list :deep(.recipe-editor-row){padding:10px 0;border-bottom:0}
+.menu-editor--recipe-drawer .menu-editor-recipe-list :deep(.recipe-editor-row + .recipe-editor-row){border-top:1px solid var(--border-subtle)}
 @container menu-editor (max-width:399px){.menu-editor-prices{grid-template-columns:minmax(0,1fr)}}
 </style>

@@ -4,9 +4,21 @@
    <div><h3>สูตรและวัตถุดิบ</h3><p>ปริมาณที่ใช้ต่อ 1 เสิร์ฟ</p></div>
    <Button variant="quiet" size="compact" @click="$emit('edit')">แก้ไขสูตร</Button>
   </header>
+  <dl class="recipe-total" aria-label="ต้นทุนสูตรรวมต่อเสิร์ฟ">
+   <dt>ต้นทุนสูตรรวมต่อเสิร์ฟ
+    <span v-if="addonGroups.length" class="recipe-note">ต้นทุนตัวเลือกคิดตามรายการที่เลือก</span>
+   </dt>
+   <dd>{{ formatCost(totalCost) }}</dd>
+  </dl>
   <section v-for="group in groups" :key="group.label" class="recipe-group" :aria-label="group.label">
-   <h4>{{ group.label }} <span>{{ group.items.length }} รายการ</span></h4>
-   <p v-if="group.packaging && menu.hasPackage===false" class="recipe-note">ปิดการตัดสต็อกบรรจุภัณฑ์สำหรับเมนูนี้</p>
+   <header class="recipe-group-heading">
+    <h4>{{ group.label }} <span>{{ group.items.length }} รายการ</span></h4>
+    <dl v-if="group.items.length" class="recipe-subtotal" :aria-label="`ต้นทุน${group.label}รวม`">
+     <dt class="sr-only">ต้นทุน{{ group.label }}รวม</dt>
+     <dd>{{ formatCost(group.cost) }}</dd>
+    </dl>
+   </header>
+   <p v-if="group.packaging && menu.hasPackage===false" class="recipe-note">ปิดการตัดสต็อกบรรจุภัณฑ์ ยอดส่วนนี้จึงไม่นับในต้นทุนสูตร</p>
    <ul v-if="group.items.length" class="recipe-list" role="list">
     <li v-for="(item,index) in group.items" :key="index" class="recipe-item">
      <div class="recipe-material">
@@ -24,7 +36,7 @@
        <p v-if="item.mat && item.cost===null" class="recipe-note">ตรวจต้นทุนวัตถุดิบและปริมาณในสูตร</p>
       </div>
      </div>
-     <b>{{ item.cost===null ? 'ยังไม่ทราบต้นทุน' : costFormat.format(item.cost) }}</b>
+     <b>{{ formatCost(item.cost) }}</b>
     </li>
    </ul>
    <p v-else class="recipe-note">{{ group.empty }}</p>
@@ -53,14 +65,17 @@ import EntityImage from '../images/EntityImage.vue'
 const props=defineProps({menu:{type:Object,required:true},items:{type:Array,default:()=>[]},addonGroups:{type:Array,default:()=>[]}})
 defineEmits(['edit'])
 const costFormat=new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB'})
+const formatCost=cost=>cost===null ? 'ยังไม่ทราบต้นทุน' : costFormat.format(cost)
+const sumCosts=costs=>costs.every(Number.isFinite) ? costs.reduce((total,cost)=>total+cost,0) : null
 const groups=computed(()=>[
  {label:'วัตถุดิบ',empty:'ยังไม่มีสูตรวัตถุดิบ',items:props.items.filter(i=>i.mat?.inventoryType!=='packaging')},
  {label:'บรรจุภัณฑ์',empty:'ยังไม่มีบรรจุภัณฑ์ในสูตร',packaging:true,items:props.items.filter(i=>i.mat?.inventoryType==='packaging')}
-])
+].map(group=>({...group,cost:sumCosts(group.items.map(item=>item.cost))})))
+const totalCost=computed(()=>sumCosts(groups.value.filter(group=>!group.packaging||props.menu.hasPackage!==false).map(group=>group.cost)))
 </script>
 <style scoped>
 .menu-recipe-panel { padding: 20px 24px 24px; min-width: 0; }
-.recipe-heading, .recipe-group h4 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.recipe-heading, .recipe-group h4, .recipe-total, .recipe-group-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .recipe-heading h3 { font-size: 1rem; font-weight: 600; }
 .recipe-heading p, .recipe-note, .recipe-meta, .recipe-group h4 span {
   color: var(--text-muted);
@@ -68,8 +83,14 @@ const groups=computed(()=>[
   line-height: 1.6;
 }
 .recipe-heading p { margin-top: 4px; }
+.recipe-total { margin-top: 16px; padding: 10px 12px; background: var(--bg-soft); border-radius: 8px; font-weight: 600; }
+.recipe-total .recipe-note { display: block; font-weight: 400; margin-top: 2px; }
+.recipe-total dd, .recipe-subtotal dd { text-align: end; font-variant-numeric: tabular-nums; }
+.recipe-total dd { color: var(--accent-brand); }
 .recipe-group { margin-top: 16px; border-top: 1px solid var(--control-border); }
 .recipe-group h4 { padding-top: 12px; color: var(--accent-brand); font-size: .875rem; font-weight: 600; }
+.recipe-group-heading h4 { justify-content: flex-start; flex-wrap: wrap; gap: 0 8px; }
+.recipe-subtotal { font-size: .875rem; font-weight: 600; }
 .recipe-group h4 span { font-weight: 400; white-space: nowrap; }
 .recipe-list { margin: 4px 0 0; padding: 0; list-style: none; }
 .recipe-item {
