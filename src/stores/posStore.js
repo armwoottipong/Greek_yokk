@@ -1830,9 +1830,11 @@ const posDefinition = {
     saveAddonGroup({ newAddons = [], updatedAddons = [], menuIds, ...data }) {
       const candidate = this.databaseSnapshot()
       const id = data.id || createEntityId('GROUP', this.addonGroups.map(g => g.id))
-      const updatedRecipes = new Map(updatedAddons.map(addon => [addon.id, addon.recipe]))
-      candidate.addons = candidate.addons.map(addon => updatedRecipes.has(addon.id)
-        ? { ...addon, recipe: clone(updatedRecipes.get(addon.id)) } : addon)
+      const optionEdits = new Map(updatedAddons.map(addon => [addon.id, addon]))
+      candidate.addons = candidate.addons.map(addon => {
+        const edit = optionEdits.get(addon.id)
+        return edit ? { ...addon, name: edit.name ?? addon.name, recipe: clone(edit.recipe) } : addon
+      })
       let message = duplicateNewStockOption(data.options, candidate.addons, newAddons, this.matMap)
       candidate.addons.push(...clone(newAddons))
       message ||= groupError(data, candidate.addons)

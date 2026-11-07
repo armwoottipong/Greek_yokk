@@ -147,11 +147,18 @@
    :description="editingOption?.name" width="480px" @request-close="optionEditor = null">
    <div v-if="editingOption && optionEditor" class="group-options">
     <div v-if="optionEditor.mode === 'more'" class="group-option-menu">
+     <Button variant="quiet" @click="openOptionAction('name')"><Pencil :size="17" aria-hidden="true"/>แก้ชื่อตัวเลือก</Button>
      <Button v-if="ingredientRows(editingOption).length" variant="quiet" @click="openOptionAction('quantity')"><Scale :size="17" aria-hidden="true"/>แก้จำนวนต่อที่</Button>
      <Button variant="quiet" @click="openOptionAction('packaging')"><Package :size="17" aria-hidden="true"/>บรรจุภัณฑ์</Button>
      <Button variant="quiet" @click="openOptionAction('price')"><Tag :size="17" aria-hidden="true"/>ราคา</Button>
      <Button variant="quiet" @click="removeEditingOption"><Trash2 :size="17" aria-hidden="true"/>นำออกจากกลุ่ม</Button>
     </div>
+    <template v-else-if="optionEditor.mode === 'name'">
+     <FormField id="group-option-name" label="ชื่อตัวเลือก" required v-slot="{controlId}">
+      <AppInput :id="controlId" :model-value="editingOption.name" aria-required="true" maxlength="120" @update:model-value="draft.nameChanges[editingOption.id] = $event"/>
+     </FormField>
+     <p v-if="!editingOption.isDraft" class="group-help">ชื่อใหม่จะใช้ในทุกกลุ่มและเมนูที่ใช้ตัวเลือกนี้ เมื่อบันทึกกลุ่ม</p>
+    </template>
     <template v-else-if="optionEditor.mode === 'price'">
      <AppCheckbox v-if="!editingOption.isDraft" :model-value="!optionFor(editingOption.id).paused" variant="switch"
       label="เปิดขายในกลุ่มนี้" @update:model-value="optionFor(editingOption.id).paused = !$event">เปิดขายในกลุ่มนี้</AppCheckbox>
@@ -238,7 +245,7 @@
 </template>
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import { Plus, Check, EllipsisVertical, Package, Scale, Tag, Trash2, GripVertical } from 'lucide-vue-next'
+import { Plus, Check, EllipsisVertical, Package, Pencil, Scale, Tag, Trash2, GripVertical } from 'lucide-vue-next'
 import CatalogOrderDialog from './CatalogOrderDialog.vue'
 import {reorderExact} from '@/domain/catalogOrdering'
 import { useInventoryStore } from '@/composables/useInventoryStore'
@@ -349,14 +356,14 @@ const { saveSnapshot, requestClose } = useModalForm(() => draft.value)
 const optionFor = id => draft.value.options?.find(option => option.addonId === id)
 const editorAddons = computed(() => (draft.value.options || []).flatMap(option => {
   const addon = draft.value.newOptions?.find(item => item.id === option.addonId) || addonMap.value.get(option.addonId)
-  return addon ? [{ ...addon, recipe: draft.value.recipeChanges[addon.id] || addon.recipe || [] }] : []
+  return addon ? [{ ...addon, name: draft.value.nameChanges[addon.id] ?? addon.name, recipe: draft.value.recipeChanges[addon.id] || addon.recipe || [] }] : []
 }))
 const optionEditor = ref(null)
 const openPriceInfo = ref(null)
 const storefront = computed(() => findStorefrontPlatform(store.platforms))
 const editingOption = computed(() => editorAddons.value.find(addon => addon.id === optionEditor.value?.id))
 const editingOptionCost = computed(() => editingOption.value ? recipeCost({recipe:[]}, [editingOption.value], 1, store.materials) : null)
-const optionEditorTitle = computed(() => ({ quantity: 'จำนวนต่อที่', packaging: 'บรรจุภัณฑ์', price: 'ราคาเพิ่ม' })[optionEditor.value?.mode] || 'ตั้งค่าตัวเลือก')
+const optionEditorTitle = computed(() => ({ name: 'แก้ชื่อตัวเลือก', quantity: 'จำนวนต่อที่', packaging: 'บรรจุภัณฑ์', price: 'ราคาเพิ่ม' })[optionEditor.value?.mode] || 'ตั้งค่าตัวเลือก')
 const isPackaging = row => store.matMap[row.materialId]?.inventoryType === 'packaging'
 const ingredientRows = addon => addon.recipe.filter(row => !isPackaging(row))
 const editableRows = computed(() => editingOption.value?.recipe.filter(row => isPackaging(row) === (optionEditor.value?.mode === 'packaging')) || [])
@@ -449,6 +456,7 @@ async function edit(group) {
   editCatalogRevision.value=store.catalogRevision
   draft.value = group ? clone(group) : { name: '', minSelections: 0, maxSelections: 3, allowRepeat: false, pricingMode: 'included', options: [] }
   draft.value.newOptions = []
+  draft.value.nameChanges = Object.create(null)
   draft.value.recipeChanges = {}
   draft.value.menuIds = group ? store.menus.filter(menu => menu.addonGroupIds?.includes(group.id)).map(menu => menu.id) : []
   selectionRule.value = !draft.value.minSelections ? 'optional'
@@ -471,6 +479,7 @@ function toggleOption(id, checked) {
     draft.value.options = draft.value.options.filter(o => o.addonId !== id)
     draft.value.newOptions = draft.value.newOptions.filter(option => option.id !== id)
     delete draft.value.recipeChanges[id]
+    delete draft.value.nameChanges[id]
   }
 }
 function setPrice(addonId, platformId, value) {
@@ -486,12 +495,15 @@ async function performSave() {
   const newAddons = []
   const updatedAddons = []
   for (const addon of editorAddons.value) {
-    if (!addon.isDraft && !Object.hasOwn(data.recipeChanges, addon.id)) continue
+    const name = addon.isDraft || Object.hasOwn(data.nameChanges, addon.id) ? addon.name.trim() : addon.name
+    const renamed = Object.hasOwn(data.nameChanges, addon.id) && name !== addonMap.value.get(addon.id)?.name
+    if (!addon.isDraft && !renamed && !Object.hasOwn(data.recipeChanges, addon.id)) continue
     const recipe = addon.recipe.map(row => ({ materialId: row.materialId, qty: Number(row.qty) }))
-    if (addon.isDraft) newAddons.push({ id: addon.id, name: addon.name, recipe, prices: {}, isActive: true })
-    else updatedAddons.push({ ...addon, recipe })
+    if (addon.isDraft) newAddons.push({ id: addon.id, name, recipe, prices: {}, isActive: true })
+    else updatedAddons.push({ ...addon, name, recipe })
   }
   delete data.newOptions
+  delete data.nameChanges
   delete data.recipeChanges
   for (const addon of [...newAddons, ...updatedAddons]) {
     if (!addon.name) fieldErrors.value.options = 'กรอกชื่อให้ครบทุกตัวเลือก'

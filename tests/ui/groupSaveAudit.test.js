@@ -104,6 +104,25 @@ it('saves existing recipe changes and a new option through the original group dr
  }finally{s.close()}
 })
 
+it('renames a shared option from the group drawer without changing its recipe or another group',async()=>{
+ const s=await setup()
+ try{
+  expect(await s.model.saveAddonGroup({name:'กลุ่มอื่น',minSelections:0,maxSelections:1,allowRepeat:false,pricingMode:'extra',options:[{addonId:'A0',paused:true,prices:{P:5}}]})).toMatchObject({ok:true})
+  const before=JSON.parse(JSON.stringify(s.snapshot())),other=s.model.addonGroups.find(g=>g.name==='กลุ่มอื่น')
+  await edit(s.wrapper)
+  await optionAction(s.wrapper,0,'แก้ชื่อตัวเลือก')
+  await s.wrapper.get('#group-option-name').setValue('  ผลไม้ชื่อใหม่  ')
+  await finishOption(s.wrapper)
+  expect(s.model.addons.find(a=>a.id==='A0').name).toBe('ผลไม้หนึ่ง')
+  await save(s.wrapper)
+  expect(s.model.addons.find(a=>a.id==='A0').name).toBe('ผลไม้ชื่อใหม่')
+  const after=s.snapshot()
+  expect(after.shop.catalog.addons.A0).toMatchObject({...before.shop.catalog.addons.A0,name:'ผลไม้ชื่อใหม่'})
+  expect(after.shop.catalog.groups[other.id]).toEqual(before.shop.catalog.groups[other.id])
+  expect(after.materials).toEqual(before.materials)
+ }finally{s.close()}
+})
+
 it('changes paid, zero and unset prices and pauses only the selected group',async()=>{
  const s=await setup()
  try{
