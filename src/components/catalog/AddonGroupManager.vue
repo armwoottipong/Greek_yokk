@@ -58,18 +58,29 @@
   <CatalogOrderDialog id="group-option-order" :open="!!orderingGroupId" :title="`จัดลำดับตัวเลือก · ${orderingGroup?.name||'กลุ่มตัวเลือก'}`" :items="orderingItems" :revision="store.catalogRevision??store.databaseRevision" :busy="actionPending==='ordering'" @reset="orderSourceRevision=store.catalogRevision" @save="saveOptionOrder" @request-close="orderingGroupId=null"/>
   <DialogFrame id="group-option-detail" :open="!!optionDetail" :title="optionDetail?.addon.name || 'รายละเอียดตัวเลือก'"
    :description="optionDetail?.group.name" presentation="side-drawer" width="480px" @request-close="detailSelection = null">
-   <div v-if="optionDetail" class="group-form option-detail">
+   <div v-if="optionDetail" class="group-form group-drawer-form option-detail">
     <section class="group-options" aria-labelledby="group-option-recipe-title">
-     <h4 id="group-option-recipe-title" class="group-drawer-band">รายละเอียดต่อที่</h4>
+     <div class="group-drawer-heading">
+      <h4 id="group-option-recipe-title">รายละเอียดต่อที่</h4>
+      <span v-if="optionDetail.addon.recipe?.length" class="group-help">ต้นทุนรวม {{ analysisMoney(detailCost) }}</span>
+     </div>
      <p v-if="!optionDetail.addon.recipe?.length" class="group-help">ตัวเลือกนี้ไม่มีรายการตัดสต๊อก</p>
-     <ul v-else class="option-detail-list">
-      <li v-for="row in optionDetail.addon.recipe" :key="row.materialId">
-       <span>{{ store.matMap[row.materialId]?.name || row.materialId }}</span>
-       <strong>{{ row.qty }} {{ store.matMap[row.materialId]?.unit }}</strong>
-      </li>
-     </ul>
+     <section v-for="part in detailRecipeGroups" :key="part.label" class="group-drawer-section" :aria-label="part.label">
+      <h5>{{ part.label }}</h5>
+      <ul class="option-detail-list" role="list">
+       <li v-for="row in part.rows" :key="row.materialId" class="group-drawer-row">
+        <span class="option-detail-material">
+         <span class="group-option-image" aria-hidden="true">
+          <EntityImage kind="materials" :entity-id="row.materialId" :image="store.matMap[row.materialId]?.image" :emoji="store.matMap[row.materialId]?.emoji || part.icon"/>
+         </span>
+         <span>{{ store.matMap[row.materialId]?.name || row.materialId }}</span>
+        </span>
+        <strong>{{ row.qty }} {{ store.matMap[row.materialId]?.unit }}</strong>
+       </li>
+      </ul>
+     </section>
     </section>
-    <div class="group-heading group-drawer-band">
+    <div class="group-heading group-drawer-heading group-drawer-section">
      <h4>วิเคราะห์ต้นทุนและกำไร</h4>
      <CatalogAnalysisDialog entity="group-option" :reset-key="optionDetail.addon.id">
       <section class="group-profit-overview" aria-label="ข้อมูลวิเคราะห์ตัวเลือกเสริม">
@@ -86,12 +97,13 @@
    <div class="group-form group-drawer-form">
     <FormField id="addon-group-name" label="ชื่อกลุ่มตัวเลือก" required :error="fieldErrors.name" v-slot="{controlId,describedBy,invalid}"><AppInput :id="controlId" v-model="draft.name" :aria-invalid="invalid" :aria-describedby="describedBy" aria-required="true" placeholder="เช่น ผลไม้ฟรี 3 ชนิด"/></FormField>
     <section ref="optionsSection" tabindex="-1" class="group-options group-drawer-section" aria-label="รายการในกลุ่ม" :aria-describedby="fieldErrors.options?'addon-group-options-error':undefined"><p v-if="fieldErrors.options" id="addon-group-options-error" role="alert" class="group-error">{{ fieldErrors.options }}</p>
-     <div class="group-heading group-drawer-band">
-      <h4>รายการตัวเลือก</h4>
-      <Button variant="secondary" data-group-add-option :disabled="!!actionPending || store.inventorySaving" @click="openStockPicker"><Plus :size="16" aria-hidden="true"/>เพิ่มตัวเลือก</Button>
+     <div class="group-heading group-drawer-heading">
+      <h4>รายการตัวเลือก <small>{{ editorAddons.length }} รายการ</small></h4>
+      <Button variant="secondary" size="compact" data-group-add-option :disabled="!!actionPending || store.inventorySaving" @click="openStockPicker"><Plus :size="16" aria-hidden="true"/>เพิ่มตัวเลือก</Button>
      </div>
-     <div v-for="addon in editorAddons" :key="addon.id" class="group-option group-option--selected" data-group-addon>
-      <div class="group-option-heading">
+     <p v-if="!editorAddons.length" class="group-help">ยังไม่มีตัวเลือกในกลุ่มนี้</p>
+     <ul v-else class="group-drawer-list" role="list">
+      <li v-for="addon in editorAddons" :key="addon.id" class="group-option-heading group-drawer-row" data-group-addon>
        <span class="group-option-image">
         <EntityImage v-bind="optionImage(addon)"/>
        </span>
@@ -102,11 +114,11 @@
        <IconButton :label="`จัดการ ${addon.name}`" aria-haspopup="dialog" @click="showOptionEditor(addon, 'more')">
         <EllipsisVertical :size="18" aria-hidden="true"/>
        </IconButton>
-      </div>
-     </div>
+      </li>
+     </ul>
     </section>
-    <details ref="groupRules" class="group-rules" open>
-     <summary class="group-drawer-band"><strong>กติกาการเลือก</strong><small>{{ ruleSummary }}</small></summary>
+    <details ref="groupRules" class="group-rules group-drawer-section" open>
+     <summary class="group-drawer-heading"><strong>กติกาการเลือก</strong><small>{{ ruleSummary }}</small></summary>
      <div class="group-rule-body">
       <FormField id="group-selection-rule" label="ลูกค้าเลือกอย่างไร" v-slot="{controlId}">
        <AppSelect :id="controlId" aria-label="ลูกค้าเลือกอย่างไร" :model-value="selectionRule" @update:model-value="applySelectionRule">
@@ -127,10 +139,10 @@
      </div>
     </details>
     <section class="group-options group-drawer-section" aria-label="เมนูที่ใช้กลุ่มนี้">
-     <h4 class="group-drawer-band">เมนูที่ใช้ตัวเลือกเสริมนี้</h4>
+     <h4 class="group-drawer-heading">เมนูที่ใช้กลุ่มนี้</h4>
      <p v-if="!linkedMenus.length" class="group-help">ยังไม่มีเมนูใช้กลุ่มนี้</p>
-     <ul v-else class="group-linked-menus">
-      <li v-for="menu in linkedMenus" :key="menu.id">{{ menu.name }}
+     <ul v-else class="group-drawer-list" role="list">
+      <li v-for="menu in linkedMenus" :key="menu.id" class="group-linked-menu group-drawer-row"><span>{{ menu.name }}</span>
        <Button v-if="!creationResolver" variant="quiet" size="compact" :aria-label="`ยกเลิกการเชื่อม ${menu.name}`" @click="draft.menuIds = draft.menuIds.filter(id => id !== menu.id)">ยกเลิกการเชื่อม</Button>
       </li>
      </ul>
@@ -365,6 +377,13 @@ const editingOption = computed(() => editorAddons.value.find(addon => addon.id =
 const editingOptionCost = computed(() => editingOption.value ? recipeCost({recipe:[]}, [editingOption.value], 1, store.materials) : null)
 const optionEditorTitle = computed(() => ({ name: 'แก้ชื่อตัวเลือก', quantity: 'จำนวนต่อที่', packaging: 'บรรจุภัณฑ์', price: 'ราคาเพิ่ม' })[optionEditor.value?.mode] || 'ตั้งค่าตัวเลือก')
 const isPackaging = row => store.matMap[row.materialId]?.inventoryType === 'packaging'
+const detailRecipeGroups = computed(() => {
+  const rows = optionDetail.value?.addon.recipe || []
+  return [
+    { label: 'วัตถุดิบ', icon: '🥣', rows: rows.filter(row => !isPackaging(row)) },
+    { label: 'บรรจุภัณฑ์', icon: '📦', rows: rows.filter(isPackaging) }
+  ].filter(part => part.rows.length)
+})
 const ingredientRows = addon => addon.recipe.filter(row => !isPackaging(row))
 const editableRows = computed(() => editingOption.value?.recipe.filter(row => isPackaging(row) === (optionEditor.value?.mode === 'packaging')) || [])
 function showOptionEditor(addon, mode) {
@@ -612,10 +631,10 @@ async function performRemove(group) {
 button.group-item-trigger:hover .group-item-name{text-decoration:underline;text-underline-offset:3px}
 button.group-item-trigger:focus-visible{outline:none;background:var(--accent-soft)}
 button.group-item-trigger:focus-visible .group-item-name{text-decoration:underline;text-underline-offset:3px}
-.option-detail-list{display:grid;gap:0;margin:0}
-.option-detail-list li{display:flex;justify-content:space-between;gap:16px;padding-block:9px}
-.option-detail-list li+li{border-top:1px solid var(--border-subtle)}
-.option-detail-list strong{margin:0;text-align:end;font-variant-numeric:tabular-nums}
+.option-detail-list{margin:0;padding:0;list-style:none}
+.option-detail-list li{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.option-detail-list strong{flex-shrink:0;text-align:end;font-variant-numeric:tabular-nums;font-weight:600}
+.option-detail-material{display:flex;align-items:center;gap:10px;min-width:0;overflow-wrap:anywhere}
 
 .group-item-status{font-size:.75rem;color:var(--text-muted)}
 .group-item-status[data-status=low],.group-item-status[data-status=out]{color:var(--state-danger)}
@@ -657,8 +676,6 @@ button.group-item-trigger:focus-visible .group-item-name{text-decoration:underli
  .option-groups>.group-heading p{display:none}
  .group-workspace{--group-row-height:52px}
 }
-.group-option{padding:10px 12px;border:1px solid var(--border-subtle);background:var(--bg-card)}
-.group-option--selected{gap:8px;background:var(--bg-soft)}
 .stock-picker-list{margin:0;padding:0}
 .stock-picker-list li+li{border-top:1px solid var(--border-subtle)}
 .stock-picker-list :deep(.app-checkbox){display:flex;width:100%;padding:10px 4px}
@@ -688,15 +705,27 @@ button.group-item-trigger:focus-visible .group-item-name{text-decoration:underli
 .group-option-image{display:block;width:32px;height:32px;flex-shrink:0;border-radius:8px}
 .group-rules{padding:12px;border:1px solid var(--border-subtle);border-radius:12px}
 .group-rules summary{cursor:pointer}
-.group-linked-menus{margin:0;padding-inline-start:20px;font-size:.875rem}
-.group-rules summary small{margin-inline-start:8px;font-size:.75rem;color:var(--text-muted);font-weight:400}
-.group-drawer-form{gap:24px}
+.group-linked-menu{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:.875rem}
+.group-linked-menu>span{min-width:0;overflow-wrap:anywhere}
+.group-linked-menu>.ui-button{flex-shrink:0}
+.group-drawer-form{gap:16px;--addon-text-secondary:var(--text-muted)}
+.group-drawer-form .group-drawer-section{border:0;border-top:1px solid var(--control-border);border-radius:0;padding:12px 0 0}
+.group-drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;color:var(--accent-brand);font-size:.875rem;font-weight:600}
+.group-drawer-heading small,.group-drawer-heading .group-help{font-size:.75rem;font-weight:400;color:var(--text-muted)}
+.group-drawer-heading h4 small{margin-inline-start:6px}
+.group-drawer-form .group-drawer-heading h4,.group-drawer-form h5{font-size:.875rem;font-weight:600;color:var(--accent-brand)}
+.group-drawer-list{list-style:none;margin:0;padding:0}
+.group-drawer-row{padding:8px 0}
+.group-drawer-row+.group-drawer-row{border-top:1px solid var(--border-subtle)}
+.group-drawer-row .group-option-identity > :is(strong,.group-help){overflow:visible;white-space:normal;overflow-wrap:anywhere}
 .group-drawer-band{background:var(--bg-soft);padding:10px 12px;border-radius:8px}
-.group-drawer-section .group-drawer-band{font-size:.875rem}
-.group-drawer-form .group-rules{border:0;padding:0}
-.group-rule-body{display:grid;gap:16px;padding-block-start:16px}
+.group-drawer-form .group-rules>summary{min-height:36px}
+.group-drawer-form .group-rules>summary::-webkit-details-marker{display:none}
+.group-drawer-form .group-rules>summary>strong::before{content:'▸';display:inline-block;margin-inline-end:6px}
+.group-drawer-form .group-rules[open]>summary>strong::before{transform:rotate(90deg)}
+.group-rule-body{display:grid;gap:12px;padding-block-start:10px}
 .group-rule-body :deep(.app-select),.group-rule-body :deep(.app-select-trigger){width:100%}
-.group-stock-controls{padding:12px;border:1px solid var(--border-subtle);border-radius:12px}
+.group-stock-controls{padding:10px 0 0;border-top:1px solid var(--border-subtle)}
 .group-stock-controls summary{cursor:pointer;font-size:.8125rem;font-weight:600}
 .group-stock-body{display:grid;gap:8px;padding-block-start:12px}
 .group-stock-body :deep(.app-checkbox){display:flex;min-height:44px;width:100%}

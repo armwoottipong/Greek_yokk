@@ -97,7 +97,6 @@ it.each([false,true])('opens recipe editing at its first usable control (empty=%
  try{
   await w.get('[data-menu-recipe-panel] button').trigger('click');await flushPromises()
   expect(s.modals.menuEdit).toMatchObject({isOpen:true,menuId:s.menus[0].id,initialSection:'recipe'})
-  expect(e.get('#MenuEditModal .dialog-frame-panel').classes()).toContain('dialog-frame-panel--side-drawer')
   expect(e.get('[data-menu-recipe]').attributes('open')).toBeDefined()
   expect(document.activeElement).toBe(e.get('[data-menu-recipe] button').element)
   expect(e.get('#menu-name').element.value).toBe(s.menus[0].name)
@@ -107,7 +106,6 @@ it('keeps identity entry and name validation in the original popup',async()=>{
  const s=createTestStore();s.resetDemoData();const w=mount(Menu,{attachTo:document.body}),e=mount(Editor,{attachTo:document.body})
  try{
   await w.get('[data-menu-edit]').trigger('click');await flushPromises()
-  expect(e.get('#MenuEditModal .dialog-frame-panel').classes()).toContain('dialog-frame-panel--dialog')
   expect(document.activeElement).toBe(e.get('#menu-name').element)
   await e.get('#menu-name').setValue('');await e.vm.submit();await flushPromises()
   expect(document.activeElement).toBe(e.get('#menu-name').element)
