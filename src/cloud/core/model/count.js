@@ -22,7 +22,7 @@ export function summaryCount(shop,materials,requests,{opId='SUMMARY-COUNT',uid='
     if(mode==='waste'){
       const c=counts[0],qty=request.requestedQ
       if(counts.length!==1||!Number.isSafeInteger(qty)||qty<1||qty>1e9||c.from===0||c.to!==c.from-Math.min(qty,c.from))throw new Error('Invalid waste amount')
-      const cost=before.lots[c.id].unitCost||before.unitCost||0
+      const cost=before.lots[c.id].unitCost??before.unitCost??0
       lossCents=Math.round((((c.from-c.to)/100)*cost)*100)
       if(before.activeLotId===c.id&&c.to===0){
         const day=Math.floor(Date.parse(businessDateKey(new Date())+'T00:00:00Z')/86400000)

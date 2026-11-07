@@ -4,7 +4,7 @@ const wrap=(kind,receipt)=>receipt.kind==='command_abort'?{opId:receipt.opId,kin
 export function createCoreCommands({journal,transport,getContext}){
  const scope={...getContext()}
  const executor=createCommandExecutor({journal,getContext,
-  getReceipt:async(s,kind,id)=>{const r=await transport.receipt(transportKind(kind),id);return r?wrap(kind,r):null},
+  getReceipt:async(s,kind,id,envelope)=>{const r=await transport.receipt(transportKind(kind),id,{...envelope,kind:transportKind(envelope.kind)});return r?wrap(kind,r):null},
   commit:async(s,c)=>wrap(c.kind,await transport.commit({...c,kind:transportKind(c.kind)}))})
  function guard(){const c=getContext();if(!c.online||!c.ready||!c.protocolCertified||['uid','generation','deviceId','shopId','projectId'].some(k=>c[k]!==scope[k]))throw Object.assign(new Error('NOT_READY'),{code:'NOT_READY'})}
  return {
@@ -21,7 +21,8 @@ export function createCoreCommands({journal,transport,getContext}){
     if(!command)return executor.reconcile(scope)
     const record=await journal.inspect(scope,command.opId,command);guard()
     if(record?.state==='resolved')return {ok:true,value:record.receipt}
-    const receipt=await transport.receipt(transportKind(command.kind),command.opId);guard()
+    const envelope=record?.envelope||command
+    const receipt=await transport.receipt(transportKind(envelope.kind),envelope.opId,{...envelope,kind:transportKind(envelope.kind)});guard()
     if(receipt){const value=wrap(command.kind,receipt);if(record)await journal.resolve(scope,command.opId,value);return {ok:true,value}}
     if(command.payload?.expectedRevision!==undefined){
      try{const resolved=await transport.rejectStaleInventory({...command,kind:transportKind(command.kind)});guard()

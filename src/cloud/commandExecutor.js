@@ -31,7 +31,7 @@ export function createCommandExecutor({ journal, getContext, getReceipt, commit 
       // Use the persisted immutable payload, never the caller's mutable object.
       const persisted = claim.envelope
       if (claim.mustReconcile) {
-        const receipt = await getReceipt(scope, persisted.kind, persisted.opId)
+        const receipt = await getReceipt(scope, persisted.kind, persisted.opId, persisted)
         guard(scope)
         if (receipt) {
           await journal.resolve(scope, persisted.opId, receipt)
@@ -66,7 +66,7 @@ export function createCommandExecutor({ journal, getContext, getReceipt, commit 
       guard(scope)
       if (!records.length) return { ok: true, value: null }
       const { envelope } = records[0]
-      const receipt = await getReceipt(scope, envelope.kind, envelope.opId)
+      const receipt = await getReceipt(scope, envelope.kind, envelope.opId, envelope)
       guard(scope)
       if (!receipt) return failure('PENDING_RESULT')
       await journal.resolve(scope, envelope.opId, receipt)

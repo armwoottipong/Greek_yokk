@@ -35,15 +35,24 @@ const reasons=[{value:'separate_bag',label:'แยกถุง'},{value:'custome
 const plan=computed(()=>store.cartPackagePlan),planIssues=computed(()=>plan.value.issues||[])
 const rows=computed(()=>{const valid=plan.value.items||[],ids=new Set(valid.map(row=>row.materialId));const invalid=store.packageAdjustments.filter(row=>!ids.has(row.materialId)).map(row=>{const material=store.materials.find(item=>item.id===row.materialId);return {materialId:row.materialId,materialName:material?.name||row.materialId,unit:material?.unit||'',baselineQty:0,adjustmentQty:row.deltaQty,requestedQty:0,sources:[],invalid:true}});return [...valid,...invalid]})
 const addable=computed(()=>store.materials.filter(item=>!item.isDeleted&&item.inventoryType==='packaging'&&!rows.value.some(row=>row.materialId===item.id)))
-function sync(){for(const row of rows.value){drafts[row.materialId]={requestedQty:row.requestedQty,reason:row.reason||'',note:row.note||''};delete errors[row.materialId]}}
-watch(()=>store.modals.packageReview.isOpen,open=>{if(open)sync()})
+const savedDrafts=new Map()
+const sameDraft=(a,b)=>a&&b&&a.requestedQty===b.requestedQty&&a.reason===b.reason&&a.note===b.note
+function sync(resetIds=[],resetAll=false){
+ const ids=new Set(rows.value.map(row=>row.materialId))
+ for(const id of Object.keys(drafts))if(!ids.has(id)){delete drafts[id];delete errors[id];savedDrafts.delete(id)}
+ for(const row of rows.value){
+  const id=row.materialId,next={requestedQty:row.requestedQty,reason:row.reason||'',note:row.note||''}
+  if(resetAll||resetIds.includes(id)||!drafts[id]||sameDraft(drafts[id],savedDrafts.get(id))){drafts[id]=next;savedDrafts.set(id,{...next});delete errors[id]}
+ }
+}
+watch(()=>store.modals.packageReview.isOpen,open=>{if(open)sync([],true)})
 watch(rows,()=>{if(store.modals.packageReview.isOpen)sync()},{deep:true,immediate:true})
 function signed(value){return value>0?`+${value}`:String(value)}
 function hasAdjustment(id){return store.packageAdjustments.some(item=>item.materialId===id)}
-function save(row){const result=store.savePackageAdjustment({materialId:row.materialId,...drafts[row.materialId]});if(!result.ok)errors[row.materialId]=result.message;else{delete errors[row.materialId];nextTick(sync)}}
-function addPackage(){if(!addId.value)return;const material=store.materials.find(item=>item.id===addId.value);store.savePackageAdjustment({materialId:addId.value,requestedQty:1,reason:'separate_bag',note:''});addId.value='';nextTick(sync)}
-function reset(id){store.resetPackageAdjustment(id);nextTick(sync)}
-function resetAll(){store.resetPackageAdjustments();nextTick(sync)}
+function save(row){const result=store.savePackageAdjustment({materialId:row.materialId,...drafts[row.materialId]});if(!result.ok)errors[row.materialId]=result.message;else{delete errors[row.materialId];nextTick(()=>sync([row.materialId]))}}
+function addPackage(){if(!addId.value)return;store.savePackageAdjustment({materialId:addId.value,requestedQty:1,reason:'separate_bag',note:''});addId.value='';nextTick(()=>sync())}
+function reset(id){store.resetPackageAdjustment(id);nextTick(()=>sync([id]))}
+function resetAll(){store.resetPackageAdjustments();nextTick(()=>sync([],true))}
 function close(){store.modals.packageReview.isOpen=false}
 </script>
 <style scoped>

@@ -73,7 +73,7 @@ describe('isolated command execution coordinator', () => {
     commit.mockResolvedValue(receipt)
     expect(await executor.execute(scope, envelope)).toMatchObject({ ok: true, value: receipt })
     expect(commit).toHaveBeenLastCalledWith(scope, envelope)
-    expect(getReceipt).toHaveBeenCalledWith(scope, 'sale', 'sale-1')
+    expect(getReceipt).toHaveBeenCalledWith(scope, 'sale', 'sale-1', envelope)
   })
 
   it('rechecks identity after journal preparation, before any network call', async () => {

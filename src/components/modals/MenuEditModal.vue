@@ -258,13 +258,27 @@ function finishPicker() {
   if (pickerIds.value.length || Array.isArray(form.value.addonGroupIds)) {
     form.value.addonGroupIds = [...pickerIds.value]
   }
+  if (pickerIds.value.length) form.value.hasAddons = true
   closePicker()
+}
+function persistedMenuFingerprint(id){
+ const menu=store.menus.find(menu=>menu.id===id)
+ if(!menu)return null
+ // Compare fields this form overwrites; the picture has its own revision.
+ return JSON.stringify({
+  name:menu.name,emoji:menu.emoji||'',description:menu.description||'',
+  prices:Object.entries(menu.prices||{}).sort(([a],[b])=>a.localeCompare(b)),
+  recipe:(menu.recipe||[]).map(row=>[row.materialId,Number(row.qty)]).sort(([a,qa],[b,qb])=>a.localeCompare(b)||qa-qb),
+  hasAddons:menu.hasAddons!==false,addonGroupIds:menu.addonGroupIds,hasPackage:menu.hasPackage!==false
+ })
 }
 async function createGroupFromPicker(){
  pickerOpen.value=false
+ const revisionBeforeCreation=store.catalogRevision
+ const menuBeforeCreation=persistedMenuFingerprint(form.value.id)
  const id=await groupCreator.value?.openNew()
  if(id){
-  editCatalogRevision.value=store.catalogRevision
+  if(editCatalogRevision.value===revisionBeforeCreation&&menuBeforeCreation===persistedMenuFingerprint(form.value.id))editCatalogRevision.value=store.catalogRevision
   const issue=pickerIssue(id)
   if(issue)store.showToast(`สร้างกลุ่มแล้ว · ${issue}`, 'info')
   else togglePickerGroup(id,true)

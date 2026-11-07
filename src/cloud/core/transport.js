@@ -28,6 +28,7 @@ export function createCoreTransport({db,getContext}){
  function plan(s,command,shop,materials,order){
   const p=command.payload||{},options={opId:command.opId,uid:s.uid}
   if(command.kind==='sale'){
+   if(p.expectedCatalogRevision!==undefined&&p.expectedCatalogRevision!==shop.catalogRevision)throw fail('CATALOG_REVIEW_REQUIRED')
    const f=summaryMultiGroupSale(shop,materials,p.lines,{...options,platformId:p.platformId,packages:p.packages})
    const shortages=Object.fromEntries(Object.entries(f.order.approvedShortages).filter(([,q])=>q>0))
    if(!equal(shortages,p.approvedShortages||{}))throw fail('SHORTAGE_REVIEW_REQUIRED')
@@ -78,17 +79,39 @@ export function createCoreTransport({db,getContext}){
     if(!equal(r[key],p[key]))throw fail('COMMAND_ID_COLLISION')
    }
    if(command.kind==='sale'){
+    if(p.subtotalCents!==undefined&&p.subtotalCents!==r.subtotalCents)throw fail('COMMAND_ID_COLLISION')
+    if(p.approvedShortages!==undefined&&!equal(p.approvedShortages,Object.fromEntries(Object.entries(r.approvedShortages||{}).filter(([,qty])=>qty>0))))throw fail('COMMAND_ID_COLLISION')
     if(!equal(r.billOperands?.packages||{},p.packages||{}))throw fail('COMMAND_ID_COLLISION')
     if(r.platformId!==p.platformId||r.lines.length!==p.lines.length)throw fail('COMMAND_ID_COLLISION')
     p.lines.forEach((l,i)=>{const saved=r.lines[i];if(l.menuId!==saved.menuId||l.qty!==saved.qty||(l.note||'')!==saved.note)throw fail('COMMAND_ID_COLLISION')
-     if(l.selections){const groups={};for(const choice of l.selections){groups[choice.groupId]??={_:0};groups[choice.groupId][choice.id]=choice.selectionQty??1}for(const id of Object.keys(saved.groupSelections))if(!equal(groups[id]||{_:0},saved.groupSelections[id]))throw fail('COMMAND_ID_COLLISION')}
-     else{const quantities={_:0};for(const id of l.optionIds||[])quantities[id]=(quantities[id]||0)+1;if(!equal(quantities,saved.optionQuantities))throw fail('COMMAND_ID_COLLISION')}
+     if(Object.hasOwn(l,'selections')){
+      if(!Array.isArray(l.selections)||Object.hasOwn(l,'optionIds')&&(!Array.isArray(l.optionIds)||l.optionIds.length))throw fail('COMMAND_ID_COLLISION')
+      const groups=new Map(),seen=new Set()
+      for(const choice of l.selections){
+       if(typeof choice?.groupId!=='string'||typeof choice?.id!=='string'||choice.id==='_'||!Number.isSafeInteger(choice.selectionQty??1)||(choice.selectionQty??1)<1)throw fail('COMMAND_ID_COLLISION')
+       const key=JSON.stringify([choice.groupId,choice.id])
+       if(seen.has(key))throw fail('COMMAND_ID_COLLISION')
+       seen.add(key)
+       const quantities=groups.get(choice.groupId)||{_:0}
+       Object.defineProperty(quantities,choice.id,{value:choice.selectionQty??1,enumerable:true,configurable:true})
+       groups.set(choice.groupId,quantities)
+      }
+      const expected=saved.groupSelections||(saved.group?.id?{[saved.group.id]:saved.optionQuantities}:{})
+      if(!saved.groupSelections&&!saved.group?.id&&!equal(saved.optionQuantities,{_:0}))throw fail('COMMAND_ID_COLLISION')
+      for(const id of new Set([...groups.keys(),...Object.keys(expected)]))if(!equal(groups.get(id)||{_:0},expected[id]||{_:0}))throw fail('COMMAND_ID_COLLISION')
+     }
+     else{
+      if(saved.groupSelections||l.optionIds!==undefined&&!Array.isArray(l.optionIds))throw fail('COMMAND_ID_COLLISION')
+      const quantities=new Map([['_',0]])
+      for(const id of l.optionIds||[]){if(typeof id!=='string'||id==='_')throw fail('COMMAND_ID_COLLISION');quantities.set(id,(quantities.get(id)||0)+1)}
+      if(!equal(Object.fromEntries(quantities),saved.optionQuantities))throw fail('COMMAND_ID_COLLISION')
+     }
     })
    }
   }
   return r
  }
- async function receipt(kind,opId){const s=scope(),d=await getDocFromServer(doc(db,`${gen(s)}/${collectionFor(kind)}/${opId}`));guard(s);return d.exists()?checkReceipt(s,{kind,opId},d.data()):null}
+ async function receipt(kind,opId,command){const s=scope(),d=await getDocFromServer(doc(db,`${gen(s)}/${collectionFor(kind)}/${opId}`));guard(s);return d.exists()?checkReceipt(s,command||{kind,opId},d.data()):null}
  async function prepareSale(s,f){
   const id=f.order.opId,manifestPath=`${gen(s)}/preparations/sale_${id}`
   const descriptor={kind:'sale_set',opId:id,uid:s.uid,proofCount:f.order.lineWitnessCount,stepCount:0,materialCount:0}
@@ -239,7 +262,7 @@ export function createCoreTransport({db,getContext}){
   }
   guard(s)
   // Always return the persisted server receipt, including resolved timestamps.
-  return await receipt(command.kind,result.opId)
+  return await receipt(command.kind,result.opId,command)
  }
  async function rejectStaleInventory(command){
   const s=scope(),expected=command.payload?.expectedRevision

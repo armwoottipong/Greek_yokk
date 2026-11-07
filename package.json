@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:firebase-proof": "firebase emulators:exec --project demo-greek-yogg --only auth,firestore \"vitest run --config vitest.firestore.config.js\"",
+    "test:firebase-proof": "firebase emulators:exec --project demo-greek-yogg --config firebase.test.json --only auth,firestore \"vitest run --config vitest.firestore.config.js\"",
     "lint": "eslint src tests *.config.js"
   },
   "dependencies": {

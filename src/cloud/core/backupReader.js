@@ -4,10 +4,21 @@ import {businessDateKey} from '../../domain/businessDate.js'
 const sdkDefault={doc,collection,getDocFromServer,getDocsFromServer,query,orderBy,documentId,startAfter,limit}
 const fail=code=>Object.assign(new Error(code),{code})
 const identity=['projectId','shopId','generation','uid'],collections=['materials','display','orders','operations','legacyRecords','catalogImages'],MAX_DOCS=10000,PAGE=250
+const canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v)
 export function createBackupReader({db,getContext},sdk=sdkDefault){
  let closed=false,inFlight=false
  function guard(s){const c=getContext();if(closed||!c?.online||!c.ready)throw fail('NOT_READY');if(identity.some(k=>!s[k]||s[k]!==c[k]))throw fail('CONTEXT_CHANGED')}
  async function readRoot(s){const row=await sdk.getDocFromServer(sdk.doc(db,`shops/${s.shopId}`));guard(s);const root=row.exists()?row.data():null;if(root?.status!=='active'||root.generation!==s.generation||!Number.isSafeInteger(root.revision))throw fail('SHOP_NOT_READY');return root}
+ async function scan(s,name,onRow){
+  const source=sdk.collection(db,`shops/${s.shopId}/generations/${s.generation}/${name}`);let cursor,count=0
+  for(;;){
+   const clauses=[sdk.orderBy(sdk.documentId(),'asc'),sdk.limit(PAGE)];if(cursor)clauses.push(sdk.startAfter(cursor))
+   const page=await sdk.getDocsFromServer(sdk.query(source,...clauses));guard(s)
+   for(const row of page.docs){if(++count>MAX_DOCS)throw fail('BACKUP_TOO_LARGE');onRow(row)}
+   if(page.docs.length<PAGE)break
+   cursor=page.docs.at(-1)
+  }
+ }
  return {
   async read(){
    const s={...getContext()};guard(s);if(inFlight)throw fail('BACKUP_IN_PROGRESS');inFlight=true
@@ -16,22 +27,31 @@ export function createBackupReader({db,getContext},sdk=sdkDefault){
     function encoded(value){const result=encodeBackupValue(value);bytes+=new TextEncoder().encode(JSON.stringify(result)).length;if(bytes>MAX_BACKUP_BYTES)throw fail('BACKUP_TOO_LARGE');return result}
     const root=encoded(before)
     for(const name of collections){
-     const source=sdk.collection(db,`shops/${s.shopId}/generations/${s.generation}/${name}`),rows=[];raw[name]=[];let cursor
-     for(;;){
-      const clauses=[sdk.orderBy(sdk.documentId(),'asc'),sdk.limit(PAGE)];if(cursor)clauses.push(sdk.startAfter(cursor))
-      const page=await sdk.getDocsFromServer(sdk.query(source,...clauses));guard(s)
-      for(const row of page.docs){
+     const rows=[];raw[name]=[]
+     await scan(s,name,row=>{
        if(++total>MAX_DOCS)throw fail('BACKUP_TOO_LARGE')
        let value=row.data();raw[name].push({id:row.id,data:value})
        if(name==='materials'){value={...value};delete value.billPreparations;delete value.billPreparationId}
        rows.push({id:row.id,data:encoded(value)})
-      }
-      if(page.docs.length<PAGE)break
-      cursor=page.docs.at(-1)
-     }
+     })
      data[name]=rows;counts[name]=rows.length
     }
-    const after=await readRoot(s);if(before.revision!==after.revision)continue
+    const checkpoint=await readRoot(s);if(before.revision!==checkpoint.revision)continue
+    // Order and image saves have independent monotonic revisions rather than
+    // bumping the business root. Collect both again before the closing root read.
+    let metadataStable=true,metadataBytes=0,metadataCount=1
+    for(const name of ['display','catalogImages']){
+     const checked=[]
+     await scan(s,name,row=>{
+      if(++metadataCount>MAX_DOCS)throw fail('BACKUP_TOO_LARGE')
+      const value=encodeBackupValue(row.data())
+      metadataBytes+=new TextEncoder().encode(JSON.stringify(value)).length
+      if(metadataBytes>MAX_BACKUP_BYTES)throw fail('BACKUP_TOO_LARGE')
+      checked.push({id:row.id,data:value})
+     })
+     if(canonical(checked)!==canonical(data[name]))metadataStable=false
+    }
+    const after=await readRoot(s);if(before.revision!==after.revision||!metadataStable)continue
     const ids=before.materialIds,materials=raw.materials,catalog=raw.display.find(r=>r.id==='catalog')?.data
     if(!Array.isArray(ids)||new Set(ids).size!==ids.length||ids.length!==materials.length||ids.some(id=>!materials.some(m=>m.id===id&&m.data.id===id))||materials.some(({data:m})=>!Array.isArray(m.lotIds)||m.stock!==m.lotIds.reduce((n,id)=>n+m.lotQty?.[id],0))||!catalog)throw fail('BACKUP_INCOMPLETE')
     const count=catalog.legacyOrderCount??0,archiveIds=new Set(raw.legacyRecords.map(r=>r.id)),groups=new Map()

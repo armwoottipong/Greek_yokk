@@ -39,6 +39,12 @@ function normalizedId(id,kind,data){
  return known[encoded]||catalog[encoded]?encoded:id
 }
 export function projectReportOrders({receipts=[],legacyOrders=[]},data){
+ const legacyIds=new Set()
+ for(const order of legacyOrders){
+  if(typeof order?.orderId!=='string'||!order.orderId)continue
+  if(legacyIds.has(order.orderId))fail('REPORT_INVALID_DATA')
+  legacyIds.add(order.orderId)
+ }
  const migrated=new Set(receipts.filter(o=>o.origin==='legacy').map(o=>o.sourceLegacyId))
  return [...receipts.map(o=>nativeOrder(o,data)),...legacyOrders.filter(o=>!migrated.has(o.orderId)).map((o,index)=>{
   if(!o||typeof o!=='object'||Array.isArray(o))fail('REPORT_INVALID_DATA')

@@ -13,6 +13,7 @@ const messages={
  CONTEXT_CHANGED:'บัญชีหรือข้อมูลร้านเปลี่ยนระหว่างดำเนินการ กรุณาเปิดร้านด้วยบัญชีเดิมเพื่อตรวจผล',
  STALE_INVENTORY_DRAFT:'ยอดร้านเปลี่ยนแล้ว กรุณาตรวจแบบร่างกับข้อมูลล่าสุดก่อนบันทึก',
  PRICE_REVIEW_REQUIRED:'ราคาเมนูเปลี่ยนแล้ว กรุณาหยุดบิลที่ยังไม่สำเร็จและตรวจราคาในตะกร้าใหม่',
+ CATALOG_REVIEW_REQUIRED:'เมนูหรือตัวเลือกเปลี่ยนแล้ว กรุณาหยุดบิลที่ยังไม่สำเร็จและตรวจตะกร้ากับข้อมูลล่าสุดก่อนยืนยันใหม่',
  PENDING_RESULT:'ยังยืนยันผลรายการเดิมไม่ได้ กรุณาตรวจผลก่อนบันทึกรายการใหม่',
 }
 export function commandErrorMessage(error){return messages[error?.causeCode]||messages[error?.code||error?.message]||null}

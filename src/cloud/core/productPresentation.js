@@ -1,12 +1,14 @@
 import {receiptPackagePlan,receiptExpectedPackageShortage} from './packageReceipt.js'
 import {catalogMenus} from './catalogPresentation.js'
 import {projectReceiptItems} from './receiptPresentation.js'
+import {groupAvailability} from './groupAvailability.js'
 // Read-only views of canonical cloud quantities and prices for the original UI.
 export function projectMenus(data){
  return catalogMenus(data).filter(menu=>menu.isActive!==false)
 }
 export function optionCents(data,menu,group,id,platform){
  const c=data.shop.catalog
+ if(group&&groupAvailability(data,group).unpricedById?.[id]?.includes(platform))return null
  if(group?.pricingMode==='included')return 0
  const prices=group?group.optionPrices?.[platform]:menu.priceMode==='addon'?c.addonPrices?.[platform]:menu.optionPrices?.[platform]
  return prices?.[id]??c.addonPrices?.[platform]?.[id]??0
@@ -16,7 +18,7 @@ export function projectCart(lines,data){
  const menus=projectMenus(data),c=data.shop.catalog
  return lines.map(line=>{
   const m=c.menus[line.menuId]||{},choices=line.selections||[...new Set(line.optionIds||[])].map(id=>({id,groupId:m.groupId,selectionQty:line.optionIds.filter(v=>v===id).length}))
-  return {menu:menus.find(m=>m.id===line.menuId)||{id:line.menuId,...data.display.menus?.[line.menuId],name:data.display.menus?.[line.menuId]?.name||m.name||line.menuId,prices:Object.fromEntries(Object.entries(m.pricesCents||{}).map(([id,v])=>[id,v/100]))},qty:line.qty,note:line.note,selectedAddons:choices.map(s=>({id:s.id,...data.display.addons?.[s.id],groupId:s.groupId,groupName:c.groups?.[s.groupId]?.name,selectionQty:s.selectionQty||1,prices:Object.fromEntries(Object.keys(m.pricesCents||{}).map(p=>[p,optionCents(data,m,c.groups?.[s.groupId],s.id,p)/100]))}))}
+  return {menu:menus.find(m=>m.id===line.menuId)||{id:line.menuId,...data.display.menus?.[line.menuId],name:data.display.menus?.[line.menuId]?.name||m.name||line.menuId,prices:Object.fromEntries(Object.entries(m.pricesCents||{}).map(([id,v])=>[id,v/100]))},qty:line.qty,note:line.note,selectedAddons:choices.map(s=>({id:s.id,...data.display.addons?.[s.id],groupId:s.groupId,groupName:c.groups?.[s.groupId]?.name,selectionQty:s.selectionQty||1,prices:Object.fromEntries(Object.keys(m.pricesCents||{}).flatMap(p=>{const cents=optionCents(data,m,c.groups?.[s.groupId],s.id,p);return cents===null?[]:[[p,cents/100]]}))}))}
  })
 }
 const date=day=>Number.isInteger(day)&&day>=0&&day<999999?new Date(day*86400000).toISOString().slice(0,10):''

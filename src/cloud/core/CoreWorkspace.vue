@@ -28,7 +28,7 @@
  <DialogFrame :open="!!menu" id="cloud-custom-order" title="รายละเอียดสินค้า" presentation="drawer" width="520px" :busy="busy" @request-close="selectedMenu=''">
   <form v-if="menu" id="cloud-line-form" class="line-form" @submit.prevent="addLine">
    <div class="product-detail"><div class="product-visual" aria-hidden="true"><EntityImage kind="menus" :entity-id="menu.id" :emoji="data.display.menus?.[menu.id]?.emoji"/></div><div class="bowl-heading"><h3>{{ name('menus',menu.id) }}</h3><strong class="product-base-price">{{ money(menu.pricesCents[platformId]) }}</strong></div></div>
-   <div class="bowl-groups"><section v-for="g in menuGroups" :key="g.id" class="bowl-options"><header><div><h4>{{ g.name }}</h4><p>เลือก {{ g.min===g.max?g.min:`${g.min}–${g.max}` }} อย่าง · {{ g.pricingMode==='included'?'รวมในราคา':'คิดเงินเพิ่ม' }}</p></div><span>{{ groupCount(g) }}/{{ g.max }}</span></header><div class="bowl-addon-grid"><div v-for="id in g.optionIds" :key="id" class="bowl-group-option"><button type="button" class="bowl-addon" :class="{'is-selected':choices[g.id][id]>0}" :aria-pressed="choices[g.id][id]>0" :disabled="locked||(!choices[g.id][id]&&(groupCount(g)>=g.max||blockedOption(g,id)))" @click="toggleChoice(g,id)"><span class="bowl-addon-emoji" aria-hidden="true"><EntityImage v-bind="optionImage(id)"/></span><span class="bowl-addon-name"><strong>{{ name('addons',id) }}</strong><small v-if="availability(g,id)!=='ready'">{{ optionAvailabilityLabel[availability(g,id)] }}</small></span><span class="bowl-addon-price">{{ optionPrice(g,id) }}</span><span class="bowl-addon-check"><Check v-if="choices[g.id][id]>0" :size="15"/><Plus v-else :size="15"/></span></button><div v-if="g.allowRepeat&&choices[g.id][id]>0" class="bowl-option-quantity"><AppQuantityInput v-model="choices[g.id][id]" :label="`${g.name} ${name('addons',id)} จำนวน`" :min="0" :max="g.max" :disabled="locked"/></div></div></div></section></div>
+   <div class="bowl-groups"><section v-for="g in menuGroups" :key="g.id" class="bowl-options"><header><div><h4>{{ g.name }}</h4><p>เลือก {{ g.min===g.max?g.min:`${g.min}–${g.max}` }} อย่าง · {{ g.pricingMode==='included'?'รวมในราคา':'คิดเงินเพิ่ม' }}</p></div><span>{{ groupCount(g) }}/{{ g.max }}</span></header><div class="bowl-addon-grid"><div v-for="id in g.optionIds" :key="id" class="bowl-group-option"><button type="button" class="bowl-addon" :class="{'is-selected':choices[g.id][id]>0}" :aria-pressed="choices[g.id][id]>0" :disabled="locked||(!choices[g.id][id]&&(groupCount(g)>=g.max||blockedOption(g,id)))" @click="toggleChoice(g,id)"><span class="bowl-addon-emoji" aria-hidden="true"><EntityImage v-bind="optionImage(id)"/></span><span class="bowl-addon-name"><strong>{{ name('addons',id) }}</strong><small v-if="availability(g,id)!=='ready'">{{ availabilityLabel(availability(g,id)) }}</small></span><span class="bowl-addon-price">{{ optionPrice(g,id) }}</span><span class="bowl-addon-check"><Check v-if="choices[g.id][id]>0" :size="15"/><Plus v-else :size="15"/></span></button><div v-if="g.allowRepeat&&choices[g.id][id]>0" class="bowl-option-quantity"><AppQuantityInput v-model="choices[g.id][id]" :label="`${g.name} ${name('addons',id)} จำนวน`" :min="0" :max="g.max" :disabled="locked"/></div></div></div></section></div>
    <section class="product-note"><label class="field">หมายเหตุ<AppInput v-model="lineNote" maxlength="1000" placeholder="เช่น แยกท็อปปิ้ง" :disabled="locked"/></label></section>
    <p v-if="lineError" class="error" role="alert">{{ lineError }}</p>
   </form>
@@ -177,18 +177,20 @@ const availabilityMaterials = computed(() => (data.value?.materials || []).map(m
 })))
 function availability(group, id, qty = quantity.value) {
  const policy = {...groupAvailability(data.value, group), isActive: group.active !== false}
+ if(policy.unpricedById?.[id]?.includes(platformId.value))return 'unpriced'
  return optionAvailability(policy, { paused: policy.pausedIds?.has(id) }, availabilityAddons.value.get(id), availabilityMaterials.value, qty)
 }
-const blockedOption = (group, id, qty) => ['paused', 'out'].includes(availability(group, id, qty))
+const availabilityLabel=status=>status==='unpriced'?'ยังไม่ตั้งราคา':optionAvailabilityLabel[status]
+const blockedOption = (group, id, qty) => ['paused', 'out', 'unpriced'].includes(availability(group, id, qty))
 function assertOptionAvailability(lines) {
  const catalog = data.value.shop.catalog
  for (const line of lines) {
   const menu = catalog.menus[line.menuId]
-  const selected = line.selections || (menu?.groupId ? [...new Set(line.optionIds || [])].map(id => ({
-   id, groupId: menu.groupId, selectionQty: line.optionIds.filter(optionId => optionId === id).length
-  })) : [])
+  if(!line.selections&&(menu?.groupId||menu?.groupIds?.length)&&line.optionIds?.length)throw new Error('OPTION_GROUP_RESELECT_REQUIRED')
+  const selected = line.selections || []
   for (const choice of selected) {
    const group = catalog.groups[choice.groupId]
+   if(group&&availability(group,choice.id,line.qty*(choice.selectionQty||1))==='unpriced')throw new Error('OPTION_UNPRICED')
    if (group && blockedOption(group, choice.id, line.qty * (choice.selectionQty || 1))) {
     throw new Error('OPTION_UNAVAILABLE')
    }
@@ -205,13 +207,13 @@ function material(id){return data.value?.materials.find(m=>m.id===id)}
 function materialName(id){return material(id)?.name||id}
 function name(kind,id){return data.value?.display[kind]?.[id]?.name||id}
 function orderDate(o){return o.createdAt?.toDate?o.createdAt.toDate().toLocaleString('th-TH'):''}
-function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g,id,platformId.value);return cents===0?'รวมในราคา':`+${money(cents)}`}
+function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g,id,platformId.value);return cents===null?'ยังไม่ตั้งราคา':cents===0?'รวมในราคา':`+${money(cents)}`}
 function selectMenu(id){if(locked.value)return;cartLauncher.value?.capture(id);selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
 function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
 function draftLine(){
  const line={menuId:menu.value.id,qty:quantity.value,note:lineNote.value.trim()}
- if(menu.value.groupIds?.length)line.selections=menuGroups.value.flatMap(g=>g.optionIds.filter(id=>choices.value[g.id][id]>0).map(id=>({groupId:g.id,id,selectionQty:choices.value[g.id][id]})))
+ if(menuGroups.value.length)line.selections=menuGroups.value.flatMap(g=>g.optionIds.filter(id=>choices.value[g.id][id]>0).map(id=>({groupId:g.id,id,selectionQty:choices.value[g.id][id]})))
  else line.optionIds=menuGroups.value.flatMap(g=>g.optionIds.flatMap(id=>{const q=choices.value[g.id][id]||0;if(!Number.isSafeInteger(q)||q<0||q>(g.allowRepeat?g.max:1))throw new Error('Invalid selection');return Array(q).fill(id)}))
  return line
 }
@@ -226,7 +228,7 @@ function addLine(){
  else next.push(line)
  assertOptionAvailability(next);service.previewSale({platformId:platformId.value,lines:next});cart.value=next;error.value='';lineError.value='';selectedMenu.value=''}catch(e){lineError.value=explain(e)}
 }
-function explain(e){const known=commandErrorMessage(e);if(known)return known;const code=e?.code||e?.message||'';if(code==='OPTION_UNAVAILABLE')return 'ตัวเลือกพักขายหรือสต็อกไม่พอ กรุณาแก้รายการในตะกร้า';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SALE_MATERIAL_LIMIT')return 'บิลนี้ใช้วัตถุดิบรวมเกิน 16 รายการ กรุณาแบ่งเป็นหลายบิล';if(code==='RECIPE_MATERIAL_LIMIT')return 'หนึ่งสูตรใช้วัตถุดิบได้ไม่เกิน 16 รายการ';if(code==='PREPARATION_LIMIT')return 'มีคำสั่งค้างหลายรายการ กรุณาตรวจและจัดการคำสั่งค้างก่อนลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
+function explain(e){const known=commandErrorMessage(e);if(known)return known;const code=e?.code||e?.message||'';if(code==='OPTION_GROUP_RESELECT_REQUIRED')return 'ตะกร้าเดิมไม่มีข้อมูลกลุ่ม กรุณาเลือกตัวเลือกใหม่ก่อนยืนยันขาย';if(code==='OPTION_UNPRICED')return 'ตัวเลือกยังไม่ตั้งราคาสำหรับช่องทางนี้ กรุณาเลือกใหม่หรือแก้ราคา';if(code==='OPTION_UNAVAILABLE')return 'ตัวเลือกพักขายหรือสต็อกไม่พอ กรุณาแก้รายการในตะกร้า';if(code==='OFFLINE'||code==='NOT_READY')return 'ยังไม่เชื่อมต่อเซิร์ฟเวอร์ กรุณาเชื่อมต่อแล้วลองใหม่';if(code==='SALE_MATERIAL_LIMIT')return 'บิลนี้ใช้วัตถุดิบรวมเกิน 16 รายการ กรุณาแบ่งเป็นหลายบิล';if(code==='RECIPE_MATERIAL_LIMIT')return 'หนึ่งสูตรใช้วัตถุดิบได้ไม่เกิน 16 รายการ';if(code==='PREPARATION_LIMIT')return 'มีคำสั่งค้างหลายรายการ กรุณาตรวจและจัดการคำสั่งค้างก่อนลองใหม่';if(code==='SHORTAGE_REVIEW_REQUIRED')return 'สต็อกเปลี่ยนไป กรุณาตรวจจำนวนที่ขาดใหม่';if(code.includes('Production input unavailable'))return 'วัตถุดิบผลิตไม่พอหรือหมดอายุ กรุณารับเข้าวัตถุดิบก่อนผลิต';if(code.includes('Invalid line')||code.includes('selection'))return 'กรุณาเลือกท็อปปิ้งให้ครบตามจำนวนและตรวจจำนวนสินค้า';if(code.includes('allocation'))return 'วัตถุดิบหมดอายุหรือจัดสรรล็อตไม่ได้ กรุณาตรวจสต็อก';if(code==='LOCAL_JOURNAL_FAILED')return 'เก็บคำสั่งบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วลองใหม่';return 'บันทึกไม่ได้ กรุณาตรวจจำนวน ราคา วันที่ และสต็อก แล้วโหลดข้อมูลล่าสุดอีกครั้ง'}
 let refreshTask=null
 function refresh(){
  if(!service||disposed)return Promise.resolve()
@@ -316,7 +318,7 @@ function finish(value){
   else showToast('บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว','success')
  }
 }
-function checkout(){if(!canCheckout.value)return;cartCommandId=crypto.randomUUID();void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value),subtotalCents:preview.value.subtotalCents,approvedShortages:Object.fromEntries(shortages.value)}})}
+function checkout(){if(!canCheckout.value)return;cartCommandId=crypto.randomUUID();void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value),subtotalCents:preview.value.subtotalCents,expectedCatalogRevision:data.value.shop.catalogRevision,approvedShortages:Object.fromEntries(shortages.value)}})}
 async function retry(){if(!pendingCommand.value)return;await send(plain(pendingCommand.value),'retry')}
 async function stopPending(){
  if(!operator.value||busy.value||!ready.value||!service.stop)return

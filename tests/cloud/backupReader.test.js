@@ -12,7 +12,8 @@ it('exports all business collections, explicitly omits transient cache and verif
  const h=setup(),r=await h.reader.read();expect(await verifyBusinessBackup(r.text)).toBe(true)
  const p=JSON.parse(r.text).payload;expect(p.revision).toBe(4);expect(p.counts).toMatchObject({materials:1,orders:1,legacyRecords:2})
  expect(r.text).not.toContain('"tmp"');expect(p.exclusions.materialFields).toContain('billPreparations')
- expect(h.sdk.getDocsFromServer).toHaveBeenCalledTimes(6)
+ expect(h.sdk.getDocsFromServer).toHaveBeenCalledTimes(8)
+ for(const name of ['display','catalogImages'])expect(h.sdk.getDocsFromServer.mock.calls.filter(([ref])=>ref.path.endsWith('/'+name))).toHaveLength(2)
 })
 it('paginates every collection by document ID beyond 250 and never drops the last page',async()=>{
  const h=setup();let n=0;h.sdk.getDocsFromServer.mockImplementation(async ref=>{
@@ -36,7 +37,9 @@ it('fences remote commits, offline/context changes and closed readers',async()=>
 it('retries one raced snapshot and prevents a duplicate export from starting',async()=>{
  const h=setup();let n=0;h.sdk.getDocFromServer.mockImplementation(async()=>({exists:()=>true,data:()=>({...h.root,revision:n++===0?4:5})}))
  const first=h.reader.read();await expect(h.reader.read()).rejects.toThrow('BACKUP_IN_PROGRESS')
- expect((await first).revision).toBe(5);expect(h.sdk.getDocsFromServer).toHaveBeenCalledTimes(12)
+ expect((await first).revision).toBe(5);expect(h.sdk.getDocsFromServer).toHaveBeenCalledTimes(14)
+ // The failed business-revision fence skips metadata rechecks on attempt one.
+ expect(h.sdk.getDocsFromServer.mock.calls.filter(([ref])=>ref.path.endsWith('/display'))).toHaveLength(3)
 })
 it('never returns a partial file above the document limit',async()=>{
  const h=setup();h.sdk.getDocsFromServer.mockImplementation(async()=>({docs:Array.from({length:250},(_,i)=>({id:`M${i}`,data:()=>({value:i})}))}))

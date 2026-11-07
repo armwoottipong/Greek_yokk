@@ -163,6 +163,16 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
  collect('smallCost(')
  const replace=(body,before,after)=>{if(!body.includes(before))throw new Error('Core validator source changed');return body.replace(before,after)}
  function extend(name,body){
+  // Receipt matching reads quantity, dates and ordinal only. Avoid eagerly
+  // resolving active flags/IDs for every slot within the native Rules budget.
+  if(name==='matchAt')body=replace(body,`let l = resolvedSlot(before,before.slotIds[i]);
+      return !matchesReceipt(l,o) || (o.mode == 'merge' && before.lots[o.lotId].ordinal <= l.ordinal);`,`let lotId=before.slotIds[i];
+      let lot=before.lots[lotId];
+      return !(before.lotQty[lotId]>0 && lot.receiveDay==o.receiveDay && lot.expiryDay==o.expiryDay) ||
+        (o.mode=='merge' && before.lots[o.lotId].ordinal<=lot.ordinal);`)
+  // Zero is a valid historical lot cost, including donated/free inventory.
+  if(name==='mergeStockLot')body=replace(body,'let price=old.unitCost==0 ? o.unitCost : old.unitCost;','let price=old.unitCost;')
+  if(name==='wasteState')body=replace(body,'let price=before.lots[c.id].unitCost==0 ? before.unitCost : before.lots[c.id].unitCost;',"let price=before.lots[c.id].get('unitCost',before.unitCost);")
   // The cache validator already reads this exact root. Reuse it instead of
   // evaluating active()->get(rootPath()) a second time for every material.
   if(name==='billCacheWrite')body=replace(body,'return active(s,g) && id==b.id',"return root.status=='active' && root.generation==g && id==b.id")
@@ -337,7 +347,10 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   function need(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g))if(bodies.has(m[1])&&!scope.needed.has(m[1])){scope.needed.add(m[1]);need(bodies.get(m[1]))}}
   need(scope.body)
   if(/allow /.test(scope.body)&&scope.body.trim()!=='allow read,write: if false;')need('signedIn()')
-  if(!legacyTestAuth){if(/allow (create|update|delete)/.test(scope.body)&&!scope.path.includes('presence'))need('operatorIdentity( adminIdentity( signedInAfter( adminAfter(')}
+  if(!legacyTestAuth){
+   if(/allow (create|update|delete)/.test(scope.body)&&!scope.path.includes('presence'))need('operatorIdentity( adminIdentity( signedInAfter( adminAfter(')
+   if(scope.path.includes('/legacyRecords/'))need('operatorIdentity(')
+  }
  }
  const owners=new Map([...bodies.keys()].map(name=>[name,scopes.filter(scope=>scope.needed.has(name))]))
  const shared=[...bodies].filter(([name])=>owners.get(name).length>1).map(([,body])=>body)
@@ -350,6 +363,11 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
    if(!legacyTestAuth){
     if(scope.path==='/shops/{s}')gate=/update/.test(action)?'operatorIdentity(resource.data)':'allowedIdentity(resource.data)'
     else if(!scope.path.includes('presence')&&/create|update|delete/.test(action))gate='signedInAfter()'
+    else if(action==='read'){
+     const operator=`operatorIdentity(get(/databases/$(database)/documents/shops/${shopId}).data)`
+     if(/\/(operations|materialReferences|recipeAdmissions|preparations|preparedSales)\//.test(scope.path))gate=`signedIn() && ${operator}`
+     else if(scope.path.includes('/legacyRecords/'))gate=`signedIn() && (id.matches('^orders_[0-9]+$') || ${operator})`
+    }
    }
    return `allow ${action}: if ${expression==='false'?expression:expression==='signedIn()'?gate:`${gate} && (${expression})`};`
   })

@@ -46,19 +46,22 @@ export function createShopAccess({db,shopId,getUser,getShop=()=>null,onPresence=
    if(roles&&!expectedRoles)throw new Error('ROLES_BASELINE_REQUIRED')
    saving=true
    const opId=crypto.randomUUID()
-   try{return await sdk.runTransaction(db,async tx=>{
-    if(disposed||getUser()?.uid!==user.uid)throw new Error('SESSION_CHANGED')
+   const guard=()=>{if(disposed||getUser()?.uid!==user.uid)throw new Error('SESSION_CHANGED')}
+   try{const result=await sdk.runTransaction(db,async tx=>{
+    guard()
     const snapshot=await tx.get(root)
+    guard()
     if(!snapshot.exists())throw new Error('SHOP_NOT_FOUND')
     const live=snapshot.data()
     if(!same(live.allowedEmails,expected)||roles&&!same(live.userRoles,expectedRoles))throw new Error('ACCESS_CONFLICT')
     if(shopRole(live,user.email)!=='admin')throw new Error('ACCESS_DENIED')
     const userRoles=roleMap(map,roles||live.userRoles)
     if(userRoles[user.email.toLowerCase()]!=='admin')throw new Error('KEEP_CURRENT_ADMIN')
+    guard()
     tx.update(root,{allowedEmails:map,userRoles,revision:live.revision+1,lastOpKind:'access',lastOpId:opId})
     Object.keys(map).filter(email=>!live.allowedEmails?.[email]).forEach((email,i)=>tx.set(sdk.doc(db,'shops',shopId,'invitations',`${opId}-${i}`),{email,role:userRoles[email],createdBy:user.uid,createdAt:sdk.serverTimestamp(),status:'pending'}))
     return map
-   })}finally{saving=false}
+   });guard();return result}finally{saving=false}
   },
   close(){disposed=true;inviteEpoch++;inviteStop?.();stop?.();stop=null;onPresence([]);onInvitations([])}
  }

@@ -7,7 +7,21 @@ export function summaryMultiGroupSale(shop,materials,lines,options={}){
   const c=shop.catalog,platform=options.platformId||'P'
   const canonical=lines.map(line=>{
     const menu=c.menus[line.menuId],ids=menu?.groupIds
-    if(!ids?.length)return summarySale(shop,materials,[line],{...options,packages:undefined}).order.lines[0]
+    if(!ids?.length){
+      let legacyLine=line
+      if(Object.hasOwn(line,'selections')){
+        const group=menu?.groupId?c.groups[menu.groupId]:null,seen=new Set()
+        if(!Array.isArray(line.selections)||line.optionIds?.length)throw new Error('Invalid group selection')
+        const optionIds=line.selections.flatMap(choice=>{
+          const qty=choice?.selectionQty??1
+          if(!group||choice?.groupId!==group.id||!group.optionIds.includes(choice.id)||!Number.isSafeInteger(qty)||qty<1||qty>group.max||(!group.allowRepeat&&qty!==1)||seen.has(choice.id))throw new Error('Invalid group selection')
+          seen.add(choice.id)
+          return Array(qty).fill(choice.id)
+        })
+        legacyLine={...line,optionIds}
+      }
+      return summarySale(shop,materials,[legacyLine],{...options,packages:undefined}).order.lines[0]
+    }
     if(!menu?.active||!Array.isArray(ids)||ids.length!==2||new Set(ids).size!==2||!Array.isArray(line.selections)||!Number.isSafeInteger(line.qty)||line.qty<1||line.qty>1000000)throw new Error('Invalid multi-group line')
     const groups=Object.fromEntries(ids.map(id=>[id,c.groups[id]]))
     if(Object.values(groups).some(g=>!g?.active||g.max>3))throw new Error('Unsupported multi-group profile')

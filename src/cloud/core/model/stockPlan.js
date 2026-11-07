@@ -42,7 +42,7 @@ export function planSetStockIn(shop,material,input = {}) {
   if (packaging && before.lotIds.slice(1).some(id => before.lots[id].qty>0)) throw new Error('Nonperishable consolidation requires a separately verified command')
   next.stock += qtyQ; next.unitCost = Math.round(weighted*10000)/10000; next.packCostCents = packCostCents
   if (old) {
-    const lotWeighted = ((old.qty/100)*(old.unitCost || unitCost)+(qtyQ/100)*unitCost)/((old.qty+qtyQ)/100)
+    const lotWeighted = ((old.qty/100)*(old.unitCost ?? unitCost)+(qtyQ/100)*unitCost)/((old.qty+qtyQ)/100)
     next.lots[lotId] = {...old,qty:old.qty+qtyQ,initialQtyQ:old.initialQtyQ+qtyQ,
       unitCost:packaging ? weighted : Math.round(lotWeighted*10000)/10000,packCostCents,
       note:note ? (old.note ? `${old.note}; ${note}` : note) : old.note,
