@@ -9,15 +9,20 @@
    <p v-if="group.packaging && menu.hasPackage===false" class="recipe-note">ปิดการตัดสต็อกบรรจุภัณฑ์สำหรับเมนูนี้</p>
    <ul v-if="group.items.length" class="recipe-list" role="list">
     <li v-for="(item,index) in group.items" :key="index" class="recipe-item">
-     <div>
-      <strong>{{ item.mat?.name || 'ไม่พบวัตถุดิบ' }}</strong>
-      <p class="recipe-meta">
-       <span class="recipe-quantity">{{ item.qty }} {{ item.mat?.unit || '' }}</span>
-       <span v-if="!item.mat">รหัส {{ item.materialId }} · แก้ไขสูตรเพื่อเลือกวัตถุดิบใหม่</span>
-       <span v-else-if="item.servingsAvailable!==null">สต็อกพอ {{ item.servingsAvailable }} เสิร์ฟ</span>
-       <span v-else>ยังไม่ระบุจำนวนที่ใช้</span>
-      </p>
-      <p v-if="item.mat && item.cost===null" class="recipe-note">ตรวจต้นทุนวัตถุดิบและปริมาณในสูตร</p>
+     <div class="recipe-material">
+      <span class="recipe-thumbnail" aria-hidden="true">
+       <EntityImage kind="materials" :entity-id="item.mat?.id" :image="item.mat?.image" :emoji="item.mat?.emoji || (group.packaging ? '📦' : '🥣')" />
+      </span>
+      <div class="recipe-material-copy">
+       <strong>{{ item.mat?.name || 'ไม่พบวัตถุดิบ' }}</strong>
+       <p class="recipe-meta">
+        <span class="recipe-quantity">{{ item.qty }} {{ item.mat?.unit || '' }}</span>
+        <span v-if="!item.mat">รหัส {{ item.materialId }} · แก้ไขสูตรเพื่อเลือกวัตถุดิบใหม่</span>
+        <span v-else-if="item.servingsAvailable!==null">สต็อกพอ {{ item.servingsAvailable }} เสิร์ฟ</span>
+        <span v-else>ยังไม่ระบุจำนวนที่ใช้</span>
+       </p>
+       <p v-if="item.mat && item.cost===null" class="recipe-note">ตรวจต้นทุนวัตถุดิบและปริมาณในสูตร</p>
+      </div>
      </div>
      <b>{{ item.cost===null ? 'ยังไม่ทราบต้นทุน' : costFormat.format(item.cost) }}</b>
     </li>
@@ -44,6 +49,7 @@
 <script setup>
 import {computed} from 'vue'
 import Button from '../ui/Button.vue'
+import EntityImage from '../images/EntityImage.vue'
 const props=defineProps({menu:{type:Object,required:true},items:{type:Array,default:()=>[]},addonGroups:{type:Array,default:()=>[]}})
 defineEmits(['edit'])
 const costFormat=new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB'})
@@ -76,6 +82,9 @@ const groups=computed(()=>[
   overflow-wrap: anywhere;
 }
 .recipe-item + .recipe-item { border-top: 1px solid var(--border-subtle); }
+.recipe-material { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.recipe-thumbnail { flex: none; width: 40px; height: 40px; border-radius: 8px; background: var(--bg-soft); font-size: 1.125rem; }
+.recipe-material-copy { min-width: 0; }
 .recipe-item strong { font-weight: 500; }
 .recipe-meta { display: flex; flex-wrap: wrap; gap: 0 12px; margin-top: 2px; }
 .recipe-quantity { color: var(--text-main); font-variant-numeric: tabular-nums; }
@@ -84,5 +93,8 @@ const groups=computed(()=>[
 .recipe-option-price { font-size: .75rem; color: var(--text-muted); }
 .recipe-note { margin-top: 6px; }
 @media (max-width: 767px) { .menu-recipe-panel { padding: 16px; } }
-@media (max-width: 420px) { .recipe-item { grid-template-columns: minmax(0, 1fr) minmax(0, 34%); } }
+@media (max-width: 420px) {
+  .recipe-item { grid-template-columns: minmax(0, 1fr) minmax(0, 34%); }
+  .recipe-thumbnail { width: 32px; height: 32px; font-size: 1rem; }
+}
 </style>
