@@ -6,7 +6,7 @@ import AppSelect from '../../src/components/ui/AppSelect.vue'
 
 function setup(){
  const store=createTestStore();store.materials=[
-  material('BOWL',10,{name:'ถ้วยเล็ก',inventoryType:'packaging',unit:'ใบ'}),
+  material('BOWL',10,{name:'ถ้วยเล็ก',inventoryType:'packaging',unit:'ใบ',image:'/bowl.jpg'}),
   material('BAG',10,{name:'ถุง',inventoryType:'packaging',unit:'ใบ'}),
   material('FOOD',10,{name:'น้ำผึ้ง'})
  ]
@@ -18,7 +18,8 @@ function setup(){
 it('steps packaging quantities without going below zero and saves only on confirmation',async()=>{
  const store=setup(),w=mount(PackageReviewModal,{attachTo:document.body})
  try{
-  await flushPromises();const qty=w.get('[aria-label="จำนวนถ้วยเล็ก"]')
+  await flushPromises();await w.get('[data-edit-package="BOWL"]').trigger('click')
+  const qty=w.get('[aria-label="จำนวนถ้วยเล็ก"]')
   await w.get('[aria-label="เพิ่มจำนวนถ้วยเล็ก"]').trigger('click')
   expect(qty.element.value).toBe('3');expect(store.packageAdjustments).toEqual([])
   await w.get('[aria-label="ลดจำนวนถ้วยเล็ก"]').trigger('click')
@@ -39,7 +40,14 @@ it('steps packaging quantities without going below zero and saves only on confir
 it('shows baseline, effective quantity, sources and only active package choices',async()=>{
  const store=setup(),w=mount(PackageReviewModal,{attachTo:document.body})
  try{
-  await flushPromises();expect(w.text()).toContain('จากสูตร 2');expect(w.text()).toContain('โยเกิร์ต')
+  await flushPromises();expect(w.text()).toContain('จากสูตร 2')
+  const row=w.get('article'),toggle=row.get('button[aria-expanded]')
+  expect(row.get('img').attributes('src')).toBe('/bowl.jpg')
+  expect(toggle.attributes('aria-expanded')).toBe('false')
+  expect(row.get('[aria-label="จำนวนถ้วยเล็ก"]').isVisible()).toBe(false)
+  await toggle.trigger('click')
+  expect(row.get('[aria-label="จำนวนถ้วยเล็ก"]').isVisible()).toBe(true)
+  expect(w.text()).toContain('โยเกิร์ต')
   expect(w.findAllComponents(AppSelect)).toHaveLength(2)
   const select=w.findAllComponents(AppSelect)[0].get('select')
   expect(select.text()).toContain('ถุง');expect(select.text()).not.toContain('น้ำผึ้ง')
@@ -49,7 +57,8 @@ it('shows baseline, effective quantity, sources and only active package choices'
 it('requires reasons and an explanation for other, then supports row and all reset',async()=>{
  const store=setup(),w=mount(PackageReviewModal,{attachTo:document.body})
  try{
-  await flushPromises();const qty=w.get('[aria-label="จำนวนถ้วยเล็ก"]');await qty.setValue('3')
+  await flushPromises();await w.get('[data-edit-package="BOWL"]').trigger('click')
+  const qty=w.get('[aria-label="จำนวนถ้วยเล็ก"]');await qty.setValue('3')
   await w.get('[data-save-package="BOWL"]').trigger('click');expect(w.text()).toContain('เลือกเหตุผล')
   const reason=w.findAllComponents(AppSelect)[1]
   await reason.get('button').trigger('keydown',{key:'ArrowDown'});await reason.get('button').trigger('keydown',{key:'End'});await reason.get('button').trigger('keydown',{key:'Enter'})
@@ -68,6 +77,7 @@ it('adds packaging through the shared selector without changing the charge',asyn
   await selector.get('button').trigger('keydown',{key:'ArrowDown'});await selector.get('button').trigger('keydown',{key:'End'});await selector.get('button').trigger('keydown',{key:'Enter'})
   await w.findAll('button').find(button=>button.text()==='เพิ่ม').trigger('click');await flushPromises()
   expect(store.packageAdjustments.some(row=>row.materialId==='BAG')).toBe(true)
+  expect(w.get('[data-edit-package="BAG"]').attributes('aria-expanded')).toBe('true')
   expect(store.cartSummary.subtotal).toBe(subtotal)
  }finally{w.unmount()}
 })
