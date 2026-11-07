@@ -45,6 +45,16 @@ describe('order package adjustments',()=>{
   store.cart=[]
   expect(store.cartPackagePlan.items.find(x=>x.materialId==='BOWL')).toMatchObject({baselineQty:0,adjustmentQty:-1,requestedQty:0})
  })
+ it('applies quantity changes together and drops only adjustments returned to the baseline',()=>{
+  const {store}=setup()
+  store.savePackageAdjustment({materialId:'BOWL',requestedQty:3,reason:'separate_bag'})
+  const before=[...store.packageAdjustments]
+  const bowl={materialId:'BOWL',requestedQty:2}
+  expect(store.savePackageAdjustments({changes:[bowl,{materialId:'HONEY',requestedQty:1}],reason:'repacked'}).ok).toBe(false)
+  expect(store.packageAdjustments).toEqual(before)
+  expect(store.savePackageAdjustments({changes:[bowl,{materialId:'BAG',requestedQty:1}],reason:'repacked'}).ok).toBe(true)
+  expect(store.packageAdjustments).toEqual([{materialId:'BAG',deltaQty:1,reason:'repacked',note:''}])
+ })
  it('projects adjusted fulfilled package cost into the cart financial summary',()=>{
   const {store}=setup();store.savePackageAdjustment({materialId:'BOWL',requestedQty:1,reason:'combined_packaging',note:''})
   expect(store.cartSummary).toMatchObject({totalIngredientCost:20,totalPackagingCost:2,totalFoodCost:22})

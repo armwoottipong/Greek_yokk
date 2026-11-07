@@ -14,6 +14,7 @@ import {
   finalizePackagePlan,
   PACKAGE_ADJUSTMENT_REASONS
 } from '@/domain/packagePlan'
+import { planPackageAdjustments } from '@/domain/packageAdjustments'
 import {
   businessDateKey
 } from '@/domain/businessDate'
@@ -2990,6 +2991,18 @@ const posDefinition = {
       if (index >= 0) this.packageAdjustments[index] = adjustment
       else this.packageAdjustments.push(adjustment)
       return {ok: true, success: true}
+    },
+
+    savePackageAdjustments(input) {
+      const baseline = buildPackagePlan(this.cart, this.stockDraftSnapshot || this.materials)
+      const result = planPackageAdjustments({
+        ...input,
+        materials: this.materials,
+        baseline: baseline.items,
+        adjustments: this.packageAdjustments
+      })
+      if (result.ok) this.packageAdjustments = result.adjustments
+      return result
     },
 
     resetPackageAdjustment(materialId) {

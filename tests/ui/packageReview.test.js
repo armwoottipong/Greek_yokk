@@ -5,7 +5,8 @@ import PackageReviewModal from '../../src/components/modals/PackageReviewModal.v
 import AppSelect from '../../src/components/ui/AppSelect.vue'
 
 function setup(){
- const store=createTestStore();store.materials=[
+ const store=createTestStore()
+ store.materials=[
   material('BOWL',10,{name:'ถ้วยเล็ก',inventoryType:'packaging',unit:'ใบ',image:'/bowl.jpg'}),
   material('BAG',10,{name:'ถุง',inventoryType:'packaging',unit:'ใบ'}),
   material('FOOD',10,{name:'น้ำผึ้ง'})
@@ -15,69 +16,46 @@ function setup(){
  return store
 }
 
-it('steps packaging quantities without going below zero and saves only on confirmation',async()=>{
+it('shows pictures and directly adjusts quantities without dropping below zero',async()=>{
  const store=setup(),w=mount(PackageReviewModal,{attachTo:document.body})
  try{
-  await flushPromises();await w.get('[data-edit-package="BOWL"]').trigger('click')
-  const qty=w.get('[aria-label="จำนวนถ้วยเล็ก"]')
-  await w.get('[aria-label="เพิ่มจำนวนถ้วยเล็ก"]').trigger('click')
-  expect(qty.element.value).toBe('3');expect(store.packageAdjustments).toEqual([])
-  await w.get('[aria-label="ลดจำนวนถ้วยเล็ก"]').trigger('click')
-  expect(qty.element.value).toBe('2')
-  await qty.setValue('0')
-  expect(w.get('[aria-label="ลดจำนวนถ้วยเล็ก"]').element.disabled).toBe(true)
-  await w.get('[aria-label="ลดจำนวนถ้วยเล็ก"]').trigger('click')
-  expect(qty.element.value).toBe('0')
-  await qty.setValue('0.5');await w.get('[aria-label="เพิ่มจำนวนถ้วยเล็ก"]').trigger('click')
-  expect(qty.element.value).toBe('1.5')
-  const reason=w.findAllComponents(AppSelect)[1]
-  await reason.get('select').setValue('separate_bag')
-  await w.get('[data-save-package="BOWL"]').trigger('click')
-  expect(store.packageAdjustments[0].deltaQty).toBe(-0.5)
- }finally{w.unmount()}
-})
-
-it('shows baseline, effective quantity, sources and only active package choices',async()=>{
- const store=setup(),w=mount(PackageReviewModal,{attachTo:document.body})
- try{
-  await flushPromises();expect(w.text()).toContain('จากสูตร 2')
-  const row=w.get('article'),toggle=row.get('button[aria-expanded]')
+  await flushPromises()
+  const row=w.get('article')
   expect(row.get('img').attributes('src')).toBe('/bowl.jpg')
-  expect(toggle.attributes('aria-expanded')).toBe('false')
-  expect(row.get('[aria-label="จำนวนถ้วยเล็ก"]').isVisible()).toBe(false)
-  await toggle.trigger('click')
-  expect(row.get('[aria-label="จำนวนถ้วยเล็ก"]').isVisible()).toBe(true)
-  expect(w.text()).toContain('โยเกิร์ต')
-  expect(w.findAllComponents(AppSelect)).toHaveLength(2)
-  const select=w.findAllComponents(AppSelect)[0].get('select')
-  expect(select.text()).toContain('ถุง');expect(select.text()).not.toContain('น้ำผึ้ง')
+  expect(row.find('button[aria-expanded]').exists()).toBe(false)
+  expect(row.text()).toContain('จากสูตร 2')
+  const minus=row.get('[aria-label="ลดจำนวนถ้วยเล็ก"]')
+  await minus.trigger('click');await minus.trigger('click')
+  expect(minus.element.disabled).toBe(true)
+  expect(row.get('output').text()).toBe('0')
+  await row.get('[aria-label="เพิ่มจำนวนถ้วยเล็ก"]').trigger('click')
+  expect(row.get('output').text()).toBe('1')
+  expect(store.packageAdjustments).toEqual([])
  }finally{w.unmount()}
 })
 
-it('requires reasons and an explanation for other, then supports row and all reset',async()=>{
- const store=setup(),w=mount(PackageReviewModal,{attachTo:document.body})
+it('saves a new package and a changed quantity with one shared reason and note',async()=>{
+ const store=setup(),subtotal=store.cartSummary.subtotal
+ const w=mount(PackageReviewModal,{attachTo:document.body})
  try{
-  await flushPromises();await w.get('[data-edit-package="BOWL"]').trigger('click')
-  const qty=w.get('[aria-label="จำนวนถ้วยเล็ก"]');await qty.setValue('3')
-  await w.get('[data-save-package="BOWL"]').trigger('click');expect(w.text()).toContain('เลือกเหตุผล')
-  const reason=w.findAllComponents(AppSelect)[1]
-  await reason.get('button').trigger('keydown',{key:'ArrowDown'});await reason.get('button').trigger('keydown',{key:'End'});await reason.get('button').trigger('keydown',{key:'Enter'})
-  await w.get('[data-save-package="BOWL"]').trigger('click');expect(w.text()).toContain('ระบุเหตุผลเพิ่มเติม')
-  await w.get('[aria-label="หมายเหตุถ้วยเล็ก"]').setValue('ลูกค้าขอ');await w.get('[data-save-package="BOWL"]').trigger('click')
-  expect(store.packageAdjustments).toHaveLength(1);await w.get('[data-reset-package="BOWL"]').trigger('click');expect(store.packageAdjustments).toEqual([])
-  store.savePackageAdjustment({materialId:'BOWL',requestedQty:3,reason:'other',note:'ลูกค้าขอ'});await flushPromises()
-  await w.get('[data-reset-all-packages]').trigger('click');expect(store.packageAdjustments).toEqual([])
- }finally{w.unmount()}
-})
-
-it('adds packaging through the shared selector without changing the charge',async()=>{
- const store=setup(),subtotal=store.cartSummary.subtotal,w=mount(PackageReviewModal,{attachTo:document.body})
- try{
-  await flushPromises();const selector=w.findAllComponents(AppSelect)[0]
-  await selector.get('button').trigger('keydown',{key:'ArrowDown'});await selector.get('button').trigger('keydown',{key:'End'});await selector.get('button').trigger('keydown',{key:'Enter'})
-  await w.findAll('button').find(button=>button.text()==='เพิ่ม').trigger('click');await flushPromises()
-  expect(store.packageAdjustments.some(row=>row.materialId==='BAG')).toBe(true)
-  expect(w.get('[data-edit-package="BAG"]').attributes('aria-expanded')).toBe('true')
+  await flushPromises()
+  const [add,reason]=w.findAllComponents(AppSelect)
+  expect(add.get('select').text()).not.toContain('น้ำผึ้ง')
+  await w.get('[aria-label="เพิ่มจำนวนถ้วยเล็ก"]').trigger('click')
+  await add.get('select').setValue('BAG')
+  await w.get('[data-add-package]').trigger('click')
+  await w.get('[data-save-packages]').trigger('click')
+  expect(w.get('[role="alert"]').text()).toContain('เลือกเหตุผล')
+  await reason.get('select').setValue('other')
+  await w.get('[data-save-packages]').trigger('click')
+  expect(w.get('[role="alert"]').text()).toContain('ระบุเหตุผลเพิ่มเติม')
+  await w.get('#package-note').setValue('ลูกค้าขอถ้วยและถุงเพิ่ม')
+  await w.get('[data-save-packages]').trigger('click')
+  expect(store.packageAdjustments).toEqual([
+   {materialId:'BOWL',deltaQty:1,reason:'other',note:'ลูกค้าขอถ้วยและถุงเพิ่ม'},
+   {materialId:'BAG',deltaQty:1,reason:'other',note:'ลูกค้าขอถ้วยและถุงเพิ่ม'}
+  ])
+  expect(store.modals.packageReview.isOpen).toBe(false)
   expect(store.cartSummary.subtotal).toBe(subtotal)
  }finally{w.unmount()}
 })

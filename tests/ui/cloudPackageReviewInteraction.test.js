@@ -5,7 +5,7 @@ import PackageReviewModal from '../../src/components/modals/PackageReviewModal.v
 
 it('keeps the cloud Package dialog interactive outside the inert app and closable when writes are locked',async()=>{
  const host=document.createElement('div');host.id='app';document.body.appendChild(host)
- const model=reactive({cloud:true,modals:{packageReview:{isOpen:true}},packageLocked:false,cartPackagePlan:{items:[],issues:[]},packageAdjustments:[],materials:[],resetPackageAdjustments(){},resetPackageAdjustment(){},savePackageAdjustment(){return {ok:true}}})
+ const model=reactive({cloud:true,modals:{packageReview:{isOpen:true}},packageLocked:false,cartPackagePlan:{items:[],issues:[]},packageAdjustments:[],materials:[],resetPackageAdjustments(){},resetPackageAdjustment(){}})
  const wrapper=mount(PackageReviewModal,{props:{model},attachTo:host})
  try{
   await flushPromises()
