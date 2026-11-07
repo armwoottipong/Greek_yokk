@@ -4,7 +4,7 @@ import {reactive} from 'vue'
 import Settings from '../../src/views/SettingsView.vue'
 let wrapper
 afterEach(()=>wrapper?.unmount())
-async function setup(){const model=reactive({cloud:true,connected:true,allowedEmails:{"test@example.com":true},account:"test@example.com",saveAllowedEmails:vi.fn(),revision:6,settingsBlocked:false,projectId:'demo-test',shopId:'test-shop',platforms:[{id:'p1',name:'Grab',gpPercent:30}],materials:[],menus:[],addons:[],orders:[],savePlatformGpRates:vi.fn(async()=>({ok:true}))});wrapper=mount(Settings,{props:{model}});await wrapper.get('[aria-controls="settings-platforms"]').trigger('click');return model}
+async function setup(overrides={}){const model=reactive({cloud:true,connected:true,allowedEmails:{"test@example.com":true},account:"test@example.com",saveAllowedEmails:vi.fn(),revision:6,settingsBlocked:false,projectId:'demo-test',shopId:'test-shop',platforms:[{id:'p1',name:'Grab',gpPercent:30}],materials:[],menus:[],addons:[],orders:[],savePlatformGpRates:vi.fn(async()=>({ok:true})),...overrides});wrapper=mount(Settings,{props:{model},global:{stubs:{teleport:true}}});await wrapper.get('[aria-controls="settings-platforms"]').trigger('click');return model}
 it('uses the original GP form and exposes only Firebase connection and channels',async()=>{
  await setup();expect(wrapper.find('[data-gp-settings]').exists()).toBe(true)
  expect(wrapper.find('[data-settings="backup"]').exists()).toBe(false);expect(wrapper.find('[data-settings="sheets"]').exists()).toBe(false)
@@ -37,4 +37,38 @@ it('lets the admin pause one channel while keeping the last channel available',a
  expect(wrapper.get('[aria-label="เปิดขายผ่าน หน้าร้าน"]').element.disabled).toBe(true)
  await wrapper.get('[data-gp-settings]').trigger('submit');await flushPromises()
  expect(m.savePlatformGpRates).toHaveBeenCalledWith({p1:30,p2:0},6,{p1:false,p2:true})
+})
+
+it('adds a named channel with a price source and keeps a failed draft for retry',async()=>{
+ const changeChannel=vi.fn().mockResolvedValueOnce({ok:false,message:'ลองใหม่'}).mockResolvedValueOnce({ok:true})
+ await setup({changeChannel})
+ await wrapper.findAll('button').find(button=>button.text()==='เพิ่มช่องทาง').trigger('click')
+ await wrapper.get('#channel-name').setValue('จัดส่งตรง')
+ await wrapper.get('#channel-gp').setValue('12.75')
+ await wrapper.get('#channel-editor-form').trigger('submit');await flushPromises()
+ expect(changeChannel).toHaveBeenCalledWith({id:expect.stringMatching(/^CHANNEL-/),name:'จัดส่งตรง',gpBasisPoints:1275,sourceId:'p1'},6)
+ expect(wrapper.get('#channel-editor [role="alert"]').text()).toContain('ลองใหม่')
+ expect(wrapper.get('#channel-name').element.value).toBe('จัดส่งตรง')
+ await wrapper.get('#channel-editor-form').trigger('submit');await flushPromises()
+ expect(wrapper.find('#channel-editor-form').exists()).toBe(false)
+})
+
+it('confirms removal of only the selected channel and protects the last active channel',async()=>{
+ const changeChannel=vi.fn(async()=>({ok:true}))
+ await setup({changeChannel,platforms:[{id:'p1',name:'Grab',gpPercent:30,isActive:true},{id:'p2',name:'VIP',gpPercent:0,isActive:false}]})
+ expect(wrapper.get('[aria-label="นำ Grab ออก"]').element.disabled).toBe(true)
+ await wrapper.get('[aria-label="นำ VIP ออก"]').trigger('click');await flushPromises()
+ expect(changeChannel).not.toHaveBeenCalled()
+ await wrapper.findAll('#channel-remove button').find(button=>button.text()==='นำช่องทางออก').trigger('click');await flushPromises()
+ expect(changeChannel).toHaveBeenCalledWith({id:'p2'},6)
+})
+
+it('saves a selected row without changing another GP and rejects a stale form',async()=>{
+ const model=await setup({changeChannel:vi.fn(),platforms:[{id:'p1',name:'Grab',gpPercent:30},{id:'p2',name:'VIP',gpPercent:5}]})
+ await wrapper.get('[aria-label="แก้ไข Grab"]').trigger('click');await wrapper.get('#channel-gp').setValue('25.5')
+ await wrapper.get('#channel-editor-form').trigger('submit');await flushPromises()
+ expect(model.savePlatformGpRates).toHaveBeenCalledWith({p1:25.5,p2:5},6,{p1:true,p2:true})
+ await wrapper.get('[aria-label="แก้ไข Grab"]').trigger('click');model.revision=7;await flushPromises()
+ await wrapper.get('#channel-editor-form').trigger('submit');await flushPromises()
+ expect(model.savePlatformGpRates).toHaveBeenCalledTimes(1)
 })

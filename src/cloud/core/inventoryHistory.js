@@ -240,19 +240,19 @@ export function projectPageHistory(input = {}) {
     const collection = kind === 'catalog' ? operation.collection : null
     const module = kind === 'menu' || collection === 'menus' ? 'menu'
       : kind === 'addon' || kind === 'group' || collection === 'addons' ? 'addon'
-        : kind === 'platform_gp' || kind === 'platform' || collection === 'platforms' || kind === 'command_abort' ? 'system' : null
+        : ['platform_gp','platform','channel','command_abort'].includes(kind) || collection === 'platforms' ? 'system' : null
     if (kind === 'cancel') {
       return [entry({module:'pos'}, {id:`${id}:bill-return`,timestamp:operation.createdAt,action:'order_cancel',title:'คืนบิลขาย',targetId:operation.orderId,targetName:`บิล ${operation.orderId}`,description:`คืนบิล ${operation.orderId}`,user:operation.uid||''})]
     }
     if (!module) return []
-    const entityId = operation.entityId || operation.entitySnapshot?.id || ''
+    const entityId = operation.entityId || operation.entitySnapshot?.id || (kind==='channel' ? operation.input?.id : '') || ''
     const group = kind === 'group'
     const name = operation.entitySnapshot?.name || display?.[group?'groups':module==='menu'?'menus':module==='addon'?'addons':'platforms']?.[entityId]?.name || entityId
-    const action=operation.entitySnapshot?.active===false?'delete':operation.create||kind==='addon'?'create':'edit'
+    const action=kind==='channel'?(operation.input?.sourceId?'create':'delete'):operation.entitySnapshot?.active===false?'delete':operation.create||kind==='addon'?'create':'edit'
     const title = module === 'menu' ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดขาย':'แก้ไข'}เมนู`
       : group ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'}กลุ่มตัวเลือก`
         : module === 'addon' ? `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'} ตัวเลือกเสริม`
-          : kind === 'platform_gp' ? 'แก้ไขอัตรา GP' : kind === 'command_abort' ? 'หยุดคำสั่งที่ค้าง' : `${action==='create'?'เพิ่ม':action==='delete'?'ปิดใช้งาน':'แก้ไข'}ช่องทางขาย`
+          : kind === 'platform_gp' ? 'แก้ไขอัตรา GP' : kind === 'command_abort' ? 'หยุดคำสั่งที่ค้าง' : `${action==='create'?'เพิ่ม':action==='delete'?'นำออกจาก':'แก้ไข'}ช่องทางขาย`
     return [entry({module}, {id:`${id}:page`,timestamp:operation.createdAt,action,title,targetId:entityId,targetName:name||'',description:name?`${title} ${name}`:title,user:operation.uid||''})]
   })
   for (const order of orders.filter(visible)) {

@@ -5,6 +5,7 @@ import {compactRules} from './compact-rules.mjs'
 import {specializeShopRules} from './specialize-shop-rules.mjs'
 import {smallShopPolicy,extendSmallShopRule} from './small-shop-policy.mjs'
 import {platformSettingsPolicy} from './platform-settings-policy.mjs'
+import {channelCatalogPolicy} from './channel-catalog-policy.mjs'
 import {materialTypePolicy} from './material-type-policy.mjs'
 import {materialReferencePolicy} from './material-reference-policy.mjs'
 import {recipeAdmissionPolicy} from './recipe-admission-policy.mjs'
@@ -21,13 +22,14 @@ import {factorRuleFields} from './rule-field-cache.mjs'
 import {factorRequestUid} from './request-uid.mjs'
 import {factorRequestData} from './request-data.mjs'
 import {factorRootData} from './rule-root-data.mjs'
+import {factorOperationShape,operationRuleShape} from './operation-rule-shape.mjs'
 // Derive the release from reviewed validators with explicit profile extensions,
 // mandatory catalog witnesses and shop-scoped command/read surfaces.
 export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth=false,cacheReceiptFields=true}={}){
  if(!/^[A-Za-z0-9_-]{1,120}$/.test(shopId))throw new Error('Invalid shop')
  if(legacyTestAuth&&shopId==='greek-yogg')throw new Error('Legacy authentication is test-only')
  const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8').replace(/\r\n/g,'\n')+'\n'+inventoryDeletePolicy+'\n'+inventoryHistoryPolicy+'\n'+catalogPolicy+'\n'+dynamicRecipePolicy+'\n'+recipeAdmissionPolicy+'\n'+materialReferencePolicy+'\n'+materialTypePolicy+'\n'+platformSettingsPolicy+'\n'+smallShopPolicy+'\n'+packageSalePolicy
- const policySource=source+'\n'+commandAbortPolicy+'\n'+catalogImagePolicy+'\n'+catalogOrderPolicy
+ const policySource=source+'\n'+commandAbortPolicy+'\n'+catalogImagePolicy+'\n'+catalogOrderPolicy+'\n'+channelCatalogPolicy+'\n'+operationRuleShape
  const mask=policySource.replace(/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g,s=>' '.repeat(s.length))
  const functions=new Map()
  for(const m of mask.matchAll(/function\s+(\w+)\s*\([^)]*\)\s*\{/g)){
@@ -58,6 +60,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   ${Object.entries(catalogKinds).map(([kind,name])=>`allow update: if request.resource.data.lastOpKind=='${kind}' && ${name}Root(s);`).join('\n')}
   allow update: if request.resource.data.lastOpKind=='material_delete' && materialDeleteRoot(s);
   allow update: if request.resource.data.lastOpKind=='platform_gp' && ${legacyTestAuth?'':'adminIdentity(resource.data) && '}gpRoot(s);
+  allow update: if request.resource.data.lastOpKind=='channel' && ${legacyTestAuth?'':'adminIdentity(resource.data) && '}channelRoot(s);
   ${legacyTestAuth?'':`match /invitations/{id} {
    allow read: if adminIdentity(get(/databases/$(database)/documents/shops/${shopId}).data);
    allow create: if id.matches('^[A-Za-z0-9_-]{1,200}$') && invitationWrite();
@@ -71,6 +74,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
    allow read: if active(s,g);
    allow create: if request.resource.data.kind=='command_abort' && commandAbortOperation(s,g,id,request.resource.data);
    allow create: if request.resource.data.kind=='platform_gp' && ${legacyTestAuth?'':'adminAfter() && '}gpOperation(s,g,id,request.resource.data);
+   allow create: if request.resource.data.kind=='channel' && ${legacyTestAuth?'':'adminAfter() && '}channelOperation(s,g,id,request.resource.data);
    ${Object.entries(catalogKinds).map(([kind,name])=>`allow create: if request.resource.data.kind=='${kind}' && ${name}Operation(s,g,id,request.resource.data);`).join('\n')}
    match /referenceProofs/{index} {
     allow create: if index.matches('^type([0-9]|1[0-5])$') && materialTypeProof(s,g,id,index,request.resource.data);
@@ -98,8 +102,9 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
    allow update: if resource.data.uid==request.auth.uid && request.resource.data.input==resource.data.input && request.resource.data.entityId==resource.data.entityId && request.resource.data.kind==resource.data.kind && recipeAdmissionWrite(s,g,id,index,request.resource.data);
   }
   match /generations/{g}/preparations/{id} {
-   allow read: if active(s,g);
+   allow read: if active(s,g) ${legacyTestAuth?'':"&& (!id.matches('^channel_.*$') || adminIdentity(get(rootPath(s)).data))"};
    allow create: if request.resource.data.kind=='sale_set' && preparationCreate(s,g,id,request.resource.data);
+   allow create: if id.matches('^channel_.*$') && ${legacyTestAuth?'':'adminAfter() && '}channelPrepare(s,g,id,request.resource.data);
    allow update: if preparationClose(s,g);
   }
   match /generations/{g}/preparedSales/{id}/lineProofs/{index} {
@@ -109,7 +114,10 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
    allow update: if preparedCoverage(s,g,id,index,request.resource.data);
    allow delete: if preparationCleanupProof(s,g,id,'sale_set',index,'0');
   }
-  match /generations/{g}/preparedSales/{id}/operandProofs/{index} {allow read: if active(s,g); allow create: if smallOperandWrite(s,g,id,index,request.resource.data); }
+  match /generations/{g}/preparedSales/{id}/operandProofs/{index} {
+   allow read: if active(s,g) ${legacyTestAuth?'':"&& (!index.matches('^channel_.*$') || adminIdentity(get(rootPath(s)).data))"};
+   allow create: if index.matches('^channel_.*$') ? ${legacyTestAuth?'':'adminAfter() && '}channelProof(s,g,id,index,request.resource.data) : smallOperandWrite(s,g,id,index,request.resource.data);
+  }
   match /generations/{g}/preparedSales/{id}/certificates/{index} {
    allow read: if active(s,g);
    allow create: if billCertificateCreate(s,g,id,index,request.resource.data);
@@ -132,7 +140,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
    ${Object.entries(inventoryKinds).filter(([kind])=>kind!=='history_clear').map(([kind,name])=>`allow ${kind==='material_create'?'create':'update'}: if request.resource.data.lastOpKind=='${kind}' && ${name}Material(s,g,id);`).join('\n')}
    allow delete: if materialDeleteMaterial(s,g,id);
   }
-  match /generations/{g}/display/{id} { allow read: if active(s,g); allow update: if (request.resource.data.get('menuOrderRevision',0)!=resource.data.get('menuOrderRevision',0) ? catalogMenuOrderWrite(s,g,id) : catalogDisplayWrite(s,g,id)); }
+  match /generations/{g}/display/{id} { allow read: if active(s,g); allow update: if (request.resource.data.get('menuOrderRevision',0)!=resource.data.get('menuOrderRevision',0) ? catalogMenuOrderWrite(s,g,id) : catalogDisplayWrite(s,g,id)); allow update: if id=='catalog' && ${legacyTestAuth?'':'adminAfter() && '}channelDisplayWrite(s,g); }
   match /generations/{g}/catalogImages/{id} { allow read: if ${legacyTestAuth?'active(s,g)':'catalogImageRead(s,g)'}; allow create,update: if ${legacyTestAuth?'false':'catalogImageWrite(s,g,id)'}; }
   match /generations/{g}/legacyRecords/{id} { allow read: if active(s,g); }
  }
@@ -140,6 +148,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
  const selected=new Set()
  function collect(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g)){const name=m[1];if(functions.has(name)&&!selected.has(name)){selected.add(name);collect(functions.get(name))}}}
  collect(matches)
+ collect('operationKeys( committedOperation( operationRevision( operationKeysChanged( rootOperation(')
  if(!legacyTestAuth)collect('signedInAfter( operatorIdentity( adminIdentity( adminAfter(')
  collect('packageBillShape( packageBillRow( packageBillNeed( packageCertifiedNeed( smallTouches( smallCertificate(')
  collect('catalogInputPath(')
@@ -327,7 +336,8 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
  // Every public allow is gated once below. Hoisting this common predicate keeps
  // repeated inner validators from re-evaluating verified-email access, without
  // changing any financial or inventory predicate.
- const bodies=new Map([...functions].filter(([name])=>selected.has(name)).map(([name,body])=>[name,name==='signedIn'?body:extend(name,body).replace(/\bsignedIn\(\)\s*&&\s*/g,'').replace(/&&\s*true\s*&&/g,'&&')]))
+ const bodies=new Map([...functions].filter(([name])=>selected.has(name)).map(([name,body])=>[name,name==='signedIn'?body:factorOperationShape(name,extend(name,body)).replace(/\bsignedIn\(\)\s*&&\s*/g,'').replace(/&&\s*true\s*&&/g,'&&')]))
+ if(legacyTestAuth)bodies.set('catalogMenuOrderWrite',bodies.get('catalogMenuOrderWrite').replace('catalogImageRead(s,g)','active(s,g)'))
  // Flatten collection matches and keep single-surface helpers local. Inheriting
  // every validator into every nested match exhausts the production compiler's
  // scope traversal stack even when the emulator accepts the same source.

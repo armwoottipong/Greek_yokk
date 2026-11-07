@@ -1,7 +1,7 @@
 import {beforeAll,beforeEach,afterAll,it,expect} from 'vitest'
 import {readFileSync} from 'node:fs'
 import {IDBFactory} from 'fake-indexeddb'
-import {doc,getDocFromServer,writeBatch,setLogLevel} from 'firebase/firestore'
+import {doc,getDocFromServer,setDoc,writeBatch,setLogLevel} from 'firebase/firestore'
 import {assertFails} from '@firebase/rules-unit-testing'
 import {createRulesTest} from './helpers.js'
 import {summaryFixture} from './summaryFixture.js'
@@ -31,7 +31,7 @@ beforeEach(async()=>{
  }
  await env.withSecurityRulesDisabled(async ctx=>{const d=ctx.firestore(),b=writeBatch(d);b.set(doc(d,root),f.shop);for(const m of f.materials)b.set(doc(d,`${path()}/materials/${m.id}`),m);await b.commit()});({db,api}=client('alice'))
 })
-afterAll(async()=>env.cleanup())
+afterAll(async()=>env?.cleanup())
 async function direct(change=()=>{},actor=db,mode='both'){
  const planned=planInventoryCommand(f.shop,f.materials,command(),'alice')
  planned.nextShop=structuredClone(planned.nextShop)
@@ -99,4 +99,56 @@ it('new sales use the saved GP and cancellation preserves historical money',asyn
  expect(fresh.gpCents).toBe(Math.round(fresh.subtotalCents*0.255));expect(fresh.subtotalCents).toBe(old.subtotalCents)
  await api.commit({kind:'cancel',opId:'RETURN',payload:{orderId:'OLD'}})
  const saved=(await getDocFromServer(doc(db,`${path()}/orders/OLD`))).data();expect(saved.gpCents).toBe(old.gpCents);expect(saved.status).toBe('cancelled')
+})
+
+const channel=(opId,input,revision=f.shop.revision)=>({kind:'channel',opId,payload:{expectedRevision:revision,input}})
+async function seedDisplay(){
+ await env.withSecurityRulesDisabled(ctx=>setDoc(doc(ctx.firestore(),`${path()}/display/catalog`),{platforms:Object.fromEntries(f.shop.catalog.platformIds.map(id=>[id,{name:id}])),menus:{},addons:{},groups:{}}))
+}
+it('removes and adds a channel through the journal, preserves historical sales and copies the selected prices',async()=>{
+ await seedDisplay()
+ const writer=client('alice'),reader=client('bob'),journal=createCommandJournal({indexedDB:new IDBFactory(),ownerId:'catalog-test'})
+ const commands=createCoreCommands({journal,transport:writer.api,getContext:writer.getContext})
+ const menu=Object.values(f.shop.catalog.menus).find(m=>m.min===0)
+ const sale=await api.commit({kind:'sale',opId:'OLD-CHANNEL-SALE',payload:{platformId:'P2',lines:[{menuId:menu.id,qty:1,optionIds:[]}]}})
+ try{
+  const remove=channel('REMOVE-CHANNEL',{id:'P2'},(await api.snapshot()).shop.revision)
+  const removed=await commands.execute(remove)
+  expect(removed,JSON.stringify(removed)).toMatchObject({ok:true})
+  const beforeAdd=(await reader.api.snapshot()).shop
+  expect(beforeAdd.catalog.platformIds).toEqual(['P','P3','P4'])
+  const add=channel('ADD-CHANNEL',{id:'NEW',name:'Delivery',gpBasisPoints:2700,sourceId:'P'},beforeAdd.revision)
+  const added=await commands.execute(add)
+  expect(added,JSON.stringify(added)).toMatchObject({ok:true})
+  expect(await commands.execute(add)).toEqual(added)
+  const after=await reader.api.snapshot()
+  expect(after.shop.catalog.platforms.NEW).toEqual({active:false,revision:1,gpBasisPoints:2700})
+  expect(after.shop.catalog.menus[menu.id].pricesCents.NEW).toBe(menu.pricesCents.P)
+  expect(after.shop.catalog.menus[menu.id].pricesCents).not.toHaveProperty('P2')
+  const display=(await getDocFromServer(doc(reader.db,`${path()}/display/catalog`))).data()
+  expect(display.platforms.P2.name).toBe('P2');expect(display.platforms.NEW.name).toBe('Delivery')
+  expect(display.platformAvailabilityOrder).toEqual(['P','P2','P3','P4'])
+  await expect(reader.api.commit({kind:'cancel',opId:'RETURN-OLD-CHANNEL',payload:{orderId:sale.opId}})).resolves.toMatchObject({kind:'cancel'})
+  expect((await getDocFromServer(doc(reader.db,`${path()}/orders/${sale.opId}`))).data()).toMatchObject({status:'cancelled',platformId:'P2',subtotalCents:sale.subtotalCents})
+ }finally{await journal.close()}
+})
+
+it('denies structural changes without the complete proof and denies Manager preparations',async()=>{
+ await seedDisplay()
+ const c=channel('FORGED-CHANNEL',{id:'P2'}),plan=planInventoryCommand(f.shop,f.materials,c,'alice')
+ const proposal=doc(db,`${path()}/preparations/channel_${c.opId}`)
+ const proposalData={opId:c.opId,uid:'alice',revision:f.shop.revision,input:c.payload.input,catalog:plan.nextShop.catalog}
+ const manager=client('manager')
+ await assertFails(setDoc(doc(manager.db,proposal.path),{...proposalData,uid:'manager'}))
+ await setDoc(proposal,proposalData)
+ const batch=writeBatch(db)
+ batch.set(doc(db,root),plan.nextShop)
+ batch.set(doc(db,`${path()}/operations/${c.opId}`),plan.operation)
+ await assertFails(batch.commit())
+ const forged={...structuredClone(proposalData),opId:'TAMPERED'};forged.catalog.menus.SIMPLE.recipe={}
+ await setDoc(doc(db,`${path()}/preparations/channel_TAMPERED`),forged)
+ const index=Math.floor(f.shop.catalog.menuIds.indexOf('SIMPLE')/2)
+ expect(index).toBe(0)
+ await assertFails(setDoc(doc(db,`${path()}/preparedSales/TAMPERED/operandProofs/channel_0`),{opId:'TAMPERED',index}))
+ expect((await api.snapshot()).shop).toEqual(f.shop)
 })

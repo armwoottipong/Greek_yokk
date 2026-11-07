@@ -87,7 +87,7 @@ function updatePresence(){presenceClock.value=Date.now();if(online.value&&props.
 defineEmits(['sign-out'])
 const activeAction=ref(''),reloading=ref(false),pendingChecks=ref(1)
 const pendingCause=ref('')
-const pendingLabel=computed(()=>({sale:'บันทึกยอดขาย',cancel:'คืนบิล',inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ตรวจนับสต็อก',menu:'บันทึกเมนู',addon:'บันทึกตัวเลือกเสริม',group:'บันทึกกลุ่มตัวเลือก',material_archive:'จัดเก็บวัตถุดิบ',material_delete:'ลบวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ'}[pendingCommand.value?.kind]||'บันทึกข้อมูลร้าน'))
+const pendingLabel=computed(()=>({sale:'บันทึกยอดขาย',cancel:'คืนบิล',inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ตรวจนับสต็อก',menu:'บันทึกเมนู',addon:'บันทึกตัวเลือกเสริม',group:'บันทึกกลุ่มตัวเลือก',channel:'บันทึกช่องทางขาย',platform_gp:'บันทึกช่องทางและ GP',material_archive:'จัดเก็บวัตถุดิบ',material_delete:'ลบวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ'}[pendingCommand.value?.kind]||'บันทึกข้อมูลร้าน'))
 const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),tab=ref(operator.value?'sale':'dashboard'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
 const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
@@ -147,6 +147,11 @@ const settingsModel=reactive({cloud:true,showToast,
  get revision(){return data.value?.shop.revision},get connected(){return ready.value},get settingsBlocked(){return role.value!=='admin'||!ready.value||locked.value},
  get projectId(){return props.connection.config.projectId},get shopId(){return props.connection.shopId},get account(){return props.state.user?.email||''},
  get materials(){return data.value?.materials||[]},get menus(){return productMenus.value},get addons(){return inventoryWorkspace.value?.model.addons||[]},get orders(){return data.value?.orders||[]},
+ async changeChannel(input,expectedRevision){
+  const result=await send({kind:'channel',opId:crypto.randomUUID(),payload:{input,expectedRevision}})
+  if(result.value?.rejected)return {ok:false,message:'ข้อมูลร้านเปลี่ยนแล้ว กรุณาตรวจช่องทางล่าสุดก่อนบันทึกอีกครั้ง'}
+  return result.ok?result:{...result,message:commandErrorMessage(result)||'ยังยืนยันการบันทึกไม่ได้ กรุณาตรวจคำสั่งเดิมก่อนลองใหม่'}
+ },
  async savePlatformGpRates(draft,expectedRevision,enabled){
   if(role.value!=='admin'||!ready.value||locked.value)return {ok:false}
   const rates={}
@@ -263,7 +268,7 @@ async function recoverPending(){
  }catch(e){if(!disposed)error.value=explain(e)}finally{pendingChecks.value--}
 }
 async function send(command,action=command.kind){
- if(!operator.value||command.kind==='platform_gp'&&role.value!=='admin')return {ok:false,code:'ACCESS_DENIED',outcome:'blocked'}
+ if(!operator.value||['platform_gp','channel'].includes(command.kind)&&role.value!=='admin')return {ok:false,code:'ACCESS_DENIED',outcome:'blocked'}
  if(busy.value||!ready.value)return {ok:false,code:'NOT_READY',outcome:'blocked'}
  let refreshed=false
  const previous=storedCommand
@@ -319,6 +324,7 @@ function finish(value){
  if(!inventoryWorkspace.value?.model.inventorySaving){
   if(value.abandoned)showToast('หยุดบิลแล้ว ตะกร้ายังอยู่')
   else if(value.kind==='platform_gp')showToast('บันทึก GP สำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว','success')
+  else if(value.kind==='channel')showToast('บันทึกช่องทางขายสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว','success')
   else showToast('บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว','success')
  }
 }

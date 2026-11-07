@@ -5,6 +5,7 @@ import {summaryMultiGroupSale} from './model/saleGroups.js'
 import {summaryCancel} from './model/cancel.js'
 import {planInventoryCommand} from './inventoryPlan.js'
 import {commitMetrics} from './model/metrics.js'
+import {applyChannelDisplay,channelProofCount} from './model/channelCatalog.js'
 const fail=code=>Object.assign(new Error(code),{code})
 const canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v)
 const equal=(a,b)=>canonical(a)===canonical(b)
@@ -49,11 +50,12 @@ export function createCoreTransport({db,getContext}){
    if(r.opId!==command.opId||r.uid!==s.uid||r.sourceKind!==command.kind||command.payload?.expectedRevision!==undefined&&r.sourceRevision!==command.payload.expectedRevision)throw fail('COMMAND_ID_COLLISION')
    return r
   }
-  const kinds={menu:['menu'],addon:['addon','catalog'],group:['group'],sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['platform_gp','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
+  const kinds={menu:['menu'],addon:['addon','catalog'],group:['group'],sale:['sale_set'],cancel:['cancel'],receive:['stock_in','package_stock_in'],produce:['produce'],inventory:['stock_in','package_stock_in'],...Object.fromEntries(['platform_gp','channel','history_clear','stock_count','switch_lot','material_create','material_archive','material_delete','material_metadata','material_measure','material_details','material_type','production_recipe'].map(k=>[k,[k]]))}
   if(r.opId!==command.opId||r.uid!==s.uid||!kinds[command.kind]?.includes(r.kind))throw fail('COMMAND_ID_COLLISION')
   const p=command.payload
   if(p){
    if(command.kind==='platform_gp'&&(!equal(r.rates,p.rates)||!equal(r.enabled,p.enabled)))throw fail('COMMAND_ID_COLLISION')
+   if(command.kind==='channel'&&!equal(r.input,p.input))throw fail('COMMAND_ID_COLLISION')
    if(['menu','addon','group'].includes(command.kind)&&(!equal(r.input,p.input)||!equal(r.display,p.display)||r.entityId!==(command.kind==='addon'?p.entityId:p.input.id)))throw fail('COMMAND_ID_COLLISION')
    if(command.kind==='cancel'&&r.orderId!==p.orderId)throw fail('COMMAND_ID_COLLISION')
    if(['inventory','receive','produce'].includes(command.kind)){
@@ -214,11 +216,39 @@ export function createCoreTransport({db,getContext}){
    admit(s,[{path,data}]);t.set(ref,data)
   })
  }
+ async function prepareChannel(s,command,before,next){
+  const proposal=`${gen(s)}/preparations/channel_${command.opId}`
+  const proofs=`${gen(s)}/preparedSales/${command.opId}/operandProofs`
+  async function write(path,data){
+   await runTransaction(db,async transaction=>{
+    guard(s)
+    const shop=await transaction.get(doc(db,root(s)))
+    checkRoot(s,shop.data())
+    if(shop.data().revision!==before.revision)throw fail('STALE_INVENTORY_DRAFT')
+    const ref=doc(db,path),existing=await transaction.get(ref)
+    guard(s)
+    if(existing.exists()){
+     if(!equal(existing.data(),data))throw fail('COMMAND_ID_COLLISION')
+     return
+    }
+    admit(s,[{path,data}]);transaction.set(ref,data)
+   })
+  }
+  await write(proposal,{opId:command.opId,uid:s.uid,revision:before.revision,input:command.payload.input,catalog:next.catalog})
+  for(let index=0;index<channelProofCount(before.catalog);index++)await write(`${proofs}/channel_${index}`,{opId:command.opId,index})
+ }
  async function commit(command){
   const s=scope()
   if(!/^[A-Za-z0-9_-]{1,120}$/.test(command.opId||''))throw fail('INVALID_COMMAND_ID')
   const saved=await receipt(command.kind,command.opId);if(saved)return checkReceipt(s,command,saved)
   const initial=await snapshot();guard(s)
+  if(command.kind==='channel'){
+   const {nextShop}=plan(s,command,initial.shop,initial.materials).f
+   const display=await getDocFromServer(doc(db,`${gen(s)}/display/catalog`));guard(s)
+   if(!display.exists())throw fail('INCOMPLETE_CATALOG_DISPLAY')
+   applyChannelDisplay(display.data(),initial.shop.catalog.platformIds,command.payload.input)
+   await prepareChannel(s,command,initial.shop,nextShop)
+  }
   if(['material_archive','material_delete'].includes(command.kind)){plan(s,command,initial.shop,initial.materials);await prepareMaterialReferences(s,command,initial.shop)}
   if(command.kind==='sale')await prepareSale(s,plan(s,command,initial.shop,initial.materials).f)
   if(['menu','addon','group'].includes(command.kind))await prepareCatalog(s,command,plan(s,command,initial.shop,initial.materials).f,initial.shop.revision)
@@ -235,10 +265,11 @@ export function createCoreTransport({db,getContext}){
    let oldOrder
    if(command.kind==='cancel'){const o=await t.get(doc(db,`${gen(s)}/orders/${command.payload.orderId}`));if(!o.exists())throw fail('ORDER_NOT_FOUND');oldOrder=o.data()}
    let display
-   if(['menu','addon','group'].includes(command.kind)){const d=await t.get(doc(db,`${gen(s)}/display/catalog`));if(!d.exists())throw fail('INCOMPLETE_CATALOG_DISPLAY');display=d.data()}
+   if(['menu','addon','group','channel'].includes(command.kind)){const d=await t.get(doc(db,`${gen(s)}/display/catalog`));if(!d.exists())throw fail('INCOMPLETE_CATALOG_DISPLAY');display=d.data()}
    guard(s);const p=plan(s,command,shop,materials,oldOrder)
    const writes=[{path:root(s),data:p.f.nextShop},{path:receiptRef.path,data:p.receipt},...p.materials.map(m=>({path:`${gen(s)}/materials/${m.id}`,data:m}))]
    if(p.f.displayChange)writes.push({path:`${gen(s)}/display/catalog`,data:applyCatalogDisplay(display,p.f.displayChange)})
+   if(command.kind==='channel')writes.push({path:`${gen(s)}/display/catalog`,data:applyChannelDisplay(display,shop.catalog.platformIds,command.payload.input)})
    for(const proof of p.f.checkProofs||[])writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/${proof.namespace||'check'}${proof.index}`,data:proof.data})
    if(p.f.admittedProof)writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/admitted`,data:p.f.admittedProof})
    if(p.f.inputProof)writes.push({path:`${gen(s)}/operations/${command.opId}/referenceProofs/input`,data:p.f.inputProof})

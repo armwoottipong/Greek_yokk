@@ -1,25 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
 match /databases/{d0}/documents {
-function K() { return get(CT()).data; }
-function P() { return get(/databases/$(d0)/documents/shops/greek-yogg).data; }
-function C() { return request.resource.data; }
+function L() { return get(DG()).data; }
+function U() { return get(/databases/$(d0)/documents/shops/greek-yogg).data; }
+function B() { return request.resource.data; }
 function A() { return resource.data; }
-function B() { return request.auth.uid; }
-function CT() { return /databases/$(d0)/documents/shops/greek-yogg; }
-function S(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/orders/$(a); }
-function H(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materials/$(a); }
-function F(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a); }
-function BR(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/0; }
-function BD(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/lineProofs/$(i); }
-function N() {
-  return AJ(P());
+function D() { return request.auth.uid; }
+function DG() { return /databases/$(d0)/documents/shops/greek-yogg; }
+function X(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/orders/$(a); }
+function I(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materials/$(a); }
+function E(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a); }
+function BZ(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/0; }
+function BL(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/lineProofs/$(i); }
+function Q() {
+  return AQ(U());
  }
-function D(n,a,b) { return n is int && n >= a && n <= b; }
+function C(n,a,b) { return n is int && n >= a && n <= b; }
 function G() { return getAfter(/databases/$(d0)/documents/shops/greek-yogg).data; }
-function M(g) { return K().status == 'active' && K().generation == g; }
-function E(g) { let a=G(); return a.status == 'active' && a.generation == g; }
-function BS(o,c) {
+function N(g) { return L().status == 'active' && L().generation == g; }
+function F(g) { let a=G(); return a.status == 'active' && a.generation == g; }
+function CA(o,c) {
       let d={'menuId':'_','qty':0,'optionQuantities':{'_':0}};
       let l=o.lines.size()==6 ? o.lines : o.lines.concat([d,d,d,d,d]);
       let e=c+1;
@@ -31,7 +31,7 @@ function BS(o,c) {
       return g[c]==a.menuId && i[c]==a.qty && j['L'+string(c)]==a.optionQuantities &&
         g[e]==b.menuId && i[e]==b.qty && j['L'+string(e)]==b.optionQuantities;
     }
-function AB(o,i,c) {
+function AH(o,i,c) {
       let a='A'+string(i-4);
       let b=o.addonKeys[a];
       let d=o.addonCounts[a];
@@ -41,44 +41,44 @@ function AB(o,i,c) {
         q.L3.get(b,0)*e[3]+q.L4.get(b,0)*e[4]+q.L5.get(b,0)*e[5] &&
         (d==0 || c.addons[b].get('active',true)==true);
     }
-function f(m,a) {
+function AB(m,a) {
       let l=m.lots[a];
       return {'id':a,'qty':m.lotQty[a],'isInUse':m.lotQty[a]>0 ? m.activeLotId==a : a in m.zeroActiveIds,
         'expiryDay':l.expiryDay,'receiveDay':l.receiveDay,'ordinal':l.ordinal};
     }
-function BT(m) {
-      return [f(m,m.slotIds[0]),f(m,m.slotIds[1]),f(m,m.slotIds[2]),f(m,m.slotIds[3])];
+function CB(m) {
+      return [AB(m,m.slotIds[0]),AB(m,m.slotIds[1]),AB(m,m.slotIds[2]),AB(m,m.slotIds[3])];
     }
-function J(g,o,i) {
+function K(g,o,i) {
       let m = getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materials/$(o.materialIds[i])).data;
       // Orders and operations have independent ID namespaces. A marker from a
       // different command kind cannot stand in for a material write in this batch.
       return [m.lastOpId,m.lastOpKind,m.lastOpIndex] == [o.opId,o.kind,i];
     }
-function I(g,o,i) { return i >= o.materialIds.size() || J(g,o,i); }
-function BU(o,a) {
+function J(g,o,i) { return i >= o.materialIds.size() || K(g,o,i); }
+function CC(o,a) {
       // The protected summary profile and mandatory15 material guards require15 rows.
       let z={'ingredientCostBaht':0,'packagingCostCents':0}; let b=o.inventory.size()>=15 ? o.inventory : o.inventory.concat([z,z,z,z,z,z,z,z,z,z,z,z,z,z,z]);
       let c = a ? 'ingredientCostBaht' : 'packagingCostCents';
       return b[0][c]+b[1][c]+b[2][c]+b[3][c]+b[4][c]+b[5][c]+b[6][c]+b[7][c]+
         b[8][c]+b[9][c]+b[10][c]+b[11][c]+b[12][c]+b[13][c]+b[14][c]+(b.size()==16 ? b[15][c] : 0);
     }
-function AE(q,c,a,b) { return ((q / 100.0) * c + (a / 100.0) * b) / ((q + a) / 100.0); }
-function BE(a) { return int(a * 10000.0 + 0.5) / 10000.0; }
-function T(n,a,b) { return n is number && n >= a && n <= b; }
-function V(m) { return m.get('groupIds',[]).size()>0 ? m.groupIds : m.get('groupId','')=='' ? [] : [m.groupId]; }
-function AF(c,a,i) {
+function AL(q,c,a,b) { return ((q / 100.0) * c + (a / 100.0) * b) / ((q + a) / 100.0); }
+function BM(a) { return int(a * 10000.0 + 0.5) / 10000.0; }
+function Y(n,a,b) { return n is number && n >= a && n <= b; }
+function f(m) { return m.get('groupIds',[]).size()>0 ? m.groupIds : m.get('groupId','')=='' ? [] : [m.groupId]; }
+function AM(c,a,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];
-      return i>=c.platformIds.size() || D(c.addons[a].pricesCents[p],0,1000000000) && c.addonPrices[p][a]==c.addons[a].pricesCents[p];
+      return i>=c.platformIds.size() || C(c.addons[a].pricesCents[p],0,1000000000) && c.addonPrices[p][a]==c.addons[a].pricesCents[p];
     }
-function BV(c,b) {
+function CD(c,b) {
       let a=c.addons.get(b,{});
       return a.get('materialIds',a.recipe.keys()) is list && a.get('materialIds',a.recipe.keys()).size()<=16 && a.get('materialIds',a.recipe.keys()).toSet().size()==a.get('materialIds',a.recipe.keys()).size() && a.get('materialIds',a.recipe.keys()).hasOnly(a.recipe.keys()) && a.keys().hasOnly(['materialIds','recipe','pricesCents','name','active']) && a.recipe.keys().hasOnly(c.get('recipeRegistryIds',c.summaryMaterials)) &&
         (!a.keys().hasAny(['name']) || a.name is string && a.name.size()>0 && a.name.size()<=120) &&
         (!a.keys().hasAny(['active']) || a.active is bool) &&
-        a.pricesCents.keys().toSet()==c.platformIds.toSet() && AF(c,b,0) && AF(c,b,1) && AF(c,b,2) && AF(c,b,3);
+        a.pricesCents.keys().toSet()==c.platformIds.toSet() && AM(c,b,0) && AM(c,b,1) && AM(c,b,2) && AM(c,b,3);
     }
-function AG(c,b,d,e,g,i) {
+function AN(c,b,d,e,g,i) {
       let a=b.groups[e];
       let n=c.groups[e];
       let j=e in g;
@@ -91,17 +91,17 @@ return j==(d in p) && l==(d in o) && n.diff(a).affectedKeys().hasOnly(['menuIds'
         n.menuIds==(j==k ? p : k ? p.concat([d]) : p.removeAll([d])) &&
         n.get('multiMenuIds',[])==(l==m ? o : m ? o.concat([d]) : o.removeAll([d]));
     }
-function AH(q,z,a,b) {
+function AO(q,z,a,b) {
       return b ? q[a]>0 || a in z : a=='_';
     }
-function BF(c,d,z,x,y) {
+function BN(c,d,z,x,y) {
       let a=c[x];
       let b=c[y];
       let e=x==d || x in z;
       let g=y==d || y in z;
       return e!=g ? e : a.sortKey<b.sortKey;
     }
-function AI(m) {
+function AP(m) {
       let a=m.slotIds;
       let b=m.allocationIds;
       let c=b.size();
@@ -109,130 +109,143 @@ function AI(m) {
       let z=m.zeroActiveIds;
       let d=m.lots;
       let e=m.activeLotId;
-      return D(c,1,4) && b.toSet().size()==c && b.hasOnly(m.lotIds) &&
+      return C(c,1,4) && b.toSet().size()==c && b.hasOnly(m.lotIds) &&
         a==b.concat(['_','_','_','_'])[0:4] &&
-        AH(q,z,a[0],c>0) && AH(q,z,a[1],c>1) && AH(q,z,a[2],c>2) && AH(q,z,a[3],c>3) &&
+        AO(q,z,a[0],c>0) && AO(q,z,a[1],c>1) && AO(q,z,a[2],c>2) && AO(q,z,a[3],c>3) &&
         m.stock==q[a[0]]+q[a[1]]+q[a[2]]+q[a[3]] &&
-        (c<2 || BF(d,e,z,a[0],a[1])) && (c<3 || BF(d,e,z,a[1],a[2])) && (c<4 || BF(d,e,z,a[2],a[3]));
+        (c<2 || BN(d,e,z,a[0],a[1])) && (c<3 || BN(d,e,z,a[1],a[2])) && (c<4 || BN(d,e,z,a[2],a[3]));
     }
-function BW(q,a,b,c) {
-      return q==0 || a==c ? c : AE(q,a,b,c);
+function CE(q,a,b,c) {
+      return q==0 || a==c ? c : AL(q,a,b,c);
     }
-function h(g,a,b) {
+function AC(g,a,b) {
       let c=b=='sale_set' ? 'sale_' : b=='platform' ? 'platform_' : 'inventory_';
       return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparations/$(c+a);
     }
-function BX(g,a,b,c) {
-      let m=getAfter(h(g,a,b)).data;
-      return M(g) && m.kind==b && m.opId==a && m.state in ['abandoned','expired','committed'] &&
-        (!c || m.state!='committed') && (m.uid==B() || request.time>=m.createdAt+duration.value(7,'d'));
+function CF(g,a,b,c) {
+      let m=getAfter(AC(g,a,b)).data;
+      return N(g) && m.kind==b && m.opId==a && m.state in ['abandoned','expired','committed'] &&
+        (!c || m.state!='committed') && (m.uid==D() || request.time>=m.createdAt+duration.value(7,'d'));
     }
-function CU(a,m,b) {
+function DH(a,m,b) {
   return b in a.materialIds && !(b in a.catalog.summaryMaterials) && m.id==b && m.deleted==true &&
    m.stock==0 && m.lotQty.values().hasOnly([0]) && a.productionUsers[b]==[] &&
    m.get('productionRecipe',{}).size()==0 && !a.get('returnMaterials',{}).get(b,false);
  }
-function BG(g,a,o,b,n,m) {
+function BO(g,a,o,b,n,m) {
   return b.status=='active' && b.generation==g &&
    o.keys().hasAll(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','materialSnapshot']) &&
    o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','materialSnapshot']) &&
-   o.schemaVersion==2 && o.kind=='material_delete' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-   o.materialRevision==m.revision && o.materialSnapshot==m && CU(b,m,o.materialId) && CB(g,o) &&
-   n.diff(b).affectedKeys().hasOnly(['materialIds','productionUsers','nextMaterialCostRank','revision','lastOpId','lastOpKind']) &&
+   o.schemaVersion==2 && o.kind=='material_delete' && o.status=='committed' && o.opId==a && o.uid==D() && o.createdAt==request.time &&
+   o.materialRevision==m.revision && o.materialSnapshot==m && DH(b,m,o.materialId) && CJ(g,o) &&
+   H(n,b,['materialIds','productionUsers','nextMaterialCostRank']) &&
    n.revision==b.revision+1 && n.revision==o.shopRevision && n.lastOpId==a && n.lastOpKind=='material_delete' &&
    n.materialIds==b.materialIds.removeAll([o.materialId]) &&
    n.productionUsers.diff(b.productionUsers).affectedKeys().hasOnly([o.materialId]) && n.productionUsers.keys().toSet()==n.materialIds.toSet() &&
    n.nextMaterialCostRank==b.get('nextMaterialCostRank',b.materialIds.size()) &&
-   D(n.nextMaterialCostRank,b.materialIds.size(),9007199254740991) && n.nextMaterialCostRank>m.costRank &&
-   !existsAfter(H(g,o.materialId)) && !exists(F(g,a));
+   C(n.nextMaterialCostRank,b.materialIds.size(),9007199254740991) && n.nextMaterialCostRank>m.costRank &&
+   !existsAfter(I(g,o.materialId)) && !exists(E(g,a));
  }
-function BY(o) { return o.kind=='menu' ? 'menus' : o.kind=='group' ? 'groups' : 'addons'; }
-function BZ(d) {
+function CG(o) { return o.kind=='menu' ? 'menus' : o.kind=='group' ? 'groups' : 'addons'; }
+function CH(d) {
   return d is map && d.keys().hasAll(['name','emoji']) && d.keys().hasOnly(['name','emoji','category','description','deleted']) &&
    d.name is string && d.name.size()>0 && d.name.size()<=120 && d.name.matches('.*\\S.*') && d.emoji is string && d.emoji.size()<=64 &&
    (!d.keys().hasAny(['category']) || d.category is string && d.category.size()<=1000) &&
    (!d.keys().hasAny(['description']) || d.description is string && d.description.size()<=1000) &&
    (!d.keys().hasAny(['deleted']) || d.deleted is bool);
  }
-function CA(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/certificates/bill; }
-function BH(n,a) { return a=='menu' ? n.get('rawRecipe',n.recipe) : n.recipe; }
-function W(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('check'+string(i)); }
-function CB(g,o) { return o.kind=='material_archive' && o.deleted==false || getAfter(BR(g,o.opId)).data.opId==o.opId; }
-function X(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('type'+string(i)); }
-function CC(g,a,b) {
-  return getAfter(X(g,a,b)).data.opId==a && getAfter(X(g,a,b+1)).data.opId==a &&
-   getAfter(X(g,a,b+2)).data.opId==a && getAfter(X(g,a,b+3)).data.opId==a &&
-   getAfter(X(g,a,b+4)).data.opId==a && getAfter(X(g,a,b+5)).data.opId==a &&
-   getAfter(X(g,a,b+6)).data.opId==a && getAfter(X(g,a,b+7)).data.opId==a;
+function CI(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/certificates/bill; }
+function BP(n,a) { return a=='menu' ? n.get('rawRecipe',n.recipe) : n.recipe; }
+function h(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('check'+string(i)); }
+function CJ(g,o) { return o.kind=='material_archive' && o.deleted==false || getAfter(BZ(g,o.opId)).data.opId==o.opId; }
+function s(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('type'+string(i)); }
+function CK(g,a,b) {
+  return getAfter(s(g,a,b)).data.opId==a && getAfter(s(g,a,b+1)).data.opId==a &&
+   getAfter(s(g,a,b+2)).data.opId==a && getAfter(s(g,a,b+3)).data.opId==a &&
+   getAfter(s(g,a,b+4)).data.opId==a && getAfter(s(g,a,b+5)).data.opId==a &&
+   getAfter(s(g,a,b+6)).data.opId==a && getAfter(s(g,a,b+7)).data.opId==a;
  }
-function BI(g) {
- let a=P();
- return a.status=='active' && a.generation==g && AJ(a) && U(a);
+function BQ(g) {
+ let a=U();
+ return a.status=='active' && a.generation==g && AQ(a) && Z(a);
 }
-function AJ(a) {
+function CL(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparations/$('channel_'+a); }
+function CM(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/operandProofs/$('channel_'+string(i)); }
+function CN(c) {
+  let m=c.menuIds.size()>c.addonIds.size()?c.menuIds.size():c.addonIds.size();
+  let n=m>c.groupIds.size()?m:c.groupIds.size();
+  return n==0 ? 1 : int((n + 1) / 2);
+ }
+function AI(n,b,a,c) {
+  return n.diff(b).affectedKeys().hasOnly([a]) && (c=='' ? !(a in n) : n[a]==b[c]);
+ }
+function H(n,b,a) {
+  return n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind'].concat(a));
+ }
+function AQ(a) {
   let b=request.auth.token;
   return b.email_verified && b.firebase.sign_in_provider=='google.com' && a.allowedEmails[b.email.lower()]==true;
  }
-function CV(a) {
+function DI(a) {
   return a.userRoles[request.auth.token.email.lower()];
  }
-function U(a) {
+function Z(a) {
   let b=request.auth.token;
   let c=b.email.lower();
   let d=a.userRoles[c];
   return b.email_verified && b.firebase.sign_in_provider=='google.com' && d.matches('^(admin|manager)$');
  }
-function AC(a) {
-  return AJ(a) && CV(a)=='admin';
+function u(a) {
+  return AQ(a) && DI(a)=='admin';
  }
-function L() {
+function M() {
   let a=getAfter(/databases/$(d0)/documents/shops/greek-yogg).data;
   let b=request.auth.token;
   let c=b.email.lower();
   let d=a.userRoles[c];
   return b.email_verified && b.firebase.sign_in_provider=='google.com' && d.matches('^(admin|manager)$');
  }
-function CW() {
-  return AC(getAfter(/databases/$(d0)/documents/shops/greek-yogg).data);
+function AJ() {
+  return u(getAfter(/databases/$(d0)/documents/shops/greek-yogg).data);
  }
 match /shops/greek-yogg/invitations/{id} {
-function CX() {
-  let n=C();
+function DJ() {
+  let n=B();
   let a=getAfter(/databases/$(d0)/documents/shops/greek-yogg).data;
-  return AC(a) && n.keys().hasOnly(['email','role','createdBy','createdAt','status']) &&
+  return u(a) && n.keys().hasOnly(['email','role','createdBy','createdAt','status']) &&
    n.email is string && n.email.size()<=254 && a.allowedEmails.get(n.email,false)==true &&
-   a.userRoles.get(n.email,'')==n.role && n.createdBy==B() && n.createdAt==request.time && n.status=='pending';
+   a.userRoles.get(n.email,'')==n.role && n.createdBy==D() && n.createdAt==request.time && n.status=='pending';
  }
-allow read: if N() && (AC(P()));
-   allow create: if L() && (id.matches('^[A-Za-z0-9_-]{1,200}$') && CX());
+allow read: if Q() && (u(U()));
+   allow create: if M() && (id.matches('^[A-Za-z0-9_-]{1,200}$') && DJ());
 }
 match /shops/greek-yogg/presence/{v0} {
-function CY(a) {
-  let p=C();
-  return a==B() && p.keys().hasAll(['email','displayName','photoURL','lastSeen']) &&
+function DK(a) {
+  let p=B();
+  return a==D() && p.keys().hasAll(['email','displayName','photoURL','lastSeen']) &&
    p.keys().hasOnly(['email','displayName','photoURL','lastSeen']) && p.email==request.auth.token.email.lower() &&
    p.displayName is string && p.displayName.size()<=120 && p.photoURL is string && p.photoURL.size()<=1000 &&
    (p.photoURL=='' || p.photoURL.matches('^https://[A-Za-z0-9.-]+[.]googleusercontent[.]com/.*$')) && p.lastSeen==request.time;
  }
-allow read: if N();
-   allow create,update: if N() && (CY(v0));
-   allow delete: if N() && (N() && v0==B());
+allow read: if Q();
+   allow create,update: if Q() && (DK(v0));
+   allow delete: if Q() && (Q() && v0==D());
 }
 match /shops/greek-yogg/generations/{g}/operations/{id}/referenceProofs/{v1} {
-function CZ(c,m,i) {
+function DL(c,m,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];
       let a=m.optionPrices.get(p,{});
-      return i>=c.platformIds.size() || D(m.pricesCents[c.platformIds[i]],0,1000000000) &&
+      return i>=c.platformIds.size() || C(m.pricesCents[c.platformIds[i]],0,1000000000) &&
         a.keys().toSet()==m.optionIds.concat(['_']).toSet() && a._==0;
     }
-function DA(c,m) {
-      let a=V(m);
+function DM(c,m) {
+      let a=f(m);
       let b=c.groups;
 return a is list && a.size()<=2 && a.toSet().size()==a.size() && a.hasOnly(c.groupIds) &&
         (a.size()==0 || m.optionIds==[] && m.min==0 && m.max==0 && m.priceMode=='addon' && b[a[0]].active) &&
         (a.size()<2 || m.get('groupId','')=='' && b[a[1]].active && b[a[0]].max<=3 && b[a[1]].max<=3);
     }
-function DB(c,a) {
+function DN(c,a) {
       let m=c.menus[a];
       let b=m.get('baseMaterialIds',m.recipe.keys());
 let d=m.recipe.keys();
@@ -241,31 +254,31 @@ let g=m.optionIds;
 let i=m.keys();
 return b is list && b.size()<=16 && b.toSet().size()==b.size() && b.hasOnly(d) && d.hasOnly(m.get('rawRecipe',m.recipe).keys()) && i.hasOnly(['id','name','revision','active','pricesCents','recipe','baseMaterialIds','rawRecipe','hasPackage','optionIds','min','max','optionPrices','choiceMaterials','materialIds','priceMode','groupId','groupIds']) &&
         (!i.hasAny(['rawRecipe','hasPackage']) || i.hasAll(['rawRecipe','hasPackage']) && m.rawRecipe is map && m.hasPackage is bool && m.rawRecipe.keys().hasOnly(c.get('recipeRegistryIds',c.summaryMaterials)) && m.rawRecipe.keys().hasOnly(e)) &&
-        m.id==a && m.priceMode in ['addon','override'] && m.active is bool && D(m.revision,1,1000000000) && d.hasOnly(c.get('recipeRegistryIds',c.summaryMaterials)) &&
+        m.id==a && m.priceMode in ['addon','override'] && m.active is bool && C(m.revision,1,1000000000) && d.hasOnly(c.get('recipeRegistryIds',c.summaryMaterials)) &&
         (!i.hasAny(['name']) || m.name is string && m.name.size()>0 && m.name.size()<=120) &&
         e is list && e.toSet().size()==e.size() && e.hasOnly(c.get('recipeRegistryIds',c.summaryMaterials)) && d.hasOnly(e) &&
         g is list && g.toSet().size()==g.size() && g.hasOnly(c.addonIds) && m.choiceMaterials.keys().toSet()==g.toSet() &&
-        g.size()<=45 && D(m.min,0,11) && D(m.max,m.min,11) && m.max<=g.size() &&
+        g.size()<=45 && C(m.min,0,11) && C(m.max,m.min,11) && m.max<=g.size() &&
         m.pricesCents.keys().toSet()==c.platformIds.toSet() && m.optionPrices.keys().toSet()==c.platformIds.toSet() &&
-        DA(c,m);
+        DM(c,m);
     }
-function Y(c,a,b,i) { return i>=c.menuIds.size() || (b in a.menus[c.menuIds[i]].optionIds ? DX(c,a,b,i) : c.menus[c.menuIds[i]]==a.menus[c.menuIds[i]]); }
-function DC(c,a,i) {
-      let b=K().catalog;
-      return Y(c,b,a,i) && Y(c,b,a,i+15) &&
-        Y(c,b,a,i+30) && Y(c,b,a,i+45);
+function w(c,a,b,i) { return i>=c.menuIds.size() || (b in a.menus[c.menuIds[i]].optionIds ? EJ(c,a,b,i) : c.menus[c.menuIds[i]]==a.menus[c.menuIds[i]]); }
+function DO(c,a,i) {
+      let b=L().catalog;
+      return w(c,b,a,i) && w(c,b,a,i+15) &&
+        w(c,b,a,i+30) && w(c,b,a,i+45);
     }
-function DD(g,a,b,d) {
+function DP(g,a,b,d) {
       let c=G();
-      let e=K();
+      let e=L();
       let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
       let i=c.catalog;
-return E(g) && b=='0' && d.keys().hasOnly(['opId']) && d.opId==a && o.kind=='catalog' && o.uid==B() &&
+return F(g) && b=='0' && d.keys().hasOnly(['opId']) && d.opId==a && o.kind=='catalog' && o.uid==D() &&
         o.collection=='addons' && c.lastOpId==a && c.lastOpKind=='catalog' && c.revision==e.revision+1 && c.revision==o.shopRevision &&
-        Y(i,e.catalog,o.entityId,60) && Y(i,e.catalog,o.entityId,61) &&
-        Y(i,e.catalog,o.entityId,62) && Y(i,e.catalog,o.entityId,63);
+        w(i,e.catalog,o.entityId,60) && w(i,e.catalog,o.entityId,61) &&
+        w(i,e.catalog,o.entityId,62) && w(i,e.catalog,o.entityId,63);
     }
-function BJ(c,m,g) {
+function BR(c,m,g) {
       let i=m.choiceMaterials[g];
       let j=c.addons[g].recipe.keys();
       let k=c.platformIds;
@@ -279,43 +292,43 @@ function BJ(c,m,g) {
         a is int && a>=0 && a<=1000000000 && b is int && b>=0 && b<=1000000000 &&
         d is int && d>=0 && d<=1000000000 && e is int && e>=0 && e<=1000000000;
     }
-function DE(c,m,i) {
+function DQ(c,m,i) {
       let d=m.optionIds;
       let e=d.size();
       let a=i+15;
       let b=i+30;
-      return (i>=e || BJ(c,m,d[i])) && (a>=e || BJ(c,m,d[a])) && (b>=e || BJ(c,m,d[b]));
+      return (i>=e || BR(c,m,d[i])) && (a>=e || BR(c,m,d[a])) && (b>=e || BR(c,m,d[b]));
     }
-function DF(g,a,b,d) {
+function DR(g,a,b,d) {
       let c=G();
-      let e=K();
+      let e=L();
       let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
-      return c.status=='active' && c.generation==g && b=='shape' && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==B() &&
+      return c.status=='active' && c.generation==g && b=='shape' && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==D() &&
         (o.kind=='menu' || o.kind=='catalog' && o.collection=='menus') && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==e.revision+1 && c.revision==o.shopRevision &&
-        DB(c.catalog,o.entityId) && DG(c.catalog,e.catalog,o.entityId,o.get('create',false));
+        DN(c.catalog,o.entityId) && DS(c.catalog,e.catalog,o.entityId,o.get('create',false));
     }
-function DG(c,d,e,g) {
-      let a=g ? [] : V(d.menus[e]);
-      let b=V(c.menus[e]);
+function DS(c,d,e,g) {
+      let a=g ? [] : f(d.menus[e]);
+      let b=f(c.menus[e]);
       return c.groups.keys().toSet()==d.groups.keys().toSet() && c.groups.diff(d.groups).affectedKeys().hasOnly(a.concat(b)) &&
-        (a.size()==0 || AG(c,d,e,a[0],a,b));
+        (a.size()==0 || AN(c,d,e,a[0],a,b));
     }
-function DH(c,g) {
+function DT(c,g) {
       return g.keys().hasOnly(['id','name','revision','active','min','max','allowRepeat','pricingMode','optionIds','optionPrices','menuIds','multiMenuIds']) &&
-        g.name is string && g.name.size()>0 && g.name.size()<=120 && g.name.matches('.*\\S.*') && D(g.revision,1,1000000000) &&
+        g.name is string && g.name.size()>0 && g.name.size()<=120 && g.name.matches('.*\\S.*') && C(g.revision,1,1000000000) &&
         g.active is bool && g.allowRepeat is bool && g.pricingMode in ['included','extra'] &&
-        g.optionIds is list && D(g.optionIds.size(),1,45) && g.optionIds.toSet().size()==g.optionIds.size() && g.optionIds.hasOnly(c.addonIds) &&
-        D(g.min,0,11) && D(g.max,1,11) && g.min<=g.max && (g.allowRepeat || g.min<=g.optionIds.size()) &&
+        g.optionIds is list && C(g.optionIds.size(),1,45) && g.optionIds.toSet().size()==g.optionIds.size() && g.optionIds.hasOnly(c.addonIds) &&
+        C(g.min,0,11) && C(g.max,1,11) && g.min<=g.max && (g.allowRepeat || g.min<=g.optionIds.size()) &&
         g.optionPrices.keys().toSet()==c.platformIds.toSet() &&
         g.menuIds is list && g.menuIds.toSet().size()==g.menuIds.size() && g.menuIds.hasOnly(c.menuIds) &&
         g.get('multiMenuIds',[]).toSet().size()==g.get('multiMenuIds',[]).size() && g.get('multiMenuIds',[]).hasOnly(g.menuIds) && (g.get('multiMenuIds',[]).size()==0 || g.max<=3);
     }
-function DI(c,g,i) {
+function DU(c,g,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];
       let a=g.optionPrices.get(p,{});
       return i>=c.platformIds.size() || a.keys().hasOnly(g.optionIds.concat(['_'])) && a._==0;
     }
-function BK(c,g,i) {
+function BS(c,g,i) {
       let j=c.platformIds;
       let k=j.size();
       let l=g.optionPrices;
@@ -326,107 +339,107 @@ function BK(c,g,i) {
       return (!g.active || c.addons[i].get('active',true)) && a is int && a>=0 && a<=1000000000 && b is int && b>=0 && b<=1000000000 &&
         d is int && d>=0 && d<=1000000000 && e is int && e>=0 && e<=1000000000;
     }
-function DJ(c,g,i) {
+function DV(c,g,i) {
       let a=g.optionIds;
       let b=a.size();
-      return (i>=b || BK(c,g,a[i])) && (i+15>=b || BK(c,g,a[i+15])) && (i+30>=b || BK(c,g,a[i+30]));
+      return (i>=b || BS(c,g,a[i])) && (i+15>=b || BS(c,g,a[i+15])) && (i+30>=b || BS(c,g,a[i+30]));
     }
-function DK(g,a,b,d) {
+function DW(g,a,b,d) {
       let c=G();
       let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
-      return E(g) && b=='shape' && d.keys().hasOnly(['opId']) && d.opId==a && o.kind=='group' && o.uid==B() &&
-        c.lastOpId==a && c.lastOpKind=='group' && c.revision==K().revision+1 && c.revision==o.shopRevision &&
-        DH(c.catalog,c.catalog.groups[o.entityId]);
+      return F(g) && b=='shape' && d.keys().hasOnly(['opId']) && d.opId==a && o.kind=='group' && o.uid==D() &&
+        c.lastOpId==a && c.lastOpKind=='group' && c.revision==L().revision+1 && c.revision==o.shopRevision &&
+        DT(c.catalog,c.catalog.groups[o.entityId]);
     }
-function DL(c,d,e,g) {
-  let a=g ? [] : V(d.menus[e]);
-  let b=V(c.menus[e]);
-  return a.size()<2 || AG(c,d,e,a[1],a,b);
+function DX(c,d,e,g) {
+  let a=g ? [] : f(d.menus[e]);
+  let b=f(c.menus[e]);
+  return a.size()<2 || AN(c,d,e,a[1],a,b);
  }
-function DM(g,a,b,d) {
+function DY(g,a,b,d) {
   let c=G();
   let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
-  return E(g) && b=='input' && d.keys().hasOnly(['opId']) && d.opId==a &&
+  return F(g) && b=='input' && d.keys().hasOnly(['opId']) && d.opId==a &&
    o.kind in ['menu','addon','group','catalog'] && (o.kind!='catalog' || o.collection=='addons') &&
-   o.uid==B() && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision && DN(o) && o.validationIds is list && o.validationIds.size()<=16 && o.validationIds.toSet().size()==o.validationIds.size() && o.validationIds.toSet()==(o.kind=='group' ? [].toSet() : BH(o.entitySnapshot,o.kind=='catalog'?'addon':o.kind).keys().toSet());
+   o.uid==D() && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision && DZ(o) && o.validationIds is list && o.validationIds.size()<=16 && o.validationIds.toSet().size()==o.validationIds.size() && o.validationIds.toSet()==(o.kind=='group' ? [].toSet() : BP(o.entitySnapshot,o.kind=='catalog'?'addon':o.kind).keys().toSet());
  }
-function DN(o) {
+function DZ(o) {
   let a=o.input;
   let n=o.entitySnapshot;
-  let b=o.kind=='menu' ? V(n) : [];
-  return BZ(o.display) && (!o.display.get('deleted',false) || n.active==false) && (!n.keys().hasAny(['name']) || n.name==o.display.name) && a is map && (o.kind in ['addon','catalog'] ? n.diff(a).affectedKeys().hasOnly(['materialIds']) : o.kind=='group' ?
+  let b=o.kind=='menu' ? f(n) : [];
+  return CH(o.display) && (!o.display.get('deleted',false) || n.active==false) && (!n.keys().hasAny(['name']) || n.name==o.display.name) && a is map && (o.kind in ['addon','catalog'] ? n.diff(a).affectedKeys().hasOnly(['materialIds']) : o.kind=='group' ?
    a.keys().hasOnly(['id','name','active','min','max','allowRepeat','pricingMode','optionIds','optionPrices']) &&
    n.diff(a).affectedKeys().hasOnly(['revision','menuIds','multiMenuIds']) :
    a.keys().hasOnly(['id','name','active','pricesCents','recipe','rawRecipe','hasPackage','optionIds','min','max','optionPrices','priceMode','groupId','groupIds']) &&
    a.keys().hasAll(['id','active','pricesCents','recipe','optionIds','min','max','priceMode','optionPrices']) &&
    n.diff(a).affectedKeys().hasOnly(['baseMaterialIds','revision','choiceMaterials','materialIds','recipe','groupId','groupIds','optionIds','min','max','priceMode','optionPrices']) &&
-   (a.keys().hasAny(['rawRecipe']) ? a.recipe==a.rawRecipe : a.recipe==n.recipe) && V(a)==b &&
+   (a.keys().hasAny(['rawRecipe']) ? a.recipe==a.rawRecipe : a.recipe==n.recipe) && f(a)==b &&
    (b.size()>0 || a.optionIds==n.optionIds && a.min==n.min && a.max==n.max && a.priceMode==n.priceMode && a.optionPrices==n.optionPrices));
  }
-function DO(g,a,b,d) {
+function EA(g,a,b,d) {
   let c=G();
   let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
-  return E(g) && b=='shape' && d.keys().hasOnly(['opId']) && d.opId==a && o.kind=='addon' && o.uid==B() &&
-   c.lastOpId==a && c.lastOpKind=='addon' && c.revision==o.shopRevision && BV(c.catalog,o.entityId);
+  return F(g) && b=='shape' && d.keys().hasOnly(['opId']) && d.opId==a && o.kind=='addon' && o.uid==D() &&
+   c.lastOpId==a && c.lastOpKind=='addon' && c.revision==o.shopRevision && CD(c.catalog,o.entityId);
  }
-function AK(c,a,i) {
+function AR(c,a,i) {
   let b=i<c.groupIds.size() ? c.groupIds[i] : '_';
   return c.addons[a].get('active',true) || i>=c.groupIds.size() || !c.groups[b].active || !(a in c.groups[b].optionIds);
  }
-function AL(g,o,a,i) {
-  return i*4>=o.validationIds.size() || DP('greek-yogg',g,o,a,i);
+function AS(g,o,a,i) {
+  return i*4>=o.validationIds.size() || EB('greek-yogg',g,o,a,i);
  }
-function DP(a,b,c,d,e) {
+function EB(a,b,c,d,e) {
   let g=get(/databases/$(d0)/documents/shops/$(a)/generations/$(b)/recipeAdmissions/$(c.opId)/parts/$(string(e))).data;
-  return DQ(g,c,d,e);
+  return EC(g,c,d,e);
  }
-function DQ(d,o,a,i) {
+function EC(d,o,a,i) {
   let b=o.validationIds;
   let c=i*4;
   return d.opId==o.opId && d.index==i && d.uid==o.uid && d.sourceRevision==a-1 && d.entityId==o.entityId &&
    d.kind==(o.kind=='catalog' ? 'addon' : o.kind) && d.input==o.input && d.entitySnapshot==o.entitySnapshot &&
    d.materialIds==b[c:(c+4<b.size() ? c+4 : b.size())];
  }
-function DR(g,a,b,d) {
+function ED(g,a,b,d) {
   let c=G();
   let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)).data;
-  return E(g) && b=='admitted' && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==B() &&
+  return F(g) && b=='admitted' && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==D() &&
    o.kind in ['menu','addon','group','catalog'] && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
-   AL(g,o,c.revision,0) && AL(g,o,c.revision,1) && AL(g,o,c.revision,2) && AL(g,o,c.revision,3);
+   AS(g,o,c.revision,0) && AS(g,o,c.revision,1) && AS(g,o,c.revision,2) && AS(g,o,c.revision,3);
  }
-function CD(c,o,i) {
-  return o.kind=='menu' ? DE(c,c.menus[o.entityId],i) && (i>=4 || CZ(c,c.menus[o.entityId],i)) :
-   o.kind=='group' ? DJ(c,c.groups[o.entityId],i) && (i>=4 || DI(c,c.groups[o.entityId],i)) :
-   o.kind=='catalog' && DC(c,o.entityId,i) &&
-    AK(c,o.entityId,i*4) && AK(c,o.entityId,i*4+1) && AK(c,o.entityId,i*4+2) && AK(c,o.entityId,i*4+3);
+function CO(c,o,i) {
+  return o.kind=='menu' ? DQ(c,c.menus[o.entityId],i) && (i>=4 || DL(c,c.menus[o.entityId],i)) :
+   o.kind=='group' ? DV(c,c.groups[o.entityId],i) && (i>=4 || DU(c,c.groups[o.entityId],i)) :
+   o.kind=='catalog' && DO(c,o.entityId,i) &&
+    AR(c,o.entityId,i*4) && AR(c,o.entityId,i*4+1) && AR(c,o.entityId,i*4+2) && AR(c,o.entityId,i*4+3);
  }
-function DS(g,a,b,d) {
+function EE(g,a,b,d) {
   let c=G();
-  let o=getAfter(F(g,a)).data;
+  let o=getAfter(E(g,a)).data;
   let e=b=='check0'?0:b=='check1'?1:b=='check2'?2:b=='check3'?3:b=='check4'?4:b=='check5'?5:b=='check6'?6:b=='check7'?7:-1;
   let i=c.catalog;
-return E(g) && e>=0 && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==B() &&
+return F(g) && e>=0 && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==D() &&
    o.kind in ['menu','group','catalog'] && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
-   CD(i,o,e*2) && CD(i,o,e*2+1) &&
-   (e!=7 || o.kind!='menu' || DL(i,K().catalog,o.entityId,o.get('create',false)));
+   CO(i,o,e*2) && CO(i,o,e*2+1) &&
+   (e!=7 || o.kind!='menu' || DX(i,L().catalog,o.entityId,o.get('create',false)));
  }
-function DT(g,a,b) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materialReferences/$(a)/parts/$(string(b)); }
-function Z(g,o,a,i) {
-  let d=get(DT(g,o.opId,i)).data;
+function EF(g,a,b) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materialReferences/$(a)/parts/$(string(b)); }
+function AA(g,o,a,i) {
+  let d=get(EF(g,o.opId,i)).data;
   return d.opId==o.opId && d.index==i && d.uid==o.uid && d.sourceRevision==a-1 && d.kind==o.kind && d.materialId==o.materialId;
  }
-function DU(g,a,b,d) {
+function EG(g,a,b,d) {
   let c=G();
-  let o=getAfter(F(g,a)).data;
-  return E(g) && b=='0' && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==B() &&
+  let o=getAfter(E(g,a)).data;
+  return F(g) && b=='0' && d.keys().hasOnly(['opId']) && d.opId==a && o.uid==D() &&
    o.kind in ['material_archive','material_delete'] && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
-   Z(g,o,c.revision,0) && Z(g,o,c.revision,1) && Z(g,o,c.revision,2) && Z(g,o,c.revision,3) &&
-   Z(g,o,c.revision,4) && Z(g,o,c.revision,5) && Z(g,o,c.revision,6) && Z(g,o,c.revision,7);
+   AA(g,o,c.revision,0) && AA(g,o,c.revision,1) && AA(g,o,c.revision,2) && AA(g,o,c.revision,3) &&
+   AA(g,o,c.revision,4) && AA(g,o,c.revision,5) && AA(g,o,c.revision,6) && AA(g,o,c.revision,7);
  }
-function AM(c,a,b,d,i) {
-  return i>=c.menuIds.size() || DV(c.menus[c.menuIds[i]],a.menus[c.menuIds[i]],b,d);
+function AT(c,a,b,d,i) {
+  return i>=c.menuIds.size() || EH(c.menus[c.menuIds[i]],a.menus[c.menuIds[i]],b,d);
  }
-function DV(n,b,a,c) {
+function EH(n,b,a,c) {
   let d=b.get('rawRecipe',{});
   let e=d.keys().hasAny([a]) && (b.get('hasPackage',true) || c!='packaging');
   let g=b.recipe.keys().removeAll([a]).concat(e ? [a] : []);
@@ -438,17 +451,17 @@ function DV(n,b,a,c) {
     n.baseMaterialIds is list && n.baseMaterialIds.toSet().size()==n.baseMaterialIds.size() &&
     n.baseMaterialIds.toSet()==b.baseMaterialIds.removeAll([a]).concat(i ? [a] : []).toSet());
  }
-function DW(g,a,b,d) {
+function EI(g,a,b,d) {
   let c=G();
-  let e=K();
-  let o=getAfter(F(g,a)).data;
+  let e=L();
+  let o=getAfter(E(g,a)).data;
   let i=c.catalog;
-return E(g) && d.keys().hasOnly(['opId','index']) && d.opId==a && D(d.index,0,15) && b=='type'+string(d.index) &&
-   o.kind=='material_type' && o.uid==B() && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
-   AM(i,e.catalog,o.targetId,o.inventoryType,d.index*4) && AM(i,e.catalog,o.targetId,o.inventoryType,d.index*4+1) &&
-   AM(i,e.catalog,o.targetId,o.inventoryType,d.index*4+2) && AM(i,e.catalog,o.targetId,o.inventoryType,d.index*4+3);
+return F(g) && d.keys().hasOnly(['opId','index']) && d.opId==a && C(d.index,0,15) && b=='type'+string(d.index) &&
+   o.kind=='material_type' && o.uid==D() && c.lastOpId==a && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
+   AT(i,e.catalog,o.targetId,o.inventoryType,d.index*4) && AT(i,e.catalog,o.targetId,o.inventoryType,d.index*4+1) &&
+   AT(i,e.catalog,o.targetId,o.inventoryType,d.index*4+2) && AT(i,e.catalog,o.targetId,o.inventoryType,d.index*4+3);
  }
-function DX(c,a,b,i) {
+function EJ(c,a,b,i) {
       let d=i<c.menuIds.size() ? c.menuIds[i] : '_';
       let m=c.menus.get(d,{});
       let e=a.menus.get(d,{});
@@ -463,7 +476,7 @@ function DX(c,a,b,i) {
         k is list && k.size()==n.size() && k.toSet()==n.toSet() &&
         l is list && l.toSet().size()==l.size() && l.toSet()==e.materialIds.concat(n).toSet());
     }
-allow create: if L() && ((v1.matches('^type([0-9]|1[0-5])$') && DW(g,id,v1,C())) || (v1=='0' && DU(g,id,v1,C())) || (v1=='admitted' && DR(g,id,v1,C())) || (v1.matches('^check[0-7]$') && DS(g,id,v1,C())) || (v1=='input' && DM(g,id,v1,C())) || (DO(g,id,v1,C()) || DF(g,id,v1,C()) || DK(g,id,v1,C()) || DD(g,id,v1,C())));
+allow create: if M() && ((v1.matches('^type([0-9]|1[0-5])$') && EI(g,id,v1,B())) || (v1=='0' && EG(g,id,v1,B())) || (v1=='admitted' && ED(g,id,v1,B())) || (v1.matches('^check[0-7]$') && EE(g,id,v1,B())) || (v1=='input' && DY(g,id,v1,B())) || (EA(g,id,v1,B()) || DR(g,id,v1,B()) || DW(g,id,v1,B()) || DP(g,id,v1,B())));
 
 
 
@@ -471,26 +484,26 @@ allow create: if L() && ((v1.matches('^type([0-9]|1[0-5])$') && DW(g,id,v1,C()))
 
 }
 match /shops/greek-yogg/generations/{g}/operations/{id} {
-function BL(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/shape; }
-function DY(l,o) { return l.qty > 0 && l.receiveDay == o.receiveDay && l.expiryDay == o.expiryDay; }
-function AN(a,o,i) {
+function BT(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/shape; }
+function EK(l,o) { return l.qty > 0 && l.receiveDay == o.receiveDay && l.expiryDay == o.expiryDay; }
+function AU(a,o,i) {
       let b=a.slotIds[i];
       let c=a.lots[b];
       return !(a.lotQty[b]>0 && c.receiveDay==o.receiveDay && c.expiryDay==o.expiryDay) ||
         (o.mode=='merge' && a.lots[o.lotId].ordinal<=c.ordinal);
     }
-function BM(a,b,o) {
+function BU(a,b,o) {
       let l = b.lots[o.lotId];
       let c = a.activeLotId != '' && a.lotQty[a.activeLotId] > 0;
       return !(o.lotId in a.lots) && o.lotId != '_' && b.lotIds == a.lotIds.concat([o.lotId]) &&
         b.lots.keys().hasOnly(a.lots.keys().concat([o.lotId])) && b.lots.keys().hasAll(a.lots.keys()) &&
         l.keys().hasOnly(['id','qty','initialQtyQ','unitCost','packCostCents','receiveDay','expiryDay','ordinal','isInUse','note','createdAt','createdByOpId','sortKey']) &&
-        T(l.unitCost,0,100000) && l.id == o.lotId && l.qty == o.qtyQ && l.initialQtyQ == o.qtyQ && l.unitCost == o.unitCost && l.packCostCents == o.packCostCents &&
+        Y(l.unitCost,0,100000) && l.id == o.lotId && l.qty == o.qtyQ && l.initialQtyQ == o.qtyQ && l.unitCost == o.unitCost && l.packCostCents == o.packCostCents &&
         l.receiveDay == o.receiveDay && l.expiryDay == (a.inventoryType == 'packaging' ? 999999 : o.expiryDay) && l.ordinal == a.lotIds.size() && l.note == o.note && l.createdAt == o.lotCreatedAtISO && l.createdByOpId == o.opId &&
         l.ordinal<1000 && l.sortKey==l.expiryDay*1000000000+l.receiveDay*1000+l.ordinal &&
         l.isInUse == !c && b.activeLotId == (c ? a.activeLotId : o.lotId);
     }
-function CE(a,b,o) {
+function CP(a,b,o) {
       let c=a.lots[o.lotId];
       let l=b.lots[o.lotId];
       let d=a.inventoryType=='packaging';
@@ -501,246 +514,260 @@ function CE(a,b,o) {
         l.sortKey==l.expiryDay*1000000000+l.receiveDay*1000+l.ordinal &&
         l.initialQtyQ==c.initialQtyQ+o.qtyQ && l.packCostCents==o.packCostCents &&
         l.note==(o.note=='' ? c.note : c.note=='' ? o.note : c.note+'; '+o.note) &&
-        T(l.unitCost,0,100000) && l.unitCost==(d ? AE(a.stock,a.unitCost,o.qtyQ,o.unitCost) : BE(AE(q,e,o.qtyQ,o.unitCost))) &&
+        Y(l.unitCost,0,100000) && l.unitCost==(d ? AL(a.stock,a.unitCost,o.qtyQ,o.unitCost) : BM(AL(q,e,o.qtyQ,o.unitCost))) &&
         (d ? a.lotIds[0]==o.lotId && a.stock==q && l.receiveDay==o.receiveDay && b.activeLotId==o.lotId :
-          DY(f(a,o.lotId),o) && b.activeLotId==a.activeLotId);
+          EK(AB(a,o.lotId),o) && b.activeLotId==a.activeLotId);
     }
-function DZ(g,a,o) {
-      let b = get(H(g,o.materialId)).data;
-      let c = getAfter(H(g,o.materialId)).data;
+function EL(g,a,o) {
+      let b = get(I(g,o.materialId)).data;
+      let c = getAfter(I(g,o.materialId)).data;
       let d = G();
-      return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','qtyQ','unitCost','packCostCents','receiveDay','expiryDay','note','lotId','mode','dateLotId','lotCreatedAtISO']) &&
-        o.schemaVersion == 2 && o.kind == 'stock_in' && o.status == 'committed' && o.opId == a && o.uid == B() && o.createdAt == request.time &&
-        D(o.qtyQ,1,1000000000) && T(o.unitCost,0,100000) && D(o.packCostCents,0,1000000000) &&
-        (D(o.receiveDay,0,100000) || b.inventoryType == 'packaging' && o.receiveDay == 999999 && o.expiryDay == 999999) &&
-        (o.expiryDay == 999999 || D(o.expiryDay,o.receiveDay,100000)) && o.note is string && o.note.size() <= 1000 &&
+      return F(g) && O(o,['materialId','materialRevision','shopRevision','qtyQ','unitCost','packCostCents','receiveDay','expiryDay','note','lotId','mode','dateLotId','lotCreatedAtISO']) &&
+        P(o,a) && o.kind == 'stock_in' &&
+        C(o.qtyQ,1,1000000000) && Y(o.unitCost,0,100000) && C(o.packCostCents,0,1000000000) &&
+        (C(o.receiveDay,0,100000) || b.inventoryType == 'packaging' && o.receiveDay == 999999 && o.expiryDay == 999999) &&
+        (o.expiryDay == 999999 || C(o.expiryDay,o.receiveDay,100000)) && o.note is string && o.note.size() <= 1000 &&
         o.lotId is string && o.lotId.matches('^[A-Za-z0-9_-]{1,200}$') && o.lotCreatedAtISO is string && o.lotCreatedAtISO.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$') &&
-        c.lastOpId == a && c.lastOpKind == 'stock_in' && d.lastOpId == a && d.lastOpKind == 'stock_in' && d.revision == o.shopRevision &&
+        c.lastOpId == a && c.lastOpKind == 'stock_in' && R(d,o,a,'stock_in') &&
         c.lots.diff(b.lots).affectedKeys().hasOnly([o.lotId]) &&
-        (b.inventoryType == 'packaging' ? (b.lotIds.size() == 0 ? o.mode == 'new' && BM(b,c,o) : o.mode == 'merge' && CE(b,c,o)) :
-          AN(b,o,0) && AN(b,o,1) && AN(b,o,2) && AN(b,o,3) &&
-          (o.mode == 'new' ? BM(b,c,o) : o.mode == 'merge' && CE(b,c,o)));
+        (b.inventoryType == 'packaging' ? (b.lotIds.size() == 0 ? o.mode == 'new' && BU(b,c,o) : o.mode == 'merge' && CP(b,c,o)) :
+          AU(b,o,0) && AU(b,o,1) && AU(b,o,2) && AU(b,o,3) &&
+          (o.mode == 'new' ? BU(b,c,o) : o.mode == 'merge' && CP(b,c,o)));
     }
-function EA(g,a,o) {
+function EM(g,a,o) {
       let b=G();
-      return E(g) && getAfter(AO(g,a)).data.opId==a && AP(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','counterIndex','collection','entityId','validationIds','input','display','entitySnapshot']) &&
-        o.schemaVersion==2 && o.kind=='catalog' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-        o.sourceCatalogRevision==K().catalogRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
-        o.collection=='addons' && D(o.counterIndex,-1,14) && b.lastOpId==a && b.lastOpKind=='catalog' && b.revision==o.shopRevision && o.materialIds==b.catalog.summaryMaterials &&
-        BV(b.catalog,o.entityId) && getAfter(BR(g,a)).data.opId==a && AR(g,a,o) && getAfter(AQ(g,a)).data.opId==a;
+      return F(g) && getAfter(AV(g,a)).data.opId==a && AW(g,o) && O(o,['shopRevision','sourceCatalogRevision','materialIds','counterIndex','collection','entityId','validationIds','input','display','entitySnapshot']) &&
+        P(o,a) && o.kind=='catalog' &&
+        o.sourceCatalogRevision==L().catalogRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
+        o.collection=='addons' && C(o.counterIndex,-1,14) && R(b,o,a,'catalog') && o.materialIds==b.catalog.summaryMaterials &&
+        CD(b.catalog,o.entityId) && getAfter(BZ(g,a)).data.opId==a && AY(g,a,o) && getAfter(AX(g,a)).data.opId==a;
     }
-function EB(g,a,o) {
+function EN(g,a,o) {
       let b=G();
-      return E(g) && getAfter(AO(g,a)).data.opId==a && AP(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','create']) &&
-        o.schemaVersion==2 && o.kind=='menu' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time && o.create is bool &&
+      return F(g) && getAfter(AV(g,a)).data.opId==a && AW(g,o) && O(o,['shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','create']) &&
+        P(o,a) && o.kind=='menu' && o.create is bool &&
         o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==b.catalog.summaryMaterials &&
-        b.lastOpId==a && b.lastOpKind=='menu' && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
-        getAfter(BL(g,a)).data.opId==a && AR(g,a,o) && getAfter(AQ(g,a)).data.opId==a;
+        R(b,o,a,'menu') && b.catalogRevision==o.sourceCatalogRevision+1 &&
+        getAfter(BT(g,a)).data.opId==a && AY(g,a,o) && getAfter(AX(g,a)).data.opId==a;
     }
-function EC(g,a,o) {
+function EO(g,a,o) {
       let b=G();
-      return E(g) && getAfter(AO(g,a)).data.opId==a && AP(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','counterIndex']) &&
-        o.schemaVersion==2 && o.kind=='addon' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time && D(o.counterIndex,4,67) &&
+      return F(g) && getAfter(AV(g,a)).data.opId==a && AW(g,o) && O(o,['shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','counterIndex']) &&
+        P(o,a) && o.kind=='addon' && C(o.counterIndex,4,67) &&
         o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==b.catalog.summaryMaterials &&
-        getAfter(BL(g,a)).data.opId==a && b.lastOpId==a && b.lastOpKind=='addon' && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 && AR(g,a,o) && getAfter(AQ(g,a)).data.opId==a;
+        getAfter(BT(g,a)).data.opId==a && R(b,o,a,'addon') && b.catalogRevision==o.sourceCatalogRevision+1 && AY(g,a,o) && getAfter(AX(g,a)).data.opId==a;
     }
-function ED(g,a,o) {
-      let b=get(S(g,o.orderId)).data;
-      let c=getAfter(S(g,o.orderId)).data;
+function EP(g,a,o) {
+      let b=get(X(g,o.orderId)).data;
+      let c=getAfter(X(g,o.orderId)).data;
       let d=G();
       let e=o.materialIds;
-return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','orderId','materialIds','sourceRevisions','shopRevision']) &&
-        o.schemaVersion==2 && o.kind=='cancel' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-        b.status=='committed' && e==b.materialIds && o.sourceRevisions is list && D(e.size(),0,16) && o.sourceRevisions.size()==e.size() &&
-        c.status=='cancelled' && c.cancelOpId==a && d.lastOpId==a && d.lastOpKind=='cancel' && d.revision==o.shopRevision &&
-        I(g,o,9) && I(g,o,10) && I(g,o,11) && I(g,o,12) && I(g,o,13) && I(g,o,14) && I(g,o,15);
+return F(g) && O(o,['orderId','materialIds','sourceRevisions','shopRevision']) &&
+        P(o,a) && o.kind=='cancel' &&
+        b.status=='committed' && e==b.materialIds && o.sourceRevisions is list && C(e.size(),0,16) && o.sourceRevisions.size()==e.size() &&
+        c.status=='cancelled' && c.cancelOpId==a && R(d,o,a,'cancel') &&
+        J(g,o,9) && J(g,o,10) && J(g,o,11) && J(g,o,12) && J(g,o,13) && J(g,o,14) && J(g,o,15);
     }
-function CF(g,o,i) {
-      let n=getAfter(H(g,o.materialIds[i])).data;
+function CQ(g,o,i) {
+      let n=getAfter(I(g,o.materialIds[i])).data;
       return n.lastOpId==o.opId && n.lastOpKind=='produce' && n.lastOpIndex==i;
     }
-function EE(g,a,o) {
-      let b=get(H(g,o.outputId)).data;
-      let c=getAfter(H(g,o.outputId)).data;
+function EQ(g,a,o) {
+      let b=get(I(g,o.outputId)).data;
+      let c=getAfter(I(g,o.outputId)).data;
       let r=b.productionRecipe;
       let d=G();
       let e={'lotId':o.lotId,'qtyQ':o.qtyQ,'unitCost':o.rawCostBaht / (o.qtyQ / 100.0),'packCostCents':b.packCostCents,
         'receiveDay':o.receiveDay,'expiryDay':o.expiryDay,'note':o.note,'lotCreatedAtISO':o.lotCreatedAtISO,'opId':a};
       let i=o.materialIds;
-return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialIds','inputs','outputId','outputRevision','qtyQ','rawCostBaht','shopRevision','note','lotId','receiveDay','expiryDay','lotCreatedAtISO']) &&
-        o.schemaVersion==2 && o.kind=='produce' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-        D(o.qtyQ,1,1000000000) && D(o.receiveDay,0,100000) && (o.expiryDay==999999 || D(o.expiryDay,o.receiveDay,100000)) &&
+return F(g) && O(o,['materialIds','inputs','outputId','outputRevision','qtyQ','rawCostBaht','shopRevision','note','lotId','receiveDay','expiryDay','lotCreatedAtISO']) &&
+        P(o,a) && o.kind=='produce' &&
+        C(o.qtyQ,1,1000000000) && C(o.receiveDay,0,100000) && (o.expiryDay==999999 || C(o.expiryDay,o.receiveDay,100000)) &&
         o.note is string && o.note.size()<=1000 && o.lotId is string && o.lotId.matches('^[A-Za-z0-9_-]{1,200}$') &&
         o.lotCreatedAtISO is string && o.lotCreatedAtISO.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$') &&
-        i==r.inputIds && D(i.size(),1,2) && i.toSet().size()==i.size() && !(o.outputId in i) &&
-        o.inputs.size()==i.size() && r.quantities.size()==i.size() && D(r.yieldQ,1,1000000000) &&
+        i==r.inputIds && C(i.size(),1,2) && i.toSet().size()==i.size() && !(o.outputId in i) &&
+        o.inputs.size()==i.size() && r.quantities.size()==i.size() && C(r.yieldQ,1,1000000000) &&
         o.rawCostBaht==o.inputs[0].ingredientCostBaht+(o.inputs.size()==2 ? o.inputs[1].ingredientCostBaht : 0) &&
-        c.lastOpId==a && c.lastOpKind=='produce' && d.lastOpId==a && d.lastOpKind=='produce' && d.revision==o.shopRevision &&
-        BM(b,c,e) && CF(g,o,0) && (i.size()==1 || CF(g,o,1));
+        c.lastOpId==a && c.lastOpKind=='produce' && R(d,o,a,'produce') &&
+        BU(b,c,e) && CQ(g,o,0) && (i.size()==1 || CQ(g,o,1));
     }
-function EF(g,a,o) {
-      let n=getAfter(H(g,o.materialId)).data;
+function ER(g,a,o) {
+      let n=getAfter(I(g,o.materialId)).data;
       let b=G();
-      return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','lotId','shopRevision']) &&
-        o.schemaVersion==2 && o.kind=='switch_lot' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-        n.lastOpId==a && n.lastOpKind=='switch_lot' && b.lastOpId==a && b.lastOpKind=='switch_lot' && b.revision==o.shopRevision;
+      return F(g) && O(o,['materialId','materialRevision','lotId','shopRevision']) &&
+        P(o,a) && o.kind=='switch_lot' &&
+        n.lastOpId==a && n.lastOpKind=='switch_lot' && R(b,o,a,'switch_lot');
     }
-function EG(g,a,o) {
+function ES(g,a,o) {
       let b=G();
       let c=o.materialIds;
-return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialIds','rows','shopRevision']) &&
-        o.schemaVersion==2 && o.kind=='stock_count' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-        c is list && D(c.size(),1,18) && c.toSet().size()==c.size() && o.rows.size()==c.size() &&
-        b.lastOpId==a && b.lastOpKind=='stock_count' && b.revision==o.shopRevision &&
-        I(g,o,9) && I(g,o,10) && I(g,o,11) && I(g,o,12) && I(g,o,13) && I(g,o,14) && I(g,o,15) && I(g,o,16) && I(g,o,17);
+return F(g) && O(o,['materialIds','rows','shopRevision']) &&
+        P(o,a) && o.kind=='stock_count' &&
+        c is list && C(c.size(),1,18) && c.toSet().size()==c.size() && o.rows.size()==c.size() &&
+        R(b,o,a,'stock_count') &&
+        J(g,o,9) && J(g,o,10) && J(g,o,11) && J(g,o,12) && J(g,o,13) && J(g,o,14) && J(g,o,15) && J(g,o,16) && J(g,o,17);
     }
-function EH(g,a,o) {
+function ET(g,a,o) {
       let b=G();
-      return E(g) && getAfter(AO(g,a)).data.opId==a && AP(g,o) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','create']) &&
-        o.schemaVersion==2 && o.kind=='group' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time && o.create is bool &&
+      return F(g) && getAfter(AV(g,a)).data.opId==a && AW(g,o) && O(o,['shopRevision','sourceCatalogRevision','materialIds','entityId','validationIds','input','display','entitySnapshot','create']) &&
+        P(o,a) && o.kind=='group' && o.create is bool &&
         o.entityId is string && o.entityId!='_' && o.entityId.matches('^[A-Za-z0-9_-]{1,200}$') && o.materialIds==b.catalog.summaryMaterials &&
-        b.lastOpId==a && b.lastOpKind=='group' && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
-        getAfter(BL(g,a)).data.opId==a && AR(g,a,o) && getAfter(AQ(g,a)).data.opId==a;
+        R(b,o,a,'group') && b.catalogRevision==o.sourceCatalogRevision+1 &&
+        getAfter(BT(g,a)).data.opId==a && AY(g,a,o) && getAfter(AX(g,a)).data.opId==a;
     }
-function EI(g,a,o) {
+function EU(g,a,o) {
       let b=G();
-      let m=getAfter(H(g,o.materialId)).data;
-      return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','recipe']) &&
-        o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-        b.lastOpId==a && b.lastOpKind=='production_recipe' && b.revision==o.shopRevision && m.lastOpId==a && m.lastOpKind=='production_recipe' && m.revision==o.materialRevision+1;
+      let m=getAfter(I(g,o.materialId)).data;
+      return F(g) && O(o,['materialId','materialRevision','shopRevision','recipe']) &&
+        P(o,a) &&
+        R(b,o,a,'production_recipe') && m.lastOpId==a && m.lastOpKind=='production_recipe' && m.revision==o.materialRevision+1;
     }
-function EJ(g,a,o) {
-      let n=getAfter(H(g,o.materialId)).data;
+function EV(g,a,o) {
+      let n=getAfter(I(g,o.materialId)).data;
       let b=G();
-      return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','materialSnapshot']) &&
-        o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time && o.materialRevision==0 &&
-        n.lastOpId==a && n.lastOpKind=='material_create' && n==o.materialSnapshot && b.lastOpId==a && b.lastOpKind=='material_create' && b.revision==o.shopRevision;
+      return F(g) && O(o,['materialId','materialRevision','shopRevision','materialSnapshot']) &&
+        P(o,a) && o.materialRevision==0 &&
+        n.lastOpId==a && n.lastOpKind=='material_create' && n==o.materialSnapshot && R(b,o,a,'material_create');
     }
-function EK(g,a,o) {
-      let n=getAfter(H(g,o.materialId)).data;
+function EW(g,a,o) {
+      let n=getAfter(I(g,o.materialId)).data;
       let b=G();
-      return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','deleted']) &&
-        o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
+      return F(g) && O(o,['materialId','materialRevision','shopRevision','deleted']) &&
+        P(o,a) &&
         n.lastOpId==a && n.lastOpKind=='material_archive' && n.revision==o.materialRevision+1 && n.deleted==o.deleted &&
-        b.lastOpId==a && b.lastOpKind=='material_archive' && b.revision==o.shopRevision;
+        R(b,o,a,'material_archive');
     }
-function EL(g,a,o) {
-      let n=getAfter(H(g,o.materialId)).data;
+function EX(g,a,o) {
+      let n=getAfter(I(g,o.materialId)).data;
       let b=G();
-      return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','metadata']) &&
-        o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
+      return F(g) && O(o,['materialId','materialRevision','shopRevision','metadata']) &&
+        P(o,a) &&
         n.lastOpId==a && n.lastOpKind=='material_metadata' && n.revision==o.materialRevision+1 &&
-        b.lastOpId==a && b.lastOpKind=='material_metadata' && b.revision==o.shopRevision;
+        R(b,o,a,'material_metadata');
     }
-function EM(g,a,o) {
-      let n=getAfter(H(g,o.materialId)).data;
+function EY(g,a,o) {
+      let n=getAfter(I(g,o.materialId)).data;
       let b=G();
-      return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','measure']) &&
-        o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
+      return F(g) && O(o,['materialId','materialRevision','shopRevision','measure']) &&
+        P(o,a) &&
         n.lastOpId==a && n.lastOpKind=='material_measure' && n.revision==o.materialRevision+1 &&
-        b.lastOpId==a && b.lastOpKind=='material_measure' && b.revision==o.shopRevision;
+        R(b,o,a,'material_measure');
     }
-function EN(g,a,o) {
+function EZ(g,a,o) {
   let b=G();
-  let m=getAfter(H(g,o.targetId)).data;
-  return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','targetId','targetRevision','previousType','inventoryType','sourceCatalogRevision','shopRevision','materialIds']) &&
-   o.schemaVersion==2 && o.kind=='material_type' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-   b.lastOpId==a && b.lastOpKind==o.kind && b.revision==o.shopRevision && b.catalogRevision==o.sourceCatalogRevision+1 &&
-   m.lastOpId==a && m.lastOpKind==o.kind && m.lastOpIndex==0 && m.revision==o.targetRevision+1 && m.inventoryType==o.inventoryType && CC(g,a,8);
+  let m=getAfter(I(g,o.targetId)).data;
+  return F(g) && O(o,['targetId','targetRevision','previousType','inventoryType','sourceCatalogRevision','shopRevision','materialIds']) &&
+   P(o,a) && o.kind=='material_type' &&
+   R(b,o,a,o.kind) && b.catalogRevision==o.sourceCatalogRevision+1 &&
+   m.lastOpId==a && m.lastOpKind==o.kind && m.lastOpIndex==0 && m.revision==o.targetRevision+1 && m.inventoryType==o.inventoryType && CK(g,a,8);
  }
-function EO(b) {
+function FA(b) {
       let a=b.slotIds;
       let q=b.lotQty;
       return q[a[0]]>0 ? a[0] : q[a[1]]>0 ? a[1] : q[a[2]]>0 ? a[2] : q[a[3]]>0 ? a[3] : b.allocationIds.size()>0 ? a[0] : b.lotIds[0];
     }
-function EP(g,a,o) {
-      let b=get(H(g,o.materialId)).data;
-      let n=getAfter(H(g,o.materialId)).data;
+function FB(g,a,o) {
+      let b=get(I(g,o.materialId)).data;
+      let n=getAfter(I(g,o.materialId)).data;
       let c=G();
       let d=b.lots[o.lotId];
       let e=n.lots[o.lotId];
-      return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','qtyQ','unitCost','packCostCents','receiveDay','note','lotId','beforeStockQ','beforeUnitCost','beforeLotQtyQ','beforeLot','beforeActiveLotId','beforeZeroActiveIds']) &&
-        o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-        D(o.qtyQ,1,1000000000) && T(o.unitCost,0,100000) && D(o.packCostCents,0,1000000000) &&
-        (D(o.receiveDay,0,100000) || o.receiveDay==999999) && o.note is string && o.note.size()<=1000 &&
-        b.lotIds.size()>0 && o.lotId==EO(b) &&
+      return F(g) && O(o,['materialId','materialRevision','shopRevision','qtyQ','unitCost','packCostCents','receiveDay','note','lotId','beforeStockQ','beforeUnitCost','beforeLotQtyQ','beforeLot','beforeActiveLotId','beforeZeroActiveIds']) &&
+        P(o,a) &&
+        C(o.qtyQ,1,1000000000) && Y(o.unitCost,0,100000) && C(o.packCostCents,0,1000000000) &&
+        (C(o.receiveDay,0,100000) || o.receiveDay==999999) && o.note is string && o.note.size()<=1000 &&
+        b.lotIds.size()>0 && o.lotId==FA(b) &&
         o.beforeStockQ==b.stock && o.beforeUnitCost==b.unitCost && o.beforeLotQtyQ==b.lotQty[o.lotId] && o.beforeLot==d &&
         o.beforeActiveLotId==b.activeLotId && o.beforeZeroActiveIds==b.zeroActiveIds &&
-        n.lastOpId==a && n.lastOpKind=='package_stock_in' && c.lastOpId==a && c.lastOpKind=='package_stock_in' && c.revision==o.shopRevision &&
+        n.lastOpId==a && n.lastOpKind=='package_stock_in' && R(c,o,a,'package_stock_in') &&
         n.lots.diff(b.lots).affectedKeys().hasOnly([o.lotId]) && n.lots.keys().toSet()==b.lots.keys().toSet() &&
         e.diff(d).affectedKeys().hasOnly(['initialQtyQ','unitCost','packCostCents','receiveDay','expiryDay','sortKey','note']) &&
-        D(e.initialQtyQ,0,9007199254740991) && e.initialQtyQ==d.initialQtyQ+o.qtyQ &&
-        T(e.unitCost,0,100000) && e.unitCost==BW(b.lotQty[o.lotId],d.unitCost,o.qtyQ,o.unitCost) &&
+        C(e.initialQtyQ,0,9007199254740991) && e.initialQtyQ==d.initialQtyQ+o.qtyQ &&
+        Y(e.unitCost,0,100000) && e.unitCost==CE(b.lotQty[o.lotId],d.unitCost,o.qtyQ,o.unitCost) &&
         e.packCostCents==o.packCostCents && e.receiveDay==o.receiveDay && e.expiryDay==999999 &&
         e.sortKey==999999*1000000000+o.receiveDay*1000+d.ordinal &&
         e.note==(o.note=='' ? d.note : d.note=='' ? o.note : d.note+'; '+o.note);
     }
-function EQ(d) {
+function FC(d) {
       return d is map && d.size()>0 && d.keys().hasOnly(['category','packUnit','shelfLifeDays','isSubIngredient']) &&
         (!d.keys().hasAny(['category']) || d.category==null || d.category is string && d.category.size()<=160) &&
         (!d.keys().hasAny(['packUnit']) || d.packUnit==null || d.packUnit is string && d.packUnit.size()<=32) &&
-        (!d.keys().hasAny(['shelfLifeDays']) || d.shelfLifeDays==null || T(d.shelfLifeDays,0,100000)) &&
+        (!d.keys().hasAny(['shelfLifeDays']) || d.shelfLifeDays==null || Y(d.shelfLifeDays,0,100000)) &&
         (!d.keys().hasAny(['isSubIngredient']) || d.isSubIngredient is bool);
     }
-function ER(p,b) {
+function FD(p,b) {
       return p.keys().toSet()==b.keys().toSet().intersection(['category','packUnit','shelfLifeDays','isSubIngredient'].toSet()) &&
         p.get('category',null)==b.get('category',null) && p.get('packUnit',null)==b.get('packUnit',null) &&
         p.get('shelfLifeDays',null)==b.get('shelfLifeDays',null) && p.get('isSubIngredient',null)==b.get('isSubIngredient',null);
     }
-function ES(g,a,o) {
-      let b=get(H(g,o.materialId)).data;
-      let n=getAfter(H(g,o.materialId)).data;
+function FE(g,a,o) {
+      let b=get(I(g,o.materialId)).data;
+      let n=getAfter(I(g,o.materialId)).data;
       let c=G();
-      return E(g) && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','materialId','materialRevision','shopRevision','beforeDetails','details']) &&
-        o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
-        EQ(o.details) && ER(o.beforeDetails,b) &&
+      return F(g) && O(o,['materialId','materialRevision','shopRevision','beforeDetails','details']) &&
+        P(o,a) &&
+        FC(o.details) && FD(o.beforeDetails,b) &&
         n.lastOpId==a && n.lastOpKind=='material_details' && n.revision==o.materialRevision+1 &&
-        c.lastOpId==a && c.lastOpKind=='material_details' && c.revision==o.shopRevision;
+        R(c,o,a,'material_details');
     }
-function ET(g,a,o) {
-  let b=K();
+function FF(g,a,o) {
+  let b=L();
   let n=G();
-  let m=get(H(g,o.materialId)).data;
-  return BG(g,a,o,b,n,m);
+  let m=get(I(g,o.materialId)).data;
+  return BO(g,a,o,b,n,m);
  }
-function EU(g,a,o) {
- let b=K();
+function FG(g,a,o) {
+ let b=L();
  let n=G();
- return E(g) &&
+ return F(g) &&
   o.keys().hasAll(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','clearedThroughRevision']) &&
-  o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','clearedThroughRevision']) &&
-  o.schemaVersion==2 && o.kind=='history_clear' && o.status=='committed' && o.opId==a &&
-  o.uid==B() && o.createdAt==request.time &&
+  O(o,['shopRevision','clearedThroughRevision']) &&
+  P(o,a) && o.kind=='history_clear' &&
   n.lastOpId==a && n.lastOpKind=='history_clear' && n.revision==b.revision+1 &&
   o.shopRevision==n.revision && o.clearedThroughRevision==n.revision && n.inventoryHistoryCutoff==n.revision;
 }
-function AO(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/input; }
-function AP(g,o) {
-  let a=BY(o);
+function AV(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/input; }
+function AW(g,o) {
+  let a=CG(o);
   return getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/display/catalog).data[a][o.entityId]==o.display;
  }
-function AQ(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/admitted; }
-function AR(g,a,o) {
-  return o.kind=='addon' || getAfter(W(g,a,0)).data.opId==a && getAfter(W(g,a,1)).data.opId==a &&
-   getAfter(W(g,a,2)).data.opId==a && getAfter(W(g,a,3)).data.opId==a;
+function AX(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/admitted; }
+function AY(g,a,o) {
+  return o.kind=='addon' || getAfter(h(g,a,0)).data.opId==a && getAfter(h(g,a,1)).data.opId==a &&
+   getAfter(h(g,a,2)).data.opId==a && getAfter(h(g,a,3)).data.opId==a;
  }
-function EV(g,a,o) {
- let b=K();
+function FH(g,a,o) {
+ let b=L();
  let n=G();
- return E(g) &&
-  o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','shopRevision','rates','enabled']) &&
-  o.schemaVersion==2 && o.kind=='platform_gp' && o.status=='committed' && o.opId==a &&
-  o.uid==B() && o.createdAt==request.time &&
+ return F(g) &&
+  O(o,['shopRevision','rates','enabled']) &&
+  P(o,a) && o.kind=='platform_gp' &&
   n.lastOpId==a && n.lastOpKind=='platform_gp' && n.revision==b.revision+1 && o.shopRevision==n.revision;
 }
-function EW(g,a,o) {
+function FI(g,a,o) {
   let n=G();
-  return E(g) && o.opId==a && n.lastOpId==a && n.lastOpKind=='command_abort' && n.revision==K().revision+1;
+  return F(g) && o.opId==a && n.lastOpId==a && n.lastOpKind=='command_abort' && n.revision==L().revision+1;
  }
-allow read: if N() && U(P()) && (M(g));
-   function EX() { let a=C().get('kind',''); let b=C();
-return (a=='command_abort' && EW(g,id,b)) || (a=='platform_gp' && CW() && EV(g,id,b)) || (a=='menu' && EB(g,id,b)) || (a=='addon' && EC(g,id,b)) || (a=='group' && EH(g,id,b)) || (a=='catalog' && EA(g,id,b)) || (a=='history_clear' && EU(g,id,b)) || (a=='stock_count' && EG(g,id,b)) || (a=='switch_lot' && EF(g,id,b)) || (a=='material_create' && EJ(g,id,b)) || (a=='material_archive' && EK(g,id,b)) || (a=='material_metadata' && EL(g,id,b)) || (a=='material_measure' && EM(g,id,b)) || (a=='material_details' && ES(g,id,b)) || (a=='material_type' && EN(g,id,b)) || (a=='production_recipe' && EI(g,id,b)) || (a=='stock_in' && DZ(g,id,b)) || (a=='package_stock_in' && EP(g,id,b)) || (a=='produce' && EE(g,id,b)) || (a=='cancel' && ED(g,id,b)) || (a=='material_delete' && ET(g,id,b)); }
-allow create: if L() && (EX());
+function FJ(g,a,o) {
+  let n=G();
+  return n.status=='active' && n.generation==g && n.lastOpKind=='channel' && n.lastOpId==a && n.revision==o.shopRevision &&
+   n.revision==L().revision+1 && O(o,['shopRevision','input']) &&
+   P(o,a);
+ }
+function O(o,a) {
+  return o.keys().removeAll(['schemaVersion','kind','status','opId','uid','createdAt']).hasOnly(a);
+ }
+function P(o,a) {
+  return o.schemaVersion==2 && o.status=='committed' && o.opId==a && o.uid==D() && o.createdAt==request.time;
+ }
+function R(a,o,b,c) {
+  return a.lastOpId==b && a.lastOpKind==c && a.revision==o.shopRevision;
+ }
+allow read: if Q() && Z(U()) && (N(g));
+   function FK() { let a=B().get('kind',''); let b=B();
+return (a=='command_abort' && FI(g,id,b)) || (a=='platform_gp' && AJ() && FH(g,id,b)) || (a=='channel' && AJ() && FJ(g,id,b)) || (a=='menu' && EN(g,id,b)) || (a=='addon' && EO(g,id,b)) || (a=='group' && ET(g,id,b)) || (a=='catalog' && EM(g,id,b)) || (a=='history_clear' && FG(g,id,b)) || (a=='stock_count' && ES(g,id,b)) || (a=='switch_lot' && ER(g,id,b)) || (a=='material_create' && EV(g,id,b)) || (a=='material_archive' && EW(g,id,b)) || (a=='material_metadata' && EX(g,id,b)) || (a=='material_measure' && EY(g,id,b)) || (a=='material_details' && FE(g,id,b)) || (a=='material_type' && EZ(g,id,b)) || (a=='production_recipe' && EU(g,id,b)) || (a=='stock_in' && EL(g,id,b)) || (a=='package_stock_in' && FB(g,id,b)) || (a=='produce' && EQ(g,id,b)) || (a=='cancel' && EP(g,id,b)) || (a=='material_delete' && FF(g,id,b)); }
+allow create: if M() && (FK());
+
 
 
 
@@ -764,90 +791,115 @@ allow create: if L() && (EX());
 
 }
 match /shops/greek-yogg/generations/{g}/materialReferences/{id}/parts/{v1} {
-function O(c,a,i) {
+function T(c,a,i) {
   let b=i<64 ? c.menuIds : c.addonIds;
   let d=i<64 ? i : i-64;
   return d>=b.size() || !(a in (i<64 ? c.menus[b[d]].get('rawRecipe',c.menus[b[d]].recipe) : c.addons[b[d]].recipe));
  }
-function CG(g,a,b,d) {
-  let c=K();
+function CR(g,a,b,d) {
+  let c=L();
   let e=d.index*16;
       let i=d.materialId;
       let j=c.catalog;
-return M(g) && d.keys().hasOnly(['opId','index','uid','sourceRevision','kind','materialId']) &&
-   d.opId==a && d.uid==B() && D(d.index,0,7) && b==string(d.index) && d.sourceRevision==c.revision &&
-   d.kind in ['material_archive','material_delete'] && i in c.materialIds && !exists(F(g,a)) &&
-   O(j,i,e+0) && O(j,i,e+1) && O(j,i,e+2) && O(j,i,e+3) && O(j,i,e+4) && O(j,i,e+5) && O(j,i,e+6) && O(j,i,e+7) && O(j,i,e+8) && O(j,i,e+9) && O(j,i,e+10) && O(j,i,e+11) && O(j,i,e+12) && O(j,i,e+13) && O(j,i,e+14) && O(j,i,e+15);
+return N(g) && d.keys().hasOnly(['opId','index','uid','sourceRevision','kind','materialId']) &&
+   d.opId==a && d.uid==D() && C(d.index,0,7) && b==string(d.index) && d.sourceRevision==c.revision &&
+   d.kind in ['material_archive','material_delete'] && i in c.materialIds && !exists(E(g,a)) &&
+   T(j,i,e+0) && T(j,i,e+1) && T(j,i,e+2) && T(j,i,e+3) && T(j,i,e+4) && T(j,i,e+5) && T(j,i,e+6) && T(j,i,e+7) && T(j,i,e+8) && T(j,i,e+9) && T(j,i,e+10) && T(j,i,e+11) && T(j,i,e+12) && T(j,i,e+13) && T(j,i,e+14) && T(j,i,e+15);
  }
-allow read: if N() && U(P()) && (M(g));
-   allow create: if L() && (CG(g,id,v1,C()));
-   allow update: if L() && (A().uid==B() && C().materialId==A().materialId && C().kind==A().kind && CG(g,id,v1,C()));
+allow read: if Q() && Z(U()) && (N(g));
+   allow create: if M() && (CR(g,id,v1,B()));
+   allow update: if M() && (A().uid==D() && B().materialId==A().materialId && B().kind==A().kind && CR(g,id,v1,B()));
 }
 match /shops/greek-yogg/generations/{g}/recipeAdmissions/{id}/parts/{v1} {
-function AS(g,d,i) {
-  return i>=d.materialIds.size() || EY(get(H(g,d.materialIds[i])).data,d,d.materialIds[i]);
+function AZ(g,d,i) {
+  return i>=d.materialIds.size() || FL(get(I(g,d.materialIds[i])).data,d,d.materialIds[i]);
  }
-function EY(m,d,a) {
+function FL(m,d,a) {
   let n=d.entitySnapshot;
-  let q=BH(n,d.kind).get(a,0);
+  let q=BP(n,d.kind).get(a,0);
   let b=d.kind=='menu' ? n.baseMaterialIds : n.materialIds;
   let c=d.kind=='menu' && !n.get('hasPackage',true) && m.inventoryType=='packaging' ? 0 : q;
-  return m.id==a && !m.deleted && m.inventoryType in ['ingredient','packaging'] && D(q,0,1000000000) &&
+  return m.id==a && !m.deleted && m.inventoryType in ['ingredient','packaging'] && C(q,0,1000000000) &&
    (d.kind!='menu' || n.recipe.get(a,0)==c) &&
    (a in b)==(c>0);
  }
-function CH(g,a,b,d) {
-  let c=K();
-  return M(g) && d.keys().hasOnly(['opId','index','uid','sourceRevision','kind','entityId','input','entitySnapshot','materialIds']) &&
-   d.opId==a && d.uid==B() && D(d.index,0,3) && b==string(d.index) && d.sourceRevision==c.revision &&
-   d.kind in ['menu','addon'] && d.entityId is string && !exists(F(g,a)) &&
-   d.materialIds is list && D(d.materialIds.size(),1,4) && d.materialIds.toSet().size()==d.materialIds.size() &&
-   d.materialIds.hasOnly(c.get('materialIds',c.catalog.summaryMaterials)) && d.materialIds.hasOnly(BH(d.entitySnapshot,d.kind).keys()) &&
-   AS(g,d,0) && AS(g,d,1) && AS(g,d,2) && AS(g,d,3);
+function CS(g,a,b,d) {
+  let c=L();
+  return N(g) && d.keys().hasOnly(['opId','index','uid','sourceRevision','kind','entityId','input','entitySnapshot','materialIds']) &&
+   d.opId==a && d.uid==D() && C(d.index,0,3) && b==string(d.index) && d.sourceRevision==c.revision &&
+   d.kind in ['menu','addon'] && d.entityId is string && !exists(E(g,a)) &&
+   d.materialIds is list && C(d.materialIds.size(),1,4) && d.materialIds.toSet().size()==d.materialIds.size() &&
+   d.materialIds.hasOnly(c.get('materialIds',c.catalog.summaryMaterials)) && d.materialIds.hasOnly(BP(d.entitySnapshot,d.kind).keys()) &&
+   AZ(g,d,0) && AZ(g,d,1) && AZ(g,d,2) && AZ(g,d,3);
  }
-allow read: if N() && U(P()) && (M(g));
-   allow create: if L() && (CH(g,id,v1,C()));
-   allow update: if L() && (A().uid==B() && C().input==A().input && C().entityId==A().entityId && C().kind==A().kind && CH(g,id,v1,C()));
+allow read: if Q() && Z(U()) && (N(g));
+   allow create: if M() && (CS(g,id,v1,B()));
+   allow update: if M() && (A().uid==D() && B().input==A().input && B().entityId==A().entityId && B().kind==A().kind && CS(g,id,v1,B()));
 }
 match /shops/greek-yogg/generations/{g}/preparations/{id} {
-function EZ(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedPlatforms/$(a)/columnProofs/$(string(i)); }
-function FA(g,a,i,j) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedInventory/$(a)/steps/$(string(i))/proofs/$(string(j)); }
-function CI(g,m) { return m.kind=='sale_set' ? S(g,m.opId) : F(g,m.opId); }
-function FB(g,m) {
-      return m.kind=='sale_set' ? BD(g,m.opId,'0') : m.kind=='platform' ? EZ(g,m.opId,m.proofCount-1) : FA(g,m.opId,m.stepCount-1,m.proofCount-1);
+function BA(c,i) {
+      return i<c.platformIds.size() && c.platforms[c.platformIds[i]].active;
     }
-function FC(g,a,m) {
-      return M(g) && m.keys().hasOnly(['kind','opId','uid','state','createdAt','lifetimeDays','proofCount','stepCount','materialCount']) &&
+function FM(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedPlatforms/$(a)/columnProofs/$(string(i)); }
+function FN(g,a,i,j) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedInventory/$(a)/steps/$(string(i))/proofs/$(string(j)); }
+function CT(g,m) { return m.kind=='sale_set' ? X(g,m.opId) : E(g,m.opId); }
+function FO(g,m) {
+      return m.kind=='sale_set' ? BL(g,m.opId,'0') : m.kind=='platform' ? FM(g,m.opId,m.proofCount-1) : FN(g,m.opId,m.stepCount-1,m.proofCount-1);
+    }
+function FP(g,a,m) {
+      return N(g) && m.keys().hasOnly(['kind','opId','uid','state','createdAt','lifetimeDays','proofCount','stepCount','materialCount']) &&
         m.kind in ['sale_set','inventory_batch','platform'] && m.opId is string && m.opId.matches('^[A-Za-z0-9_-]{1,200}$') &&
         a==(m.kind=='sale_set' ? 'sale_' : m.kind=='platform' ? 'platform_' : 'inventory_')+m.opId &&
-        m.uid==B() && m.state=='open' && m.createdAt==request.time && m.lifetimeDays==7 && !exists(CI(g,m)) &&
-        (m.kind=='inventory_batch' ? D(m.stepCount,1,6) && D(m.materialCount,1,6) && m.proofCount==m.materialCount*3 :
-          m.stepCount==0 && m.materialCount==0 && D(m.proofCount,1,m.kind=='sale_set'?3:32));
+        m.uid==D() && m.state=='open' && m.createdAt==request.time && m.lifetimeDays==7 && !exists(CT(g,m)) &&
+        (m.kind=='inventory_batch' ? C(m.stepCount,1,6) && C(m.materialCount,1,6) && m.proofCount==m.materialCount*3 :
+          m.stepCount==0 && m.materialCount==0 && C(m.proofCount,1,m.kind=='sale_set'?3:32));
     }
-function FD(g) {
+function FQ(g) {
       let b=A();
-      let n=C();
-      let a=CI(g,b);
-      return M(g) && b.state=='open' && n.diff(b).affectedKeys().hasOnly(['state','closedAt']) && n.closedAt==request.time &&
-        (n.state=='committed' ? B()==b.uid && getAfter(a).data.kind==b.kind && getAfter(a).data.opId==b.opId && getAfter(a).data.uid==b.uid :
-          ((n.state=='abandoned' && B()==b.uid) || (n.state=='expired' && request.time>=b.createdAt+duration.value(7,'d'))) &&
-          (!existsAfter(a) || getAfter(a).data.kind!=b.kind || getAfter(a).data.uid!=b.uid) && !existsAfter(FB(g,b))) && (b.kind!='sale_set' || n.state=='committed' || !existsAfter(CA(g,b.opId)));
+      let n=B();
+      let a=CT(g,b);
+      return N(g) && b.state=='open' && n.diff(b).affectedKeys().hasOnly(['state','closedAt']) && n.closedAt==request.time &&
+        (n.state=='committed' ? D()==b.uid && getAfter(a).data.kind==b.kind && getAfter(a).data.opId==b.opId && getAfter(a).data.uid==b.uid :
+          ((n.state=='abandoned' && D()==b.uid) || (n.state=='expired' && request.time>=b.createdAt+duration.value(7,'d'))) &&
+          (!existsAfter(a) || getAfter(a).data.kind!=b.kind || getAfter(a).data.uid!=b.uid) && !existsAfter(FO(g,b))) && (b.kind!='sale_set' || n.state=='committed' || !existsAfter(CI(g,b.opId)));
     }
-allow read: if N() && U(P()) && (M(g));
-   allow create: if L() && (C().kind=='sale_set' && FC(g,id,C()));
-   allow update: if L() && (FD(g));
+function FR(n,b,i) {
+  let k=i.id;
+  let p=i.get('sourceId','');
+  let a=p!=''?b.platformIds.concat([k]):b.platformIds.removeAll([k]);
+  return k.matches('^[A-Za-z0-9_-]{1,200}$') && k!='_' &&
+   n.diff(b).affectedKeys().hasOnly(['platformIds','platforms','menus','addons','groups','addonPrices']) &&
+   n.platformIds==a && a.size()>0 && a.size()<=4 && n.platforms.keys().toSet()==a.toSet() &&
+   n.platforms.diff(b.platforms).affectedKeys().hasOnly([k]) &&
+   n.menus.keys().toSet()==b.menuIds.toSet() && n.addons.keys().toSet()==b.addonIds.toSet() && n.groups.keys().toSet()==b.groupIds.toSet() &&
+   AI(n.addonPrices,b.addonPrices,k,p) &&
+   (p!='' ? i.keys().hasOnly(['id','name','gpBasisPoints','sourceId']) && !(k in b.platforms) && b.platforms[p].active &&
+    i.name.size()<=80 && i.name.matches('.*\\S.*') && C(i.gpBasisPoints,0,9999) &&
+    n.platforms[k]=={'active':false,'revision':1,'gpBasisPoints':i.gpBasisPoints} :
+    i.keys().hasOnly(['id']) && k in b.platforms && (BA(n,0)||BA(n,1)||BA(n,2)||BA(n,3)));
+ }
+function FS(g,a,p) {
+  let b=L();
+  return b.status=='active' && b.generation==g && p.keys().hasOnly(['opId','uid','revision','input','catalog']) &&
+   a=='channel_'+p.opId && p.opId.matches('^[A-Za-z0-9_-]{1,120}$') && p.uid==D() &&
+   p.revision==b.revision && !exists(E(g,p.opId)) && FR(p.catalog,b.catalog,p.input);
+ }
+allow read: if Q() && Z(U()) && (N(g) && (!id.matches('^channel_.*$') || u(L())));
+   allow create: if M() && ((B().kind=='sale_set' && FP(g,id,B())) || (id.matches('^channel_.*$') && AJ() && FS(g,id,B())));
+
+   allow update: if M() && (FQ(g));
 }
 match /shops/greek-yogg/generations/{g}/preparedSales/{id}/lineProofs/{v1} {
-function CJ(g,q) {
-      let a=FL(q);
+function CU(g,q) {
+      let a=GA(q);
       return g.active && g.max<=3 && q.size()<=4 && q._==0 && q.keys().hasOnly(g.optionIds.concat(['_'])) &&
         q.values().hasOnly(g.allowRepeat ? [0,1,2,3] : [0,1]) && q.values().removeAll([0]).size()==q.size()-1 && a>=g.min && a<=g.max;
     }
-function CK(g,q,c,a) {
-      return g.pricingMode=='included' ? 0 : FK(g.optionPrices[a],c.addonPrices[a],q.keys().removeAll(['_']),q);
+function CV(g,q,c,a) {
+      return g.pricingMode=='included' ? 0 : FZ(g.optionPrices[a],c.addonPrices[a],q.keys().removeAll(['_']),q);
     }
-function s(q,a,b,c) { return q[c]==a.get(c,0)+b.get(c,0); }
-function FE(c,m,l,o) {
+function AD(q,a,b,c) { return q[c]==a.get(c,0)+b.get(c,0); }
+function FT(c,m,l,o) {
       let d=m.groupIds;
       let a=c.groups[d[0]];
       let b=c.groups[d[1]];
@@ -855,42 +907,42 @@ function FE(c,m,l,o) {
       let y=l.groupSelections[d[1]];
       let q=l.optionQuantities;
       let e=l.optionIds.concat(['_','_','_','_','_','_']);
-      let g=CK(a,x,c,o.platformId)+CK(b,y,c,o.platformId);
+      let g=CV(a,x,c,o.platformId)+CV(b,y,c,o.platformId);
       return l.keys().hasOnly(['menuId','qty','optionIds','optionQuantities','catalog','groups','groupSelections','note','totalCents']) &&
-        m.active && l.catalog==m && d.size()==2 && d.toSet().size()==2 && D(l.qty,1,1000000) && l.note is string && l.note.size()<=1000 &&
+        m.active && l.catalog==m && d.size()==2 && d.toSet().size()==2 && C(l.qty,1,1000000) && l.note is string && l.note.size()<=1000 &&
         l.groups.keys().toSet()==d.toSet() && l.groups[d[0]]==a && l.groups[d[1]]==b && l.groupSelections.keys().toSet()==d.toSet() &&
-        CJ(a,x) && CJ(b,y) && l.optionIds.size()<=6 && l.optionIds.toSet().size()==l.optionIds.size() &&
+        CU(a,x) && CU(b,y) && l.optionIds.size()<=6 && l.optionIds.toSet().size()==l.optionIds.size() &&
         l.optionIds.toSet()==q.keys().removeAll(['_']).toSet() && l.optionIds.hasOnly(o.addonKeys.values()) && q._==0 &&
         q.keys().toSet()==x.keys().toSet().union(y.keys().toSet()) &&
-        s(q,x,y,e[0]) && s(q,x,y,e[1]) && s(q,x,y,e[2]) &&
-        s(q,x,y,e[3]) && s(q,x,y,e[4]) && s(q,x,y,e[5]) &&
+        AD(q,x,y,e[0]) && AD(q,x,y,e[1]) && AD(q,x,y,e[2]) &&
+        AD(q,x,y,e[3]) && AD(q,x,y,e[4]) && AD(q,x,y,e[5]) &&
         l.totalCents==(m.pricesCents[o.platformId]+g)*l.qty;
     }
-function FF(c,m,l,o) { return m.get('groupIds',[]).size()>0 ? FE(c,m,l,o) : FH(c,m,l,o); }
-function CL(g,a,b,d) {
-      let e=K();
+function FU(c,m,l,o) { return m.get('groupIds',[]).size()>0 ? FT(c,m,l,o) : FW(c,m,l,o); }
+function CW(g,a,b,d) {
+      let e=L();
       let c=e.catalog;
-      let i=getAfter(h(g,a,'sale_set')).data;
+      let i=getAfter(AC(g,a,'sale_set')).data;
       let j=d.lines.size()==1;
       let k=d.lines.size()==2 && A().lines.size()==1 && d.lines[0]==A().lines[0] &&
         d.diff(A()).affectedKeys().hasOnly(['lines','coverageCount']) && d.coverageCount==A().coverageCount;
       let l=d.lines[j ? 0 : 1];
-      return [e.status,e.generation,i.state,i.uid,d.opId,d.uid]==['active',g,'open',B(),a,B()] && !exists(S(g,a)) &&
+      return [e.status,e.generation,i.state,i.uid,d.opId,d.uid]==['active',g,'open',D(),a,D()] && !exists(X(g,a)) &&
         d.keys().hasOnly(['opId','index','uid','catalogRevision','platformId','addonKeys','materialIds','billOperands','coverageCount','lines']) &&
-        D(d.index,0,i.proofCount-1) && b==string(d.index) &&
+        C(d.index,0,i.proofCount-1) && b==string(d.index) &&
         d.catalogRevision==e.catalogRevision && c.platforms[d.platformId].active &&
-        (j && d.coverageCount==0 || k) && FF(c,c.menus[l.menuId],l,d);
+        (j && d.coverageCount==0 || k) && FU(c,c.menus[l.menuId],l,d);
     }
-function FG(l) {
+function FV(l) {
       return l.keys().hasOnly(['menuId','qty','optionIds','optionQuantities','catalog','group','note','totalCents']) &&
-        D(l.qty,1,1000000) && l.note is string && l.note.size()<=1000 &&
+        C(l.qty,1,1000000) && l.note is string && l.note.size()<=1000 &&
         l.optionIds is list && l.optionIds.size()<=11 && l.optionIds.toSet().size()==l.optionIds.size();
     }
-function FH(c,m,l,o) {
+function FW(c,m,l,o) {
       let a=m.get('groupId','');
-      return FG(l) && (a=='' ? l.group=={} && FI(c,m,l,o) : FO(c,m,c.groups[a],l,o));
+      return FV(l) && (a=='' ? l.group=={} && FX(c,m,l,o) : GD(c,m,c.groups[a],l,o));
     }
-function FI(c,m,l,o) {
+function FX(c,m,l,o) {
       let a = l.optionIds.concat(['_','_','_','_','_','_','_','_','_','_','_']);
       let p = m.priceMode == 'addon' ? c.addonPrices[o.platformId] : m.optionPrices[o.platformId];
       return l.catalog == m && m.active &&
@@ -898,34 +950,34 @@ function FI(c,m,l,o) {
         l.optionIds.hasOnly(m.optionIds) && l.optionIds.hasOnly(o.addonKeys.values()) && l.optionIds.size() >= m.min && l.optionIds.size() <= m.max &&
         l.totalCents == (m.pricesCents[o.platformId] + p[a[0]]+p[a[1]]+p[a[2]]+p[a[3]]+p[a[4]]+p[a[5]]+p[a[6]]+p[a[7]]+p[a[8]]+p[a[9]]+p[a[10]]) * l.qty;
     }
-function FJ(p,a,b) {
+function FY(p,a,b) {
       return p.get(b[0],a[b[0]])+p.get(b[1],a[b[1]])+p.get(b[2],a[b[2]])+p.get(b[3],a[b[3]])+
         p.get(b[4],a[b[4]])+p.get(b[5],a[b[5]])+p.get(b[6],a[b[6]])+p.get(b[7],a[b[7]])+
         p.get(b[8],a[b[8]])+p.get(b[9],a[b[9]])+p.get(b[10],a[b[10]]);
     }
-function FK(p,a,b,q) {
+function FZ(p,a,b,q) {
       let c=b.size();
       return (c>0 ? p.get(b[0],a[b[0]])*q[b[0]] : 0)+(c>1 ? p.get(b[1],a[b[1]])*q[b[1]] : 0)+(c>2 ? p.get(b[2],a[b[2]])*q[b[2]] : 0);
     }
-function FL(q) {
+function GA(q) {
       let a=q.values().concat([0,0,0,0]);
       return a[0]+a[1]+a[2]+a[3];
     }
-function FM(p,a,b,q) {
+function GB(p,a,b,q) {
       let c=b.size();
       return (c>0 ? p.get(b[0],a[b[0]])*q[b[0]] : 0)+(c>1 ? p.get(b[1],a[b[1]])*q[b[1]] : 0)+(c>2 ? p.get(b[2],a[b[2]])*q[b[2]] : 0)+
         (c>3 ? p.get(b[3],a[b[3]])*q[b[3]] : 0)+(c>4 ? p.get(b[4],a[b[4]])*q[b[4]] : 0)+(c>5 ? p.get(b[5],a[b[5]])*q[b[5]] : 0)+
         (c>6 ? p.get(b[6],a[b[6]])*q[b[6]] : 0)+(c>7 ? p.get(b[7],a[b[7]])*q[b[7]] : 0)+(c>8 ? p.get(b[8],a[b[8]])*q[b[8]] : 0)+
         (c>9 ? p.get(b[9],a[b[9]])*q[b[9]] : 0)+(c>10 ? p.get(b[10],a[b[10]])*q[b[10]] : 0);
     }
-function FN(q) {
+function GC(q) {
       let v=q.values().concat([0,0,0,0,0,0,0,0,0,0,0,0]);
       return v[0]+v[1]+v[2]+v[3]+v[4]+v[5]+v[6]+v[7]+v[8]+v[9]+v[10]+v[11];
     }
-function FO(c,m,g,l,o) {
+function GD(c,m,g,l,o) {
       let q=l.optionQuantities;
-      let a=g.allowRepeat ? FN(q) : l.optionIds.size();
-      let b=g.pricingMode=='included' ? 0 : g.allowRepeat ? FM(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds,q) : FJ(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds.concat(['_','_','_','_','_','_','_','_','_','_','_']));
+      let a=g.allowRepeat ? GC(q) : l.optionIds.size();
+      let b=g.pricingMode=='included' ? 0 : g.allowRepeat ? GB(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds,q) : FY(g.optionPrices[o.platformId],c.addonPrices[o.platformId],l.optionIds.concat(['_','_','_','_','_','_','_','_','_','_','_']));
       return l.catalog==m && l.group==g && m.active && g.active &&
         l.optionIds.hasOnly(g.optionIds) && (!g.allowRepeat || l.optionIds.size()<=11) &&
         q.keys().toSet()==l.optionIds.concat(['_']).toSet() && q._==0 && q.values().removeAll([0]).size()==l.optionIds.size() &&
@@ -933,93 +985,115 @@ function FO(c,m,g,l,o) {
         l.optionIds.hasOnly(o.addonKeys.values()) && a>=g.min && a<=g.max &&
         l.totalCents==(m.pricesCents[o.platformId]+b)*l.qty;
     }
-function FP(g,a,b,c,d) {
-      let m=getAfter(h(g,a,b)).data;
+function GE(g,a,b,c,d) {
+      let m=getAfter(AC(g,a,b)).data;
       let i=int(c);
-      return BX(g,a,b,false) && string(i)==c && D(i,0,m.proofCount-1) &&
-        (b!='inventory_batch' || D(int(d),0,m.stepCount-1) && string(int(d))==d);
+      return CF(g,a,b,false) && string(i)==c && C(i,0,m.proofCount-1) &&
+        (b!='inventory_batch' || C(int(d),0,m.stepCount-1) && string(int(d))==d);
     }
-function FQ(g,a,c,d) {
+function GF(g,a,c,d) {
   let b=A();
-  let e=K();
-  let i=get(h(g,a,'sale_set')).data;
-  return M(g) && b.uid==B() && b.catalogRevision==e.catalogRevision &&
-   i.state=='open' && i.uid==b.uid && b.opId==a && c==string(b.index) && !exists(S(g,a)) &&
-   d.diff(b).affectedKeys().hasOnly(['coverageCount']) && D(b.coverageCount,0,b.lines.size()-1) &&
-   d.coverageCount==b.coverageCount+1 && FR(e.catalog,b.lines[b.coverageCount],b.materialIds);
+  let e=L();
+  let i=get(AC(g,a,'sale_set')).data;
+  return N(g) && b.uid==D() && b.catalogRevision==e.catalogRevision &&
+   i.state=='open' && i.uid==b.uid && b.opId==a && c==string(b.index) && !exists(X(g,a)) &&
+   d.diff(b).affectedKeys().hasOnly(['coverageCount']) && C(b.coverageCount,0,b.lines.size()-1) &&
+   d.coverageCount==b.coverageCount+1 && GG(e.catalog,b.lines[b.coverageCount],b.materialIds);
  }
-function Q(c,l,a,i) {
+function V(c,l,a,i) {
   let b=l.optionIds;
   return i>=b.size() || c.addons[b[i]].get('materialIds',c.addons[b[i]].recipe.keys()).hasOnly(a);
  }
-function FR(c,l,a) {
-  return a is list && D(a.size(),0,16) && a.toSet().size()==a.size() &&
+function GG(c,l,a) {
+  return a is list && C(a.size(),0,16) && a.toSet().size()==a.size() &&
    l.catalog.get('baseMaterialIds',l.catalog.recipe.keys()).hasOnly(a) &&
-   Q(c,l,a,0) && Q(c,l,a,1) && Q(c,l,a,2) && Q(c,l,a,3) &&
-   Q(c,l,a,4) && Q(c,l,a,5) && Q(c,l,a,6) && Q(c,l,a,7) &&
-   Q(c,l,a,8) && Q(c,l,a,9) && Q(c,l,a,10);
+   V(c,l,a,0) && V(c,l,a,1) && V(c,l,a,2) && V(c,l,a,3) &&
+   V(c,l,a,4) && V(c,l,a,5) && V(c,l,a,6) && V(c,l,a,7) &&
+   V(c,l,a,8) && V(c,l,a,9) && V(c,l,a,10);
  }
-allow read: if N() && U(P()) && (M(g));
-   allow create: if L() && (C().lines.size()==1 && CL(g,id,v1,C()));
-   allow update: if L() && (((!A().keys().hasAny(['billOperands']) || C().billOperands==A().billOperands) && A().uid==B() && CL(g,id,v1,C())) || (FQ(g,id,v1,C())));
+allow read: if Q() && Z(U()) && (N(g));
+   allow create: if M() && (B().lines.size()==1 && CW(g,id,v1,B()));
+   allow update: if M() && (((!A().keys().hasAny(['billOperands']) || B().billOperands==A().billOperands) && A().uid==D() && CW(g,id,v1,B())) || (GF(g,id,v1,B())));
 
-   allow delete: if L() && (FP(g,id,'sale_set',v1,'0'));
+   allow delete: if M() && (GE(g,id,'sale_set',v1,'0'));
 }
 match /shops/greek-yogg/generations/{g}/preparedSales/{id}/operandProofs/{v1} {
-function FS(d,i,c) {
+function GH(d,i,c) {
   let z={'menuId':'_','qty':0,'optionQuantities':{'_':0}};
   let l=d.lines.concat([z,z,z,z,z,z]);
   let o={'lines':d.lines,'lineMenuIds':d.billOperands.lineMenuIds,'lineQtys':d.billOperands.lineQtys,'addonKeys':d.addonKeys,'addonCounts':d.billOperands.addonCounts,
    'lineOptionQuantities':{'L0':l[0].optionQuantities,'L1':l[1].optionQuantities,'L2':l[2].optionQuantities,'L3':l[3].optionQuantities,'L4':l[4].optionQuantities,'L5':l[5].optionQuantities}};
   let n=i*4+4;
-  return d.addonKeys==d.billOperands.addonKeys && (i!=0 || d.lineOptionQuantities==o.lineOptionQuantities) && BS(o,i*2) && AB(o,n,c) && AB(o,n+1,c) && AB(o,n+2,c) && (n+3>14 || AB(o,n+3,c));
+  return d.addonKeys==d.billOperands.addonKeys && (i!=0 || d.lineOptionQuantities==o.lineOptionQuantities) && CA(o,i*2) && AH(o,n,c) && AH(o,n+1,c) && AH(o,n+2,c) && (n+3>14 || AH(o,n+3,c));
  }
-function FT(g,a,b,d) {
-  let c=K();
-  return M(g) && b in ['0','1','2'] && d.uid==B() && d.opId==a && d.catalogRevision==c.catalogRevision && d.lines.size()>0 && d.lines.size()<=6 &&
-   d.materialIds.size()<15 && FS(d,int(b),c.catalog);
+function GI(g,a,b,d) {
+  let c=L();
+  return N(g) && b in ['0','1','2'] && d.uid==D() && d.opId==a && d.catalogRevision==c.catalogRevision && d.lines.size()>0 && d.lines.size()<=6 &&
+   d.materialIds.size()<15 && GH(d,int(b),c.catalog);
  }
-allow read: if N() && U(P()) && (M(g)); allow create: if L() && (FT(g,id,v1,C()));
+function CX(n,b,c,i) {
+  let m=b.menuIds.concat(['_','_'])[i<b.menuIds.size()?i:b.menuIds.size()];
+  let a=b.addonIds.concat(['_','_'])[i<b.addonIds.size()?i:b.addonIds.size()];
+  let g=b.groupIds.concat(['_','_'])[i<b.groupIds.size()?i:b.groupIds.size()];
+  let k=c.id;
+  let p=c.get('sourceId','');
+  return (m=='_' || n.menus[m].diff(b.menus[m]).affectedKeys().hasOnly(['pricesCents','optionPrices']) &&
+   AI(n.menus[m].pricesCents,b.menus[m].pricesCents,k,p) && AI(n.menus[m].optionPrices,b.menus[m].optionPrices,k,p)) &&
+   (a=='_' || n.addons[a].diff(b.addons[a]).affectedKeys().hasOnly(['pricesCents']) && AI(n.addons[a].pricesCents,b.addons[a].pricesCents,k,p)) &&
+   (g=='_' || n.groups[g].diff(b.groups[g]).affectedKeys().hasOnly(['optionPrices']) && AI(n.groups[g].optionPrices,b.groups[g].optionPrices,k,p));
+ }
+function GJ(g,a,c,d) {
+  let b=L();
+  let p=get(CL(g,a)).data;
+  let i=d.index;
+  let e=b.catalog;
+return b.status=='active' && b.generation==g && C(i,0,31) && c=='channel_'+string(i) && i<CN(e) &&
+   p.uid==D() && p.revision==b.revision && d=={'opId':a,'index':i} &&
+   (i==0 || get(CM(g,a,i-1)).data.opId==a) &&
+   CX(p.catalog,e,p.input,i*2) && CX(p.catalog,e,p.input,i*2+1);
+ }
+allow read: if Q() && Z(U()) && (N(g) && (!v1.matches('^channel_.*$') || u(L())));
+   allow create: if M() && (v1.matches('^channel_.*$') ? AJ() && GJ(g,id,v1,B()) : GI(g,id,v1,B()));
 }
 match /shops/greek-yogg/generations/{g}/preparedSales/{id}/certificates/{v1} {
-function BN(g,d,i) {
-  return i*2>=d.lines.size() || FU(get(BD(g,d.opId,string(i))).data,d,i);
+function BV(g,d,i) {
+  return i*2>=d.lines.size() || GK(get(BL(g,d.opId,string(i))).data,d,i);
  }
-function FU(p,d,i) {
+function GK(p,d,i) {
   let a=i*2;
   return p.opId==d.opId && p.index==i && p.uid==d.uid && p.catalogRevision==d.catalogRevision && p.platformId==d.platformId &&
    p.addonKeys==d.addonKeys && p.materialIds==d.materialIds && p.billOperands==d.billOperands && p.coverageCount==p.lines.size() &&
    p.lines==d.lines[a:(a+2<d.lines.size() ? a+2 : d.lines.size())];
  }
-function FV(g,a,b,d) {
-  let c=K();
-  let e=get(h(g,a,'sale_set')).data;
-  return M(g) && b=='bill' && d.keys().hasOnly(['opId','uid','catalogRevision','platformId','addonKeys','materialIds','billOperands','lines','lineOptionQuantities']) &&
-   d.opId==a && d.uid==B() && d.catalogRevision==c.catalogRevision && e.state=='open' && e.uid==d.uid && !exists(S(g,a)) &&
-   d.lines is list && D(d.lines.size(),1,6) && d.billOperands.keys().hasOnly(['lineMenuIds','lineQtys','addonKeys','addonCounts','packages','packageSnapshots']) && FX(d.billOperands,d.materialIds) &&
-   FW(g,d);
+function GL(g,a,b,d) {
+  let c=L();
+  let e=get(AC(g,a,'sale_set')).data;
+  return N(g) && b=='bill' && d.keys().hasOnly(['opId','uid','catalogRevision','platformId','addonKeys','materialIds','billOperands','lines','lineOptionQuantities']) &&
+   d.opId==a && d.uid==D() && d.catalogRevision==c.catalogRevision && e.state=='open' && e.uid==d.uid && !exists(X(g,a)) &&
+   d.lines is list && C(d.lines.size(),1,6) && d.billOperands.keys().hasOnly(['lineMenuIds','lineQtys','addonKeys','addonCounts','packages','packageSnapshots']) && GN(d.billOperands,d.materialIds) &&
+   GM(g,d);
  }
-function BO(g,a,i) {return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/operandProofs/$(i);}
-function FW(g,d) {
-  return BN(g,d,0) && BN(g,d,1) && BN(g,d,2) && (d.materialIds.size()>=15 ||
-   get(BO(g,d.opId,'0')).data==d && get(BO(g,d.opId,'1')).data==d && get(BO(g,d.opId,'2')).data==d);
+function BW(g,a,i) {return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/operandProofs/$(i);}
+function GM(g,d) {
+  return BV(g,d,0) && BV(g,d,1) && BV(g,d,2) && (d.materialIds.size()>=15 ||
+   get(BW(g,d.opId,'0')).data==d && get(BW(g,d.opId,'1')).data==d && get(BW(g,d.opId,'2')).data==d);
  }
-function FX(o,a) {
+function GN(o,a) {
   let p=o.get('packages',{});
   let b=o.get('packageSnapshots',{});
   return p is map && p.size()<=16 && p.keys().hasOnly(a) && b is map && b.size()<=16 && b.keys().hasOnly(a) && p.keys().hasOnly(b.keys());
  }
-allow read: if N() && U(P()) && (M(g));
-   allow create: if L() && (FV(g,id,v1,C()));
-   allow delete: if L() && (v1=='bill' && BX(g,id,'sale_set',true));
+allow read: if Q() && Z(U()) && (N(g));
+   allow create: if M() && (GL(g,id,v1,B()));
+   allow delete: if M() && (v1=='bill' && CF(g,id,'sale_set',true));
 }
 match /shops/greek-yogg/generations/{g}/orders/{id} {
-function FY(o) {
+function GO(o) {
       return o.lineMenuIds is list && o.lineMenuIds.size()==6 && o.lineQtys is list && o.lineQtys.size()==6 &&
         o.lineOptionQuantities.keys().toSet()==['L0','L1','L2','L3','L4','L5'].toSet();
     }
-function u(o,i) { return i < o.lines.size() ? o.lines[i].totalCents : 0; }
-function FZ(g,a,o) {
+function AE(o,i) { return i < o.lines.size() ? o.lines[i].totalCents : 0; }
+function GP(g,a,o) {
       let b = G();
       let c = b.catalog.platforms[o.platformId];
 
@@ -1033,58 +1107,58 @@ let m=b.catalog;
 let n=o.materialIds;
 return b.status=='active' && b.generation==g && o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','lines','materialIds','inventory','approvedShortages',
           'platformId','platformRevision','subtotalCents','gpCents','netCents','ingredientCostCents','packagingCostCents','grossProfitCents','shopRevision','lineWitnessCount','addonKeys','addonCounts','lineMenuIds','lineQtys','lineOptionQuantities','proofMode','billOperands']) &&
-        o.schemaVersion == 2 && o.kind == 'sale_set' && o.status == 'committed' && o.opId == a && o.uid == B() && o.createdAt == request.time &&
+        o.schemaVersion == 2 && o.kind == 'sale_set' && o.status == 'committed' && o.opId == a && o.uid == D() && o.createdAt == request.time &&
         e==['A0','A1','A2','A3','A4','A5','A6','A7','A8','A9','A10'].toSet() &&
         o.addonCounts.keys().toSet()==e &&
         i.toSet().size()==i.size() && o.addonKeys.values().hasOnly(m.addonIds.concat(['_'])) &&
-        o.lines is list && D(k,1,6) && FY(o) && o.lineWitnessCount == int((k + 1) / 2) &&
-        n.hasOnly(b.get('materialIds',m.summaryMaterials)) && n.toSet().size() == d && D(l,0,16) && l == d &&
+        o.lines is list && C(k,1,6) && GO(o) && o.lineWitnessCount == int((k + 1) / 2) &&
+        n.hasOnly(b.get('materialIds',m.summaryMaterials)) && n.toSet().size() == d && C(l,0,16) && l == d &&
         j.hasOnly(n) && j.size() == d &&
         d + o.lineWitnessCount + 2 <= 20 && c.active && o.platformRevision == c.revision &&
-        D(o.subtotalCents,0,1000000000) && o.subtotalCents == u(o,0) + u(o,1) + u(o,2) + u(o,3) + u(o,4) + u(o,5) &&
+        C(o.subtotalCents,0,1000000000) && o.subtotalCents == AE(o,0) + AE(o,1) + AE(o,2) + AE(o,3) + AE(o,4) + AE(o,5) &&
         o.gpCents == int((o.subtotalCents * c.gpBasisPoints + 5000) / 10000) && o.netCents == o.subtotalCents - o.gpCents &&
-        o.packagingCostCents == BU(o,false) &&
+        o.packagingCostCents == CC(o,false) &&
         o.grossProfitCents == o.netCents - o.ingredientCostCents - o.packagingCostCents &&
-        GB(o,m) && o.proofMode=='prepared' &&
-        (d>=14 ? (J(g,o,7) && J(g,o,8) && J(g,o,9) && J(g,o,10) && J(g,o,11) && J(g,o,12) && J(g,o,13) && (d==14 || J(g,o,14))) : ((7>=d || J(g,o,7)) && (8>=d || J(g,o,8)) && (9>=d || J(g,o,9)) && (10>=d || J(g,o,10)) && (11>=d || J(g,o,11)) && (12>=d || J(g,o,12)) && (13>=d || J(g,o,13)) && (14>=d || J(g,o,14)))) &&
+        GR(o,m) && o.proofMode=='prepared' &&
+        (d>=14 ? (K(g,o,7) && K(g,o,8) && K(g,o,9) && K(g,o,10) && K(g,o,11) && K(g,o,12) && K(g,o,13) && (d==14 || K(g,o,14))) : ((7>=d || K(g,o,7)) && (8>=d || K(g,o,8)) && (9>=d || K(g,o,9)) && (10>=d || K(g,o,10)) && (11>=d || K(g,o,11)) && (12>=d || K(g,o,12)) && (13>=d || K(g,o,13)) && (14>=d || K(g,o,14)))) &&
         b.lastOpId == a && b.lastOpKind == 'sale_set' && b.revision == o.shopRevision;
     }
-function GA(g,a) {
-      let n=C();
-      let o=getAfter(F(g,n.cancelOpId)).data;
-      return E(g) && A().status=='committed' && n.status=='cancelled' &&
+function GQ(g,a) {
+      let n=B();
+      let o=getAfter(E(g,n.cancelOpId)).data;
+      return F(g) && A().status=='committed' && n.status=='cancelled' &&
         n.diff(A()).affectedKeys().hasOnly(['status','cancelOpId','cancelledAt']) && n.cancelledAt==request.time &&
-        o.kind=='cancel' && o.orderId==a && o.uid==B();
+        o.kind=='cancel' && o.orderId==a && o.uid==D();
     }
-function GB(o,c) {
+function GR(o,c) {
   return o.materialIds.size()>=4 ||
    o.billOperands.diff({'lineMenuIds':o.lineMenuIds,'lineQtys':o.lineQtys,'addonKeys':o.addonKeys,'addonCounts':o.addonCounts}).affectedKeys().hasOnly(['packages','packageSnapshots']);
  }
-allow read: if N() && (M(g));
-   allow create: if L() && (FZ(g,id,C()));
-   allow update: if L() && (GA(g,id));
+allow read: if Q() && (N(g));
+   allow create: if M() && (GP(g,id,B()));
+   allow update: if M() && (GQ(g,id));
 }
 match /shops/greek-yogg/generations/{g}/materials/{id} {
-function w(a,b) { return a < b ? a : b; }
-function GC(a,b,c,d) {
-      return a.allocationIds.size()<2 ? CM(a,b,c,d) : CN(a,b,c,d);
+function AF(a,b) { return a < b ? a : b; }
+function GS(a,b,c,d) {
+      return a.allocationIds.size()<2 ? CY(a,b,c,d) : CZ(a,b,c,d);
     }
-function CM(a,b,c,d) {
-      return a.allocationIds.size()==0 ? GD(a,b,c) : GE(a,b,c,d);
+function CY(a,b,c,d) {
+      return a.allocationIds.size()==0 ? GT(a,b,c) : GU(a,b,c,d);
     }
-function GD(a,b,c) {
+function GT(a,b,c) {
       return a.stock==0 && a.lotQty.values().hasOnly([0]) && a.slotIds==['_','_','_','_'] &&
         a.activeLotId=='' && a.zeroActiveIds==[] && c.lotTakes==[0,0,0,0] && c.take==0 &&
         b.stock==0 && b.lotQty==a.lotQty && b.activeLotId=='' && b.zeroActiveIds==[] &&
         b.lastStockInDay==a.lastStockInDay && b.expiryDay==a.expiryDay;
     }
-function GE(a,b,c,d) {
+function GU(a,b,c,d) {
       let e=a.allocationIds[0];
       let q=a.lotQty;
       let g=b.lotQty;
       let i=a.lots[e];
       let j=i.expiryDay>=d ? q[e] : 0;
-      let k=w(c.needed,j);
+      let k=AF(c.needed,j);
       let l=j-k>0 ? e : '';
       let m=c.needed>0 && l!='' ? i : {'receiveDay':a.lastStockInDay,'expiryDay':a.expiryDay};
       return a.stock==q[e] && c.lotTakes==[k,0,0,0] && c.take==k && b.stock==a.stock-k &&
@@ -1094,7 +1168,7 @@ function GE(a,b,c,d) {
         b.zeroActiveIds==(c.needed==0 ? a.zeroActiveIds : []) &&
         b.lastStockInDay==m.receiveDay && b.expiryDay==m.expiryDay;
     }
-function CN(a,b,c,d) {
+function CZ(a,b,c,d) {
       let g=a.slotIds;
       let q=a.lotQty;
       let i=b.lotQty;
@@ -1109,8 +1183,8 @@ function CN(a,b,c,d) {
       // Trusted import and every stock mutation preserve stock == sum(lotQty).
       // The existing allocation covers all positive quantities; do not re-sum it here.
       return t.size()==4 &&
-        t[0]==w(k,e[0]) && t[1]==w(k-t[0],e[1]) &&
-        t[2]==w(k-t[0]-t[1],e[2]) && t[3]==w(k-t[0]-t[1]-t[2],e[3]) &&
+        t[0]==AF(k,e[0]) && t[1]==AF(k-t[0],e[1]) &&
+        t[2]==AF(k-t[0]-t[1],e[2]) && t[3]==AF(k-t[0]-t[1]-t[2],e[3]) &&
         l==t[0]+t[1]+t[2]+t[3] && b.stock==a.stock-l &&
         (c.shortage==0 || a.inventoryType=='packaging' || e[0]+e[1]+e[2]+e[3]==a.stock) &&
         i.diff(q).affectedKeys().hasOnly(a.allocationIds) &&
@@ -1119,10 +1193,10 @@ function CN(a,b,c,d) {
         b.activeLotId == (k==0 ? a.activeLotId : m) && b.zeroActiveIds == (k==0 ? a.zeroActiveIds : []) &&
         b.lastStockInDay==n.receiveDay && b.expiryDay==n.expiryDay;
     }
-function GF(g,a) {
+function GV(g,a) {
       let b = A();
-      let c = C();
-      let o = getAfter(S(g,c.lastOpId)).data;
+      let c = B();
+      let o = getAfter(X(g,c.lastOpId)).data;
       let d = G();
       let i=c.lastOpIndex;
       let e = o.inventory[i];
@@ -1135,44 +1209,44 @@ let m=e.take;
 return (i is int && i>=0 && i<=15) && o.materialIds[i] == a && e.materialId == a &&
         !b.deleted && b.id == a &&
         e.keys().hasOnly(['materialId','revision','costRank','needed','take','shortage','ingredientCostBaht','packagingCostCents','lotIds','lotTakes']) &&
-        e.revision == b.revision && e.costRank == b.costRank && k == HI(b,o,d.catalogRevision) &&
-        (i<4 || i>=15 || AB(o,i,d.catalog)) &&
+        e.revision == b.revision && e.costRank == b.costRank && k == HY(b,o,d.catalogRevision) &&
+        (i<4 || i>=15 || AH(o,i,d.catalog)) &&
 
         e.lotIds == b.allocationIds && b.allocationIds.size() <= 4 && e.shortage == k - m && o.approvedShortages[a] == e.shortage &&
         e.ingredientCostBaht == (l == 'ingredient' ? (k / 100.0) * b.unitCost : 0) &&
         e.packagingCostCents == (l == 'packaging' ? int(((m / 100.0) * b.unitCost) * 100.0 + 0.5) : 0) &&
-        c.diff(b).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex','billPreparations']) &&
+        H(c,b,['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','lastOpIndex','billPreparations']) &&
         c.revision == b.revision + 1 &&
-        HK(o,i) && HJ(b,c,o.opId) && (b.allocationIds.size()<2 ? CM(b,c,e,j) : CN(b,c,e,j)) && (i>=3 || BS(o,i*2));
+        IA(o,i) && HZ(b,c,o.opId) && (b.allocationIds.size()<2 ? CY(b,c,e,j) : CZ(b,c,e,j)) && (i>=3 || CA(o,i*2));
     }
-function GG(g,a) {
+function GW(g,a) {
       let b = A();
-      let c = C();
-      let o = getAfter(F(g,c.lastOpId)).data;
-      return E(g) && !b.deleted && b.id == a && o.uid == B() && o.kind == 'stock_in' && o.materialId == a &&
+      let c = B();
+      let o = getAfter(E(g,c.lastOpId)).data;
+      return F(g) && !b.deleted && b.id == a && o.uid == D() && o.kind == 'stock_in' && o.materialId == a &&
         o.materialRevision == b.revision && c.revision == b.revision + 1 && c.lastOpIndex == 0 &&
-        c.diff(b).affectedKeys().hasOnly(['stock','unitCost','packCostCents','lastStockInDay','expiryDay','lots','lotQty','zeroActiveIds','lotIds','allocationIds','slotIds','activeLotId','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        D(c.stock,1,1000000000) && c.stock == b.stock + o.qtyQ && T(c.unitCost,0,100000) && c.unitCost == BE(AE(b.stock,b.unitCost,o.qtyQ,o.unitCost)) &&
+        H(c,b,['stock','unitCost','packCostCents','lastStockInDay','expiryDay','lots','lotQty','zeroActiveIds','lotIds','allocationIds','slotIds','activeLotId','lastOpIndex']) &&
+        C(c.stock,1,1000000000) && c.stock == b.stock + o.qtyQ && Y(c.unitCost,0,100000) && c.unitCost == BM(AL(b.stock,b.unitCost,o.qtyQ,o.unitCost)) &&
         c.packCostCents == o.packCostCents && c.lotQty.diff(b.lotQty).affectedKeys().hasOnly([o.lotId]) &&
-        c.lotQty[o.lotId] == b.lotQty.get(o.lotId,0)+o.qtyQ && c.zeroActiveIds == b.zeroActiveIds.removeAll([o.lotId]) && GH(b,c,o);
+        c.lotQty[o.lotId] == b.lotQty.get(o.lotId,0)+o.qtyQ && c.zeroActiveIds == b.zeroActiveIds.removeAll([o.lotId]) && GX(b,c,o);
     }
-function AT(l,a,b) {
+function BB(l,a,b) {
       return a.qty == 0 || (a.isInUse && a.expiryDay >= b ? l.id == a.id :
         (l.isInUse && l.expiryDay >= b) || l.ordinal <= a.ordinal);
     }
-function GH(b,c,o) {
-      let l = f(c,o.dateLotId);
-      let a = BT(c);
+function GX(b,c,o) {
+      let l = AB(c,o.dateLotId);
+      let a = CB(c);
       let d = int((request.time + duration.value(7,'h')).date().toMillis() / 86400000);
       return b.inventoryType == 'packaging' ? c.lastStockInDay == o.receiveDay && c.expiryDay == o.expiryDay :
         o.dateLotId in c.allocationIds && l.qty > 0 && c.lastStockInDay == l.receiveDay && c.expiryDay == l.expiryDay &&
-        AT(l,a[0],d) && AT(l,a[1],d) && AT(l,a[2],d) && AT(l,a[3],d);
+        BB(l,a[0],d) && BB(l,a[1],d) && BB(l,a[2],d) && BB(l,a[3],d);
     }
-function AD(a,b) { return a.activeLotId==b || b in a.zeroActiveIds; }
-function AU(a,b,c,d) {
-      return b.lotQty[c]==0 || (d ? !AD(a,c) || c==b.activeLotId : !AD(a,c) && b.lots[b.activeLotId].ordinal<=b.lots[c].ordinal);
+function AK(a,b) { return a.activeLotId==b || b in a.zeroActiveIds; }
+function BC(a,b,c,d) {
+      return b.lotQty[c]==0 || (d ? !AK(a,c) || c==b.activeLotId : !AK(a,c) && b.lots[b.activeLotId].ordinal<=b.lots[c].ordinal);
     }
-function CO(b) {
+function DA(b) {
       let a=b.slotIds;
       let c=b.lots;
       let q=b.lotQty;
@@ -1182,14 +1256,14 @@ function CO(b) {
         (q[a[2]]==0 || d<=c[a[2]].ordinal) &&
         (q[a[3]]==0 || d<=c[a[3]].ordinal);
     }
-function CP(b,c,d) {
+function DB(b,c,d) {
       let a=c.slotIds;
       return b.zeroActiveIds.size()==0 ? d ||
-        (b.activeLotId=='' || c.lotQty[b.activeLotId]==0) && CO(c) :
-        AU(b,c,a[0],d) && AU(b,c,a[1],d) && AU(b,c,a[2],d) && AU(b,c,a[3],d);
+        (b.activeLotId=='' || c.lotQty[b.activeLotId]==0) && DA(c) :
+        BC(b,c,a[0],d) && BC(b,c,a[1],d) && BC(b,c,a[2],d) && BC(b,c,a[3],d);
     }
-function GI(a,b,c) {
-      let d=b.activeLotId!='' && AD(a,b.activeLotId);
+function GY(a,b,c) {
+      let d=b.activeLotId!='' && AK(a,b.activeLotId);
       let e=c.lotIds.concat(['_','_','_','_']);
       let t=c.lotTakes;
       let q=a.lotQty;
@@ -1199,79 +1273,79 @@ function GI(a,b,c) {
         b.allocationIds==a.allocationIds && b.slotIds==a.slotIds && b.lastStockInDay==a.lastStockInDay && b.expiryDay==a.expiryDay :
         n.keys().toSet()==q.keys().toSet() && n.diff(q).affectedKeys().hasOnly(c.lotIds) &&
         n[e[0]]==q[e[0]]+t[0] && n[e[1]]==q[e[1]]+t[1] && n[e[2]]==q[e[2]]+t[2] && n[e[3]]==q[e[3]]+t[3] &&
-        b.activeLotId in b.allocationIds && b.lotQty[b.activeLotId]>0 && AI(b) &&
-        CP(a,b,d) &&
+        b.activeLotId in b.allocationIds && b.lotQty[b.activeLotId]>0 && AP(b) &&
+        DB(a,b,d) &&
         b.zeroActiveIds==(d ? a.zeroActiveIds.removeAll(g) : []) &&
         (d ? b.lastStockInDay==a.lastStockInDay && b.expiryDay==a.expiryDay :
           b.lastStockInDay==b.lots[b.activeLotId].receiveDay && b.expiryDay==b.lots[b.activeLotId].expiryDay);
     }
-function GJ(g,a) {
+function GZ(g,a) {
       let b=A();
-      let n=C();
-      let o=getAfter(F(g,n.lastOpId)).data;
-      let c=get(S(g,o.orderId)).data;
+      let n=B();
+      let o=getAfter(E(g,n.lastOpId)).data;
+      let c=get(X(g,o.orderId)).data;
       let i=n.lastOpIndex;
       let d=c.inventory[i];
-      return E(g) && o.kind=='cancel' && o.uid==B() && D(i,0,15) && o.materialIds[i]==a && c.materialIds[i]==a &&
+      return F(g) && o.kind=='cancel' && o.uid==D() && C(i,0,15) && o.materialIds[i]==a && c.materialIds[i]==a &&
         o.sourceRevisions[i]==b.revision && n.revision==b.revision+1 &&
-        n.diff(b).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        D(n.stock,0,1000000000) && n.stock==b.stock+d.take && GI(b,n,d);
+        H(n,b,['stock','lotQty','zeroActiveIds','activeLotId','allocationIds','slotIds','lastStockInDay','expiryDay','lastOpIndex']) &&
+        C(n.stock,0,1000000000) && n.stock==b.stock+d.take && GY(b,n,d);
     }
-function GK(g,a) {
+function HA(g,a) {
       let b=A();
-      let n=C();
-      let o=getAfter(F(g,n.lastOpId)).data;
-      let c=get(H(g,o.outputId)).data.productionRecipe;
+      let n=B();
+      let o=getAfter(E(g,n.lastOpId)).data;
+      let c=get(I(g,o.outputId)).data.productionRecipe;
       let i=n.lastOpIndex;
       let d=o.inputs[i];
       let e=int((request.time+duration.value(7,'h')).date().toMillis() / 86400000);
-      return E(g) && o.uid==B() && o.kind=='produce' && D(i,0,1) && o.materialIds[i]==a &&
+      return F(g) && o.uid==D() && o.kind=='produce' && C(i,0,1) && o.materialIds[i]==a &&
         !b.deleted && b.inventoryType=='ingredient' && d.materialId==a && d.revision==b.revision && d.costRank==b.costRank &&
         d.keys().hasOnly(['materialId','revision','costRank','needed','take','shortage','ingredientCostBaht','packagingCostCents','lotIds','lotTakes']) &&
-        D(d.needed,1,1000000000) && d.needed==int((c.quantities[i] / 100.0)*(o.qtyQ / float(c.yieldQ))*100.0+0.5) &&
+        C(d.needed,1,1000000000) && d.needed==int((c.quantities[i] / 100.0)*(o.qtyQ / float(c.yieldQ))*100.0+0.5) &&
         d.shortage==0 && d.take==d.needed && d.packagingCostCents==0 && d.ingredientCostBaht==(d.needed / 100.0)*b.unitCost &&
-        d.lotIds==b.allocationIds && n.diff(b).affectedKeys().hasOnly(['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        n.revision==b.revision+1 && GC(b,n,d,e);
+        d.lotIds==b.allocationIds && H(n,b,['stock','lotQty','zeroActiveIds','activeLotId','lastStockInDay','expiryDay','lastOpIndex']) &&
+        n.revision==b.revision+1 && GS(b,n,d,e);
     }
-function GL(g,a) {
+function HB(g,a) {
       let b=A();
-      let n=C();
-      let o=getAfter(F(g,n.lastOpId)).data;
-      return E(g) && o.uid==B() && o.kind=='produce' && o.outputId==a && !b.deleted && b.inventoryType=='ingredient' &&
+      let n=B();
+      let o=getAfter(E(g,n.lastOpId)).data;
+      return F(g) && o.uid==D() && o.kind=='produce' && o.outputId==a && !b.deleted && b.inventoryType=='ingredient' &&
         o.outputRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==2 &&
-        n.diff(b).affectedKeys().hasOnly(['stock','unitCost','lots','lotIds','lotQty','allocationIds','slotIds','activeLotId','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        D(n.stock,1,1000000000) && n.stock==b.stock+o.qtyQ &&
-        T(n.unitCost,0,100000) && n.unitCost==((b.stock / 100.0)*b.unitCost+o.rawCostBaht) / (b.stock / 100.0+o.qtyQ / 100.0) &&
+        H(n,b,['stock','unitCost','lots','lotIds','lotQty','allocationIds','slotIds','activeLotId','lastOpIndex']) &&
+        C(n.stock,1,1000000000) && n.stock==b.stock+o.qtyQ &&
+        Y(n.unitCost,0,100000) && n.unitCost==((b.stock / 100.0)*b.unitCost+o.rawCostBaht) / (b.stock / 100.0+o.qtyQ / 100.0) &&
         n.lotQty.diff(b.lotQty).affectedKeys().hasOnly([o.lotId]) && n.lotQty[o.lotId]==o.qtyQ &&
         n.lots.diff(b.lots).affectedKeys().hasOnly([o.lotId]);
     }
-function GM(g,a) {
+function HC(g,a) {
       let b=A();
-      let n=C();
-      let o=getAfter(F(g,n.lastOpId)).data;
+      let n=B();
+      let o=getAfter(E(g,n.lastOpId)).data;
       let c=b.lots[o.lotId];
-      return E(g) && !b.deleted && b.id==a && o.kind=='switch_lot' && o.uid==B() && o.materialId==a &&
+      return F(g) && !b.deleted && b.id==a && o.kind=='switch_lot' && o.uid==D() && o.materialId==a &&
         o.materialRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==0 && o.lotId in b.lotIds &&
-        n.diff(b).affectedKeys().hasOnly(['activeLotId','zeroActiveIds','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        (b.lotQty[o.lotId]>0 ? n.activeLotId==o.lotId : b.stock==0 ? n.activeLotId=='' : n.activeLotId in b.lotIds && b.lotQty[n.activeLotId]>0 && CO(n)) &&
+        H(n,b,['activeLotId','zeroActiveIds','allocationIds','slotIds','lastStockInDay','expiryDay','lastOpIndex']) &&
+        (b.lotQty[o.lotId]>0 ? n.activeLotId==o.lotId : b.stock==0 ? n.activeLotId=='' : n.activeLotId in b.lotIds && b.lotQty[n.activeLotId]>0 && DA(n)) &&
         n.zeroActiveIds==(b.lotQty[o.lotId]==0 ? [o.lotId] : []) &&
         n.lastStockInDay==c.receiveDay && n.expiryDay==c.expiryDay;
     }
-function AV(q,n,c) {
+function BD(q,n,c) {
       let a=c.id;
       let b=c.to;
       return c.keys().hasOnly(['id','from','to']) && a!='_' &&
         c.from==q[a] && b is int && b>=0 && b<=1000000000 && n[a]==b;
     }
-function CQ(b,c) {
+function DC(b,c) {
       let a=b.slotIds;
       let q=c.lotQty;
       let d=[q[a[0]]>0 ? a[0] : '_',q[a[1]]>0 ? a[1] : '_',q[a[2]]>0 ? a[2] : '_',q[a[3]]>0 ? a[3] : '_'].removeAll(['_']);
       let e=c.activeLotId;
       let g=(e=='' ? [] : [e]).concat(d.removeAll([e]));
-      return c.zeroActiveIds==[] ? c.allocationIds==g && c.slotIds==g.concat(['_','_','_','_'])[0:4] : AI(c);
+      return c.zeroActiveIds==[] ? c.allocationIds==g && c.slotIds==g.concat(['_','_','_','_'])[0:4] : AP(c);
     }
-function GN(a,b,c,d) {
+function HD(a,b,c,d) {
       let e=b.slotIds;
       let z=b.zeroActiveIds;
       let q=b.lotQty;
@@ -1279,17 +1353,17 @@ function GN(a,b,c,d) {
       let i=b.allocationIds;
       // Surviving zero flags are frozen source zeros: changed IDs are removed by countState.
       return z==[] && d.hasOnly(a.allocationIds.concat(['_'])) ?
-        CQ(a,b) && (c=='waste' || (b.stock==0 ? g=='' : g!='' && q[g]>0)) :
-        c=='waste' ? CQ(a,b) : z.hasOnly(i) &&
+        DC(a,b) && (c=='waste' || (b.stock==0 ? g=='' : g!='' && q[g]>0)) :
+        c=='waste' ? DC(a,b) : z.hasOnly(i) &&
         (i.size()==0 ? b.stock==0 && e==['_','_','_','_'] && z==[] && g=='' :
-          AI(b) && (b.stock==0 ? g=='' : g in i && q[g]>0));
+          AP(b) && (b.stock==0 ? g=='' : g in i && q[g]>0));
     }
-function AW(a,q,b,c,d) {
+function BE(a,q,b,c,d) {
       let e=a[c];
       return q[c]==0 || (b.expiryDay>=d ? e.expiryDay<d || b.ordinal<=e.ordinal :
         e.expiryDay<d && b.ordinal<=e.ordinal);
     }
-function GO(b,d,e) {
+function HE(b,d,e) {
       let c=e.counts[0];
       let g=c.from;
       let i=c.to;
@@ -1300,19 +1374,19 @@ function GO(b,d,e) {
       let q=d.lotQty;
       let m=l.get(j,{'expiryDay':0,'ordinal':0});
       let n=b.lots[c.id].get('unitCost',b.unitCost);
-      return e.counts.size()==1 && D(e.requestedQ,1,1000000000) && g>0 && i==g-w(e.requestedQ,g) &&
+      return e.counts.size()==1 && C(e.requestedQ,1,1000000000) && g>0 && i==g-AF(e.requestedQ,g) &&
         e.lossCents==int((((g-i) / 100.0)*n)*100.0+0.5) &&
         d.lastStockInDay==b.lastStockInDay && d.expiryDay==b.expiryDay &&
         (b.activeLotId!=c.id || i>0 ? j==b.activeLotId : d.stock==0 ? j=='' :
-          j!='' && q[j]>0 && AW(l,q,m,a[0],k) && AW(l,q,m,a[1],k) && AW(l,q,m,a[2],k) && (a[3]=='_' || AW(l,q,m,a[3],k)));
+          j!='' && q[j]>0 && BE(l,q,m,a[0],k) && BE(l,q,m,a[1],k) && BE(l,q,m,a[2],k) && (a[3]=='_' || BE(l,q,m,a[3],k)));
     }
-function GP(a,b) {
+function HF(a,b) {
       let c=b.activeLotId=='' ? a.lotIds[0] : b.activeLotId;
       let l=a.lots[c];
       return b.lastStockInDay==(l.receiveDay==999999 ? a.lastStockInDay : l.receiveDay) &&
         b.expiryDay==(l.expiryDay==999999 ? a.expiryDay : l.expiryDay);
     }
-function GQ(a,b,d) {
+function HG(a,b,d) {
       let e={'id':'_','from':0,'to':0};
       let g=d.counts;
       let i=g.size();
@@ -1321,142 +1395,142 @@ function GQ(a,b,d) {
       let n=b.lotQty;
       let q=a.lotQty;
       return g is list && i>=1 && i<=4 && j[0:i].toSet().size()==i &&
-        AV(q,n,c[0]) && (i<2 || AV(q,n,c[1])) &&
-        (i<3 || AV(q,n,c[2])) && (i<4 || AV(q,n,c[3])) &&
+        BD(q,n,c[0]) && (i<2 || BD(q,n,c[1])) &&
+        (i<3 || BD(q,n,c[2])) && (i<4 || BD(q,n,c[3])) &&
         n._==0 && n.diff(q).affectedKeys().hasOnly(j) &&
-        D(b.stock,0,1000000000) && b.stock==a.stock+c[0].to-c[0].from+c[1].to-c[1].from+c[2].to-c[2].from+c[3].to-c[3].from &&
+        C(b.stock,0,1000000000) && b.stock==a.stock+c[0].to-c[0].from+c[1].to-c[1].from+c[2].to-c[2].from+c[3].to-c[3].from &&
         b.zeroActiveIds==a.zeroActiveIds.removeAll(j) && d.activeLotId==b.activeLotId && d.zeroActiveIds==b.zeroActiveIds &&
-        GN(a,b,d.mode,j) && (d.mode=='waste' ? GO(a,b,d) :
-          d.mode=='count' && d.requestedQ==0 && d.lossCents==0 && GP(a,b) &&
+        HD(a,b,d.mode,j) && (d.mode=='waste' ? HE(a,b,d) :
+          d.mode=='count' && d.requestedQ==0 && d.lossCents==0 && HF(a,b) &&
           (b.stock==0 || (a.zeroActiveIds.size()==0 ?
             a.activeLotId=='' || n[a.activeLotId]==0 || b.activeLotId==a.activeLotId :
-            a.activeLotId=='' && a.zeroActiveIds.size()==1 && AD(a,b.activeLotId) ||
-            CP(a,b,AD(a,b.activeLotId)))));
+            a.activeLotId=='' && a.zeroActiveIds.size()==1 && AK(a,b.activeLotId) ||
+            DB(a,b,AK(a,b.activeLotId)))));
     }
-function GR(g,a) {
+function HH(g,a) {
       let b=A();
-      let n=C();
-      let o=getAfter(F(g,n.lastOpId)).data;
+      let n=B();
+      let o=getAfter(E(g,n.lastOpId)).data;
       let i=n.lastOpIndex;
       let c=o.rows[i];
-      return E(g) && !b.deleted && o.kind=='stock_count' && o.uid==B() && D(i,0,17) && o.materialIds[i]==a && c.materialId==a &&
+      return F(g) && !b.deleted && o.kind=='stock_count' && o.uid==D() && C(i,0,17) && o.materialIds[i]==a && c.materialId==a &&
         c.revision==b.revision && n.revision==b.revision+1 &&
         c.keys().hasOnly(['materialId','revision','mode','counts','requestedQ','reason','note','lossCents','activeLotId','zeroActiveIds']) &&
         c.reason is string && c.reason.size()<=200 && c.note is string && c.note.size()<=1000 &&
-        n.diff(b).affectedKeys().hasOnly(['stock','lotQty','activeLotId','zeroActiveIds','allocationIds','slotIds','lastStockInDay','expiryDay','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        GQ(b,n,c);
+        H(n,b,['stock','lotQty','activeLotId','zeroActiveIds','allocationIds','slotIds','lastStockInDay','expiryDay','lastOpIndex']) &&
+        HG(b,n,c);
     }
-function GS(r,a,b) {
+function HI(r,a,b) {
       return r=={} || r.keys().hasAll(['inputIds','quantities','yieldQ']) && r.keys().hasOnly(['inputIds','quantities','yieldQ']) &&
-        r.inputIds is list && D(r.inputIds.size(),1,2) && r.inputIds.toSet().size()==r.inputIds.size() && r.inputIds.hasOnly(b) && !(a in r.inputIds) &&
-        r.quantities is list && r.quantities.size()==r.inputIds.size() && D(r.quantities[0],1,1000000000) &&
-        (r.inputIds.size()==1 || D(r.quantities[1],1,1000000000)) && D(r.yieldQ,1,1000000000);
+        r.inputIds is list && C(r.inputIds.size(),1,2) && r.inputIds.toSet().size()==r.inputIds.size() && r.inputIds.hasOnly(b) && !(a in r.inputIds) &&
+        r.quantities is list && r.quantities.size()==r.inputIds.size() && C(r.quantities[0],1,1000000000) &&
+        (r.inputIds.size()==1 || C(r.quantities[1],1,1000000000)) && C(r.yieldQ,1,1000000000);
     }
-function CR(g,r,i) {
-      return i>=r.get('inputIds',[]).size() || !getAfter(H(g,r.inputIds[i])).data.deleted && getAfter(H(g,r.inputIds[i])).data.inventoryType=='ingredient';
+function DD(g,r,i) {
+      return i>=r.get('inputIds',[]).size() || !getAfter(I(g,r.inputIds[i])).data.deleted && getAfter(I(g,r.inputIds[i])).data.inventoryType=='ingredient';
     }
-function GT(g,a) {
+function HJ(g,a) {
       let b=A();
-      let n=C();
+      let n=B();
       let c=G();
-      let o=getAfter(F(g,n.lastOpId)).data;
-      return E(g) && b.id==a && a in c.materialIds && !b.deleted && b.inventoryType=='ingredient' &&
-        o.kind=='production_recipe' && o.uid==B() && o.materialId==a && o.materialRevision==b.revision &&
-        n.revision==b.revision+1 && n.lastOpIndex==0 && n.diff(b).affectedKeys().hasOnly(['productionRecipe','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        o.recipe!=b.get('productionRecipe',{}) && GS(o.recipe,a,c.materialIds) &&
+      let o=getAfter(E(g,n.lastOpId)).data;
+      return F(g) && b.id==a && a in c.materialIds && !b.deleted && b.inventoryType=='ingredient' &&
+        o.kind=='production_recipe' && o.uid==D() && o.materialId==a && o.materialRevision==b.revision &&
+        n.revision==b.revision+1 && n.lastOpIndex==0 && H(n,b,['productionRecipe','lastOpIndex']) &&
+        o.recipe!=b.get('productionRecipe',{}) && HI(o.recipe,a,c.materialIds) &&
         (o.recipe=={} ? !n.keys().hasAny(['productionRecipe']) : n.productionRecipe==o.recipe) &&
-        CR(g,o.recipe,0) && CR(g,o.recipe,1);
+        DD(g,o.recipe,0) && DD(g,o.recipe,1);
     }
-function GU(n,c,a,b) {
+function HK(n,c,a,b) {
       return n.keys().hasOnly(['id','revision','costRank','deleted','inventoryType','name','emoji','unit','minAlertQ','unitCost','packSize','packCostCents','stock','lots','lotIds','lotQty','zeroActiveIds','allocationIds','slotIds','activeLotId','lastStockInDay','expiryDay','recipeIndex','lastOpId','lastOpKind','lastOpIndex']) &&
         a.matches('^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$') && n.id==a && n.revision==1 && n.costRank==b && n.deleted==false &&
-        n.inventoryType in ['ingredient','packaging'] && CS({'name':n.name,'emoji':n.emoji,'minAlertQ':n.minAlertQ}) &&
-        n.unit is string && n.unit.size()>0 && n.unit.size()<=32 && D(n.packSize,1,10000000) &&
+        n.inventoryType in ['ingredient','packaging'] && DE({'name':n.name,'emoji':n.emoji,'minAlertQ':n.minAlertQ}) &&
+        n.unit is string && n.unit.size()>0 && n.unit.size()<=32 && C(n.packSize,1,10000000) &&
         n.stock==0 && n.unitCost==0 && n.packCostCents==0 && n.lotIds==[] && n.lotQty=={'_':0} && n.zeroActiveIds==[] &&
         n.allocationIds==[] && n.slotIds==['_','_','_','_'] && n.activeLotId=='' && n.lastStockInDay==999999 && n.expiryDay==999999 &&
         n.lots=={'_':{'id':'_','qty':0,'isInUse':false,'expiryDay':999999,'receiveDay':999999,'ordinal':999999,'sortKey':999999*1000000000+999999*1000+999999}} &&
         n.recipeIndex.keys().hasOnly(['catalogRevision','quantities','menus','addons']) && n.recipeIndex.catalogRevision==c &&
         n.recipeIndex.quantities==[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] && n.recipeIndex.menus.values().hasOnly([0]) && n.recipeIndex.addons.values().hasOnly([0]);
     }
-function GV(g,a) {
-      let n=C();
-      let b=K();
-      let o=getAfter(F(g,n.lastOpId)).data;
-      return E(g) && o.kind=='material_create' && o.uid==B() && o.materialId==a && n.lastOpIndex==0 &&
-        n==o.materialSnapshot && GU(n,b.catalogRevision,a,b.get('nextMaterialCostRank',b.materialIds.size())) &&
+function HL(g,a) {
+      let n=B();
+      let b=L();
+      let o=getAfter(E(g,n.lastOpId)).data;
+      return F(g) && o.kind=='material_create' && o.uid==D() && o.materialId==a && n.lastOpIndex==0 &&
+        n==o.materialSnapshot && HK(n,b.catalogRevision,a,b.get('nextMaterialCostRank',b.materialIds.size())) &&
         n.recipeIndex.menus.keys().toSet()==b.catalog.menuIds.concat(['_']).toSet() &&
         n.recipeIndex.addons.keys().toSet()==b.catalog.addonIds.concat(['_']).toSet();
     }
-function GW(g,a) {
+function HM(g,a) {
       let b=A();
-      let n=C();
-      let c=K();
-      let o=getAfter(F(g,n.lastOpId)).data;
-      return E(g) && b.id==a && a in c.materialIds && c.productionUsers[a]==[] &&
-        CB(g,o) &&
-        o.kind=='material_archive' && o.uid==B() && o.materialId==a && o.materialRevision==b.revision &&
+      let n=B();
+      let c=L();
+      let o=getAfter(E(g,n.lastOpId)).data;
+      return F(g) && b.id==a && a in c.materialIds && c.productionUsers[a]==[] &&
+        CJ(g,o) &&
+        o.kind=='material_archive' && o.uid==D() && o.materialId==a && o.materialRevision==b.revision &&
         n.revision==b.revision+1 && n.lastOpIndex==0 && n.deleted is bool && n.deleted!=b.deleted && n.deleted==o.deleted &&
-        n.diff(b).affectedKeys().hasOnly(['deleted','revision','lastOpId','lastOpKind','lastOpIndex']);
+        H(n,b,['deleted','lastOpIndex']);
     }
-function CS(d) {
+function DE(d) {
       return d.keys().hasAll(['name','emoji','minAlertQ']) && d.keys().hasOnly(['name','emoji','minAlertQ']) &&
         d.name is string && d.name.size()>0 && d.name.size()<=160 &&
-        d.emoji is string && d.emoji.size()<=32 && D(d.minAlertQ,0,1000000000);
+        d.emoji is string && d.emoji.size()<=32 && C(d.minAlertQ,0,1000000000);
     }
-function GX(g,a) {
+function HN(g,a) {
       let b=A();
-      let n=C();
-      let o=getAfter(F(g,n.lastOpId)).data;
-      return E(g) && !b.deleted && b.id==a && o.kind=='material_metadata' && o.uid==B() &&
+      let n=B();
+      let o=getAfter(E(g,n.lastOpId)).data;
+      return F(g) && !b.deleted && b.id==a && o.kind=='material_metadata' && o.uid==D() &&
         o.materialId==a && o.materialRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==0 &&
-        n.diff(b).affectedKeys().hasOnly(['name','emoji','minAlertQ','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        CS(o.metadata) && n.name==o.metadata.name && n.emoji==o.metadata.emoji && n.minAlertQ==o.metadata.minAlertQ;
+        H(n,b,['name','emoji','minAlertQ','lastOpIndex']) &&
+        DE(o.metadata) && n.name==o.metadata.name && n.emoji==o.metadata.emoji && n.minAlertQ==o.metadata.minAlertQ;
     }
-function GY(d) {
+function HO(d) {
       return d.keys().hasAll(['unit','packSize','unitCost','packCostCents']) && d.keys().hasOnly(['unit','packSize','unitCost','packCostCents']) &&
-        d.unit is string && d.unit.size()>0 && d.unit.size()<=32 && d.unit.matches('[\\s\\S]*\\S[\\s\\S]*') && D(d.packSize,1,10000000) &&
-        T(d.unitCost,0,100000) && D(d.packCostCents,0,1000000000);
+        d.unit is string && d.unit.size()>0 && d.unit.size()<=32 && d.unit.matches('[\\s\\S]*\\S[\\s\\S]*') && C(d.packSize,1,10000000) &&
+        Y(d.unitCost,0,100000) && C(d.packCostCents,0,1000000000);
     }
-function GZ(g,a) {
+function HP(g,a) {
       let b=A();
-      let n=C();
-      let o=getAfter(F(g,n.lastOpId)).data;
-      return E(g) && !b.deleted && b.id==a && a in G().materialIds && o.kind=='material_measure' && o.uid==B() &&
+      let n=B();
+      let o=getAfter(E(g,n.lastOpId)).data;
+      return F(g) && !b.deleted && b.id==a && a in G().materialIds && o.kind=='material_measure' && o.uid==D() &&
         o.materialId==a && o.materialRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==0 &&
-        n.diff(b).affectedKeys().hasOnly(['unit','packSize','unitCost','packCostCents','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        GY(o.measure) && n.unit==o.measure.unit && n.packSize==o.measure.packSize && n.unitCost==o.measure.unitCost && n.packCostCents==o.measure.packCostCents;
+        H(n,b,['unit','packSize','unitCost','packCostCents','lastOpIndex']) &&
+        HO(o.measure) && n.unit==o.measure.unit && n.packSize==o.measure.packSize && n.unitCost==o.measure.unitCost && n.packCostCents==o.measure.packCostCents;
     }
-function HA(g,a) {
+function HQ(g,a) {
   let b=A();
-  let n=C();
+  let n=B();
   let c=G();
-  let o=getAfter(F(g,n.lastOpId)).data;
-  return E(g) && b.id==a && !b.deleted && a in c.materialIds && c.productionUsers[a]==[] && b.get('productionRecipe',{}).size()==0 &&
-   o.kind=='material_type' && o.uid==B() && o.targetId==a && o.targetRevision==b.revision && o.previousType==b.inventoryType &&
+  let o=getAfter(E(g,n.lastOpId)).data;
+  return F(g) && b.id==a && !b.deleted && a in c.materialIds && c.productionUsers[a]==[] && b.get('productionRecipe',{}).size()==0 &&
+   o.kind=='material_type' && o.uid==D() && o.targetId==a && o.targetRevision==b.revision && o.previousType==b.inventoryType &&
    o.inventoryType in ['ingredient','packaging'] && o.inventoryType!=b.inventoryType && n.inventoryType==o.inventoryType &&
-   n.revision==b.revision+1 && n.lastOpIndex==0 && n.diff(b).affectedKeys().hasOnly(['inventoryType','revision','lastOpId','lastOpKind','lastOpIndex']);
+   n.revision==b.revision+1 && n.lastOpIndex==0 && H(n,b,['inventoryType','lastOpIndex']);
  }
-function HB(g,a) {
+function HR(g,a) {
       let b=A();
-      let n=C();
-      let o=getAfter(F(g,n.lastOpId)).data;
+      let n=B();
+      let o=getAfter(E(g,n.lastOpId)).data;
       let c=G();
-      return E(g) && !b.deleted && b.id==a && b.inventoryType=='packaging' && o.kind=='package_stock_in' && o.uid==B() &&
+      return F(g) && !b.deleted && b.id==a && b.inventoryType=='packaging' && o.kind=='package_stock_in' && o.uid==D() &&
         o.materialId==a && o.materialRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==0 &&
         c.lastOpId==o.opId && c.lastOpKind=='package_stock_in' && c.revision==o.shopRevision &&
-        n.diff(b).affectedKeys().hasOnly(['stock','unitCost','packCostCents','lastStockInDay','expiryDay','lots','lotQty','zeroActiveIds','allocationIds','slotIds','activeLotId','revision','lastOpId','lastOpKind','lastOpIndex']) &&
-        D(n.stock,1,1000000000) && n.stock==b.stock+o.qtyQ && n.unitCost==BE(BW(b.stock,b.unitCost,o.qtyQ,o.unitCost)) &&
-        T(n.unitCost,0,100000) && n.packCostCents==o.packCostCents && n.lastStockInDay==o.receiveDay && n.expiryDay==999999 &&
+        H(n,b,['stock','unitCost','packCostCents','lastStockInDay','expiryDay','lots','lotQty','zeroActiveIds','allocationIds','slotIds','activeLotId','lastOpIndex']) &&
+        C(n.stock,1,1000000000) && n.stock==b.stock+o.qtyQ && n.unitCost==BM(CE(b.stock,b.unitCost,o.qtyQ,o.unitCost)) &&
+        Y(n.unitCost,0,100000) && n.packCostCents==o.packCostCents && n.lastStockInDay==o.receiveDay && n.expiryDay==999999 &&
         n.activeLotId==o.lotId && n.zeroActiveIds==[] &&
         n.lotQty.diff(b.lotQty).affectedKeys().hasOnly([o.lotId]) && n.lotQty[o.lotId]==b.lotQty[o.lotId]+o.qtyQ;
     }
-function HC(g,a) {
+function HS(g,a) {
       let b=A();
-      let n=C();
+      let n=B();
       let c=G();
-      let o=getAfter(F(g,n.lastOpId)).data;
+      let o=getAfter(E(g,n.lastOpId)).data;
       let d=o.details;
-      return E(g) && !b.deleted && b.id==a && a in c.materialIds && o.kind=='material_details' && o.uid==B() &&
+      return F(g) && !b.deleted && b.id==a && a in c.materialIds && o.kind=='material_details' && o.uid==D() &&
         o.materialId==a && o.materialRevision==b.revision && n.revision==b.revision+1 && n.lastOpIndex==0 &&
         c.lastOpId==o.opId && c.lastOpKind=='material_details' && c.revision==o.shopRevision &&
         n.keys().toSet()==b.keys().toSet().union(d.keys().concat(['revision','lastOpId','lastOpKind','lastOpIndex']).toSet()) &&
@@ -1464,92 +1538,92 @@ function HC(g,a) {
         (!d.keys().hasAny(['category']) || n.category==d.category) && (!d.keys().hasAny(['packUnit']) || n.packUnit==d.packUnit) &&
         (!d.keys().hasAny(['shelfLifeDays']) || n.shelfLifeDays==d.shelfLifeDays) && (!d.keys().hasAny(['isSubIngredient']) || n.isSubIngredient==d.isSubIngredient);
     }
-function HD(g,a) {
-  let b=K();
+function HT(g,a) {
+  let b=L();
   let n=G();
-  let o=getAfter(F(g,n.lastOpId)).data;
-  return o.materialId==a && BG(g,n.lastOpId,o,b,n,A());
+  let o=getAfter(E(g,n.lastOpId)).data;
+  return o.materialId==a && BO(g,n.lastOpId,o,b,n,A());
  }
-function AA(c,m,a,b) {
+function AG(c,m,a,b) {
   let d=c.menus.get(a,{});
   return b==0 ? 0 : (d.keys().hasAny(['rawRecipe']) && !d.hasPackage && m.inventoryType=='packaging' ? 0 : d.get('rawRecipe',d.get('recipe',{})).get(m.id,0))*b;
  }
-function R(c,m,a,b) { return b==0 ? 0 : c.addons[a].recipe.get(m.id,0)*b; }
-function HE(m,o,c) {
+function W(c,m,a,b) { return b==0 ? 0 : c.addons[a].recipe.get(m.id,0)*b; }
+function HU(m,o,c) {
   let b=o.lineMenuIds;
   let q=o.lineQtys;
   let a=o.addonKeys;
   let n=o.addonCounts;
-  return AA(c,m,b[0],q[0])+AA(c,m,b[1],q[1])+AA(c,m,b[2],q[2])+
-   AA(c,m,b[3],q[3])+AA(c,m,b[4],q[4])+AA(c,m,b[5],q[5])+
-   R(c,m,a.A0,n.A0)+R(c,m,a.A1,n.A1)+R(c,m,a.A2,n.A2)+R(c,m,a.A3,n.A3)+
-   R(c,m,a.A4,n.A4)+R(c,m,a.A5,n.A5)+R(c,m,a.A6,n.A6)+R(c,m,a.A7,n.A7)+
-   R(c,m,a.A8,n.A8)+R(c,m,a.A9,n.A9)+R(c,m,a.A10,n.A10);
+  return AG(c,m,b[0],q[0])+AG(c,m,b[1],q[1])+AG(c,m,b[2],q[2])+
+   AG(c,m,b[3],q[3])+AG(c,m,b[4],q[4])+AG(c,m,b[5],q[5])+
+   W(c,m,a.A0,n.A0)+W(c,m,a.A1,n.A1)+W(c,m,a.A2,n.A2)+W(c,m,a.A3,n.A3)+
+   W(c,m,a.A4,n.A4)+W(c,m,a.A5,n.A5)+W(c,m,a.A6,n.A6)+W(c,m,a.A7,n.A7)+
+   W(c,m,a.A8,n.A8)+W(c,m,a.A9,n.A9)+W(c,m,a.A10,n.A10);
  }
-function HF(g,a) {
+function HV(g,a) {
   let b=A();
-  let n=C();
+  let n=B();
   let c=n.billPreparations;
-  let e=C().billPreparationId;
+  let e=B().billPreparationId;
   let i=c.diff(b.get('billPreparations',{})).affectedKeys();
   let d=c[e];
-  let j=K();
-  let k=get(BD(g,e,'0')).data;
+  let j=L();
+  let k=get(BL(g,e,'0')).data;
   return j.status=='active' && j.generation==g && a==b.id && a in j.get('materialIds',j.catalog.summaryMaterials) && !b.deleted &&
    n.diff(b).affectedKeys().hasOnly(['billPreparations','billPreparationId']) && c is map && c.size()<=64 && i.hasOnly([e]) &&
    d.keys().hasOnly(['uid','catalogRevision','needed']) &&
-   e.matches('^[A-Za-z0-9_-]{1,120}$') && d.uid==B() && !exists(S(g,e)) &&
+   e.matches('^[A-Za-z0-9_-]{1,120}$') && d.uid==D() && !exists(X(g,e)) &&
    d.catalogRevision==j.catalogRevision && k.catalogRevision==j.catalogRevision && k.uid==d.uid &&
    // Operand structure is validated by the final immutable receipt; consumption
    // requires exact equality. Here only this mathematical result is certified.
 
-   D(d.needed,0,1000000000) && HO(b,k.billOperands,j.catalog,d.needed);
+   C(d.needed,0,1000000000) && IE(b,k.billOperands,j.catalog,d.needed);
  }
-function HG(g,a) {
+function HW(g,a) {
   let b=A();
-  let n=C();
+  let n=B();
   let c=n.billPreparationId;
   let d=b.billPreparations;
   let e=n.get('billPreparations',{});
-  return M(g) && b.id==a && (d[c].uid==B() || HH(g,c,d[c].uid)) &&
+  return N(g) && b.id==a && (d[c].uid==D() || HX(g,c,d[c].uid)) &&
    n.diff(b).affectedKeys().hasOnly(['billPreparations','billPreparationId']) &&
    e.keys().toSet()==d.keys().removeAll([c]).toSet() && e.diff(d).affectedKeys().hasOnly([c]);
  }
-function HH(g,a,b) {
-  let m=get(h(g,a,'sale_set')).data;
+function HX(g,a,b) {
+  let m=get(AC(g,a,'sale_set')).data;
   return m.uid==b && m.kind=='sale_set' && m.opId==a && m.state in ['expired','abandoned'] && request.time>=m.createdAt+duration.value(7,'d');
  }
-function HI(m,o,c) {
+function HY(m,o,c) {
   let d=m.billPreparations[o.opId];
   return d.uid==o.uid && d.catalogRevision==c ? d.needed : -1;
  }
-function HJ(b,n,a) {
+function HZ(b,n,a) {
   let c=b.billPreparations;
   let d=n.get('billPreparations',{});
   return d.keys().toSet()==c.keys().removeAll([a]).toSet() && d.diff(c).affectedKeys().hasOnly([a]);
  }
-function HK(o,i) { return i>=4 || HL(o,['lineMenuIds','lineQtys','addonKeys','addonCounts'][i]); }
-function HL(o,a) { return o.billOperands[a]==o[a]; }
-function HM(m,o) {
+function IA(o,i) { return i>=4 || IB(o,['lineMenuIds','lineQtys','addonKeys','addonCounts'][i]); }
+function IB(o,a) { return o.billOperands[a]==o[a]; }
+function IC(m,o) {
   let p=o.get('packages',{});
-  return !(m.id in p) || HN(m,p[m.id]);
+  return !(m.id in p) || ID(m,p[m.id]);
  }
-function HN(m,p) {
+function ID(m,p) {
   return m.inventoryType=='packaging' && p is map && p.keys().hasOnly(['quantity','reason','note']) &&
-   D(p.quantity,0,1000000000) && p.reason in ['separate_bag','customer_declined','combined_packaging','package_unavailable','repacked','other'] &&
+   C(p.quantity,0,1000000000) && p.reason in ['separate_bag','customer_declined','combined_packaging','package_unavailable','repacked','other'] &&
    p.note is string && p.note.size()<=1000 && (p.reason!='other' || p.note.size()>0);
  }
-function HO(m,o,c,a) {
-  let b=HE(m,o,c);
+function IE(m,o,c,a) {
+  let b=HU(m,o,c);
   let d=o.get('packageSnapshots',{});
   let p=d.get(m.id,{});
-  return HM(m,o) && a==(m.id in o.get('packages',{}) ? o.packages[m.id].quantity : b) &&
+  return IC(m,o) && a==(m.id in o.get('packages',{}) ? o.packages[m.id].quantity : b) &&
    (!(m.id in d) || m.inventoryType=='packaging' && p.keys().hasOnly(['name','unit','unitCost','baselineQuantity']) && p.name==m.get('name',m.id) && p.unit==m.get('unit','') && p.unitCost==m.unitCost && p.baselineQuantity==b);
  }
-allow read: if N() && (M(g));
-   function HP() { let a=C().get('lastOpKind',''); let b=C();
-return (b.revision==A().revision && (HF(g,id) || HG(g,id))) || (a=='sale_set' && GF(g,id)) || (a=='stock_in' && GG(g,id)) || (a=='package_stock_in' && HB(g,id)) || (a=='cancel' && GJ(g,id)) || (a=='produce' && b.lastOpIndex<2 && GK(g,id)) || (a=='produce' && b.lastOpIndex==2 && GL(g,id)) || (a=='stock_count' && GR(g,id)) || (a=='switch_lot' && GM(g,id)) || (a=='material_archive' && GW(g,id)) || (a=='material_metadata' && GX(g,id)) || (a=='material_measure' && GZ(g,id)) || (a=='material_details' && HC(g,id)) || (a=='material_type' && HA(g,id)) || (a=='production_recipe' && GT(g,id)); }
-allow update: if L() && (HP());
+allow read: if Q() && (N(g));
+   function IF() { let a=B().get('lastOpKind',''); let b=B();
+return (b.revision==A().revision && (HV(g,id) || HW(g,id))) || (a=='sale_set' && GV(g,id)) || (a=='stock_in' && GW(g,id)) || (a=='package_stock_in' && HR(g,id)) || (a=='cancel' && GZ(g,id)) || (a=='produce' && b.lastOpIndex<2 && HA(g,id)) || (a=='produce' && b.lastOpIndex==2 && HB(g,id)) || (a=='stock_count' && HH(g,id)) || (a=='switch_lot' && HC(g,id)) || (a=='material_archive' && HM(g,id)) || (a=='material_metadata' && HN(g,id)) || (a=='material_measure' && HP(g,id)) || (a=='material_details' && HS(g,id)) || (a=='material_type' && HQ(g,id)) || (a=='production_recipe' && HJ(g,id)); }
+allow update: if M() && (IF());
 
 
 
@@ -1558,132 +1632,144 @@ allow update: if L() && (HP());
 
 
 
-allow create: if L() && (C().lastOpKind=='material_create' && GV(g,id));
+allow create: if M() && (B().lastOpKind=='material_create' && HL(g,id));
 
 
 
 
 
 
-   allow delete: if L() && (HD(g,id));
+   allow delete: if M() && (HT(g,id));
 }
 match /shops/greek-yogg/generations/{g}/display/{id} {
-function HQ(g,a) {
+function IG(g,a) {
   let c=G();
   let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(c.lastOpId)).data;
-  let d=BY(o);
+  let d=CG(o);
   let b=A();
-  let n=C();
+  let n=B();
   let e=b.get(d,{});
-  return E(g) && a=='catalog' && o.kind in ['menu','addon','group','catalog'] &&
-   (o.kind!='catalog' || o.collection=='addons') && o.uid==B() && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
+  return F(g) && a=='catalog' && o.kind in ['menu','addon','group','catalog'] &&
+   (o.kind!='catalog' || o.collection=='addons') && o.uid==D() && c.lastOpKind==o.kind && c.revision==o.shopRevision &&
    n.diff(b).affectedKeys().hasOnly([d]) && n[d].keys().toSet()==e.keys().concat([o.entityId]).toSet() &&
-   n[d].diff(e).affectedKeys().hasOnly([o.entityId]) && n[d][o.entityId]==o.display && BZ(o.display);
+   n[d].diff(e).affectedKeys().hasOnly([o.entityId]) && n[d][o.entityId]==o.display && CH(o.display);
  }
-function HR(g,a) {
-  let n=C();
+function IH(g,a) {
+  let n=B();
   let b=A();
-  let c=K();
+  let c=L();
   let d=c.catalog.get('menuIds',c.catalog.menus.keys());
-  return a=='catalog' && BI(g) &&
+  return a=='catalog' && BQ(g) &&
    n.diff(b).affectedKeys().hasOnly(['menuOrder','menuOrderRevision','menuOrderCatalogRevision','menuOrderUpdatedBy','menuOrderUpdatedAt']) &&
-   n.menuOrder is list && D(n.menuOrder.size(),1,64) && n.menuOrder.toSet()==d.toSet() && n.menuOrder.toSet().size()==n.menuOrder.size() &&
+   n.menuOrder is list && C(n.menuOrder.size(),1,64) && n.menuOrder.toSet()==d.toSet() && n.menuOrder.toSet().size()==n.menuOrder.size() &&
    n.menuOrderRevision is int && n.menuOrderRevision==b.get('menuOrderRevision',0)+1 && n.menuOrderRevision<=9007199254740991 &&
-   n.menuOrderCatalogRevision==c.catalogRevision && n.menuOrderUpdatedBy==B() && n.menuOrderUpdatedAt==request.time;
+   n.menuOrderCatalogRevision==c.catalogRevision && n.menuOrderUpdatedBy==D() && n.menuOrderUpdatedAt==request.time;
  }
-allow read: if N() && (M(g)); allow update: if L() && ((C().get('menuOrderRevision',0)!=A().get('menuOrderRevision',0) ? HR(g,id) : HQ(g,id)));
+function II(g) {
+  let n=G();
+  let b=A();
+  let d=B();
+  let o=getAfter(E(g,n.lastOpId)).data;
+  let i=o.input;
+  return n.status=='active' && n.generation==g && n.lastOpKind=='channel' && n.revision==L().revision+1 &&
+   o.kind=='channel' && o.uid==D() && n.revision==o.shopRevision &&
+   d.diff(b).affectedKeys().hasOnly(['platforms','platformAvailabilityOrder']) &&
+   d.platformAvailabilityOrder==b.get('platformAvailabilityOrder',L().catalog.platformIds) &&
+   ('sourceId' in i ? d.platforms.diff(b.platforms).affectedKeys().hasOnly([i.id]) && d.platforms[i.id]=={'name':i.name,'sourcePlatformId':i.sourceId} : d.platforms==b.platforms);
+ }
+allow read: if Q() && (N(g)); allow update: if M() && (((B().get('menuOrderRevision',0)!=A().get('menuOrderRevision',0) ? IH(g,id) : IG(g,id))) || (id=='catalog' && AJ() && II(g)));
 }
 match /shops/greek-yogg/generations/{g}/catalogImages/{id} {
-function HS(g,a) {
- let n=C();
- let b=P();
- return BI(g) && n.keys().size()==6 &&
+function IJ(g,a) {
+ let n=B();
+ let b=U();
+ return BQ(g) && n.keys().size()==6 &&
   n.keys().hasOnly(['kind','entityId','dataURL','revision','updatedAt','updatedBy']) &&
-  n.kind in ['menus','addons','materials'] && n.entityId is string && D(n.entityId.size(),1,200) &&
+  n.kind in ['menus','addons','materials'] && n.entityId is string && C(n.entityId.size(),1,200) &&
   a==n.kind+'_'+n.entityId && n.dataURL is string && n.dataURL.size()<=204823 &&
   (n.dataURL=='' || n.dataURL.matches('^data:image/jpeg;base64,/9j/[A-Za-z0-9+/]*={0,2}$')) &&
   n.revision is int && n.revision>0 && n.revision<=9007199254740991 &&
   n.revision==(exists(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/catalogImages/$(a)) ? A().revision+1 : 1) &&
-  n.updatedBy==B() && n.updatedAt==request.time &&
+  n.updatedBy==D() && n.updatedAt==request.time &&
   (n.kind=='materials' ? exists(/databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/materials/$(n.entityId)) : n.entityId in b.catalog[n.kind]);
 }
-allow read: if N() && (BI(g)); allow create,update: if L() && (HS(g,id));
+allow read: if Q() && (BQ(g)); allow create,update: if M() && (IJ(g,id));
 }
 match /shops/greek-yogg/generations/{g}/legacyRecords/{id} {
 
-allow read: if N() && (id.matches('^orders_[0-9]+$') || U(P())) && (M(g));
+allow read: if Q() && (id.matches('^orders_[0-9]+$') || Z(U())) && (N(g));
 }
 match /shops/greek-yogg {
-function HT() {
-      let a = C();
-      let o = getAfter(S(A().generation,a.lastOpId)).data;
+function IK() {
+      let a = B();
+      let o = getAfter(X(A().generation,a.lastOpId)).data;
       let b=A().generation;
 let c=A();
 let d=o.materialIds;
-return c.status == 'active' && a.diff(c).affectedKeys().hasOnly(['returnMaterials','revision','lastOpId','lastOpKind']) &&
-        a.returnMaterials is map && a.returnMaterials.values().hasOnly([true]) && a.returnMaterials.keys().toSet()==c.get('returnMaterials',{}).keys().concat(d).toSet() && a.revision == c.revision + 1 && o.opId == a.lastOpId && o.uid == B() && o.shopRevision == a.revision &&
-        o.ingredientCostCents == int(BU(o,true) * 100.0 + 0.5) &&
-        (d.size()>=7 ? (J(b,o,0) && J(b,o,1) && J(b,o,2) && J(b,o,3) &&
-        J(b,o,4) && J(b,o,5) && J(b,o,6)) : ((0>=d.size() || J(b,o,0)) && (1>=d.size() || J(b,o,1)) && (2>=d.size() || J(b,o,2)) && (3>=d.size() || J(b,o,3)) &&
-        (4>=d.size() || J(b,o,4)) && (5>=d.size() || J(b,o,5)) && (6>=d.size() || J(b,o,6)))) &&  (d.size()<=15 || (d.size()>=16 ? (J(b,o,15)) : ((15>=d.size() || J(b,o,15))))) && IP(b,o,c.catalogRevision);
+return c.status == 'active' && H(a,c,['returnMaterials']) &&
+        a.returnMaterials is map && a.returnMaterials.values().hasOnly([true]) && a.returnMaterials.keys().toSet()==c.get('returnMaterials',{}).keys().concat(d).toSet() && a.revision == c.revision + 1 && o.opId == a.lastOpId && o.uid == D() && o.shopRevision == a.revision &&
+        o.ingredientCostCents == int(CC(o,true) * 100.0 + 0.5) &&
+        (d.size()>=7 ? (K(b,o,0) && K(b,o,1) && K(b,o,2) && K(b,o,3) &&
+        K(b,o,4) && K(b,o,5) && K(b,o,6)) : ((0>=d.size() || K(b,o,0)) && (1>=d.size() || K(b,o,1)) && (2>=d.size() || K(b,o,2)) && (3>=d.size() || K(b,o,3)) &&
+        (4>=d.size() || K(b,o,4)) && (5>=d.size() || K(b,o,5)) && (6>=d.size() || K(b,o,6)))) &&  (d.size()<=15 || (d.size()>=16 ? (K(b,o,15)) : ((15>=d.size() || K(b,o,15))))) && JG(b,o,c.catalogRevision);
     }
-function BP(a,b) {
+function BX(a,b) {
       return a.isInUse != b.isInUse ? a.isInUse : a.expiryDay != b.expiryDay ? a.expiryDay < b.expiryDay :
         a.receiveDay != b.receiveDay ? a.receiveDay < b.receiveDay : a.ordinal < b.ordinal;
     }
-function AX(m,l,i) {
+function BF(m,l,i) {
       return i >= m.allocationIds.size() ? l.id == '_' : l.id == m.allocationIds[i] && (l.qty > 0 || l.isInUse) &&
         (l.qty == 0 || l.isInUse == (l.id == m.activeLotId));
     }
-function BQ(m) {
-      let a = BT(m);
-      return m.allocationIds is list && D(m.allocationIds.size(),1,4) && m.allocationIds.toSet().size() == m.allocationIds.size() &&
+function BY(m) {
+      let a = CB(m);
+      return m.allocationIds is list && C(m.allocationIds.size(),1,4) && m.allocationIds.toSet().size() == m.allocationIds.size() &&
         m.allocationIds.hasOnly(m.lotIds) && m.slotIds is list && m.slotIds.size() == 4 && m.slotIds[0:m.allocationIds.size()] == m.allocationIds &&
-        AX(m,a[0],0) && AX(m,a[1],1) && AX(m,a[2],2) && AX(m,a[3],3) &&
+        BF(m,a[0],0) && BF(m,a[1],1) && BF(m,a[2],2) && BF(m,a[3],3) &&
         m.stock == a[0].qty + a[1].qty + a[2].qty + a[3].qty &&
-        (m.allocationIds.size() < 2 || BP(a[0],a[1])) && (m.allocationIds.size() < 3 || BP(a[1],a[2])) &&
-        (m.allocationIds.size() < 4 || BP(a[2],a[3]));
+        (m.allocationIds.size() < 2 || BX(a[0],a[1])) && (m.allocationIds.size() < 3 || BX(a[1],a[2])) &&
+        (m.allocationIds.size() < 4 || BX(a[2],a[3]));
     }
-function HU() {
-      let a = C();
-      let o = getAfter(F(A().generation,a.lastOpId)).data;
+function IL() {
+      let a = B();
+      let o = getAfter(E(A().generation,a.lastOpId)).data;
       let b=A();
-return b.status == 'active' && a.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
-        a.revision == b.revision + 1 && o.kind == 'stock_in' && o.opId == a.lastOpId && o.uid == B() && o.shopRevision == a.revision && BQ(getAfter(H(b.generation,o.materialId)).data);
+return b.status == 'active' && H(a,b,[]) &&
+        a.revision == b.revision + 1 && S(o,a,'stock_in') && BY(getAfter(I(b.generation,o.materialId)).data);
     }
-function AY(c,a,b,i) {
+function BG(c,a,b,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];
       return i>=c.platformIds.size() || c.addonPrices[p].keys().toSet()==a.addonPrices[p].keys().toSet() && c.addonPrices[p].diff(a.addonPrices[p]).affectedKeys().hasOnly([b]);
     }
-function HV(c,a,o) {
+function IM(c,a,o) {
    let b=c.get('counterIds',[]);
    let d=c.addons;
 return o.collection=='addons' && c.keys().toSet()==a.keys().concat(['recipeRegistryIds']).toSet() && o.entityId!='_' && o.entityId in c.addonIds &&
-    (o.counterIndex==-1 ? !(o.entityId in b) : D(o.counterIndex,4,14) && b[o.counterIndex]==o.entityId) &&
+    (o.counterIndex==-1 ? !(o.entityId in b) : C(o.counterIndex,4,14) && b[o.counterIndex]==o.entityId) &&
     o.entitySnapshot==d[o.entityId] && c.diff(a).affectedKeys().hasOnly(['addons','addonPrices','menus','recipeRegistryIds']) &&
     d.keys().toSet()==a.addons.keys().toSet() && d.diff(a.addons).affectedKeys().hasOnly([o.entityId]) &&
     c.menus.keys().toSet()==a.menus.keys().toSet() && c.addonPrices.keys().toSet()==a.addonPrices.keys().toSet() &&
-    AY(c,a,o.entityId,0) && AY(c,a,o.entityId,1) && AY(c,a,o.entityId,2) && AY(c,a,o.entityId,3);
+    BG(c,a,o.entityId,0) && BG(c,a,o.entityId,1) && BG(c,a,o.entityId,2) && BG(c,a,o.entityId,3);
   }
-function HW() {
-      let n=C();
+function IN() {
+      let n=B();
       let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(A().generation)/operations/$(n.lastOpId)).data;
       let a=n.catalog;
 let b=A();
 return b.status=='active' &&
-        n.diff(b).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+        H(n,b,['catalog','catalogRevision']) &&
         n.revision==b.revision+1 && n.catalogRevision==b.catalogRevision+1 &&
-        o.kind=='catalog' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision && o.materialIds==a.summaryMaterials &&
-        HV(a,b.catalog,o) && a.recipeRegistryIds==b.get('materialIds',b.catalog.summaryMaterials) && BB(b.generation,n.lastOpId,o);
+        S(o,n,'catalog') && o.materialIds==a.summaryMaterials &&
+        IM(a,b.catalog,o) && a.recipeRegistryIds==b.get('materialIds',b.catalog.summaryMaterials) && BJ(b.generation,n.lastOpId,o);
     }
-function HX(c,d,e,g) {
-      let a=g ? [] : V(d.menus[e]);
-      let b=V(c.menus[e]);
-      return (b.size()==0 || b[0] in a || AG(c,d,e,b[0],a,b)) &&
-        (b.size()<2 || b[1] in a || AG(c,d,e,b[1],a,b));
+function IO(c,d,e,g) {
+      let a=g ? [] : f(d.menus[e]);
+      let b=f(c.menus[e]);
+      return (b.size()==0 || b[0] in a || AN(c,d,e,b[0],a,b)) &&
+        (b.size()<2 || b[1] in a || AN(c,d,e,b[1],a,b));
     }
-function HY() {
-      let n=C();
+function IP() {
+      let n=B();
       let a=A();
       let c=n.catalog;
       let b=a.catalog;
@@ -1691,23 +1777,23 @@ function HY() {
       let d=o.entityId;
       let e=c.menus;
 let g=A();
-return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+return a.status=='active' && H(n,a,['catalog','catalogRevision']) &&
         n.revision==a.revision+1 && n.catalogRevision==a.catalogRevision+1 && o.sourceCatalogRevision==a.catalogRevision &&
-        o.opId==n.lastOpId && o.kind=='menu' && o.uid==B() && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
-        c.diff(b).affectedKeys().hasOnly(['recipeRegistryIds','menus','menuIds','groups']) && e.diff(b.menus).affectedKeys().hasOnly([d]) && HX(c,b,d,o.create) &&
+        o.opId==n.lastOpId && o.kind=='menu' && o.uid==D() && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
+        c.diff(b).affectedKeys().hasOnly(['recipeRegistryIds','menus','menuIds','groups']) && e.diff(b.menus).affectedKeys().hasOnly([d]) && IO(c,b,d,o.create) &&
         o.create==!(d in b.menus) && c.menuIds.size()<=64 &&
         (o.create || !b.menus[d].keys().hasAny(['rawRecipe']) || e[d].keys().hasAll(['rawRecipe','hasPackage'])) &&
         c.menuIds==(o.create ? b.menuIds.concat([d]) : b.menuIds) &&
         e.keys().toSet()==(o.create ? b.menus.keys().concat([d]).toSet() : b.menus.keys().toSet()) &&
-        o.entitySnapshot==e[d] && e[d].revision==(o.create ? 1 : b.menus[d].revision+1) && n.catalog.recipeRegistryIds==g.get('materialIds',g.catalog.summaryMaterials) && BB(g.generation,n.lastOpId,o);
+        o.entitySnapshot==e[d] && e[d].revision==(o.create ? 1 : b.menus[d].revision+1) && n.catalog.recipeRegistryIds==g.get('materialIds',g.catalog.summaryMaterials) && BJ(g.generation,n.lastOpId,o);
     }
-function AZ(c,a,b,i) {
+function BH(c,a,b,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];
       return i>=c.platformIds.size() || c.addonPrices[p].keys().toSet()==a.addonPrices[p].keys().concat([b]).toSet() &&
         c.addonPrices[p].diff(a.addonPrices[p]).affectedKeys().hasOnly([b]);
     }
-function HZ() {
-      let n=C();
+function IQ() {
+      let n=B();
       let a=A();
       let c=n.catalog;
       let b=a.catalog;
@@ -1716,247 +1802,267 @@ function HZ() {
       let k=o.counterIndex;
       let e=c.addons;
 let g=A();
-return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+return a.status=='active' && H(n,a,['catalog','catalogRevision']) &&
         n.revision==a.revision+1 && n.catalogRevision==a.catalogRevision+1 && o.sourceCatalogRevision==a.catalogRevision &&
-        o.kind=='addon' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
+        S(o,n,'addon') && o.materialIds==c.summaryMaterials &&
         c.diff(b).affectedKeys().hasOnly(['recipeRegistryIds','addons','addonIds','counterIds','addonPrices']) && !(d in b.addons) &&
         c.addonIds==b.addonIds.concat([d]) && c.addonIds.size()<=64 && k==b.addonIds.size()+4 &&
         (!b.keys().hasAny(['counterIds']) ? !c.keys().hasAny(['counterIds']) : k>=15 ? c.counterIds==b.counterIds : b.counterIds[k]=='_' && c.counterIds==b.counterIds[0:k].concat([d]).concat(k==14 ? [] : b.counterIds[(k+1):15])) &&
         e.keys().toSet()==b.addons.keys().concat([d]).toSet() && e.diff(b.addons).affectedKeys().hasOnly([d]) && o.entitySnapshot==e[d] &&
         c.addonPrices.keys().toSet()==b.addonPrices.keys().toSet() &&
-        AZ(c,b,d,0) && AZ(c,b,d,1) && AZ(c,b,d,2) && AZ(c,b,d,3) && n.catalog.recipeRegistryIds==g.get('materialIds',g.catalog.summaryMaterials) && BB(g.generation,n.lastOpId,o);
+        BH(c,b,d,0) && BH(c,b,d,1) && BH(c,b,d,2) && BH(c,b,d,3) && n.catalog.recipeRegistryIds==g.get('materialIds',g.catalog.summaryMaterials) && BJ(g.generation,n.lastOpId,o);
     }
-function IA() {
-      let n=C();
-      let o=getAfter(F(A().generation,n.lastOpId)).data;
+function IR() {
+      let n=B();
+      let o=getAfter(E(A().generation,n.lastOpId)).data;
       let a=A().generation;
 let b=A();
-return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
-        n.revision==b.revision+1 && o.kind=='cancel' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
-        I(a,o,0) && I(a,o,1) && I(a,o,2) && I(a,o,3) &&
-        I(a,o,4) && I(a,o,5) && I(a,o,6) && I(a,o,7) && I(a,o,8);
+return b.status=='active' && H(n,b,[]) &&
+        n.revision==b.revision+1 && S(o,n,'cancel') &&
+        J(a,o,0) && J(a,o,1) && J(a,o,2) && J(a,o,3) &&
+        J(a,o,4) && J(a,o,5) && J(a,o,6) && J(a,o,7) && J(a,o,8);
     }
-function IB() {
-      let n=C();
-      let o=getAfter(F(A().generation,n.lastOpId)).data;
-      let a=getAfter(H(A().generation,o.outputId)).data;
+function IS() {
+      let n=B();
+      let o=getAfter(E(A().generation,n.lastOpId)).data;
+      let a=getAfter(I(A().generation,o.outputId)).data;
       let b=A();
-return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
-        n.revision==b.revision+1 && o.kind=='produce' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision && BQ(a);
+return b.status=='active' && H(n,b,[]) &&
+        n.revision==b.revision+1 && S(o,n,'produce') && BY(a);
     }
-function IC() {
-      let n=C();
-      let o=getAfter(F(A().generation,n.lastOpId)).data;
-      let m=getAfter(H(A().generation,o.materialId)).data;
+function IT() {
+      let n=B();
+      let o=getAfter(E(A().generation,n.lastOpId)).data;
+      let m=getAfter(I(A().generation,o.materialId)).data;
       let a=A();
-return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
-        n.revision==a.revision+1 && o.kind=='switch_lot' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision && AI(m);
+return a.status=='active' && H(n,a,[]) &&
+        n.revision==a.revision+1 && S(o,n,'switch_lot') && AP(m);
     }
-function ID() {
-      let n=C();
-      let o=getAfter(F(A().generation,n.lastOpId)).data;
+function IU() {
+      let n=B();
+      let o=getAfter(E(A().generation,n.lastOpId)).data;
       let a=A().generation;
 let b=A();
-return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
-        n.revision==b.revision+1 && o.kind=='stock_count' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
-        I(a,o,0) && I(a,o,1) && I(a,o,2) && I(a,o,3) && I(a,o,4) &&
-        I(a,o,5) && I(a,o,6) && I(a,o,7) && I(a,o,8);
+return b.status=='active' && H(n,b,[]) &&
+        n.revision==b.revision+1 && S(o,n,'stock_count') &&
+        J(a,o,0) && J(a,o,1) && J(a,o,2) && J(a,o,3) && J(a,o,4) &&
+        J(a,o,5) && J(a,o,6) && J(a,o,7) && J(a,o,8);
     }
-function IE() {
+function IV() {
       let a=A();
-      let n=C();
+      let n=B();
       let c=n.catalog;
       let b=a.catalog;
       let o=getAfter(/databases/$(d0)/documents/shops/greek-yogg/generations/$(a.generation)/operations/$(n.lastOpId)).data;
       let d=o.entityId;
       let e=c.groups[d];
       let g=A();
-return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+return a.status=='active' && H(n,a,['catalog','catalogRevision']) &&
         n.revision==a.revision+1 && n.catalogRevision==a.catalogRevision+1 && o.sourceCatalogRevision==a.catalogRevision &&
-        o.kind=='group' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision && o.materialIds==c.summaryMaterials &&
+        S(o,n,'group') && o.materialIds==c.summaryMaterials &&
         c.diff(b).affectedKeys().hasOnly(['recipeRegistryIds','groups','groupIds']) && c.groups.diff(b.groups).affectedKeys().hasOnly([d]) &&
         o.create==!(d in b.groups) && c.groupIds.size()<=64 && c.groupIds==(o.create ? b.groupIds.concat([d]) : b.groupIds) &&
         c.groups.keys().toSet()==(o.create ? b.groups.keys().concat([d]).toSet() : b.groups.keys().toSet()) &&
         o.entitySnapshot==e && e.id==d && e.revision==(o.create ? 1 : b.groups[d].revision+1) &&
-        e.menuIds==(o.create ? [] : b.groups[d].menuIds) && e.get('multiMenuIds',[])==(o.create ? [] : b.groups[d].get('multiMenuIds',[])) && (e.active || e.menuIds.size()==0) && n.catalog.recipeRegistryIds==g.get('materialIds',g.catalog.summaryMaterials) && BB(g.generation,n.lastOpId,o);
+        e.menuIds==(o.create ? [] : b.groups[d].menuIds) && e.get('multiMenuIds',[])==(o.create ? [] : b.groups[d].get('multiMenuIds',[])) && (e.active || e.menuIds.size()==0) && n.catalog.recipeRegistryIds==g.get('materialIds',g.catalog.summaryMaterials) && BJ(g.generation,n.lastOpId,o);
     }
-function BA(n,b,a,i,c,d,e) {
+function BI(n,b,a,i,c,d,e) {
       let g=i<a.size() ? a[i] : '_';
       let j=g in d;
       let k=g in e;
       return i>=a.size() || (c in b.productionUsers[g])==j &&
         n.productionUsers[g]==(j && !k ? b.productionUsers[g].removeAll([c]) : !j && k ? b.productionUsers[g].concat([c]) : b.productionUsers[g]);
     }
-function IF() {
+function IW() {
       let b=A();
-      let n=C();
-      let o=getAfter(F(b.generation,n.lastOpId)).data;
-      let a=get(H(b.generation,o.materialId)).data;
-      let c=getAfter(H(b.generation,o.materialId)).data;
+      let n=B();
+      let o=getAfter(E(b.generation,n.lastOpId)).data;
+      let a=get(I(b.generation,o.materialId)).data;
+      let c=getAfter(I(b.generation,o.materialId)).data;
       let d=a.get('productionRecipe',{}).get('inputIds',[]);
       let e=o.recipe.get('inputIds',[]);
-      return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['productionUsers','revision','lastOpId','lastOpKind']) &&
-        n.revision==b.revision+1 && o.kind=='production_recipe' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
+      return b.status=='active' && H(n,b,['productionUsers']) &&
+        n.revision==b.revision+1 && S(o,n,'production_recipe') &&
         o.materialRevision==a.revision && c.revision==a.revision+1 && c.lastOpId==n.lastOpId && c.lastOpKind=='production_recipe' &&
         n.productionUsers.keys().toSet()==b.productionUsers.keys().toSet() && n.productionUsers.diff(b.productionUsers).affectedKeys().hasOnly(d.concat(e)) &&
-        BA(n,b,d,0,o.materialId,d,e) && BA(n,b,d,1,o.materialId,d,e) &&
-        BA(n,b,e,0,o.materialId,d,e) && BA(n,b,e,1,o.materialId,d,e);
+        BI(n,b,d,0,o.materialId,d,e) && BI(n,b,d,1,o.materialId,d,e) &&
+        BI(n,b,e,0,o.materialId,d,e) && BI(n,b,e,1,o.materialId,d,e);
     }
-function IG() {
+function IX() {
       let b=A();
-      let n=C();
-      let o=getAfter(F(b.generation,n.lastOpId)).data;
-      let m=getAfter(H(b.generation,o.materialId)).data;
-      return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['materialIds','productionUsers','nextMaterialCostRank','revision','lastOpId','lastOpKind']) &&
-        n.revision==b.revision+1 && o.kind=='material_create' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
-        (!b.keys().hasAny(['nextMaterialCostRank']) ? !n.keys().hasAny(['nextMaterialCostRank']) : D(b.nextMaterialCostRank,b.materialIds.size(),9007199254740990) && n.nextMaterialCostRank==b.nextMaterialCostRank+1) && n.materialIds==b.materialIds.concat([o.materialId]) && n.materialIds.size()<=64 && n.materialIds.toSet().size()==n.materialIds.size() &&
+      let n=B();
+      let o=getAfter(E(b.generation,n.lastOpId)).data;
+      let m=getAfter(I(b.generation,o.materialId)).data;
+      return b.status=='active' && H(n,b,['materialIds','productionUsers','nextMaterialCostRank']) &&
+        n.revision==b.revision+1 && S(o,n,'material_create') &&
+        (!b.keys().hasAny(['nextMaterialCostRank']) ? !n.keys().hasAny(['nextMaterialCostRank']) : C(b.nextMaterialCostRank,b.materialIds.size(),9007199254740990) && n.nextMaterialCostRank==b.nextMaterialCostRank+1) && n.materialIds==b.materialIds.concat([o.materialId]) && n.materialIds.size()<=64 && n.materialIds.toSet().size()==n.materialIds.size() &&
         n.productionUsers.diff(b.productionUsers).affectedKeys().hasOnly([o.materialId]) && n.productionUsers.keys().toSet()==n.materialIds.toSet() && n.productionUsers[o.materialId]==[] &&
-        !exists(H(b.generation,o.materialId)) && m.lastOpId==n.lastOpId && m.lastOpKind=='material_create' && m.revision==1;
+        !exists(I(b.generation,o.materialId)) && m.lastOpId==n.lastOpId && m.lastOpKind=='material_create' && m.revision==1;
     }
-function IH() {
-      let n=C();
-      let o=getAfter(F(A().generation,n.lastOpId)).data;
-      let m=getAfter(H(A().generation,o.materialId)).data;
+function IY() {
+      let n=B();
+      let o=getAfter(E(A().generation,n.lastOpId)).data;
+      let m=getAfter(I(A().generation,o.materialId)).data;
       let a=A();
-return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['catalog','revision','lastOpId','lastOpKind']) &&
-        n.catalog.diff(a.catalog).affectedKeys().hasOnly(['summaryMaterials']) && n.catalog.summaryMaterials==(o.deleted ? a.catalog.summaryMaterials.removeAll([o.materialId]) : a.catalog.summaryMaterials) && n.revision==a.revision+1 && o.kind=='material_archive' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
+return a.status=='active' && H(n,a,['catalog']) &&
+        n.catalog.diff(a.catalog).affectedKeys().hasOnly(['summaryMaterials']) && n.catalog.summaryMaterials==(o.deleted ? a.catalog.summaryMaterials.removeAll([o.materialId]) : a.catalog.summaryMaterials) && n.revision==a.revision+1 && S(o,n,'material_archive') &&
         m.lastOpId==n.lastOpId && m.lastOpKind=='material_archive' && m.revision==o.materialRevision+1;
     }
-function II() {
-      let n=C();
-      let o=getAfter(F(A().generation,n.lastOpId)).data;
-      let m=getAfter(H(A().generation,o.materialId)).data;
+function IZ() {
+      let n=B();
+      let o=getAfter(E(A().generation,n.lastOpId)).data;
+      let m=getAfter(I(A().generation,o.materialId)).data;
       let a=A();
-return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
-        n.revision==a.revision+1 && o.kind=='material_metadata' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
+return a.status=='active' && H(n,a,[]) &&
+        n.revision==a.revision+1 && S(o,n,'material_metadata') &&
         m.lastOpId==n.lastOpId && m.lastOpKind=='material_metadata' && m.revision==o.materialRevision+1;
     }
-function IJ() {
-      let n=C();
-      let o=getAfter(F(A().generation,n.lastOpId)).data;
-      let m=getAfter(H(A().generation,o.materialId)).data;
+function JA() {
+      let n=B();
+      let o=getAfter(E(A().generation,n.lastOpId)).data;
+      let m=getAfter(I(A().generation,o.materialId)).data;
       let a=A();
-return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
-        n.revision==a.revision+1 && o.kind=='material_measure' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
+return a.status=='active' && H(n,a,[]) &&
+        n.revision==a.revision+1 && S(o,n,'material_measure') &&
         m.lastOpId==n.lastOpId && m.lastOpKind=='material_measure' && m.revision==o.materialRevision+1;
     }
-function IK() {
+function JB() {
   let b=A();
-  let n=C();
-  let o=getAfter(F(b.generation,n.lastOpId)).data;
-  let m=getAfter(H(b.generation,o.targetId)).data;
-  return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['catalog','catalogRevision','revision','lastOpId','lastOpKind']) &&
+  let n=B();
+  let o=getAfter(E(b.generation,n.lastOpId)).data;
+  let m=getAfter(I(b.generation,o.targetId)).data;
+  return b.status=='active' && H(n,b,['catalog','catalogRevision']) &&
    n.catalog.diff(b.catalog).affectedKeys().hasOnly(['menus']) && n.catalog.menus.keys().toSet()==b.catalog.menus.keys().toSet() &&
    n.revision==b.revision+1 && n.catalogRevision==b.catalogRevision+1 && o.sourceCatalogRevision==b.catalogRevision && o.shopRevision==n.revision &&
-   o.kind=='material_type' && o.opId==n.lastOpId && o.uid==B() && n.lastOpKind==o.kind && o.targetId in b.materialIds && o.materialIds==[o.targetId] &&
-   m.lastOpId==o.opId && m.lastOpKind==o.kind && m.revision==o.targetRevision+1 && m.inventoryType==o.inventoryType && CC(b.generation,o.opId,0);
+   o.kind=='material_type' && o.opId==n.lastOpId && o.uid==D() && n.lastOpKind==o.kind && o.targetId in b.materialIds && o.materialIds==[o.targetId] &&
+   m.lastOpId==o.opId && m.lastOpKind==o.kind && m.revision==o.targetRevision+1 && m.inventoryType==o.inventoryType && CK(b.generation,o.opId,0);
  }
-function IL() {
+function JC() {
       let b=A();
-      let n=C();
-      let o=getAfter(F(b.generation,n.lastOpId)).data;
-      return b.status=='active' && n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
-        n.revision==b.revision+1 && o.kind=='package_stock_in' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
-        BQ(getAfter(H(b.generation,o.materialId)).data);
+      let n=B();
+      let o=getAfter(E(b.generation,n.lastOpId)).data;
+      return b.status=='active' && H(n,b,[]) &&
+        n.revision==b.revision+1 && S(o,n,'package_stock_in') &&
+        BY(getAfter(I(b.generation,o.materialId)).data);
     }
-function IM() {
-      let n=C();
-      let o=getAfter(F(A().generation,n.lastOpId)).data;
-      let m=getAfter(H(A().generation,o.materialId)).data;
+function JD() {
+      let n=B();
+      let o=getAfter(E(A().generation,n.lastOpId)).data;
+      let m=getAfter(I(A().generation,o.materialId)).data;
       let a=A();
-return a.status=='active' && n.diff(a).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
-        n.revision==a.revision+1 && o.kind=='material_details' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
+return a.status=='active' && H(n,a,[]) &&
+        n.revision==a.revision+1 && S(o,n,'material_details') &&
         m.lastOpId==n.lastOpId && m.lastOpKind=='material_details' && m.revision==o.materialRevision+1;
     }
-function IN() {
+function JE() {
   let b=A();
-  let n=C();
-  let o=getAfter(F(b.generation,n.lastOpId)).data;
-  let m=get(H(b.generation,o.materialId)).data;
-  return BG(b.generation,n.lastOpId,o,b,n,m);
+  let n=B();
+  let o=getAfter(E(b.generation,n.lastOpId)).data;
+  let m=get(I(b.generation,o.materialId)).data;
+  return BO(b.generation,n.lastOpId,o,b,n,m);
  }
-function IO() {
+function JF() {
  let b=A();
- let n=C();
- let o=getAfter(F(b.generation,n.lastOpId)).data;
+ let n=B();
+ let o=getAfter(E(b.generation,n.lastOpId)).data;
  return b.status=='active' &&
-  n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind','inventoryHistoryCutoff']) &&
+  H(n,b,['inventoryHistoryCutoff']) &&
   n.revision==b.revision+1 && n.inventoryHistoryCutoff==n.revision &&
-  o.kind=='history_clear' && o.opId==n.lastOpId && o.uid==B() &&
-  o.shopRevision==n.revision && o.clearedThroughRevision==n.revision;
+  S(o,n,'history_clear') && o.clearedThroughRevision==n.revision;
 }
-function IP(g,o,a) {
-  let d=getAfter(CA(g,o.opId)).data;
+function DF(g) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/display/catalog; }
+function JG(g,o,a) {
+  let d=getAfter(CI(g,o.opId)).data;
   return d.opId==o.opId && d.uid==o.uid && d.catalogRevision==a && d.platformId==o.platformId &&
    d.addonKeys==o.addonKeys && d.materialIds==o.materialIds && d.billOperands==o.billOperands && d.lines==o.lines && (o.materialIds.size()>=3 || d.lineOptionQuantities==o.lineOptionQuantities);
  }
-function BB(g,a,o) {
-  return o.kind=='addon' || getAfter(W(g,a,4)).data.opId==a && getAfter(W(g,a,5)).data.opId==a &&
-   getAfter(W(g,a,6)).data.opId==a && getAfter(W(g,a,7)).data.opId==a;
+function BJ(g,a,o) {
+  return o.kind=='addon' || getAfter(h(g,a,4)).data.opId==a && getAfter(h(g,a,5)).data.opId==a &&
+   getAfter(h(g,a,6)).data.opId==a && getAfter(h(g,a,7)).data.opId==a;
  }
-function BC(c,b,o,i) {
+function BK(c,b,o,i) {
  let a=b.platformIds.concat(['_','_','_','_'])[i];
  let d=b.platforms.get(a,{});
  let e=c.platforms.get(a,{});
  let g=o.get('enabled',{});
  return i>=b.platformIds.size() || (
-  D(o.rates[a],0,9999) &&
+  C(o.rates[a],0,9999) &&
   e.diff(d).affectedKeys().hasOnly(['gpBasisPoints','revision','active']) &&
   e.active==g.get(a,d.active) && e.gpBasisPoints==o.rates[a] && e.revision==d.revision+1);
 }
-function IQ() {
+function JH() {
  let b=A();
- let n=C();
- let o=getAfter(F(b.generation,n.lastOpId)).data;
+ let n=B();
+ let o=getAfter(E(b.generation,n.lastOpId)).data;
  let a=b.catalog;
 let c=n.catalog;
 return b.status=='active' &&
-  n.diff(b).affectedKeys().hasOnly(['revision','catalogRevision','lastOpId','lastOpKind','catalog']) &&
+  H(n,b,['catalogRevision','catalog']) &&
   n.revision==b.revision+1 && n.catalogRevision==b.catalogRevision+1 &&
   c.diff(a).affectedKeys().hasOnly(['platforms']) &&
   c.platforms.keys().toSet()==a.platforms.keys().toSet() &&
   c.platforms.diff(a.platforms).affectedKeys().hasOnly(a.platformIds) &&
-  o.kind=='platform_gp' && o.opId==n.lastOpId && o.uid==B() && o.shopRevision==n.revision &&
+  S(o,n,'platform_gp') &&
   a.platformIds.size()<=4 && o.rates.keys().toSet()==a.platformIds.toSet() &&
   (!('enabled' in o) || o.enabled is map && o.enabled.keys().toSet()==a.platformIds.toSet() &&
    o.enabled.values().hasOnly([true,false]) && true in o.enabled.values()) &&
-  BC(c,a,o,0) && BC(c,a,o,1) &&
-  BC(c,a,o,2) && BC(c,a,o,3);
+  BK(c,a,o,0) && BK(c,a,o,1) &&
+  BK(c,a,o,2) && BK(c,a,o,3);
 }
-function IR(g,a,o,b,n) {
+function JI(g,a,o,b,n) {
   return b.status=='active' && b.generation==g &&
    o.keys().hasOnly(['schemaVersion','kind','status','opId','uid','createdAt','sourceKind','sourceRevision','shopRevision']) &&
-   o.schemaVersion==2 && o.kind=='command_abort' && o.status=='committed' && o.opId==a && o.uid==B() && o.createdAt==request.time &&
+   o.schemaVersion==2 && o.kind=='command_abort' && o.status=='committed' && o.opId==a && o.uid==D() && o.createdAt==request.time &&
    a.matches('^[A-Za-z0-9_-]{1,120}$') &&
-   o.sourceKind.matches('^(platform_gp|menu|addon|group|receive|produce|history_clear|stock_count|switch_lot|material_create|material_archive|material_delete|material_metadata|material_measure|material_details|material_type|production_recipe)$') &&
+   o.sourceKind.matches('^(platform_gp|channel|menu|addon|group|receive|produce|history_clear|stock_count|switch_lot|material_create|material_archive|material_delete|material_metadata|material_measure|material_details|material_type|production_recipe)$') &&
    o.sourceRevision==b.revision && o.shopRevision==b.revision+1 &&
-   n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind']) &&
+   H(n,b,[]) &&
    n.revision==b.revision+1 && n.lastOpId==a && n.lastOpKind=='command_abort' &&
-   !exists(F(g,a));
+   !exists(E(g,a));
  }
-function IS() {
+function JJ() {
   let b=A();
-  let n=C();
-  let o=getAfter(F(b.generation,n.lastOpId)).data;
-  return IR(b.generation,n.lastOpId,o,b,n);
+  let n=B();
+  let o=getAfter(E(b.generation,n.lastOpId)).data;
+  return JI(b.generation,n.lastOpId,o,b,n);
  }
-function IT() {
-  let n=C();
+function JK() {
+  let b=A();
+  let n=B();
+  let g=b.generation;
+  let a=n.lastOpId;
+  let o=getAfter(E(g,a)).data;
+  let p=get(CL(g,a)).data;
+  let d=getAfter(DF(g)).data;
+  let c=get(DF(g)).data;
+  return b.status=='active' && H(n,b,['catalog','catalogRevision']) &&
+   n.revision==b.revision+1 && n.catalogRevision==b.catalogRevision+1 && o.kind=='channel' && o.opId==a && o.shopRevision==n.revision &&
+   p.uid==D() && p.revision==b.revision && p.input==o.input && p.catalog==n.catalog &&
+   get(CM(g,a,CN(b.catalog)-1)).data.opId==a &&
+   d.platformAvailabilityOrder==c.get('platformAvailabilityOrder',b.catalog.platformIds) &&
+   (!('sourceId' in o.input) || (!(o.input.id in c.platforms) && d.platforms[o.input.id]=={'name':o.input.name,'sourcePlatformId':o.input.sourceId}));
+ }
+function S(o,n,a) {
+  return o.kind==a && o.opId==n.lastOpId && o.uid==D() && o.shopRevision==n.revision;
+ }
+function JL() {
+  let n=B();
   let a=n.allowedEmails;
   let b=a.keys().join('|');
   let c=n.userRoles;
   let d=A();
-return AC(d) && a is map && a.size()>0 && a.size()<=50 && a.values().hasOnly([true]) &&
+return u(d) && a is map && a.size()>0 && a.size()<=50 && a.values().hasOnly([true]) &&
    b==b.lower() && b.matches('^[^ |@]+@[^ |@]+([|][^ |@]+@[^ |@]+)*$') &&
    c is map && c.keys().toSet()==a.keys().toSet() && c.values().hasOnly(['viewer','manager','admin']) &&
    c.get('armwoottipong@gmail.com','')=='admin' && c.get(request.auth.token.email.lower(),'')=='admin' &&
-   n.diff(d).affectedKeys().hasOnly(['allowedEmails','userRoles','revision','lastOpId','lastOpKind']) &&
+   H(n,d,['allowedEmails','userRoles']) &&
    n.revision==d.revision+1 && n.revision is int && n.revision<=9007199254740991 &&
    n.lastOpKind=='access' && n.lastOpId is string && n.lastOpId.matches('^[A-Za-z0-9_-]{1,200}$');
  }
-allow get: if AJ(A());
-  function IU() { let a=C().get('lastOpKind',''); return (a=='access' && IT()) || (a=='sale_set' && HT()) || (a=='stock_in' && HU()) || (a=='package_stock_in' && IL()) || (a=='produce' && IB()) || (a=='cancel' && IA()) || (a=='command_abort' && IS()) || (a=='history_clear' && IO()) || (a=='stock_count' && ID()) || (a=='switch_lot' && IC()) || (a=='material_create' && IG()) || (a=='material_archive' && IH()) || (a=='material_metadata' && II()) || (a=='material_measure' && IJ()) || (a=='material_details' && IM()) || (a=='material_type' && IK()) || (a=='production_recipe' && IF()) || (a=='menu' && HY()) || (a=='addon' && HZ()) || (a=='group' && IE()) || (a=='catalog' && HW()) || (a=='material_delete' && IN()) || (a=='platform_gp' && AC(A()) && IQ()); }
-allow update: if U(A()) && (IU());
+allow get: if AQ(A());
+  function JM() { let a=B().get('lastOpKind',''); return (a=='access' && JL()) || (a=='sale_set' && IK()) || (a=='stock_in' && IL()) || (a=='package_stock_in' && JC()) || (a=='produce' && IS()) || (a=='cancel' && IR()) || (a=='command_abort' && JJ()) || (a=='history_clear' && JF()) || (a=='stock_count' && IU()) || (a=='switch_lot' && IT()) || (a=='material_create' && IX()) || (a=='material_archive' && IY()) || (a=='material_metadata' && IZ()) || (a=='material_measure' && JA()) || (a=='material_details' && JD()) || (a=='material_type' && JB()) || (a=='production_recipe' && IW()) || (a=='menu' && IP()) || (a=='addon' && IQ()) || (a=='group' && IV()) || (a=='catalog' && IN()) || (a=='material_delete' && JE()) || (a=='platform_gp' && u(A()) && JH()) || (a=='channel' && u(A()) && JK()); }
+allow update: if Z(A()) && (JM());
+
 
 
 

@@ -116,6 +116,8 @@
 
     <!-- Section 2: Platform & Channel GP Rates -->
     <div id="settings-platforms" data-settings="platforms" v-show="activeSettingsSection === 'platforms'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
+      <ChannelSettings v-if="store.cloud && store.changeChannel" :model="store"/>
+      <template v-else>
       <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
         <div class="p-2 rounded-xl bg-amber-50 text-amber-800">
           <Store class="w-5 h-5" />
@@ -150,6 +152,7 @@
         <p v-if="gpConflict" role="alert">ข้อมูลร้านเปลี่ยนแล้ว กรุณาโหลดค่าใหม่และตรวจ GP อีกครั้งก่อนบันทึก</p>
         <div class="settings-gp-actions"><Button type="submit" :loading="gpSaving" :disabled="!gpDirty || gpConflict || store.settingsBlocked || Object.keys(gpErrors).length > 0 || (store.cloud && !gpActiveCount)">{{ store.cloud ? 'บันทึกช่องทางและ GP' : 'บันทึก GP' }}</Button><Button v-if="store.cloud" variant="secondary" :disabled="gpSaving || store.settingsBlocked" @click="resetGpDraft">โหลดค่าปัจจุบัน</Button></div>
       </form>
+      </template>
     </div>
 
     <!-- Section 3: Category Management (จัดการหมวดหมู่ระบบ) -->
@@ -275,6 +278,7 @@
 import '@/assets/settings.css'
 import CloudRecoveryPanel from '@/cloud/core/CloudRecoveryPanel.vue'
 import CloudAccessPanel from '@/cloud/core/CloudAccessPanel.vue'
+import ChannelSettings from '@/components/settings/ChannelSettings.vue'
 import { businessDateKey } from '@/domain/businessDate'
 import { ref, computed, watch } from 'vue'
 import FormField from '@/components/ui/FormField.vue'
