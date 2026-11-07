@@ -1,34 +1,88 @@
 <template>
- <aside data-menu-recipe-panel class="menu-recipe-panel" aria-label="สูตรและวัตถุดิบ">
-  <header><div><h3>สูตรและวัตถุดิบ</h3><p>ปริมาณที่ใช้ต่อ 1 เสิร์ฟ</p></div><Button variant="quiet" size="compact" @click="$emit('edit')">แก้ไขสูตร</Button></header>
+ <section data-menu-recipe-panel class="menu-recipe-panel" aria-label="สูตรและวัตถุดิบ">
+  <header class="recipe-heading">
+   <div><h3>สูตรและวัตถุดิบ</h3><p>ปริมาณที่ใช้ต่อ 1 เสิร์ฟ</p></div>
+   <Button variant="quiet" size="compact" @click="$emit('edit')">แก้ไขสูตร</Button>
+  </header>
   <section v-for="group in groups" :key="group.label" class="recipe-group" :aria-label="group.label">
    <h4>{{ group.label }} <span>{{ group.items.length }} รายการ</span></h4>
-   <p v-if="group.packaging && menu.hasPackage===false" class="recipe-help">ปิดการตัดสต็อกบรรจุภัณฑ์สำหรับเมนูนี้</p>
-   <article v-for="(item,index) in group.items" :key="index" class="recipe-item"><div><strong>{{ item.mat?.name||'ไม่พบวัตถุดิบ' }}</strong><p>{{ item.qty }} {{ item.mat?.unit||'' }}</p><small v-if="!item.mat">รหัส {{ item.materialId }} · แก้ไขสูตรเพื่อเลือกวัตถุดิบใหม่</small><small v-else-if="item.servingsAvailable!==null">สต็อกพอ {{ item.servingsAvailable }} เสิร์ฟ</small><small v-else>ยังไม่ระบุจำนวนที่ใช้</small><small v-if="item.mat && item.cost===null">ตรวจต้นทุนวัตถุดิบและปริมาณในสูตร</small></div><b>{{ item.cost===null ? 'ยังไม่ทราบต้นทุน' : `฿${item.cost.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}` }}</b></article>
-   <p v-if="!group.items.length" class="recipe-help">{{ group.empty }}</p>
+   <p v-if="group.packaging && menu.hasPackage===false" class="recipe-note">ปิดการตัดสต็อกบรรจุภัณฑ์สำหรับเมนูนี้</p>
+   <ul v-if="group.items.length" class="recipe-list" role="list">
+    <li v-for="(item,index) in group.items" :key="index" class="recipe-item">
+     <div>
+      <strong>{{ item.mat?.name || 'ไม่พบวัตถุดิบ' }}</strong>
+      <p class="recipe-meta">
+       <span class="recipe-quantity">{{ item.qty }} {{ item.mat?.unit || '' }}</span>
+       <span v-if="!item.mat">รหัส {{ item.materialId }} · แก้ไขสูตรเพื่อเลือกวัตถุดิบใหม่</span>
+       <span v-else-if="item.servingsAvailable!==null">สต็อกพอ {{ item.servingsAvailable }} เสิร์ฟ</span>
+       <span v-else>ยังไม่ระบุจำนวนที่ใช้</span>
+      </p>
+      <p v-if="item.mat && item.cost===null" class="recipe-note">ตรวจต้นทุนวัตถุดิบและปริมาณในสูตร</p>
+     </div>
+     <b>{{ item.cost===null ? 'ยังไม่ทราบต้นทุน' : costFormat.format(item.cost) }}</b>
+    </li>
+   </ul>
+   <p v-else class="recipe-note">{{ group.empty }}</p>
   </section>
-  <section class="recipe-group" aria-label="กลุ่มตัวเลือก"><h4>กลุ่มตัวเลือก <span>{{ addonGroups.length }} กลุ่ม</span></h4><article v-for="group in addonGroups" :key="group.id" class="recipe-item"><div><strong>{{ group.name }}</strong><p>{{ group.pricingMode==='included'?'รวมในราคาเมนู':'คิดเงินเพิ่ม' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat?'ที่ · เลือกซ้ำได้':'ชนิด' }}</p></div></article><p v-if="!addonGroups.length" class="recipe-help">{{ menu.hasAddons===false?'ไม่เปิดให้เลือกตัวเลือกเสริม':'ยังไม่เลือกกลุ่มตัวเลือก' }}</p></section>
- </aside>
+  <section class="recipe-group" aria-label="กลุ่มตัวเลือก">
+   <h4>กลุ่มตัวเลือก <span>{{ addonGroups.length }} กลุ่ม</span></h4>
+   <ul v-if="addonGroups.length" class="recipe-list" role="list">
+    <li v-for="group in addonGroups" :key="group.id" class="recipe-item">
+     <div>
+      <strong>{{ group.name }}</strong>
+      <p class="recipe-meta">
+       <span>เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat ? 'ที่ · เลือกซ้ำได้' : 'ชนิด' }}</span>
+      </p>
+     </div>
+     <span class="recipe-option-price">{{ group.pricingMode==='included' ? 'รวมในราคาเมนู' : 'คิดเงินเพิ่ม' }}</span>
+    </li>
+   </ul>
+   <p v-else class="recipe-note">{{ menu.hasAddons===false ? 'ไม่เปิดให้เลือกตัวเลือกเสริม' : 'ยังไม่เลือกกลุ่มตัวเลือก' }}</p>
+  </section>
+ </section>
 </template>
 <script setup>
 import {computed} from 'vue'
 import Button from '../ui/Button.vue'
 const props=defineProps({menu:{type:Object,required:true},items:{type:Array,default:()=>[]},addonGroups:{type:Array,default:()=>[]}})
 defineEmits(['edit'])
+const costFormat=new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB'})
 const groups=computed(()=>[
  {label:'วัตถุดิบ',empty:'ยังไม่มีสูตรวัตถุดิบ',items:props.items.filter(i=>i.mat?.inventoryType!=='packaging')},
  {label:'บรรจุภัณฑ์',empty:'ยังไม่มีบรรจุภัณฑ์ในสูตร',packaging:true,items:props.items.filter(i=>i.mat?.inventoryType==='packaging')}
 ])
 </script>
-<style scoped src="./catalogRecipe.css"></style>
 <style scoped>
-.menu-recipe-panel{padding:20px;background:var(--bg-card);border-radius:16px;min-width:0;max-height:none;height:auto;overflow:visible;--text-muted:#705C50}.menu-recipe-panel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.menu-recipe-panel h3{font-size:1rem;font-weight:600;line-height:1.6}.menu-recipe-panel>header p{font-size:.75rem;color:var(--text-muted);margin-top:4px;line-height:1.7}.menu-recipe-panel .recipe-group h4{flex-wrap:wrap}.menu-recipe-panel .recipe-item{gap:8px}.menu-recipe-panel .recipe-item b{font-size:.875rem;max-width:50%;white-space:normal;text-align:end;overflow-wrap:anywhere}.menu-recipe-panel .recipe-item small{display:block;font-size:.75rem;line-height:1.7}.menu-recipe-panel .recipe-group h4>span{font-size:.75rem}.menu-recipe-panel :deep(:focus-visible){outline:none!important;box-shadow:none!important}
-</style>
-<style scoped>
-.menu-recipe-panel .recipe-group{margin-top:16px;border:1px solid var(--border-subtle);border-radius:12px;overflow:hidden}
-.menu-recipe-panel .recipe-group h4{padding:10px 14px;background:var(--bg-soft);font-weight:600}
-.menu-recipe-panel .recipe-group .recipe-item{margin-inline:14px}
-.menu-recipe-panel .recipe-group .recipe-item:last-child{border-bottom:0}
-.menu-recipe-panel .recipe-group .recipe-help{margin:0;padding:10px 14px}
-@media(max-width:767px){.menu-recipe-panel{padding:16px}}
+.menu-recipe-panel { padding: 20px 24px 24px; min-width: 0; }
+.recipe-heading, .recipe-group h4 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.recipe-heading h3 { font-size: 1rem; font-weight: 600; }
+.recipe-heading p, .recipe-note, .recipe-meta, .recipe-group h4 span {
+  color: var(--text-muted);
+  font-size: .75rem;
+  line-height: 1.6;
+}
+.recipe-heading p { margin-top: 4px; }
+.recipe-group { margin-top: 16px; border-top: 1px solid var(--control-border); }
+.recipe-group h4 { padding-top: 12px; color: var(--accent-brand); font-size: .875rem; font-weight: 600; }
+.recipe-group h4 span { font-weight: 400; white-space: nowrap; }
+.recipe-list { margin: 4px 0 0; padding: 0; list-style: none; }
+.recipe-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, max-content);
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: .875rem;
+  overflow-wrap: anywhere;
+}
+.recipe-item + .recipe-item { border-top: 1px solid var(--border-subtle); }
+.recipe-item strong { font-weight: 500; }
+.recipe-meta { display: flex; flex-wrap: wrap; gap: 0 12px; margin-top: 2px; }
+.recipe-quantity { color: var(--text-main); font-variant-numeric: tabular-nums; }
+.recipe-item b, .recipe-option-price { text-align: end; font-variant-numeric: tabular-nums; }
+.recipe-item b { font-weight: 600; }
+.recipe-option-price { font-size: .75rem; color: var(--text-muted); }
+.recipe-note { margin-top: 6px; }
+@media (max-width: 767px) { .menu-recipe-panel { padding: 16px; } }
+@media (max-width: 420px) { .recipe-item { grid-template-columns: minmax(0, 1fr) minmax(0, 34%); } }
 </style>
