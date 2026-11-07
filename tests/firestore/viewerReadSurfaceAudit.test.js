@@ -33,3 +33,7 @@ it.each([false,null])('denies stale operator roles when allowlist membership is 
  })
  for(const path of internal)await assertFails(getDoc(doc(db('manager'),base+'/'+path)))
 })
+it.each(['unverified','password','anonymous'])('denies internal reads for invalid operator identity: %s',async kind=>{
+ const client=kind==='anonymous'?env.unauthenticatedContext().firestore():env.authenticatedContext('manager',{email:'manager@example.com',email_verified:kind!=='unverified',firebase:{sign_in_provider:kind==='password'?'password':'google.com'}}).firestore()
+ for(const path of internal)await assertFails(getDoc(doc(client,base+'/'+path)))
+})

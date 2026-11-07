@@ -771,11 +771,13 @@ function O(c,a,i) {
  }
 function CG(g,a,b,d) {
   let c=K();
-  let e=c.catalog;
+  let e=d.index*16;
+      let i=d.materialId;
+      let j=c.catalog;
 return M(g) && d.keys().hasOnly(['opId','index','uid','sourceRevision','kind','materialId']) &&
    d.opId==a && d.uid==B() && D(d.index,0,7) && b==string(d.index) && d.sourceRevision==c.revision &&
-   d.kind in ['material_archive','material_delete'] && d.materialId in c.materialIds && !exists(F(g,a)) &&
-   O(e,d.materialId,d.index*16+0) && O(e,d.materialId,d.index*16+1) && O(e,d.materialId,d.index*16+2) && O(e,d.materialId,d.index*16+3) && O(e,d.materialId,d.index*16+4) && O(e,d.materialId,d.index*16+5) && O(e,d.materialId,d.index*16+6) && O(e,d.materialId,d.index*16+7) && O(e,d.materialId,d.index*16+8) && O(e,d.materialId,d.index*16+9) && O(e,d.materialId,d.index*16+10) && O(e,d.materialId,d.index*16+11) && O(e,d.materialId,d.index*16+12) && O(e,d.materialId,d.index*16+13) && O(e,d.materialId,d.index*16+14) && O(e,d.materialId,d.index*16+15);
+   d.kind in ['material_archive','material_delete'] && i in c.materialIds && !exists(F(g,a)) &&
+   O(j,i,e+0) && O(j,i,e+1) && O(j,i,e+2) && O(j,i,e+3) && O(j,i,e+4) && O(j,i,e+5) && O(j,i,e+6) && O(j,i,e+7) && O(j,i,e+8) && O(j,i,e+9) && O(j,i,e+10) && O(j,i,e+11) && O(j,i,e+12) && O(j,i,e+13) && O(j,i,e+14) && O(j,i,e+15);
  }
 allow read: if N() && U(P()) && (M(g));
    allow create: if L() && (CG(g,id,v1,C()));

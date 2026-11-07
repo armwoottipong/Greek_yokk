@@ -1,6 +1,6 @@
 import {beforeAll,beforeEach,afterAll,it,expect} from 'vitest'
 import {doc,getDoc,setDoc,deleteDoc,writeBatch} from 'firebase/firestore'
-import {assertFails} from '@firebase/rules-unit-testing'
+import {assertFails,assertSucceeds} from '@firebase/rules-unit-testing'
 import {createRulesTest} from './helpers.js'
 import {buildCorePolicy} from '../../scripts/core-policy.mjs'
 import {summaryFixture} from './summaryFixture.js'
@@ -29,6 +29,25 @@ function fixture(){
 async function referenceParts(db,shop,kind,opId='FORGED'){
  for(let index=0;index<8;index++)await setDoc(doc(db,`${GENERATION}/materialReferences/${opId}/parts/${index}`),{opId,index,uid:'cashier',sourceRevision:shop.revision,kind,materialId:'REMOVE'})
 }
+it.each([0,7,8,'missing-index','missing-material'])('keeps reference-part index/field bounds: %s',async value=>{
+ const f=fixture();await seedSetCatalog(env,f);const {db}=setup()
+ const part={opId:'BOUNDS',index:typeof value==='number'?value:0,uid:'cashier',sourceRevision:f.shop.revision,kind:'material_delete',materialId:'REMOVE'}
+ if(value==='missing-index')delete part.index
+ if(value==='missing-material')delete part.materialId
+ const write=setDoc(doc(db,`${GENERATION}/materialReferences/BOUNDS/parts/${part.index??0}`),part)
+ if(value===0||value===7)await assertSucceeds(write)
+ else await assertFails(write)
+})
+it.each([0,63,64,127])('does not skip hidden catalog reference at slot %s',async position=>{
+ const f=fixture(),c=f.shop.catalog
+ c.menuIds=Array.from({length:64},(_,i)=>'M'+i);c.addonIds=Array.from({length:64},(_,i)=>'A'+i)
+ c.menus=Object.fromEntries(c.menuIds.map(id=>[id,{recipe:{},rawRecipe:{}}]))
+ c.addons=Object.fromEntries(c.addonIds.map(id=>[id,{recipe:{}}]))
+ if(position<64)c.menus['M'+position].rawRecipe={REMOVE:1}
+ else c.addons['A'+(position-64)].recipe={REMOVE:1}
+ await seedSetCatalog(env,f);const {db}=setup(),index=Math.floor(position/16)
+ await assertFails(setDoc(doc(db,`${GENERATION}/materialReferences/HIDDEN/parts/${index}`),{opId:'HIDDEN',index,uid:'cashier',sourceRevision:f.shop.revision,kind:'material_delete',materialId:'REMOVE'}))
+})
 it('atomically deletes with an immutable receipt, retries, recreates without rank reuse and still cancels earlier sales',async()=>{
  const f=fixture();await seedSetCatalog(env,f);const {api,db}=setup()
  const sale=await api.commit(command('sale',{platformId:'P',lines:[{menuId:'SIMPLE',qty:1,optionIds:[]}]},'OLD-SALE'))

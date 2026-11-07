@@ -163,6 +163,12 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
  collect('smallCost(')
  const replace=(body,before,after)=>{if(!body.includes(before))throw new Error('Core validator source changed');return body.replace(before,after)}
  function extend(name,body){
+  if(name==='materialReferenceWrite'){
+   const at=body.indexOf('return ')
+   body=body.slice(0,at)+`let referenceStart=d.index*16;
+      let referenceMaterialId=d.materialId;
+      `+body.slice(at).replaceAll('d.index*16','referenceStart').replaceAll('d.materialId','referenceMaterialId')
+  }
   // Receipt matching reads quantity, dates and ordinal only. Avoid eagerly
   // resolving active flags/IDs for every slot within the native Rules budget.
   if(name==='matchAt')body=replace(body,`let l = resolvedSlot(before,before.slotIds[i]);
