@@ -81,7 +81,13 @@ export function createInventoryModel({getData,execute,loadServer,isReady,isBlock
   }catch(e){return error(e.message||'บันทึกไม่สำเร็จ แบบร่างยังอยู่')}finally{state.saving=false}
  }
  function acknowledge(value){
-  if(!alive||!value||state.commands[0]?.opId!==value.opId)return
+  if(!alive||!value)return
+  if(value.kind==='cancel'&&(!value.rejected||value.code==='ORDER_ALREADY_CANCELLED')&&value.result?.orderId){
+   state.logs=state.logs.map(log=>log.action==='order_complete'&&log.targetId===value.result.orderId?{...log,cancelled:true}:log)
+   if(state.modals.activityLog.isOpen)void refreshHistory()
+   return
+  }
+  if(state.commands[0]?.opId!==value.opId)return
   if(value.rejected){state.uncertain=false;state.conflict=true;persist();return}
   const command=clone(state.commands[0]),confirmed=apply(clone(state.base),planInventoryCommand(clone(state.base.shop),clone(state.base.materials),command))
   confirmed.display=withLatestMenuOrder(confirmed.display,menuOrderFields(latest.value.display))

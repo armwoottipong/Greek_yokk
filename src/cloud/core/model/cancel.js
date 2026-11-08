@@ -4,7 +4,8 @@ import { decodeSummaryMaterial } from './material.js'
 import { sortedAllocationIds } from './lots.js'
 
 export function summaryCancel(shop,materials,order,{opId='SUMMARY-CANCEL',uid='cashier'}={}){
-  if(order.status!=='committed')throw new Error('Order already cancelled')
+  if(order.status==='cancelled')throw Object.assign(new Error('Order already cancelled'),{code:'ORDER_ALREADY_CANCELLED'})
+  if(order.status!=='committed')throw new Error('Invalid order status')
   const nextMaterials=order.materialIds.map((id,i)=>{
     const before=materials.find(m=>m.id===id),m=structuredClone(before),row=order.inventory[i]
     if(!m)throw new Error('Missing original material')

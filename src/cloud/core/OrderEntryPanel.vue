@@ -4,23 +4,19 @@
    <OrderDatePicker v-model:month="visibleMonth" :day="day" :today="today" :max="latestDay" :disabled="dateLocked" :state="calendarState" :order-days="orderDays" :draft-days="draftDays" @update:day="$emit('update:day',$event)" @retry="retryMonth(visibleMonth)" />
    <section class="order-entry-summary" aria-labelledby="order-entry-summary-title">
     <header><h3 id="order-entry-summary-title">สรุปออเดอร์</h3><p>{{ displayDate(day) }}</p></header>
-    <div class="order-entry-total"><span>ยอดขายจริง</span><strong>{{ salesReady ? `฿${money(daily.metrics.totalSales)}` : '—' }}</strong></div>
-    <dl class="order-entry-metrics">
-     <div><dt>ออเดอร์ที่ขายแล้ว</dt><dd>{{ salesReady ? `${daily.metrics.orderCount} บิล` : '—' }}</dd></div>
-     <div><dt>จำนวนที่ขาย</dt><dd>{{ salesReady ? `${money(units)} ชาม` : '—' }}</dd></div>
-     <div><dt>เฉลี่ยต่อบิล</dt><dd>{{ salesReady ? `฿${money(daily.metrics.avgOrderValue)}` : '—' }}</dd></div>
-     <div><dt>กำไรขั้นต้น</dt><dd>{{ salesReady ? `฿${money(daily.metrics.grossProfit)}` : '—' }}</dd></div>
-    </dl>
-    <div class="order-entry-booking"><span><strong>Pre-order รอดำเนินการ</strong><small>{{ bookings.length }} ออเดอร์</small></span><strong>฿{{ money(quoteTotal) }}</strong></div>
-    <div v-if="daily.menus.length" class="order-entry-menus">
-     <h4>เมนูขายดี</h4>
-     <ul><li v-for="row in daily.menus.slice(0,3)" :key="row.id"><span>{{ row.label }}</span><strong>{{ money(row.qty) }} ชาม</strong></li></ul>
+    <div class="order-entry-total">
+     <div><span>ยอดขายจริง</span><strong>{{ salesReady ? `฿${money(totalSales)}` : '—' }}</strong></div>
+     <span>{{ salesReady ? `${money(soldOrders.length)} บิล` : '— บิล' }}</span>
     </div>
+    <div class="order-entry-booking"><span><strong>Pre-order รอดำเนินการ</strong><small>{{ bookings.length }} ออเดอร์</small></span><strong>฿{{ money(quoteTotal) }}</strong></div>
     <div v-if="linked" class="order-entry-linked">
      <span>กำลังเปิด Pre-order · ตะกร้าร่างเก็บแยกไว้</span>
      <Button variant="quiet" size="compact" :disabled="blocked" @click="$emit('leave-preorder')">ออกจากรายการนี้</Button>
     </div>
-    <Button data-order-details variant="secondary" aria-haspopup="dialog" aria-controls="order-entry-details" @click="detailsOpen=true"><ListOrdered :size="18" aria-hidden="true" />ดูรายละเอียดออเดอร์<ChevronRight :size="16" aria-hidden="true" /></Button>
+    <div class="order-entry-actions">
+     <Button data-order-menu-report variant="quiet" @click="$emit('open-menu-report',day)"><ChartNoAxesCombined :size="18" aria-hidden="true" />เมนูขายดีและรายงาน<ArrowUpRight :size="16" aria-hidden="true" /></Button>
+     <Button data-order-details variant="secondary" aria-haspopup="dialog" aria-controls="order-entry-details" @click="detailsOpen=true"><ListOrdered :size="18" aria-hidden="true" />ดูรายละเอียดออเดอร์<ChevronRight :size="16" aria-hidden="true" /></Button>
+    </div>
    </section>
   </div>
   <OrderDetailsDialog :open="detailsOpen" :date="displayDate(day)" :sales="sales" :bookings="bookings" :display="data.display" :state="dailyState" :blocked="blocked" @request-close="detailsOpen=false" @retry="retryMonth(activeMonth)" @open-sale="$emit('open-sale',$event)" @open-preorder="$emit('open-preorder',$event)" />
@@ -29,9 +25,9 @@
 
 <script setup>
 import {computed,onScopeDispose,ref,shallowReactive,watch} from 'vue'
-import {ChevronRight,ListOrdered} from 'lucide-vue-next'
+import {ArrowUpRight,ChartNoAxesCombined,ChevronRight,ListOrdered} from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
-import {buildDashboard,money} from '@/domain/dashboard'
+import {money} from '@/domain/dashboard'
 import {businessDateKey} from '@/domain/businessDate.js'
 import {businessDay,dayKey,monthOf,offsetMonth,scheduledSummary} from './orderEntry.js'
 import OrderDatePicker from './OrderDatePicker.vue'
@@ -39,7 +35,7 @@ import OrderDetailsDialog from './OrderDetailsDialog.vue'
 import {projectReportOrders} from './reportProjection.js'
 
 const props=defineProps({day:String,today:String,data:Object,service:Object,revision:Number,refreshKey:Number,ready:Boolean,blocked:Boolean,dateLocked:Boolean,linked:Boolean,draftDays:Set})
-defineEmits(['update:day','open-sale','open-preorder','leave-preorder'])
+defineEmits(['update:day','open-sale','open-preorder','leave-preorder','open-menu-report'])
 const dateFormat=new Intl.DateTimeFormat('th-TH',{dateStyle:'long',timeZone:'UTC'})
 const displayDate=value=>dateFormat.format(new Date(value+'T00:00:00Z'))
 const activeMonth=computed(()=>monthOf(props.day)),visibleMonth=ref(activeMonth.value)
@@ -60,8 +56,8 @@ const sales=computed(()=>{
  const report=reports.get(activeMonth.value)
  return props.day===props.today&&report?.onlyToday?[]:report?.byDay?.get(props.day)||[]
 })
-const daily=computed(()=>buildDashboard(sales.value,{start:props.day,end:props.day}))
-const units=computed(()=>daily.value.menus.reduce((total,row)=>total+row.qty,0))
+const soldOrders=computed(()=>sales.value.filter(row=>row.status!=='cancelled'))
+const totalSales=computed(()=>soldOrders.value.reduce((total,row)=>total+(Number(row.subtotal)||0),0))
 const monthState=month=>month>props.today?'ready':!props.ready?'offline':reports.get(month)?.state||'loading'
 const hasConfirmedHistory=month=>props.ready&&reports.get(month)?.onlyToday
 const calendarState=computed(()=>hasConfirmedHistory(visibleMonth.value)?'ready':monthState(visibleMonth.value))
@@ -129,19 +125,15 @@ onScopeDispose(()=>{disposed=true})
 .order-entry-summary{display:flex;flex-direction:column;gap:12px;min-width:0}
 .order-entry h3{font-size:1.125rem;font-weight:600}
 .order-entry header p,.order-entry-linked{color:var(--text-muted)}
-.order-entry-total{display:grid;gap:4px;padding:12px;background:var(--bg-soft);border-radius:10px;color:var(--text-muted)}
+.order-entry-total,.order-entry-booking,.order-entry-linked{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.order-entry-total{padding:12px;background:var(--bg-soft);border-radius:10px;color:var(--text-muted)}
+.order-entry-total>div{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
 .order-entry-total strong{color:var(--accent-brand);font-size:1.625rem;font-variant-numeric:tabular-nums}
-.order-entry-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
-.order-entry-metrics div{min-width:0;padding-block:4px}
-.order-entry-metrics dt,.order-entry-booking small{color:var(--text-muted);font-size:.75rem}
-.order-entry-metrics dd,.order-entry-booking strong,.order-entry-menus strong{font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.order-entry-booking,.order-entry-linked,.order-entry-menus li{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.order-entry-booking,.order-entry-menus{border-top:1px solid var(--border-subtle);padding-top:12px}
-.order-entry-booking small{display:block}
-.order-entry-menus h4{font-weight:600;margin-bottom:4px}
-.order-entry-menus li{min-height:26px}
-.order-entry-menus li span{overflow-wrap:anywhere}
-.order-entry-menus li strong{white-space:nowrap}
-.order-entry-summary>[data-order-details]{justify-content:space-between;gap:8px;margin-block-start:auto;color:var(--accent-brand)}
+.order-entry-total>span{white-space:nowrap;font-variant-numeric:tabular-nums}
+.order-entry-booking{border-top:1px solid var(--border-subtle);padding-top:12px}
+.order-entry-booking small{display:block;color:var(--text-muted);font-size:.75rem}
+.order-entry-booking strong{font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.order-entry-actions{display:grid;gap:4px;margin-block-start:auto}
+.order-entry-actions .ui-button{justify-content:space-between;gap:8px;color:var(--accent-brand)}
 @container(max-width:660px){.order-entry-overview{grid-template-columns:minmax(0,1fr)}}
 </style>

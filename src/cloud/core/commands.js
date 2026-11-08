@@ -3,9 +3,27 @@ const transportKind=kind=>kind==='inventory'?'receive':kind
 const wrap=(kind,receipt)=>receipt.kind==='command_abort'?{opId:receipt.opId,kind,rejected:true,code:'COMMAND_STOPPED'}:{opId:receipt.opId,kind,result:JSON.parse(JSON.stringify(receipt))}
 export function createCoreCommands({journal,transport,getContext}){
  const scope={...getContext()}
+ async function competingCancellation(command){
+  const orderId=command.payload?.orderId
+  if(command.kind!=='cancel'||!await transport.cancelledByAnotherCommand?.(orderId,command.opId))return null
+  return {opId:command.opId,kind:'cancel',rejected:true,code:'ORDER_ALREADY_CANCELLED',result:{orderId}}
+ }
+ async function readResult(kind,id,envelope){
+  const receipt=await transport.receipt(transportKind(kind),id,{...envelope,kind:transportKind(envelope.kind)})
+  return receipt?wrap(kind,receipt):competingCancellation(envelope)
+ }
  const executor=createCommandExecutor({journal,getContext,
-  getReceipt:async(s,kind,id,envelope)=>{const r=await transport.receipt(transportKind(kind),id,{...envelope,kind:transportKind(envelope.kind)});return r?wrap(kind,r):null},
-  commit:async(s,c)=>wrap(c.kind,await transport.commit({...c,kind:transportKind(c.kind)}))})
+  getReceipt:(_scope,kind,id,envelope)=>readResult(kind,id,envelope),
+  async commit(_scope,command){
+   try{return wrap(command.kind,await transport.commit({...command,kind:transportKind(command.kind)}))}
+   catch(error){
+    if(command.kind==='cancel'&&error.code==='ORDER_ALREADY_CANCELLED'){
+     const result=await readResult(command.kind,command.opId,command)
+     if(result)return result
+    }
+    throw error
+   }
+  }})
  function guard(){const c=getContext();if(!c.online||!c.ready||!c.protocolCertified||['uid','generation','deviceId','shopId','projectId'].some(k=>c[k]!==scope[k]))throw Object.assign(new Error('NOT_READY'),{code:'NOT_READY'})}
  return {
   execute:command=>executor.execute(scope,command),
@@ -22,8 +40,8 @@ export function createCoreCommands({journal,transport,getContext}){
     const record=await journal.inspect(scope,command.opId,command);guard()
     if(record?.state==='resolved')return {ok:true,value:record.receipt}
     const envelope=record?.envelope||command
-    const receipt=await transport.receipt(transportKind(envelope.kind),envelope.opId,{...envelope,kind:transportKind(envelope.kind)});guard()
-    if(receipt){const value=wrap(command.kind,receipt);if(record)await journal.resolve(scope,command.opId,value);return {ok:true,value}}
+    const value=await readResult(envelope.kind,envelope.opId,envelope);guard()
+    if(value){if(record)await journal.resolve(scope,command.opId,value);return {ok:true,value}}
     if(command.payload?.expectedRevision!==undefined){
      try{const resolved=await transport.rejectStaleInventory({...command,kind:transportKind(command.kind)});guard()
       const value=resolved.receipt?wrap(command.kind,resolved.receipt):{opId:command.opId,kind:command.kind,rejected:true,code:resolved.code}

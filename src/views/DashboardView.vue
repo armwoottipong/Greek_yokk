@@ -47,7 +47,7 @@ import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import DashboardTrend from '@/components/dashboard/DashboardTrend.vue'
 import DashboardBreakdown from '@/components/dashboard/DashboardBreakdown.vue'
 import '@/assets/dashboard.css'
-const props=defineProps({model:Object,reportReady:{type:Boolean,default:true}})
+const props=defineProps({model:Object,reportReady:{type:Boolean,default:true},menuReportRequest:Object})
 const emit=defineEmits(['range-change'])
 const store=props.model||usePosStore()
 const period=ref(store.dashboardPeriod || 'today'),range=ref(dashboardRange(period.value)),view=ref('overview'),datesOpen=ref(false),dateAnchor=ref(null),orderOffset=ref(0)
@@ -73,6 +73,12 @@ const inventoryRows=computed(()=>inventoryGrouping.value==='category'
  ? store.inventoryValuationByCategory.map(c=>({id:c.category,label:`${c.category} (${c.itemCount})`,value:c.totalValue}))
  : store.activeMaterials.map(m=>({id:m.id,label:m.name,value:Math.max(0,m.stock)*(m.unitCost||0)})).sort((a,b)=>b.value-a.value || a.label.localeCompare(b.label,'th')))
 watch(report,()=>{orderOffset.value=0})
+watch(()=>props.menuReportRequest,request=>{
+ if(!request)return
+ view.value='menus'
+ if(request.day===businessDateKey())selectPeriod('today')
+ else applyRange({start:request.day})
+},{immediate:true})
 watch(range,value=>emit('range-change',{...value}),{deep:true,immediate:true})
 function selectPeriod(id){period.value=id;store.dashboardPeriod=id;range.value=dashboardRange(id)}
 function applyRange(value){range.value={start:value.start,end:value.end || value.start};period.value='custom';datesOpen.value=false}

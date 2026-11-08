@@ -26,6 +26,7 @@ const messages={
  PREORDER_NOT_DUE:'Pre-order นี้ยังไม่ถึงวันนัดรับ',
  PREORDER_NO_LONGER_PENDING:'Pre-order นี้ถูกบันทึกเป็นยอดขายหรือยกเลิกแล้ว',
  ORDER_ENTRY_DAY_CHANGED:'วันที่ของร้านเปลี่ยนแล้ว กรุณาเลือกวันนี้ก่อนบันทึกยอดขาย',
+ ORDER_ALREADY_CANCELLED:'บิลนี้ถูกคืนและคืนสต็อกแล้ว',
  PENDING_RESULT:'ยังยืนยันผลรายการเดิมไม่ได้ กรุณาตรวจผลก่อนบันทึกรายการใหม่',
 }
 export function commandErrorMessage(error){return messages[error?.causeCode]||messages[error?.code||error?.message]||null}

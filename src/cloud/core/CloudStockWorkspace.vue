@@ -11,7 +11,7 @@
     <StocktakeModal />
     <WasteModal />
     <MaterialEditModal />
-    <ActivityLogModal @open-orders="$emit('open-orders')" />
+    <ActivityLogModal allow-cloud-undo :undo-disabled="!ready||blocked" @open-orders="$emit('open-orders')" @cloud-undo="$emit('return-bill',$event)" />
     <ConfirmModal />
     <LotDepletionModal />
     <EmojiPickerPopover />
@@ -49,7 +49,7 @@ const props = defineProps({
   storageKey: { type: String, required: true },
   readHistory: { type: Function, default: null },
 })
-defineEmits(['open-orders'])
+defineEmits(['open-orders','return-bill'])
 
 const visited=reactive({menu:false,addon:false})
 watch(()=>props.currentTab,tab=>{if(tab==='menu'||tab==='addon')visited[tab]=true},{immediate:true})

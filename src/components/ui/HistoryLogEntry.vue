@@ -37,6 +37,7 @@
           <p v-for="(line,index) in log.billLines" :key="index">{{ line }}</p>
           <p class="font-semibold tabular-nums text-stone-900">ยอดขาย ฿{{ number(log.billTotal) }}</p>
           <p v-if="log.cancelled" role="status" class="font-medium text-stone-700">คืนบิลแล้ว</p>
+          <button v-else-if="allowCloudUndo&&log.targetId" type="button" class="history-undo" :disabled="undoDisabled" data-history-return @click="$emit('cloud-undo',log.targetId)"><Undo2 :size="16" aria-hidden="true" />ย้อนบิลและคืนสต็อก</button>
         </template>
         <p v-else class="text-stone-500">ไม่พบข้อมูลออเดอร์สำหรับย้อนกลับ</p>
       </div>
@@ -47,8 +48,8 @@
 import {computed} from 'vue'
 import {ChevronDown, Undo2} from 'lucide-vue-next'
 import {formatThaiDate} from '@/stores/posStore'
-const props=defineProps({log:{type:Object,required:true},itemMode:Boolean,order:{type:Object,default:null}})
-defineEmits(['undo'])
+const props=defineProps({log:{type:Object,required:true},itemMode:Boolean,order:{type:Object,default:null},allowCloudUndo:Boolean,undoDisabled:Boolean})
+defineEmits(['undo','cloud-undo'])
 const isReversed=computed(()=>props.log.action === 'order_cancel' || (props.log.action === 'order_complete' && (props.order?.status === 'cancelled'||props.log.cancelled)))
 const labels={stock_in:'รับเข้า',adjust:'ตรวจนับ',stock_adjust_add:'ปรับเพิ่ม',stock_adjust_reduce:'ปรับลด',produce:'ผลิต',produce_batch:'ผลิต',produce_deduct:'ตัดวัตถุดิบผลิต',sale_deduct:'ตัดขาย',order_complete:'ขาย',waste:'ของเสีย',switch_lot:'สลับล็อต',create:'เพิ่มรายการ',edit:'แก้ไข',delete:'ลบรายการ',sync:'ซิงค์ข้อมูล'}
 const shortTitle=computed(()=>['menu','addon','system'].includes(props.log.module)?props.log.title||labels[props.log.action]||'กิจกรรม':labels[props.log.action]||props.log.title||'กิจกรรม')
@@ -70,5 +71,6 @@ const time=computed(()=>{
 .history-reversed-status { display:inline-block; margin-top:4px; padding:2px 8px; border-radius:8px; background:var(--state-warning); color:#fff; font-size:12px; font-weight:600; line-height:20px; }
 .history-undo { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 12px; border:1px solid var(--border-subtle); border-radius:8px; color:var(--text-main); background:var(--bg-card); font-weight:500; }
 .history-undo:hover { background:var(--bg-soft); }
+.history-undo:disabled { opacity:.5;cursor:not-allowed; }
 .history-undo:focus-visible { outline:2px solid var(--accent-brand); outline-offset:2px; }
 </style>

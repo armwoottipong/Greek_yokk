@@ -3,7 +3,7 @@
   <p v-if="loading" class="loading-copy" role="status">กำลังโหลดรายงานจาก Firebase…</p>
   <p v-else-if="!ready" class="connection-warning" role="status">เชื่อมต่อเซิร์ฟเวอร์เพื่อยืนยันยอดรายงานล่าสุด</p>
   <div v-else-if="error" class="error" role="alert"><p>{{ error }}</p><Button data-report-retry variant="secondary" @click="load">โหลดรายงานอีกครั้ง</Button></div>
-  <DashboardView :report-ready="ready&&loaded&&!loading&&!error" :model="model" @range-change="setRange"/>
+  <DashboardView :report-ready="ready&&loaded&&!loading&&!error" :model="model" :menu-report-request="menuReportRequest" @range-change="setRange"/>
   <section v-if="ready&&bookings.orders.length" class="dashboard-preorders" aria-labelledby="dashboard-preorders-title">
    <header>
     <div><h3 id="dashboard-preorders-title">Pre-order รอดำเนินการ</h3><p>{{ bookings.orders.length }} ออเดอร์ · ยอดจอง ฿{{ money(bookings.subtotalCents/100) }}</p></div>
@@ -22,9 +22,10 @@ import {getMaterialKindLabel} from '@/domain/materialClassification.js'
 import {projectMaterial} from './productPresentation.js'
 import {projectReportOrders} from './reportProjection.js'
 import {dayKey,scheduledSummary} from './orderEntry.js'
-const props=defineProps({readOnly:Boolean,active:Boolean,ready:Boolean,revision:Number,refreshKey:Number,data:{type:Object,required:true},service:{type:Object,required:true},modals:{type:Object,required:true},inventoryModel:Object})
+const props=defineProps({readOnly:Boolean,active:Boolean,ready:Boolean,revision:Number,refreshKey:Number,menuReportRequest:Object,data:{type:Object,required:true},service:{type:Object,required:true},modals:{type:Object,required:true},inventoryModel:Object})
 const emit=defineEmits(['navigate'])
-const range=ref(dashboardRange('today')),loading=ref(false),loaded=ref(false),error=ref('')
+const requestedDay=props.menuReportRequest?.day
+const range=ref(requestedDay?{start:requestedDay,end:requestedDay}:dashboardRange('today')),loading=ref(false),loaded=ref(false),error=ref('')
 const bookings=computed(()=>scheduledSummary(props.data.shop?.preorders))
 const pickupDays=computed(()=>{
  const days=new Map()

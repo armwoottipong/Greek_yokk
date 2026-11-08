@@ -117,6 +117,12 @@ export function createCoreTransport({db,getContext}){
   return r
  }
  async function receipt(kind,opId,command){const s=scope(),d=await getDocFromServer(doc(db,`${gen(s)}/${collectionFor(kind)}/${opId}`));guard(s);return d.exists()?checkReceipt(s,command||{kind,opId},d.data()):null}
+ async function cancelledByAnotherCommand(orderId,opId){
+  if(typeof orderId!=='string'||!/^[A-Za-z0-9_-]{1,120}$/.test(orderId))return false
+  const s=scope(),saved=await getDocFromServer(doc(db,`${gen(s)}/orders/${orderId}`));guard(s)
+  const order=saved.data()
+  return order?.opId===orderId&&order.status==='cancelled'&&typeof order.cancelOpId==='string'&&!!order.cancelOpId&&order.cancelOpId!==opId
+ }
  async function prepareSale(s,f){
   const id=f.order.opId,manifestPath=`${gen(s)}/preparations/sale_${id}`
   const descriptor={kind:'sale_set',opId:id,uid:s.uid,proofCount:f.order.lineWitnessCount,stepCount:0,materialCount:0}
@@ -439,5 +445,5 @@ export function createCoreTransport({db,getContext}){
    if(!changed)throw error
   }
  }
- return {snapshot,commit,receipt,savePreorder,cancelPreorder,abandonSale,rejectStaleInventory,abortInventory}
+ return {snapshot,commit,receipt,cancelledByAnotherCommand,savePreorder,cancelPreorder,abandonSale,rejectStaleInventory,abortInventory}
 }

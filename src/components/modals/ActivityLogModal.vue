@@ -5,7 +5,7 @@
     <section v-if="store.modals.activityLog?.isOpen" class="history-modal bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90dvh] flex flex-col overflow-hidden">
       <header class="px-4 py-4 sm:px-5 border-b border-stone-100 flex items-start justify-between gap-3 shrink-0">
         <div class="min-w-0">
-          <h3 id="ActivityLogModal-title" class="font-semibold text-base text-stone-900 break-words">{{ historyTitle }}</h3>
+          <h3 id="ActivityLogModal-title" ref="heading" tabindex="-1" class="font-semibold text-base text-stone-900 break-words">{{ historyTitle }}</h3>
           <p class="mt-1 text-xs text-stone-500">{{ isItemMode ? `คงเหลือ ${formatNum(activeTargetMaterial?.stock)} ${activeTargetMaterial?.unit || ''}` : historyDescription }}</p>
         </div>
         <button type="button" @click="close" aria-label="ปิดประวัติ" class="history-icon-button"><X class="h-4 w-4" /></button>
@@ -37,7 +37,7 @@
         </div>
         <section v-for="group in groupedLogs" :key="group.dateKey" :aria-label="group.dateLabel">
           <h4 class="sticky top-0 z-10 flex items-center justify-between bg-stone-50 px-4 py-2 sm:px-5 text-xs font-medium text-stone-600 border-y border-stone-100"><span>{{ group.dateLabel }}</span><span class="text-stone-400">{{ group.items.length }} รายการ</span></h4>
-          <HistoryLogEntry v-for="log in group.items" :key="log.id" :log="log" :item-mode="isItemMode" :order="ordersById.get(log.targetId)" @undo="confirmUndoOrder" />
+          <HistoryLogEntry v-for="log in group.items" :key="log.id" :log="log" :item-mode="isItemMode" :order="ordersById.get(log.targetId)" :allow-cloud-undo="allowCloudUndo" :undo-disabled="undoDisabled||store.historyLoading" @undo="confirmUndoOrder" @cloud-undo="openCloudUndo" />
         </section>
       </div>
 
@@ -81,7 +81,10 @@ const {pending:actionPending,run:runAction}=useActionPending()
 const store = useInventoryStore()
 const present=ref(!!store.modals.activityLog?.isOpen)
 function finishLeave(){if(!store.modals.activityLog?.isOpen)present.value=false}
-const emit=defineEmits(['open-orders'])
+defineProps({allowCloudUndo:Boolean,undoDisabled:Boolean})
+const emit=defineEmits(['open-orders','cloud-undo'])
+const heading=ref(null)
+function openCloudUndo(id){heading.value?.focus({preventScroll:true});emit('cloud-undo',id)}
 function openOrders(){close();emit('open-orders')}
 const ordersById = computed(() => new Map((store.orders || []).map(order => [order.orderId, order])))
 async function confirmUndoOrder(orderId) {

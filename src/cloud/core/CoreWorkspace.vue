@@ -6,14 +6,14 @@
    <section v-if="operator&&(posEnabled||entryMode)" v-show="orderWorkspace" class="pos-workspace" :aria-label="entryMode?'บันทึกออเดอร์':'ขายสินค้า'">
     <OrderEntryPanel v-if="entryMode" :day="orderDay" :today="today" :data="data" :service="service" :revision="data.shop.revision" :refresh-key="entryRefreshKey" :ready="ready"
       :blocked="locked||!!pendingPreorder" :date-locked="orderDraftLocked||!!bookingId" :linked="!!bookingId" :draft-days="draftDays"
-      @update:day="setOrderDay" @open-sale="openDailySale" @open-preorder="openPreorder" @leave-preorder="leavePreorder"/>
+      @update:day="setOrderDay" @open-sale="openDailySale" @open-preorder="openPreorder" @leave-preorder="leavePreorder" @open-menu-report="openMenuReport"/>
     <section v-if="entryMode&&expiredCarts.length" class="expired-carts" aria-labelledby="expired-carts-title">
      <h3 id="expired-carts-title">ตะกร้าร่างจากวันก่อน</h3>
      <p>{{ todayCartHasLines ? 'จัดการตะกร้าของวันนี้ก่อนย้ายตะกร้าร่าง' : 'ย้ายมาวันนี้เพื่อแก้ไขหรือบันทึกต่อ' }}</p>
      <ul><li v-for="draft in expiredCarts" :key="draft.day"><span>{{ dateLabel(draft.day) }} · {{ draft.quantity }} ชาม</span><Button data-recover-cart size="compact" variant="secondary" :disabled="locked||!!bookingId||!!pendingPreorder||todayCartHasLines" @click="recoverCart(draft.day)">ย้ายมาวันนี้</Button></li></ul>
     </section>
     <p v-if="orderWorkspace&&channelPaused" class="error" role="status">{{ explain({code:'CHANNEL_PAUSED'}) }}</p>
-    <PosCatalog v-if="canCompose" :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="orderDraftLocked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
+    <PosCatalog v-if="canCompose" :inline-toolbar="entryMode" :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="orderDraftLocked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
     <CartPanel :model="productModel" :presentation="mobileCart?'drawer':'side-drawer'" :open="cartOpen" :checkout-pending="['sale','preorder'].includes(activeAction)" :disabled="orderDraftLocked" :action-label="orderAction" @request-close="cartOpen=false" @checkout="checkout">
      <template #review>
       <div v-if="entryMode||shortages.length||previewError" class="cart-cloud-review">
@@ -27,8 +27,8 @@
     </CartPanel>
     <CartLauncher ref="cartLauncher" :active="orderWorkspace&&(canCompose||cartQuantity>0)" :quantity="cartQuantity" :open="cartOpen" :busy="busy" @open="cartOpen=true"/>
    </section>
-   <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :read-only="!operator" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
-   <CloudStockWorkspace v-if="operator" ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory" @open-orders="navigate('orders')"/>
+   <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :read-only="!operator" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :menu-report-request="menuReportRequest" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
+   <CloudStockWorkspace v-if="operator" ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory" @open-orders="navigate('orders')" @return-bill="requestBillReturn"/>
    <SettingsView v-if="settingsVisited&&role==='admin'" v-show="tab==='settings'" :model="settingsModel"/>
    <section v-if="tab==='orders'" aria-label="ประวัติบิล"><div class="section-heading"><div><h3>บิลขายและคืนบิล</h3><p>100 บิลล่าสุดจาก Firebase · คืนสต็อกตามล็อตเดิมเมื่อคืนบิล</p></div></div><p v-if="!data.orders.length" class="empty-orders">ยังไม่มีบิลจาก Firebase</p><ol class="order-list"><li v-for="o in data.orders" :key="o.opId"><div><StatusBadge :label="o.status==='cancelled'?'คืนบิลแล้ว':'ขายสำเร็จ'" :tone="o.status==='cancelled'?'neutral':'success'"/><strong>{{ money(o.subtotalCents) }}</strong><p>{{ orderDate(o) }} · {{ name('platforms',o.platformId) }}</p><p>{{ o.lines.map(l=>`${name('menus',l.menuId)} × ${l.qty}`).join(', ') }}</p><small>{{ o.opId }}</small></div><Button v-if="o.status==='committed'" variant="secondary" :disabled="locked||!ready" @click="cancelId=o.opId">คืนบิล</Button></li></ol><details @toggle="loadHistory"><summary>ประวัติบิลจากระบบเดิม</summary><p class="muted">คืนบิลเก่าได้หลังแปลงหลักฐานล็อตด้วยเครื่องมือเจ้าของร้านแล้ว · ตรวจบิลจากเซิร์ฟเวอร์ก่อนยืนยันทุกครั้ง</p><p v-for="(o,i) in legacyOrders" :key="i">{{ o.createdAt }} · {{ o.platformName }} · {{ money(Math.round((o.subtotal||0)*100)) }} · {{ o.status||'ประวัติเดิม' }} <Button v-if="o.status!=='cancelled'" :data-legacy-return="o.orderId" size="compact" variant="secondary" :loading="legacyLookup===o.orderId" :disabled="locked||!ready||!!legacyLookup" @click="reviewLegacy(o)">ตรวจบิลเพื่อคืน</Button></p></details></section>
   </template>
@@ -44,7 +44,7 @@
   </form>
   <template v-if="menu" #footer><div class="custom-order-footer"><div class="bowl-total"><span>จำนวนชาม</span><strong>{{ quantity }} ชาม</strong></div><AppQuantityInput v-model="quantity" label="จำนวนชาม" :min="1" :max="1000000" :disabled="locked"/><div class="custom-order-footer-actions"><Button type="submit" form="cloud-line-form" data-add-line :disabled="locked||(cart.length>=saleLimit&&!canMergeLine)">เพิ่มลงตะกร้า</Button></div><p class="muted">หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ</p></div></template>
  </DialogFrame>
- <DialogFrame :open="!!cancelId" id="cloud-cancel-order" title="ยืนยันคืนบิล" :busy="busy" @request-close="cancelId=''"><p>ยืนยันคืนเงินและคืนสต็อกบิลนี้ตามล็อตเดิม?</p><p v-if="error" class="error" role="alert">{{ error }}</p><template #footer><Button variant="secondary" :disabled="busy" @click="cancelId=''">เก็บบิลไว้</Button><Button :disabled="locked||!ready" :loading="activeAction==='cancel'" @click="cancelOrder(cancelId)">ยืนยันคืนบิล</Button></template></DialogFrame>
+ <DialogFrame :open="!!cancelId" id="cloud-cancel-order" title="ยืนยันคืนบิล" :busy="busy" @request-close="cancelId=''"><p>ระบบจะยกเลิกยอดขาย และคืนวัตถุดิบกับบรรจุภัณฑ์ที่ตัดไปเข้าล็อตเดิม</p><p v-if="cancelId" class="muted">บิล {{ cancelId }}</p><p v-if="error" class="error" role="alert">{{ error }}</p><template #footer><Button variant="secondary" :disabled="busy" @click="cancelId=''">เก็บบิลไว้</Button><Button :disabled="locked||!ready" :loading="activeAction==='cancel'" @click="cancelOrder(cancelId)">ยืนยันคืนบิล</Button></template></DialogFrame>
  <DialogFrame :open="clearConfirm" id="cloud-clear-cart" title="ล้างตะกร้านี้?" @request-close="answerClear(false)"><p>รายการสินค้า ท็อปปิ้ง และหมายเหตุที่ยังไม่ได้ชำระจะถูกล้าง</p><template #footer><Button variant="secondary" @click="answerClear(false)">เก็บออเดอร์ไว้</Button><Button variant="danger" @click="answerClear(true)">ล้างตะกร้า</Button></template></DialogFrame>
 </template>
 
@@ -184,9 +184,10 @@ const productPlatforms=computed(()=>platformIds.value.map(id=>({id,name:name('pl
 const filteredMenus=computed(()=>productMenus.value.filter(m=>m.name.toLowerCase().includes(searchQuery.value.trim().toLowerCase())))
 const cartQuantity=computed(()=>cart.value.reduce((n,l)=>n+l.qty,0)),cartQuantities=computed(()=>cart.value.reduce((r,l)=>({...r,[l.menuId]:(r[l.menuId]||0)+l.qty}),{}))
 const pageTitle=computed(()=>({dashboard:'ภาพรวม & งบต้นทุน',sale:'แคชเชียร์ (POS)','order-entry':'บันทึกออเดอร์',stock:'คลังวัตถุดิบ & Package',menu:'จัดการเมนู',addon:'จัดการกลุ่มตัวเลือก',orders:'บิลขาย & คืนบิล',settings:'ตั้งค่าร้าน'})[tab.value]||'Yoggie')
-const historyModule=computed(()=>({dashboard:'all',sale:'pos',stock:'stock',menu:'menu',addon:'addon',orders:'pos',settings:'system'})[tab.value]||'all')
+const historyModule=computed(()=>({dashboard:'all',sale:'pos','order-entry':'pos',stock:'stock',menu:'menu',addon:'addon',orders:'pos',settings:'system'})[tab.value]||'all')
 const historyLabel=computed(()=>({all:'ประวัติทั้งระบบ',pos:'ยอดขายและบิล',stock:'ประวัติสต็อก',menu:'ประวัติการจัดการเมนู',addon:'ประวัติการจัดการตัวเลือกเสริม',system:'ประวัติระบบและการตั้งค่า'})[historyModule.value])
 function openPageHistory(){void inventoryWorkspace.value?.model.openActivityLog(historyModule.value)}
+function requestBillReturn(id){if(!locked.value&&ready.value&&typeof id==='string'&&/^[A-Za-z0-9_-]{1,120}$/.test(id)){error.value='';cancelId.value=id}}
 const productModel=reactive({cloud:true,modals:{receipt:receiptState,packageReview:packageReviewState},get role(){return role.value},get availableTabs(){return availableTabs.value},get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get addonGroups(){return inventoryWorkspace.value?.model.addonGroups||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab:navigate,get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get materials(){return data.value?.materials.map(m=>({...m,isDeleted:m.deleted}))||[]},get packageLocked(){return orderDraftLocked.value||!ready.value},get packageAdjustments(){return packageAdjustments.value},get cartPackagePlan(){return projectCloudPackages(data.value,cart.value,packageAdjustments.value)},savePackageAdjustments,resetPackageAdjustment(id){if(!locked.value)packageAdjustments.value=packageAdjustments.value.filter(a=>a.materialId!==id)},resetPackageAdjustments(){if(!locked.value)packageAdjustments.value=[]},updateCartQty,removeFromCart(index){if(!orderDraftLocked.value)cart.value.splice(index,1)},clearCart(){if(!orderDraftLocked.value)leavePreorder()},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
 Object.defineProperty(productModel,'activeUsers',{get:()=>activeUsers.value})
 const settingsModel=reactive({cloud:true,showToast,
@@ -287,6 +288,8 @@ function navigate(id){
  tab.value=target==='pos'?'sale':target
 }
 const inventoryWorkspace=ref(null),reportVisited=ref(tab.value==='dashboard'),settingsVisited=ref(false),reportRefreshKey=ref(0),entryRefreshKey=ref(0)
+const menuReportRequest=ref(null)
+function openMenuReport(day){menuReportRequest.value={day};navigate('dashboard')}
 async function readStockHistory(options={}){const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config});return loadInventoryHistory({db,shopId:props.connection.shopId,generation:props.state.shop.generation,materials:data.value.materials,display:data.value.display,clearedThroughRevision:Math.max(data.value.shop.inventoryHistoryCutoff||0,options.clearedThroughRevision||0),includePageHistory:true})}
 
 function material(id){return data.value?.materials.find(m=>m.id===id)}
@@ -396,11 +399,15 @@ function finish(value){
  pendingCause.value=''
  inventoryWorkspace.value?.acknowledge(value)
  if(value.kind==='cancel'){const orderId=value.result?.orderId;const old=data.value?.orders.find(o=>o.opId===orderId),sourceId=old?.sourceLegacyId||legacySources.get(orderId);if(sourceId){const row=legacyOrders.value.find(o=>o.orderId===sourceId);if(row)row.status='cancelled';legacySources.delete(orderId)}}
+ if(value.rejected&&value.code==='ORDER_ALREADY_CANCELLED'){
+  cancelId.value='';pendingCommand.value=null;storedCommand=null;save();showToast(explain(value));return
+ }
  if(value.rejected){pendingCommand.value=null;storedCommand=null;save();error.value=value.code==='NOT_SUBMITTED'?'รายการนี้ยังไม่ได้ส่ง สามารถตรวจและบันทึกแบบร่างใหม่ได้':'หยุดรายการที่ยังไม่สำเร็จแล้ว กรุณาตรวจแบบร่างกับยอดล่าสุดก่อนบันทึก';return}
  if(value.kind==='sale'&&!value.abandoned&&value.opId===cartCommandId){leavePreorder();receiptState.order=projectReceipt({...value.result,opId:value.opId},data.value);receiptState.isOpen=true}
  cancelId.value='';pendingCommand.value=null;storedCommand=null;cartCommandId=null;approveShortage.value=false;save()
  if(!inventoryWorkspace.value?.model.inventorySaving){
   if(value.abandoned)showToast('หยุดบิลแล้ว ตะกร้ายังอยู่')
+  else if(value.kind==='cancel')showToast('คืนบิลและคืนสต็อกเข้าล็อตเดิมแล้ว','success')
   else if(value.kind==='platform_gp')showToast('บันทึก GP สำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว','success')
   else if(value.kind==='channel')showToast('บันทึกช่องทางขายสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว','success')
   else showToast('บันทึกสำเร็จ · ยืนยันจากเซิร์ฟเวอร์แล้ว','success')

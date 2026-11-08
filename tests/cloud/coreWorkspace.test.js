@@ -7,6 +7,8 @@ import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
 import {businessDay,dayKey} from '../../src/cloud/core/orderEntry.js'
 const h=vi.hoisted(()=>({recover:vi.fn(),discardUnsent:vi.fn(),abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn(),savePreorder:vi.fn()}))
+const historyReader=vi.hoisted(()=>vi.fn())
+vi.mock('../../src/cloud/core/inventoryHistory.js',()=>({loadInventoryHistory:historyReader}))
 vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({images:{watch:(_kind,_id,cb)=>{cb({dataURL:"",revision:0});return ()=>{}},save:vi.fn()},load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,recover:h.recover,discardUnsent:h.discardUnsent,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,savePreorder:h.savePreorder,close:()=>{}})}))
 vi.mock('../../src/cloud/firebaseClient.js',()=>({getFirebaseClient:()=>({db:{}})}))
 vi.mock('../../src/cloud/shopAccess.js',async original=>({...await original(),createShopAccess:()=>({watch(){},watchInvitations(){},heartbeat:async()=>{},close(){}})}))
@@ -78,7 +80,7 @@ it('shows only recorded past dates and keeps refunded bills outside daily totals
   expect(date(empty).element.disabled).toBe(true)
   expect(date(sold).element.disabled).toBe(false)
   await date(sold).trigger('click')
-  expect(summary()).toContain('฿69');expect(summary()).toContain('1 บิล');expect(summary()).toContain('2 ชาม')
+  expect(summary()).toContain('฿69');expect(summary()).toContain('1 บิล')
   expect(w.find('[data-pos-menu="M"]').exists()).toBe(false)
   await date(refunded).trigger('click')
   expect(summary()).toContain('0 บิล')
@@ -90,6 +92,30 @@ it('shows only recorded past dates and keeps refunded bills outside daily totals
   await w.get('.order-entry-list button').trigger('click')
   expect(w.get('#ReceiptModal').text()).toContain('Greek')
   expect(h.report.mock.calls.filter(([range])=>range.end===sold)).toHaveLength(1)
+ }finally{w.unmount()}
+})
+it('opens Dashboard menu rankings for the selected order day on each visit',async()=>{
+ const today=dayKey(businessDay()),sold=dayKey(businessDay()-1)
+ h.report.mockResolvedValue({legacyOrders:[{orderId:'past',createdAt:`${sold}T12:00:00+07:00`,subtotal:69,gpAmount:0,netRevenue:69,foodCost:19,grossProfit:50,items:[{menuId:'M',menuName:'Greek',qty:2}]}]})
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:{...state,shop:{...state.shop,posEnabled:false}}},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises()
+  if(sold.slice(0,7)!==today.slice(0,7))await w.get('[aria-label="เดือนก่อนหน้า"]').trigger('click')
+  await flushPromises()
+  await w.get(`[data-calendar-day="${sold}"]`).trigger('click')
+  const summary=w.get('.order-entry-summary')
+  expect(summary.text()).not.toContain('กำไรขั้นต้น')
+  expect(summary.text()).not.toContain('Greek')
+  await summary.get('[data-order-menu-report]').trigger('click');await flushPromises()
+  expect(w.get('[data-view="menus"]').attributes('aria-pressed')).toBe('true')
+  expect(w.text()).toContain('อันดับเมนูขายดี')
+  expect(h.report.mock.lastCall[0]).toEqual({start:sold,end:sold})
+  await w.get('[data-view="overview"]').trigger('click')
+  await w.get('.brand-navigation button[title="บันทึกออเดอร์"]').trigger('click');await flushPromises()
+  await w.get('[data-calendar-today]').trigger('click')
+  await w.get('[data-order-menu-report]').trigger('click');await flushPromises()
+  expect(w.get('[data-view="menus"]').attributes('aria-pressed')).toBe('true')
+  expect(h.report.mock.lastCall[0]).toEqual({start:today,end:today})
  }finally{w.unmount()}
 })
 it('restores the independent day cart after inspecting a saved preorder on that date',async()=>{
@@ -188,10 +214,32 @@ it.each([true,false])('uses the stock picture and group activation in cloud opti
  }finally{w.unmount()}
 })
 beforeEach(()=>{
+ historyReader.mockReset().mockResolvedValue({logs:[]})
  h.pending.mockReset();h.recover.mockReset().mockResolvedValue({ok:false,code:'PENDING_RESULT'});h.discardUnsent.mockReset()
  sessionStorage.clear();h.report.mockReset();h.report.mockResolvedValue({receipts:[],legacyOrders:[]});h.abandon.mockReset();h.orders.mockResolvedValue([]);h.history.mockResolvedValue([]);h.execute.mockClear();h.pending.mockResolvedValue([]);h.execute.mockImplementation(async c=>({ok:true,value:{opId:c.opId,kind:c.kind,result:{subtotalCents:6900}}}))
  h.preview.mockReturnValue({subtotalCents:6900,approvedShortages:{}})
  h.load.mockResolvedValue({shop:{generation:'g1',revision:1,catalog:{summaryMaterials:Array.from({length:15},(_,i)=>`M${i}`),menus:{M:{id:'M',active:true,pricesCents:{P:6900},optionIds:[],min:0,max:0}},groups:{},platforms:{P:{active:true}},platformIds:['P']}},materials:[],display:{trial:true,sourceDate:'2026-10-20',menus:{M:{name:'โยเกิร์ต'}},addons:{},platforms:{P:{name:'หน้าร้าน'}}},orders:[]})
+})
+it('returns a sale from order-entry history with explicit confirmation and updates the row',async()=>{
+ const log={id:'BILL:bill',module:'pos',action:'order_complete',targetId:'BILL',targetName:'บิล BILL',timestamp:new Date().toISOString(),billLines:['Greek × 1'],billTotal:69,cancelled:false}
+ historyReader.mockResolvedValue({logs:[log]})
+ h.execute.mockImplementationOnce(async command=>{
+  historyReader.mockResolvedValue({logs:[{...log,cancelled:true}]})
+  return {ok:true,value:{kind:'cancel',opId:command.opId,result:{orderId:'BILL'}}}
+ })
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:{...state,shop:{...state.shop,posEnabled:false}}},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises()
+  await w.get('button[aria-label="ยอดขายและบิล"]').trigger('click');await flushPromises()
+  await w.get('[data-history-return]').trigger('click')
+  expect(h.execute).not.toHaveBeenCalled()
+  expect(w.get('#cloud-cancel-order').text()).toContain('บิล BILL')
+  await w.get('#cloud-cancel-order .ui-button--primary').trigger('click');await flushPromises()
+  expect(h.execute).toHaveBeenCalledTimes(1)
+  expect(h.execute.mock.lastCall[0]).toMatchObject({kind:'cancel',payload:{orderId:'BILL'}})
+  expect(w.find('[data-history-return]').exists()).toBe(false)
+  expect(w.get('[data-history-entry]').text()).toContain('คืนบิลแล้ว')
+ }finally{w.unmount()}
 })
 it('does not expose the legacy option list when a menu has no groups', async () => {
  const data = await h.load()
@@ -544,7 +592,7 @@ it('looks up a historical receipt directly even when newer orders fill the lates
  await w.findAll('button').find(b=>b.text()==='เปิดหน้าบิลขายและคืนบิล').trigger('click');await flushPromises()
  const details=w.get('details');details.element.open=true;await details.trigger('toggle');await flushPromises()
  await w.get('[data-legacy-return="OLD"]').trigger('click');await flushPromises()
- expect(h.legacyReceipt).toHaveBeenCalledWith('OLD');expect(w.text()).toContain('ยืนยันคืนเงินและคืนสต็อก');expect(h.execute).not.toHaveBeenCalled()
+ expect(h.legacyReceipt).toHaveBeenCalledWith('OLD');expect(w.get('#cloud-cancel-order').text()).toContain('บิล LEGACY-OLD');expect(h.execute).not.toHaveBeenCalled()
  w.unmount()
 })
 

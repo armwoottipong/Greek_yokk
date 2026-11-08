@@ -127,6 +127,32 @@ it.each([0,1,2,7,13,14,15,16])('preserves the %i-material sale and cancellation 
  await api.commit({opId:'RETURN-'+count,kind:'cancel',payload:{orderId:receipt.opId}})
  expect((await api.snapshot()).materials.map(m=>m.stock)).toEqual(before.materials.map(m=>m.stock))
 })
+it('resolves competing bill returns from two devices and restores each original lot once',async()=>{
+ const {IDBFactory}=await import('fake-indexeddb')
+ const {createCommandJournal}=await import('../../src/cloud/journal.js')
+ const {createCoreCommands}=await import('../../src/cloud/core/commands.js')
+ const {root,documents}=importedShop(7)
+ root.userRoles[bob]='manager'
+ await seed(root,documents)
+ const api=runtime(),before=await api.snapshot()
+ const sale=await api.commit({opId:'RETURN-RACE-SALE',kind:'sale',payload:{platformId:root.catalog.platformIds[0],lines:[{menuId:root.catalog.menuIds[0],qty:1,optionIds:[]}]}})
+ const devices=['alice','bob'].map(uid=>{
+  const context={projectId:'demo-greek-yogg',shopId:'proof-shop',generation:'g1',uid,deviceId:uid,online:true,ready:true,protocolCertified:true}
+  const journal=createCommandJournal({indexedDB:new IDBFactory(),ownerId:uid})
+  const commands=createCoreCommands({journal,transport:runtime(uid),getContext:()=>context})
+  return {journal,commands,request:{opId:`RETURN-RACE-${uid}`,kind:'cancel',payload:{orderId:sale.opId}}}
+ })
+ try{
+  const attempts=await Promise.all(devices.map(device=>device.commands.execute(device.request)))
+  const results=await Promise.all(attempts.map((result,index)=>result.ok?result:devices[index].commands.recover(devices[index].request)))
+  expect(results.every(result=>result.ok)).toBe(true)
+  expect(results.filter(result=>result.value.rejected)).toMatchObject([{value:{code:'ORDER_ALREADY_CANCELLED',result:{orderId:sale.opId}}}])
+  for(const device of devices)expect(await device.commands.pending()).toEqual([])
+  const after=await api.snapshot()
+  expect(after.materials.map(m=>m.lotQty)).toEqual(before.materials.map(m=>m.lotQty))
+  expect(after.shop.revision).toBe(before.shop.revision+2)
+ }finally{await Promise.all(devices.map(device=>device.journal.close()))}
+})
 it('receives, counts, creates a production recipe and produces under the same strict policy',async()=>{
  const {root,documents}=importedShop(16,false);await seed(root,documents)
  const api=runtime(),first=(await api.snapshot()).materials[0]
