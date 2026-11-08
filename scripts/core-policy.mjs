@@ -23,13 +23,14 @@ import {factorRequestUid} from './request-uid.mjs'
 import {factorRequestData} from './request-data.mjs'
 import {factorRootData} from './rule-root-data.mjs'
 import {factorOperationShape,operationRuleShape} from './operation-rule-shape.mjs'
+import {orderEntryPolicy} from './order-entry-policy.mjs'
 // Derive the release from reviewed validators with explicit profile extensions,
 // mandatory catalog witnesses and shop-scoped command/read surfaces.
 export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth=false,cacheReceiptFields=true}={}){
  if(!/^[A-Za-z0-9_-]{1,120}$/.test(shopId))throw new Error('Invalid shop')
  if(legacyTestAuth&&shopId==='greek-yogg')throw new Error('Legacy authentication is test-only')
  const source=readFileSync(new URL('../tests/firestore/candidates/prepared.rules',import.meta.url),'utf8').replace(/\r\n/g,'\n')+'\n'+inventoryDeletePolicy+'\n'+inventoryHistoryPolicy+'\n'+catalogPolicy+'\n'+dynamicRecipePolicy+'\n'+recipeAdmissionPolicy+'\n'+materialReferencePolicy+'\n'+materialTypePolicy+'\n'+platformSettingsPolicy+'\n'+smallShopPolicy+'\n'+packageSalePolicy
- const policySource=source+'\n'+commandAbortPolicy+'\n'+catalogImagePolicy+'\n'+catalogOrderPolicy+'\n'+channelCatalogPolicy+'\n'+operationRuleShape
+ const policySource=source+'\n'+commandAbortPolicy+'\n'+catalogImagePolicy+'\n'+catalogOrderPolicy+'\n'+channelCatalogPolicy+'\n'+operationRuleShape+'\n'+orderEntryPolicy
  const mask=policySource.replace(/\/\/[^\n]*|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"/g,s=>' '.repeat(s.length))
  const functions=new Map()
  for(const m of mask.matchAll(/function\s+(\w+)\s*\([^)]*\)\s*\{/g)){
@@ -51,6 +52,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   allow get: if signedIn();
   ${legacyTestAuth?'':"allow update: if request.resource.data.lastOpKind=='access' && accessRoot();"}
   ${legacyTestAuth?'':"allow update: if request.resource.data.lastOpKind=='pos_setting' && posSettingRoot();"}
+  allow update: if request.resource.data.lastOpKind in ['preorder_create','preorder_cancel'] && preorderRoot();
   allow update: if request.resource.data.lastOpKind=='sale_set' && validRoot(s);
   allow update: if request.resource.data.lastOpKind=='stock_in' && stockRoot(s);
   allow update: if request.resource.data.lastOpKind=='package_stock_in' && packageStockRoot(s);
@@ -149,7 +151,8 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
  const selected=new Set()
  function collect(text){for(const m of text.matchAll(/\b(\w+)\s*\(/g)){const name=m[1];if(functions.has(name)&&!selected.has(name)){selected.add(name);collect(functions.get(name))}}}
  collect(matches)
- collect('operationKeys( committedOperation( operationRevision( operationKeysChanged( rootOperation(')
+ collect('saleSurface(')
+ collect('operationKeys( committedOperation( operationRevision( operationKeysChanged( rootOperation( nextRevision(')
  if(!legacyTestAuth)collect('signedInAfter( operatorIdentity( adminIdentity( adminAfter(')
  collect('packageBillShape( packageBillRow( packageBillNeed( packageCertifiedNeed( smallTouches( smallCertificate(')
  collect('catalogInputPath(')
@@ -265,7 +268,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
    body=replace(body,'(i<4 || counter(o,i,root.catalog))','(i<4 || i>=15 || counter(o,i,root.catalog))')
   }
   if(name==='validRoot'){
-   body=replace(body,"resource.data.status == 'active' &&","resource.data.status == 'active' && resource.data.get('posEnabled',true)==true &&")
+   body=replace(body,"next.diff(resource.data).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind'])","saleSurface(resource.data,next)")
    // Bind the immutable complete price/coverage certificate here. Row7 moves
    // to the receipt, keeping this validator at ten dependent document reads.
    body=replace(body,'touchedAt(s,resource.data.generation,o,7) &&','')
@@ -316,7 +319,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
   if(name==='catalogInputProof'){
    const end=body.lastIndexOf(';');body=body.slice(0,end)+" && o.validationIds is list && o.validationIds.size()<=16 && o.validationIds.toSet().size()==o.validationIds.size() && o.validationIds.toSet()==(o.kind=='group' ? [].toSet() : admissionRecipe(o.entitySnapshot,o.kind=='catalog'?'addon':o.kind).keys().toSet())"+body.slice(end)
   }
-  if(name==='validRoot')body=replace(body,"['revision','lastOpId','lastOpKind']","['returnMaterials','revision','lastOpId','lastOpKind']").replace('next.revision == resource.data.revision + 1',"next.returnMaterials is map && next.returnMaterials.values().hasOnly([true]) && next.returnMaterials.keys().toSet()==resource.data.get('returnMaterials',{}).keys().concat(o.materialIds).toSet() && next.revision == resource.data.revision + 1")
+  if(name==='validRoot')body=body.replace('next.revision == resource.data.revision + 1',"next.returnMaterials is map && next.returnMaterials.values().hasOnly([true]) && next.returnMaterials.keys().toSet()==resource.data.get('returnMaterials',{}).keys().concat(o.materialIds).toSet() && next.revision == resource.data.revision + 1")
   if(name==='materialArchiveMaterial')body=replace(body,'b.recipeIndex.menus.values().hasOnly([0]) && b.recipeIndex.addons.values().hasOnly([0])', 'materialReferenceReady(s,g,o)').replace('!(id in root.catalog.summaryMaterials) && ','')
   if(name==='materialArchiveRoot'){
    body=replace(body,"['revision','lastOpId','lastOpKind']","['catalog','revision','lastOpId','lastOpKind']")

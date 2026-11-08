@@ -6,13 +6,13 @@
    <CartBody :model="model" :busy="checkoutPending||disabled" @switch-lot="$emit('switch-lot',$event)"/>
    <slot name="review"/>
   </div>
-  <footer v-if="store.cart.length"><CartPaymentFooter :model="model" :busy="checkoutPending" @checkout="$emit('checkout')"/></footer>
+  <footer v-if="store.cart.length"><CartPaymentFooter :model="model" :busy="checkoutPending" :action-label="actionLabel" @checkout="$emit('checkout')"/></footer>
  </section>
  </Transition>
  <DialogFrame v-if="presentation!=='page'&&presentation!=='panel'" :open="open" id="pos-cart-review" title="รายการในรถเข็น" :description="store.currentPlatform?.name" :presentation="presentation==='side-drawer'?'side-drawer':presentation==='drawer'?'drawer':'sheet'" width="480px" compact :busy="checkoutPending" @request-close="$emit('request-close')">
   <CartBody :model="model" :busy="checkoutPending||disabled" @switch-lot="$emit('switch-lot',$event)"/>
   <slot name="review"/>
-  <template v-if="store.cart.length" #footer><CartPaymentFooter :model="model" :busy="checkoutPending" @checkout="$emit('checkout')"/></template>
+  <template v-if="store.cart.length" #footer><CartPaymentFooter :model="model" :busy="checkoutPending" :action-label="actionLabel" @checkout="$emit('checkout')"/></template>
  </DialogFrame>
 </template>
 <script setup>
@@ -22,7 +22,7 @@ import CartBody from './CartBody.vue'
 import CartPaymentFooter from './CartPaymentFooter.vue'
 import {ShoppingBag,ArrowLeft} from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
-const props=defineProps({model:Object,disabled:Boolean,presentation:{type:String,default:'panel'},open:Boolean,checkoutPending:Boolean})
+const props=defineProps({model:Object,disabled:Boolean,presentation:{type:String,default:'panel'},open:Boolean,checkoutPending:Boolean,actionLabel:String})
 defineEmits(['checkout','switch-lot','request-close'])
 const store=props.model||usePosStore()
 function activatePage(element){element.removeAttribute('inert');element.removeAttribute('aria-hidden')}

@@ -10,5 +10,5 @@ export function shopRole(shop,email){
 export function roleMap(emails,roles={}){
  return Object.fromEntries(Object.keys(emails).sort().map(email=>{const role=email===OWNER_EMAIL?'admin':roles[email]||'viewer';if(!ROLES.includes(role))throw new Error('INVALID_ROLE');return [email,role]}))
 }
-export const roleTabs=role=>role==='admin'?['dashboard','pos','stock','menu','addon','settings']:role==='manager'?['dashboard','pos','stock','menu','addon']:['dashboard']
+export const roleTabs=role=>role==='admin'?['dashboard','order-entry','pos','stock','menu','addon','settings']:role==='manager'?['dashboard','order-entry','pos','stock','menu','addon']:['dashboard']
 export const canOperate=role=>role==='admin'||role==='manager'

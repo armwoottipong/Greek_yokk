@@ -53,5 +53,5 @@ export function createCoreWorkspace({connection,getContext}){
  }
  const watchMenuOrder=(onValue,onError)=>ordering.watchMenuOrder(value=>{latestMenuOrder=withLatestMenuOrder(latestMenuOrder,value);if(current)current={...current,display:withLatestMenuOrder(current.display,latestMenuOrder)};onValue(latestMenuOrder)},onError)
  const saveMenuOrder=async(ids,options)=>{const saved=await ordering.saveMenuOrder(ids,options);return saved}
- return {...commands,images,load,orders,watchMenuOrder,saveMenuOrder,previewSale,previewInventory,previewCommand,history,legacyReceipt,backup:()=>backups.read(),report:range=>{if(!current)throw new Error('NOT_READY');return reports.read(range,{legacyOrderCount:current.display.legacyOrderCount??0})},close:()=>{ordering.close();images.close();reports.close();backups.close();return journal.close()}}
+ return {...commands,images,load,orders,savePreorder:transport.savePreorder,cancelPreorder:transport.cancelPreorder,watchMenuOrder,saveMenuOrder,previewSale,previewInventory,previewCommand,history,legacyReceipt,backup:()=>backups.read(),report:range=>{if(!current)throw new Error('NOT_READY');return reports.read(range,{legacyOrderCount:current.display.legacyOrderCount??0})},close:()=>{ordering.close();images.close();reports.close();backups.close();return journal.close()}}
 }

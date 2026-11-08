@@ -89,6 +89,7 @@ import { usePosStore } from '@/stores/posStore'
 import UserPresencePanel from './UserPresencePanel.vue'
 import {
   LayoutDashboard,
+  CalendarDays,
   ShoppingBag,
   UtensilsCrossed,
   Sparkles,
@@ -124,6 +125,7 @@ const mascotUrl = `${import.meta.env.BASE_URL}brand/sidebar-header.png`
 
 const navItems = computed(() => props.items || [
   { id: 'dashboard', label: 'ภาพรวม & งบต้นทุน', icon: LayoutDashboard },
+  ...(props.model?.cloud?[{id:'order-entry',label:'บันทึกออเดอร์',icon:CalendarDays}]:[]),
   { id: 'pos', label: 'แคชเชียร์ (POS)', icon: ShoppingBag, badge: store.cart.length > 0 ? store.cart.reduce((s, i) => s + i.qty, 0) : null, badgeColor: 'bg-amber-600 text-white' },
   { id: 'menu', label: 'จัดการเมนู', icon: UtensilsCrossed, badge: `${store.menus.length} รายการ`, badgeColor: 'bg-stone-100 text-stone-600' },
   { id: 'addon', label: 'จัดการกลุ่มตัวเลือก', icon: Sparkles, badge: `${store.addonGroups?.length || 0} กลุ่ม`, badgeColor: 'bg-stone-100 text-stone-600' },

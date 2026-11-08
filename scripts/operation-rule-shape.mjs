@@ -13,13 +13,16 @@ export const operationRuleShape=String.raw`
  function operationKeysChanged(n,b,extras) {
   return n.diff(b).affectedKeys().hasOnly(['revision','lastOpId','lastOpKind'].concat(extras));
  }
+ function nextRevision(n,b) {
+  return n.revision==b.revision+1;
+ }
  function rootOperation(o,n,kind) {
   return o.kind==kind && o.opId==n.lastOpId && o.uid==request.auth.uid && o.shopRevision==n.revision;
  }
 `
 
 export function factorOperationShape(name,body){
- if(name==='committedOperation')return body
+ if(name==='committedOperation'||name==='nextRevision')return body
  body=body
   .replace(/\b(\w+)\.diff\((\w+|resource\.data)\)\.affectedKeys\(\)\.hasOnly\(\[('(?:[^']+)'(?:,'[^']+')*)\]\)/g,(expression,next,before,fields)=>{
    const revisionKeys=["'revision'","'lastOpId'","'lastOpKind'"]
@@ -28,6 +31,7 @@ export function factorOperationShape(name,body){
    return `operationKeysChanged(${next},${before},[${keys.filter(key=>!revisionKeys.includes(key)).join(',')}])`
   })
   .replace(/o\.kind\s*==\s*('[^']+')\s*&&\s*o\.opId\s*==\s*(\w+)\.lastOpId\s*&&\s*o\.uid\s*==\s*request\.auth\.uid\s*&&\s*o\.shopRevision\s*==\s*\2\.revision/g,(_,kind,next)=>`rootOperation(o,${next},${kind})`)
+  .replace(/\b(n|next|after)\.revision\s*==\s*(b|before|resource\.data)\.revision\s*\+\s*1(?![\d.])/g,(_,next,before)=>`nextRevision(${next},${before})`)
  if(!name.endsWith('Operation'))return body
  return body
   .replace(/o\.keys\(\)\.hasOnly\(\['schemaVersion','kind','status','opId','uid','createdAt'((?:,'[^']+')*)\]\)/g,(_,extras)=>`operationKeys(o,[${extras.slice(1)}])`)

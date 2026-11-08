@@ -4,19 +4,36 @@
   <p v-else-if="!ready" class="connection-warning" role="status">เชื่อมต่อเซิร์ฟเวอร์เพื่อยืนยันยอดรายงานล่าสุด</p>
   <div v-else-if="error" class="error" role="alert"><p>{{ error }}</p><Button data-report-retry variant="secondary" @click="load">โหลดรายงานอีกครั้ง</Button></div>
   <DashboardView :report-ready="ready&&loaded&&!loading&&!error" :model="model" @range-change="setRange"/>
+  <section v-if="ready&&bookings.orders.length" class="dashboard-preorders" aria-labelledby="dashboard-preorders-title">
+   <header>
+    <div><h3 id="dashboard-preorders-title">Pre-order รอดำเนินการ</h3><p>{{ bookings.orders.length }} ออเดอร์ · ยอดจอง ฿{{ money(bookings.subtotalCents/100) }}</p></div>
+    <Button v-if="!readOnly" variant="secondary" size="compact" @click="emit('navigate','order-entry')">เปิดบันทึกออเดอร์</Button>
+   </header>
+   <ul><li v-for="row in pickupDays" :key="row.day"><span>{{ row.day }}</span><span>{{ row.count }} ออเดอร์</span><strong>฿{{ money(row.quote/100) }}</strong></li></ul>
+  </section>
  </div>
 </template>
 <script setup>
-import {ref,reactive,watch,onUnmounted} from 'vue'
+import {computed,ref,reactive,watch,onUnmounted} from 'vue'
 import DashboardView from '@/views/DashboardView.vue'
 import Button from '@/components/ui/Button.vue'
-import {dashboardRange} from '@/domain/dashboard.js'
+import {dashboardRange,money} from '@/domain/dashboard.js'
 import {getMaterialKindLabel} from '@/domain/materialClassification.js'
 import {projectMaterial} from './productPresentation.js'
 import {projectReportOrders} from './reportProjection.js'
+import {dayKey,scheduledSummary} from './orderEntry.js'
 const props=defineProps({readOnly:Boolean,active:Boolean,ready:Boolean,revision:Number,refreshKey:Number,data:{type:Object,required:true},service:{type:Object,required:true},modals:{type:Object,required:true},inventoryModel:Object})
 const emit=defineEmits(['navigate'])
 const range=ref(dashboardRange('today')),loading=ref(false),loaded=ref(false),error=ref('')
+const bookings=computed(()=>scheduledSummary(props.data.shop?.preorders))
+const pickupDays=computed(()=>{
+ const days=new Map()
+ for(const booking of bookings.value.orders){
+  const day=dayKey(booking.pickupDay),row=days.get(day)||{day,count:0,quote:0}
+  row.count++;row.quote+=booking.quoteCents;days.set(day,row)
+ }
+ return [...days.values()]
+})
 let epoch=0,disposed=false
 const model=reactive({get readOnly(){return props.readOnly},dashboardPeriod:'today',orders:[],modals:props.modals,switchTab:id=>emit('navigate',id),
  get activeMaterials(){return props.inventoryModel?.activeMaterials||props.data.materials.map(projectMaterial).filter(m=>!m.isDeleted)},
@@ -47,3 +64,10 @@ async function load(){
 watch([()=>props.active,()=>props.ready,()=>props.revision,()=>props.refreshKey,()=>JSON.stringify(range.value)],load,{immediate:true})
 onUnmounted(()=>{disposed=true;epoch++})
 </script>
+<style scoped>
+.dashboard-preorders{display:grid;gap:12px;margin-block:16px;padding:16px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:12px;font-size:.875rem}
+.dashboard-preorders header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.dashboard-preorders h3{font-weight:650}.dashboard-preorders p,.dashboard-preorders li>span:nth-child(2){color:var(--text-muted)}
+.dashboard-preorders li{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:6px 0;border-top:1px solid var(--border-subtle)}
+.dashboard-preorders li strong{font-variant-numeric:tabular-nums}
+</style>

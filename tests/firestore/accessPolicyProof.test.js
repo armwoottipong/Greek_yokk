@@ -7,6 +7,7 @@ import {compileCoreImport} from '../../scripts/core-import.js'
 import {coreSource} from '../fixtures/coreSource.js'
 import {createCoreTransport} from '../../src/cloud/core/transport.js'
 import {createShopAccess} from '../../src/cloud/shopAccess.js'
+import {businessDay} from '../../src/cloud/core/orderEntry.js'
 let env
 const ROOT='shops/proof-shop',GEN=ROOT+'/generations/g1',alice='alice@example.com',bob='bob@example.com'
 const claims=email=>({email,email_verified:true,firebase:{sign_in_provider:'google.com'}})
@@ -70,6 +71,30 @@ function runtime(uid='alice'){
  const context={projectId:'demo-greek-yogg',shopId:'proof-shop',generation:'g1',uid,deviceId:'one',online:true,ready:true}
  return createCoreTransport({db:db(uid),getContext:()=>context})
 }
+it('records manual sales with POS off, keeps future orders out of receipts and consumes a due order once',async()=>{
+ const {root,documents}=importedShop(16)
+ root.posEnabled=false
+ await seed(root,documents)
+ const api=runtime(),day=businessDay()
+ const id='ENTRY-PRE-'+root.revision+'-01234567-0123-0123-0123-012345678901'
+ const payload={platformId:root.catalog.platformIds[0],lines:[{menuId:root.catalog.menuIds[0],qty:1,optionIds:[]}]}
+ const input={id,pickupDay:day+1,expectedCatalogRevision:root.catalogRevision,...payload,packageAdjustments:[]}
+ await api.savePreorder(input)
+ await api.savePreorder(input)
+ const {shop:next,materials:before}=await api.snapshot()
+ expect(Object.keys(next.preorders)).toEqual([id])
+ expect(await api.receipt('sale',id)).toBeNull()
+ const sale={kind:'sale',opId:id+'_01234567-0123-0123-0123-012345678901',payload}
+ await expect(api.commit(sale)).rejects.toMatchObject({code:'PREORDER_NOT_DUE'})
+ next.preorders[id].pickupDay=day
+ await seed(next,documents)
+ await api.commit(sale)
+ const after=await api.snapshot()
+ expect(after.shop.preorders).toEqual({})
+ expect(after.materials.some((m,i)=>m.stock<before[i].stock)).toBe(true)
+ await expect(api.commit({...sale,opId:id+'_11234567-0123-0123-0123-012345678901'})).rejects.toMatchObject({code:'PREORDER_NO_LONGER_PENDING'})
+ await api.commit({kind:'sale',opId:'ENTRY-'+day+'-01234567-0123-0123-0123-012345678901',payload})
+})
 it('allows only an admin to change POS availability and keeps returns available while disabled',async()=>{
  const {root,documents}=importedShop(0)
  root.userRoles[bob]='manager'

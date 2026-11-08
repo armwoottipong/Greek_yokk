@@ -4,12 +4,37 @@ import CartPanel from '../../src/components/pos/CartPanel.vue'
 import CoreWorkspace from '../../src/cloud/core/CoreWorkspace.vue'
 import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
-const h=vi.hoisted(()=>({recover:vi.fn(),discardUnsent:vi.fn(),abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn()}))
-vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({images:{watch:(_kind,_id,cb)=>{cb({dataURL:"",revision:0});return ()=>{}},save:vi.fn()},load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,recover:h.recover,discardUnsent:h.discardUnsent,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,close:()=>{}})}))
+import {businessDay,dayKey} from '../../src/cloud/core/orderEntry.js'
+const h=vi.hoisted(()=>({recover:vi.fn(),discardUnsent:vi.fn(),abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn(),savePreorder:vi.fn()}))
+vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({images:{watch:(_kind,_id,cb)=>{cb({dataURL:"",revision:0});return ()=>{}},save:vi.fn()},load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,recover:h.recover,discardUnsent:h.discardUnsent,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,savePreorder:h.savePreorder,close:()=>{}})}))
 vi.mock('../../src/cloud/firebaseClient.js',()=>({getFirebaseClient:()=>({db:{}})}))
 vi.mock('../../src/cloud/shopAccess.js',async original=>({...await original(),createShopAccess:()=>({watch(){},watchInvitations(){},heartbeat:async()=>{},close(){}})}))
 async function openCart(w){const button=w.find('[data-cart-open]');if(button.exists()&&button.attributes('aria-expanded')!=='true')await button.trigger('click');await flushPromises()}
 const state={user:{uid:'u',email:'u@example.com'},shop:{generation:'g1',revision:1,allowedEmails:{'u@example.com':true},userRoles:{'u@example.com':'admin'}},serverReady:true}
+it('opens the calendar with POS off and records a future draft through the existing cart',async()=>{
+ const disabled={...state,shop:{...state.shop,posEnabled:false}}
+ const d=await h.load();d.shop.catalogRevision=1
+ h.savePreorder.mockReset().mockImplementation(async input=>{
+  const row={pickupDay:input.pickupDay,platformId:input.platformId,quoteCents:input.subtotalCents,draftJson:JSON.stringify(input)}
+  h.load.mockResolvedValue({...d,shop:{...d.shop,revision:2,preorders:{[input.id]:row}}})
+  return row
+ })
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:disabled},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises()
+  const date=w.get('[aria-label="วันที่ออเดอร์"]')
+  expect(date.element.value).toBe(dayKey(businessDay()))
+  await date.setValue(dayKey(businessDay()+1))
+  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+  await openCart(w)
+  expect(w.get('[data-checkout]').text()).toContain('บันทึก Pre-order')
+  await w.get('[data-checkout]').trigger('click');await flushPromises()
+  expect(h.savePreorder).toHaveBeenCalledWith(expect.objectContaining({pickupDay:businessDay()+1,subtotalCents:6900,lines:[expect.objectContaining({menuId:'M',qty:1})]}))
+  expect(h.execute).not.toHaveBeenCalled()
+  await w.get('.brand-navigation button[title="ภาพรวม & งบต้นทุน"]').trigger('click');await flushPromises()
+  expect(w.get('[aria-labelledby="dashboard-preorders-title"]').text()).toContain('ยอดจอง ฿69')
+ }finally{w.unmount()}
+})
 it('hides the POS while the shop has it disabled and keeps the cart for re-enabling',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}})
  try{
@@ -203,7 +228,7 @@ it('uses the original product navigation, catalogue and cart without creating a 
  const before=Object.keys(localStorage).sort()
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()
  expect(w.find('.brand-sidebar').exists()).toBe(true)
- expect(w.findAll('.brand-navigation button').map(b=>b.find('div span').text())).toEqual(['ภาพรวม & งบต้นทุน','แคชเชียร์ (POS)','จัดการเมนู','จัดการกลุ่มตัวเลือก','คลังวัตถุดิบ & Package','ตั้งค่า & ระบบ API'])
+ expect(w.findAll('.brand-navigation button').map(b=>b.find('div span').text())).toEqual(['ภาพรวม & งบต้นทุน','บันทึกออเดอร์','แคชเชียร์ (POS)','จัดการเมนู','จัดการกลุ่มตัวเลือก','คลังวัตถุดิบ & Package','ตั้งค่า & ระบบ API'])
  expect(w.find('.brand-navigation button[title^="จัดการเมนู"] .font-number').text()).toBe('1 รายการ')
  expect(w.find('.brand-sidebar').text()).toContain('สถานะคลัง & ต้นทุน')
  expect(w.find('.brand-sidebar').text()).not.toContain('Firebase')

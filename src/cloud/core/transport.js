@@ -6,6 +6,8 @@ import {summaryCancel} from './model/cancel.js'
 import {planInventoryCommand} from './inventoryPlan.js'
 import {commitMetrics} from './model/metrics.js'
 import {applyChannelDisplay,channelProofCount} from './model/channelCatalog.js'
+import {businessDay,consumePreorder,isOrderEntry,PREORDER_ID,PREORDER_LIMIT} from './orderEntry.js'
+import {cloudPackageOperands} from './packagePresentation.js'
 const fail=code=>Object.assign(new Error(code),{code})
 const canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v)
 const equal=(a,b)=>canonical(a)===canonical(b)
@@ -31,6 +33,7 @@ export function createCoreTransport({db,getContext}){
   if(command.kind==='sale'){
    if(p.expectedCatalogRevision!==undefined&&p.expectedCatalogRevision!==shop.catalogRevision)throw fail('CATALOG_REVIEW_REQUIRED')
    const f=summaryMultiGroupSale(shop,materials,p.lines,{...options,platformId:p.platformId,packages:p.packages})
+   f.nextShop=consumePreorder(shop,f.nextShop,command.opId)
    const shortages=Object.fromEntries(Object.entries(f.order.approvedShortages).filter(([,q])=>q>0))
    if(!equal(shortages,p.approvedShortages||{}))throw fail('SHORTAGE_REVIEW_REQUIRED')
    if(p.subtotalCents!==undefined&&p.subtotalCents!==f.order.subtotalCents)throw fail('PRICE_REVIEW_REQUIRED')
@@ -237,12 +240,56 @@ export function createCoreTransport({db,getContext}){
   await write(proposal,{opId:command.opId,uid:s.uid,revision:before.revision,input:command.payload.input,catalog:next.catalog})
   for(let index=0;index<channelProofCount(before.catalog);index++)await write(`${proofs}/channel_${index}`,{opId:command.opId,index})
  }
+ async function savePreorder({id,pickupDay,platformId,lines,packageAdjustments,expectedCatalogRevision,subtotalCents}){
+  const s=scope(),match=PREORDER_ID.exec(id)
+  if(!match)throw fail('INVALID_PREORDER')
+  const draftJson=canonical({lines,packageAdjustments})
+  if(new TextEncoder().encode(draftJson).length>7000)throw fail('INVALID_PREORDER')
+  const initial=await snapshot()
+  const prior=initial.shop.preorders?.[id]
+  if(prior){
+   if(prior.pickupDay!==pickupDay||prior.platformId!==platformId||prior.draftJson!==draftJson)throw fail('COMMAND_ID_COLLISION')
+   return prior
+  }
+  const today=businessDay()
+  if(!Number.isSafeInteger(pickupDay)||pickupDay<=today||pickupDay>today+366)throw fail('INVALID_PREORDER')
+  if(initial.shop.revision!==Number(match[1])||initial.shop.catalogRevision!==expectedCatalogRevision)throw fail('STALE_INVENTORY_DRAFT')
+  const packages=cloudPackageOperands({...initial,display:{}},lines,packageAdjustments)
+  const {order}=summaryMultiGroupSale(initial.shop,initial.materials,lines,{platformId,packages})
+  if(subtotalCents!==undefined&&subtotalCents!==order.subtotalCents)throw fail('PRICE_REVIEW_REQUIRED')
+  const row={pickupDay,platformId,draftJson,quoteCents:order.subtotalCents}
+  await runTransaction(db,async t=>{
+   const ref=doc(db,root(s)),docBefore=await t.get(ref),b=docBefore.data()
+   checkRoot(s,b)
+   if(b.preorders?.[id]){if(equal(b.preorders[id],row))return;throw fail('COMMAND_ID_COLLISION')}
+   if(b.revision!==initial.shop.revision)throw fail('STALE_INVENTORY_DRAFT')
+   const preorders={...b.preorders,[id]:row}
+   if(Object.keys(preorders).length>PREORDER_LIMIT)throw fail('PREORDER_LIMIT')
+   const changes={preorders,revision:b.revision+1,lastOpKind:'preorder_create',lastOpId:id}
+   admit(s,[{path:root(s),data:{...b,...changes}}])
+   t.update(ref,changes)
+  })
+  guard(s)
+  return row
+ }
+ async function cancelPreorder(id){
+  const s=scope()
+  if(!PREORDER_ID.test(id))throw fail('INVALID_PREORDER')
+  await runTransaction(db,async t=>{
+   const ref=doc(db,root(s)),docBefore=await t.get(ref),b=docBefore.data()
+   checkRoot(s,b)
+   if(!b.preorders?.[id])throw fail('PREORDER_NO_LONGER_PENDING')
+   const preorders={...b.preorders}
+   delete preorders[id]
+   t.update(ref,{preorders,revision:b.revision+1,lastOpKind:'preorder_cancel',lastOpId:id})
+  })
+ }
  async function commit(command){
   const s=scope()
   if(!/^[A-Za-z0-9_-]{1,120}$/.test(command.opId||''))throw fail('INVALID_COMMAND_ID')
   const saved=await receipt(command.kind,command.opId);if(saved)return checkReceipt(s,command,saved)
   const initial=await snapshot();guard(s)
-  if(command.kind==='sale'&&initial.shop.posEnabled===false)throw fail('POS_DISABLED')
+  if(command.kind==='sale'&&initial.shop.posEnabled===false&&!isOrderEntry(command.opId))throw fail('POS_DISABLED')
   if(command.kind==='channel'){
    const {nextShop}=plan(s,command,initial.shop,initial.materials).f
    const display=await getDocFromServer(doc(db,`${gen(s)}/display/catalog`));guard(s)
@@ -260,7 +307,7 @@ export function createCoreTransport({db,getContext}){
    const receiptRef=doc(db,`${gen(s)}/${collectionFor(command.kind)}/${command.opId}`),existing=await t.get(receiptRef)
    if(existing.exists())return checkReceipt(s,command,existing.data())
    const shop=shopDoc.data(),ids=shop.materialIds||shop.catalog.summaryMaterials,materials=[]
-   if(command.kind==='sale'&&shop.posEnabled===false)throw fail('POS_DISABLED')
+   if(command.kind==='sale'&&shop.posEnabled===false&&!isOrderEntry(command.opId))throw fail('POS_DISABLED')
    attemptedRevision=shop.revision
    for(const id of ids){const m=await t.get(doc(db,`${gen(s)}/materials/${id}`));if(!m.exists())throw fail('INCOMPLETE_INVENTORY');materials.push(m.data())}
    attemptedMaterials=materials
@@ -392,5 +439,5 @@ export function createCoreTransport({db,getContext}){
    if(!changed)throw error
   }
  }
- return {snapshot,commit,receipt,abandonSale,rejectStaleInventory,abortInventory}
+ return {snapshot,commit,receipt,savePreorder,cancelPreorder,abandonSale,rejectStaleInventory,abortInventory}
 }

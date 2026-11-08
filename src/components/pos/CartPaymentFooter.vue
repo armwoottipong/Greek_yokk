@@ -2,7 +2,7 @@
  <div v-if="store.cart.length" class="cart-payment-footer">
   <fieldset v-if="!model?.cloud"><legend>วิธีชำระเงิน</legend><AppChoiceGroup v-model="store.paymentMethod" class="cart-payment-methods" aria-label="วิธีชำระเงิน" :options="methods" variant="cards" :disabled="busy"/></fieldset>
   <div class="cart-payment-total"><span>ยอดชำระ</span><strong class="font-number">฿{{ money(store.cartSummary.subtotal) }}</strong></div>
-  <Button data-checkout class="cart-checkout" :loading="busy" :disabled="!store.cart.length||store.checkoutDisabled" @click="$emit('checkout')"><Check :size="18" aria-hidden="true"/>ชำระเงินและตัดสต็อก</Button>
+  <Button data-checkout class="cart-checkout" :loading="busy" :disabled="!store.cart.length||store.checkoutDisabled" @click="$emit('checkout')"><Check :size="18" aria-hidden="true"/>{{ actionLabel || 'ชำระเงินและตัดสต็อก' }}</Button>
  </div>
 </template>
 <script setup>
@@ -11,7 +11,7 @@ import {usePosStore} from '@/stores/posStore'
 import {money} from '@/domain/dashboard'
 import Button from '@/components/ui/Button.vue'
 import AppChoiceGroup from '@/components/ui/AppChoiceGroup.vue'
-const props=defineProps({busy:Boolean,model:Object})
+const props=defineProps({busy:Boolean,model:Object,actionLabel:String})
 defineEmits(['checkout'])
 const store=props.model||usePosStore()
 const methods=[{value:'QR PromptPay',label:'QR',description:'PromptPay'},{value:'เงินสด',label:'เงินสด',description:'Cash'},{value:'Platform Delivery',label:'Platform',description:'Delivery'}]

@@ -21,6 +21,11 @@ const messages={
  PRICE_REVIEW_REQUIRED:'ราคาเมนูเปลี่ยนแล้ว กรุณาหยุดบิลที่ยังไม่สำเร็จและตรวจราคาในตะกร้าใหม่',
  CATALOG_REVIEW_REQUIRED:'เมนูหรือตัวเลือกเปลี่ยนแล้ว กรุณาหยุดบิลที่ยังไม่สำเร็จและตรวจตะกร้ากับข้อมูลล่าสุดก่อนยืนยันใหม่',
  POS_DISABLED:'ร้านปิดหน้าขาย POS ไว้แล้ว ตะกร้ายังอยู่',
+ INVALID_PREORDER:'ตรวจวันที่นัดรับและจำนวนรายการใน Pre-order แล้วลองใหม่',
+ PREORDER_LIMIT:'มี Pre-order รอดำเนินการครบ 24 ออเดอร์แล้ว',
+ PREORDER_NOT_DUE:'Pre-order นี้ยังไม่ถึงวันนัดรับ',
+ PREORDER_NO_LONGER_PENDING:'Pre-order นี้ถูกบันทึกเป็นยอดขายหรือยกเลิกแล้ว',
+ ORDER_ENTRY_DAY_CHANGED:'วันที่ของร้านเปลี่ยนแล้ว กรุณาเลือกวันนี้ก่อนบันทึกยอดขาย',
  PENDING_RESULT:'ยังยืนยันผลรายการเดิมไม่ได้ กรุณาตรวจผลก่อนบันทึกรายการใหม่',
 }
 export function commandErrorMessage(error){return messages[error?.causeCode]||messages[error?.code||error?.message]||null}
