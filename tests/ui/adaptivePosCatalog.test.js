@@ -1,23 +1,45 @@
-import {it,expect} from 'vitest'
-import {mount} from '@vue/test-utils'
+import {it,expect,vi} from 'vitest'
+import {mount,flushPromises} from '@vue/test-utils'
 import {nextTick} from 'vue'
 import {createTestStore} from '../helpers/createStore'
 import Pos from '../../src/views/PosView.vue'
-it('selects a channel with visible tabs and updates displayed prices',async()=>{
+it('selects a channel from the desktop dropdown and updates displayed prices',async()=>{
  const store=createTestStore();store.resetDemoData()
- const w=mount(Pos)
+ const w=mount(Pos,{attachTo:document.body})
  try{
   await nextTick()
-  const tabs=w.findAll('[role="tab"]')
-  expect(tabs[0].attributes('aria-selected')).toBe('true')
-  expect(w.get('[data-current-channel]').text()).toBe(store.platforms[0].name)
-  await tabs[1].trigger('click')
+  const select=w.get('[data-pos-channel][role="combobox"]')
+  expect(select.text()).toContain(store.platforms[0].name)
+  await select.trigger('click')
+  const list=document.getElementById(select.attributes('aria-controls'))
+  const options=list.querySelectorAll('[role="option"]')
+  expect(options[0].getAttribute('aria-selected')).toBe('true')
+  options[1].click();await flushPromises()
   expect(store.currentPlatformId).toBe(store.platforms[1].id)
-  expect(w.get('[data-current-channel]').text()).toBe(store.platforms[1].name)
-  expect(tabs[1].attributes('aria-selected')).toBe('true')
-  expect(tabs[0].attributes('aria-selected')).toBe('false')
+  expect(select.text()).toContain(store.platforms[1].name)
+  expect(select.attributes('aria-expanded')).toBe('false')
   expect(w.text()).toContain('฿95')
  }finally{w.unmount()}
+})
+it('uses a bottom sheet on mobile and restores focus after selecting a channel',async()=>{
+ vi.stubGlobal('matchMedia',()=>({matches:true,addEventListener(){},removeEventListener(){}}))
+ const store=createTestStore();store.resetDemoData()
+ const w=mount(Pos,{attachTo:document.body,global:{stubs:{transition:false}}})
+ try{
+  const trigger=w.get('[data-pos-channel][aria-haspopup="dialog"]')
+  trigger.element.focus();await trigger.trigger('click');await flushPromises()
+  const dialog=document.getElementById(trigger.attributes('aria-controls'))
+  expect(dialog.querySelector('.dialog-frame-panel--sheet')).toBeTruthy()
+  const options=dialog.querySelectorAll('[data-channel-option]')
+  expect(options[0].getAttribute('aria-current')).toBe('true')
+  expect(document.activeElement).toBe(options[0])
+  options[1].click()
+  await vi.waitFor(()=>expect(document.body.contains(dialog)).toBe(false))
+  expect(store.currentPlatformId).toBe(store.platforms[1].id)
+  expect(trigger.text()).toContain(store.platforms[1].name)
+  expect(document.activeElement).toBe(trigger.element)
+  expect(w.text()).toContain('฿95')
+ }finally{w.unmount();vi.unstubAllGlobals()}
 })
 it('filters inactive menus and keeps sold-out items selectable for the existing warning flow',async()=>{
  const store=createTestStore();store.resetDemoData();store.menus[1].isActive=false

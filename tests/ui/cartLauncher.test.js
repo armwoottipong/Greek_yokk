@@ -3,6 +3,7 @@ import {mount,flushPromises} from '@vue/test-utils'
 import {createTestStore} from '../helpers/createStore.js'
 import Pos from '../../src/views/PosView.vue'
 import CartLauncher from '../../src/components/pos/CartLauncher.vue'
+import CartPanel from '../../src/components/pos/CartPanel.vue'
 import DialogFrame from '../../src/components/ui/DialogFrame.vue'
 
 it.each([false,true])('keeps the cart collapsed and opens the correct drawer (mobile=%s)',async mobile=>{
@@ -16,9 +17,10 @@ it.each([false,true])('keeps the cart collapsed and opens the correct drawer (mo
   expect(w.get('[data-cart-open]').attributes('aria-label')).toContain('1')
   await w.get('[data-cart-open]').trigger('click');await flushPromises()
   expect(w.get('#pos-cart-review').exists()).toBe(true)
-  expect(w.findComponent(DialogFrame).props('presentation')).toBe(mobile?'drawer':'side-drawer')
+  const frame=w.getComponent(CartPanel).getComponent(DialogFrame)
+  expect(frame.props('presentation')).toBe(mobile?'drawer':'side-drawer')
   await w.get('#pos-cart-review [aria-label="ปิดหน้าต่าง"]').trigger('click');await flushPromises()
-  expect(w.findComponent(DialogFrame).props('open')).toBe(false)
+  expect(frame.props('open')).toBe(false)
   expect(w.get('[data-cart-open]').attributes('aria-expanded')).toBe('false')
   expect(s.cart).toHaveLength(1)
  }finally{w.unmount();vi.unstubAllGlobals()}

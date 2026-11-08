@@ -34,15 +34,18 @@ it('shows the saved fractional GP rate on a receipt even after settings change',
  }finally{w.unmount()}
 })
 
-it('supports keyboard channel tabs and skips inactive platforms',async()=>{
+it('supports the channel dropdown by keyboard and skips inactive platforms',async()=>{
  const w=mount(PosCatalog,{props:{menus:[],platforms:[{id:'A',name:'หน้าร้าน'},{id:'H',name:'ซ่อน',isActive:false},{id:'B',name:'GrabFood',gpPercent:25.5}],platformId:'A',search:'',priceFor:()=>0,unavailableFor:()=>false},attachTo:document.body})
  try{
-  expect(w.findAll('[role="tab"]')).toHaveLength(2)
-  await w.get('[role="tab"]').trigger('keydown',{key:'ArrowRight'})
+  await flushPromises()
+  const select=w.get('[data-pos-channel]')
+  select.element.focus()
+  await select.trigger('keydown',{key:'ArrowDown'})
+  const options=document.getElementById(select.attributes('aria-controls')).querySelectorAll('[role="option"]')
+  expect([...options].map(option=>option.textContent.trim())).toEqual(['หน้าร้าน · ไม่มี GP','GrabFood · GP 25.5%'])
+  await select.trigger('keydown',{key:'ArrowDown'})
+  await select.trigger('keydown',{key:'Enter'})
   expect(w.emitted('platform').at(-1)).toEqual(['B'])
-  expect(document.activeElement.textContent).toContain('GrabFood')
-  expect(w.findAll('[role="tab"]')[1].text()).toContain('GP 25.5%')
-  expect(w.findAll('[role="tab"]')[0].text()).toContain('ไม่มี GP')
-  expect(w.get('[role="tablist"]').text()).not.toContain('ซ่อน')
+  expect(document.activeElement).toBe(select.element)
  }finally{w.unmount()}
 })

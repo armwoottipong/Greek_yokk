@@ -207,7 +207,7 @@ it('locks original cart quantity and platform controls while a server result is 
  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit');if(w.find('[data-cart-open]').exists())await w.get('[data-cart-open]').trigger('click');await flushPromises()
  h.execute.mockResolvedValueOnce({ok:false,code:'PENDING_RESULT'});await openCart(w);await w.get('[data-checkout]').trigger('click');await flushPromises()
  expect(w.get('button[aria-label="เพิ่มจำนวน โยเกิร์ต"]').attributes('disabled')).toBeDefined()
- expect(w.get('[role="tab"]').attributes('disabled')).toBeDefined()
+ expect(w.get('[data-pos-channel]').attributes('disabled')).toBeDefined()
  expect(w.get('[data-pos-menu="M"]').attributes('disabled')).toBeDefined()
  expect(w.find('[data-package-review]').exists()).toBe(false)
  w.unmount()
