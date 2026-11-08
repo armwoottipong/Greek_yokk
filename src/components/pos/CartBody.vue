@@ -35,7 +35,7 @@
    </section>
    <section v-if="store.cartLotWarnings?.length" class="cart-lot-warnings" aria-label="คำเตือนล็อตวัตถุดิบ"><h4>ล็อตใกล้หมดหรือสต็อกไม่พอ</h4><div v-for="warning in store.cartLotWarnings" :key="warning.material.id"><div><strong>{{ warning.material.name }}</strong><p>{{ warning.shortageQty>0?'ขาดอีก '+warning.shortageQty+' '+warning.material.unit:warning.willDeplete?'สต็อกจะหมด':'ล็อตใกล้หมด' }}</p></div><Button variant="secondary" size="compact" :disabled="busy" @click="$emit('switch-lot',warning)">ดูล็อต</Button></div></section>
   </template>
-  <CartDetailsDialog :open="detailsOpen && !!store.cart.length" :model="store" :package-items="packageItems" @close="detailsOpen=false"><slot name="details"/></CartDetailsDialog>
+  <CartDetailsDialog :open="detailsOpen && !!store.cart.length" :model="store" :package-items="packageItems" @close="detailsOpen=false"/>
  </div>
 </template>
 <script setup>

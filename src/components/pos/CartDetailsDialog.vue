@@ -46,7 +46,6 @@
      <div class="order-detail-total"><dt>กำไรขั้นต้นประมาณ</dt><dd>฿{{ amount(summary.grossProfit) }}</dd></div>
     </dl>
    </section>
-   <slot/>
   </div>
   <template #footer><Button variant="secondary" class="order-detail-back" @click="$emit('close')">กลับรถเข็น</Button></template>
  </DialogFrame>

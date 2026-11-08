@@ -13,12 +13,6 @@
        <p v-if="previewError" class="error" role="alert">{{ previewError }}</p>
       </div>
      </template>
-     <template #details>
-      <section aria-label="ข้อมูลการขาย">
-       <p>หนึ่งบิลได้สูงสุด {{ saleLimit }} รายการ ระบบจะรวมจำนวนเมื่อเมนู ตัวเลือก และหมายเหตุตรงกัน</p>
-       <p>ระบบยืนยันการขายจากเซิร์ฟเวอร์และตัดบรรจุภัณฑ์ตามจำนวนของออเดอร์</p>
-      </section>
-     </template>
     </CartPanel>
     <CartLauncher ref="cartLauncher" :active="tab==='sale'" :quantity="cartQuantity" :open="cartOpen" :busy="busy" @open="cartOpen=true"/>
    </section>

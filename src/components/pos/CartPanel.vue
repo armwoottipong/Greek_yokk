@@ -3,14 +3,14 @@
  <section v-if="presentation==='panel'||(presentation==='page'&&open)" :id="presentation==='page'?'pos-cart-review':undefined" :data-cart-page="presentation==='page'?'':undefined" class="cart-panel" :class="{'cart-panel--page':presentation==='page'}" aria-label="ตะกร้า" tabindex="-1">
   <header><Button v-if="presentation==='page'" data-cart-back variant="quiet" :disabled="checkoutPending" @click="$emit('request-close')"><ArrowLeft :size="20" aria-hidden="true"/>เลือกสินค้า</Button><div><h3>{{ presentation==='page'?'ตะกร้าสินค้า':'ออเดอร์นี้' }}</h3><span>{{ store.currentPlatform?.name }}</span></div><ShoppingBag :size="22" aria-hidden="true"/></header>
   <div class="cart-panel-scroll">
-   <CartBody :model="model" :busy="checkoutPending||disabled" @switch-lot="$emit('switch-lot',$event)"><template #details><slot name="details"/></template></CartBody>
+   <CartBody :model="model" :busy="checkoutPending||disabled" @switch-lot="$emit('switch-lot',$event)"/>
    <slot name="review"/>
   </div>
   <footer v-if="store.cart.length"><CartPaymentFooter :model="model" :busy="checkoutPending" @checkout="$emit('checkout')"/></footer>
  </section>
  </Transition>
  <DialogFrame v-if="presentation!=='page'&&presentation!=='panel'" :open="open" id="pos-cart-review" title="รายการในรถเข็น" :description="store.currentPlatform?.name" :presentation="presentation==='side-drawer'?'side-drawer':presentation==='drawer'?'drawer':'sheet'" width="480px" compact :busy="checkoutPending" @request-close="$emit('request-close')">
-  <CartBody :model="model" :busy="checkoutPending||disabled" @switch-lot="$emit('switch-lot',$event)"><template #details><slot name="details"/></template></CartBody>
+  <CartBody :model="model" :busy="checkoutPending||disabled" @switch-lot="$emit('switch-lot',$event)"/>
   <slot name="review"/>
   <template v-if="store.cart.length" #footer><CartPaymentFooter :model="model" :busy="checkoutPending" @checkout="$emit('checkout')"/></template>
  </DialogFrame>
