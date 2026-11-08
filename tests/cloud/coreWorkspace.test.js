@@ -2,6 +2,7 @@ import {it,expect,vi,beforeEach} from 'vitest'
 import {mount,flushPromises} from '@vue/test-utils'
 import CartPanel from '../../src/components/pos/CartPanel.vue'
 import CoreWorkspace from '../../src/cloud/core/CoreWorkspace.vue'
+import OrderEntryPanel from '../../src/cloud/core/OrderEntryPanel.vue'
 import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
 import {businessDay,dayKey} from '../../src/cloud/core/orderEntry.js'
@@ -22,25 +23,124 @@ it('opens the calendar with POS off and records a future draft through the exist
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:disabled},global:{stubs:{teleport:true}}})
  try{
   await flushPromises()
-  const date=w.get('[aria-controls="order-date-picker"]')
-  expect(date.attributes('aria-expanded')).toBe('false')
-  await date.trigger('click')
   const today=dayKey(businessDay())
   const tomorrow=dayKey(businessDay()+1)
   const current=w.get(`[data-calendar-day="${today}"]`)
   expect(current.attributes('aria-pressed')).toBe('true')
   expect(current.attributes('aria-current')).toBe('date')
+  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
   if(today.slice(0,7)!==tomorrow.slice(0,7))await w.get('[aria-label="เดือนถัดไป"]').trigger('click')
   await w.get(`[data-calendar-day="${tomorrow}"]`).trigger('click')
-  expect(date.attributes('aria-expanded')).toBe('false')
   await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
   await openCart(w)
   expect(w.get('[data-checkout]').text()).toContain('บันทึก Pre-order')
   await w.get('[data-checkout]').trigger('click');await flushPromises()
   expect(h.savePreorder).toHaveBeenCalledWith(expect.objectContaining({pickupDay:businessDay()+1,subtotalCents:6900,lines:[expect.objectContaining({menuId:'M',qty:1})]}))
   expect(h.execute).not.toHaveBeenCalled()
+  await w.get('[data-calendar-today]').trigger('click')
+  expect(w.getComponent(CartPanel).props('model').cart[0].qty).toBe(1)
   await w.get('.brand-navigation button[title="ภาพรวม & งบต้นทุน"]').trigger('click');await flushPromises()
   expect(w.get('[aria-labelledby="dashboard-preorders-title"]').text()).toContain('ยอดจอง ฿69')
+ }finally{w.unmount()}
+})
+it('parks each date cart and restores it after changing date and reopening the page',async()=>{
+ const disabled={...state,shop:{...state.shop,posEnabled:false}}
+ const mountPage=()=>mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:disabled},global:{stubs:{teleport:true}}})
+ let w=mountPage()
+ const add=async()=>{await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')}
+ const qty=()=>w.getComponent(CartPanel).props('model').cart[0]?.qty??0
+ try{
+  await flushPromises();await add();expect(qty()).toBe(1)
+  const today=dayKey(businessDay()),tomorrow=dayKey(businessDay()+1)
+  if(today.slice(0,7)!==tomorrow.slice(0,7))await w.get('[aria-label="เดือนถัดไป"]').trigger('click')
+  await w.get(`[data-calendar-day="${tomorrow}"]`).trigger('click');expect(qty()).toBe(0)
+  await add();await add();expect(qty()).toBe(2)
+  await w.get('[data-calendar-today]').trigger('click');expect(qty()).toBe(1)
+  w.unmount();w=mountPage();await flushPromises();expect(qty()).toBe(1)
+  if(today.slice(0,7)!==tomorrow.slice(0,7))await w.get('[aria-label="เดือนถัดไป"]').trigger('click')
+  await w.get(`[data-calendar-day="${tomorrow}"]`).trigger('click');expect(qty()).toBe(2)
+ }finally{w.unmount()}
+})
+it('shows only recorded past dates and keeps refunded bills outside daily totals',async()=>{
+ const today=dayKey(businessDay()),month=`${today.slice(0,7)}-01`
+ const previous=businessDay(month)-1, sold=dayKey(previous), refunded=dayKey(previous-1), empty=dayKey(previous-2)
+ const order=(day,status)=>({orderId:day,createdAt:`${day}T12:00:00+07:00`,status,subtotal:69,gpAmount:0,netRevenue:69,foodCost:19,grossProfit:50,items:[{menuId:'M',menuName:'Greek',qty:2}]})
+ h.report.mockImplementation(async range=>({legacyOrders:range.end===sold?[order(sold,'committed'),order(refunded,'cancelled')]:[]}))
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:{...state,shop:{...state.shop,posEnabled:false}}},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises();await w.get('[aria-label="เดือนก่อนหน้า"]').trigger('click');await flushPromises()
+  const date=day=>w.get(`[data-calendar-day="${day}"]`)
+  const summary=()=>w.get('[aria-labelledby="order-entry-summary-title"]').text()
+  expect(date(empty).element.disabled).toBe(true)
+  expect(date(sold).element.disabled).toBe(false)
+  await date(sold).trigger('click')
+  expect(summary()).toContain('฿69');expect(summary()).toContain('1 บิล');expect(summary()).toContain('2 ชาม')
+  expect(w.find('[data-pos-menu="M"]').exists()).toBe(false)
+  await date(refunded).trigger('click')
+  expect(summary()).toContain('0 บิล');expect(w.get('.order-entry-list').text()).toContain('คืนบิลแล้ว')
+  expect(h.report.mock.calls.filter(([range])=>range.end===sold)).toHaveLength(1)
+ }finally{w.unmount()}
+})
+it('restores the independent day cart after inspecting a saved preorder on that date',async()=>{
+ const pickup=businessDay()+1, date=dayKey(pickup)
+ const d=await h.load()
+ d.shop.preorders={booked:{pickupDay:pickup,platformId:'P',quoteCents:20700,draftJson:JSON.stringify({lines:[{menuId:'M',qty:3,optionIds:[]}],packageAdjustments:[]})}}
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:{...state,shop:{...state.shop,posEnabled:false}}},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises()
+  if(dayKey(businessDay()).slice(0,7)!==date.slice(0,7))await w.get('[aria-label="เดือนถัดไป"]').trigger('click')
+  await w.get(`[data-calendar-day="${date}"]`).trigger('click')
+  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+  const qty=()=>w.getComponent(CartPanel).props('model').cart[0]?.qty
+  expect(qty()).toBe(1)
+  await w.get('.order-entry-list button').trigger('click');expect(qty()).toBe(3)
+  await w.get('.order-entry-linked button').trigger('click');expect(qty()).toBe(1)
+ }finally{w.unmount()}
+})
+it('lets the operator explicitly recover an expired draft without opening an empty past date',async()=>{
+ const yesterday=dayKey(businessDay()-1)
+ const key=JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u'])
+ sessionStorage.setItem(key,JSON.stringify({orderDay:yesterday,cart:[{menuId:'M',qty:2,optionIds:[]}],platformId:'P'}))
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises()
+  expect(w.get(`[data-calendar-day="${yesterday}"]`).element.disabled).toBe(true)
+  expect(w.find('[data-pos-menu="M"]').exists()).toBe(false)
+  await w.get('[data-recover-cart]').trigger('click')
+  expect(w.get(`[data-calendar-day="${dayKey(businessDay())}"]`).attributes('aria-pressed')).toBe('true')
+  expect(w.getComponent(CartPanel).props('model').cart[0].qty).toBe(2)
+  expect(w.find('[data-recover-cart]').exists()).toBe(false)
+  expect(h.execute).not.toHaveBeenCalled()
+ }finally{w.unmount()}
+})
+it('updates sales for today after a sale without rereading historical receipts in the month',async()=>{
+ const today='2026-11-08',past='2026-11-03'
+ const order=(day,subtotal)=>({orderId:day,createdAt:`${day}T12:00:00+07:00`,subtotal,gpAmount:0,netRevenue:subtotal,foodCost:0,grossProfit:subtotal})
+ const report=vi.fn().mockResolvedValueOnce({legacyOrders:[order(past,39)]}).mockResolvedValueOnce({legacyOrders:[order(today,69)]})
+ const data={shop:{revision:1,catalog:{}},display:{},materials:[]}
+ const w=mount(OrderEntryPanel,{props:{day:today,today,data,revision:1,ready:true,service:{report}}})
+ try{
+  await flushPromises()
+  await w.setProps({data:{...data,shop:{...data.shop,revision:2,lastOpKind:'sale_set'}},revision:2});await flushPromises()
+  expect(report.mock.calls).toEqual([[{start:'2026-11-01',end:today}],[{start:today,end:today}]])
+  expect(w.get(`[data-calendar-day="${past}"]`).element.disabled).toBe(false)
+  expect(w.get('.order-entry-total').text()).toContain('฿69')
+ }finally{w.unmount()}
+})
+it('reports a failed month separately from an empty month and can retry it',async()=>{
+ const today='2026-11-08',past='2026-11-03'
+ const report=vi.fn().mockRejectedValueOnce(new Error('permission-denied')).mockResolvedValueOnce({legacyOrders:[{orderId:'past',createdAt:`${past}T12:00:00+07:00`,subtotal:39,gpAmount:0,netRevenue:39,foodCost:0,grossProfit:39}]})
+ const data={shop:{revision:1,catalog:{}},display:{},materials:[]}
+ const w=mount(OrderEntryPanel,{props:{day:today,today,data,revision:1,ready:true,service:{report}}})
+ try{
+  await flushPromises()
+  expect(w.get('.calendar-note').text()).toContain('โหลดประวัติเดือนนี้ไม่ได้')
+  expect(w.get(`[data-calendar-day="${past}"]`).element.disabled).toBe(true)
+  expect(w.get(`[data-calendar-day="${today}"]`).element.disabled).toBe(false)
+  expect(w.get('.order-entry-total').text()).toContain('—')
+  await w.get('.calendar-note button').trigger('click');await flushPromises()
+  expect(w.get(`[data-calendar-day="${past}"]`).element.disabled).toBe(false)
+  expect(report).toHaveBeenCalledTimes(2)
  }finally{w.unmount()}
 })
 it('hides the POS while the shop has it disabled and keeps the cart for re-enabling',async()=>{

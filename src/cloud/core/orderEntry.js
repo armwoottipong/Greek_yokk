@@ -11,6 +11,12 @@ export function businessDay(date=businessDateKey()){
  return Number.isFinite(ms)&&new Date(ms).toISOString().slice(0,10)===date ? ms/dayMs : NaN
 }
 export const dayKey=day=>new Date(day*dayMs).toISOString().slice(0,10)
+export const monthOf=date=>`${date.slice(0,7)}-01`
+export function offsetMonth(month,offset){
+ const date=new Date(`${month}T00:00:00Z`)
+ date.setUTCMonth(date.getUTCMonth()+offset)
+ return date.toISOString().slice(0,10)
+}
 export const scheduledOrderId=id=>scheduledSale.exec(id)?.[1]
 export const isOrderEntry=id=>dailySale.test(id)||scheduledSale.test(id)
 

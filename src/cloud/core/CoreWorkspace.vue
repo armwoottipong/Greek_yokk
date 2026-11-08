@@ -1,12 +1,17 @@
 <template>
- <CloudProductShell :model="productModel" :title="pageTitle" :history-label="historyLabel" :loading="loading||reloading" :busy="busy" :online="online" @history="openPageHistory" @reload="reloadEverything" @sign-out="$emit('sign-out')">
+ <CloudProductShell :model="productModel" :title="pageTitle" :history-label="historyLabel" :loading="loading||reloading" :busy="busy" :online="online" @history="openPageHistory" @reload="reloadEverything(true)" @sign-out="$emit('sign-out')">
   <p v-if="data?.display.trial" class="trial-banner"><strong>ข้อมูลทดสอบ — ยังไม่ใช่ยอดร้านปัจจุบัน</strong><br>จากไฟล์สำรอง {{ sourceDate }} · <a :href="localUrl">เปิดระบบเดิม</a></p>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
    <section v-if="operator&&(posEnabled||entryMode)" v-show="orderWorkspace" class="pos-workspace" :aria-label="entryMode?'บันทึกออเดอร์':'ขายสินค้า'">
-    <OrderEntryPanel v-if="entryMode" :day="orderDay" :today="today" :data="data" :service="service" :revision="data.shop.revision" :ready="ready"
+    <OrderEntryPanel v-if="entryMode" :day="orderDay" :today="today" :data="data" :service="service" :revision="data.shop.revision" :refresh-key="entryRefreshKey" :ready="ready"
       :blocked="locked||!!pendingPreorder" :date-locked="orderDraftLocked||!!bookingId" :linked="!!bookingId"
       @update:day="setOrderDay" @open-sale="openDailySale" @open-preorder="openPreorder" @leave-preorder="leavePreorder"/>
+    <section v-if="entryMode&&expiredCarts.length" class="expired-carts" aria-labelledby="expired-carts-title">
+     <h3 id="expired-carts-title">ตะกร้าร่างจากวันก่อน</h3>
+     <p>{{ todayCartHasLines ? 'จัดการตะกร้าของวันนี้ก่อนย้ายตะกร้าร่าง' : 'ย้ายมาวันนี้เพื่อแก้ไขหรือบันทึกต่อ' }}</p>
+     <ul><li v-for="draft in expiredCarts" :key="draft.day"><span>{{ dateLabel(draft.day) }} · {{ draft.quantity }} ชาม</span><Button data-recover-cart size="compact" variant="secondary" :disabled="locked||!!bookingId||!!pendingPreorder||todayCartHasLines" @click="recoverCart(draft.day)">ย้ายมาวันนี้</Button></li></ul>
+    </section>
     <p v-if="orderWorkspace&&channelPaused" class="error" role="status">{{ explain({code:'CHANNEL_PAUSED'}) }}</p>
     <PosCatalog v-if="canCompose" :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="orderDraftLocked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
     <CartPanel :model="productModel" :presentation="mobileCart?'drawer':'side-drawer'" :open="cartOpen" :checkout-pending="['sale','preorder'].includes(activeAction)" :disabled="orderDraftLocked" :action-label="orderAction" @request-close="cartOpen=false" @checkout="checkout">
@@ -20,7 +25,7 @@
       </div>
      </template>
     </CartPanel>
-    <CartLauncher ref="cartLauncher" :active="orderWorkspace&&canCompose" :quantity="cartQuantity" :open="cartOpen" :busy="busy" @open="cartOpen=true"/>
+    <CartLauncher ref="cartLauncher" :active="orderWorkspace&&(canCompose||cartQuantity>0)" :quantity="cartQuantity" :open="cartOpen" :busy="busy" @open="cartOpen=true"/>
    </section>
    <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :read-only="!operator" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
    <CloudStockWorkspace v-if="operator" ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory" @open-orders="navigate('orders')"/>
@@ -47,7 +52,7 @@
 import { optionAvailability, optionAvailabilityLabel, optionImageSource } from '@/domain/addonGroups'
 import { catalogAddons } from './catalogPresentation.js'
 import { groupAvailability } from './groupAvailability.js'
-import {ref,shallowRef,computed,watch,onMounted,onUnmounted,toRaw,reactive,provide} from 'vue'
+import {ref,shallowRef,shallowReactive,computed,watch,onMounted,onUnmounted,toRaw,reactive,provide} from 'vue'
 import {sameCartPreparation} from './cartLineIdentity.js'
 import EntityImage from '@/components/images/EntityImage.vue'
 import Button from '@/components/ui/Button.vue'
@@ -79,6 +84,7 @@ import {commandErrorMessage} from './commandErrors.js'
 import {withLatestMenuOrder} from '../../domain/catalogOrdering.js'
 import {maxSaleLines} from './model/limits.js'
 import {businessDateKey} from '../../domain/businessDate.js'
+import {dateLabel} from '../../domain/dashboard.js'
 import {businessDay,dayKey} from './orderEntry.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
 provide('catalog-images',{watch:(...args)=>service.images.watch(...args),save:(...args)=>service.images.save(...args)})
@@ -112,6 +118,14 @@ const bookingQuote=computed(()=>data.value?.shop.preorders?.[bookingId.value]?.q
 const orderAction=computed(()=>entryMode.value?(pendingPreorder.value?'ตรวจผล Pre-order':newPreorder.value?'บันทึก Pre-order':'บันทึกยอดขายและตัดสต็อก'):undefined)
 const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
+const parkedCarts=shallowReactive(new Map())
+const todayCartHasLines=computed(()=>!!(orderDay.value===today.value&&!bookingId.value?cart.value:parkedCarts.get(today.value)?.cart)?.length)
+const expiredCarts=computed(()=>{
+ const drafts=new Map(parkedCarts)
+ if(!bookingId.value)drafts.set(orderDay.value,{cart:cart.value})
+ return [...drafts].filter(([day,draft])=>day<today.value&&draft.cart.length).sort(([a],[b])=>b.localeCompare(a))
+  .map(([day,draft])=>({day,quantity:draft.cart.reduce((total,line)=>total+line.qty,0)}))
+})
 const legacyLookup=ref(''),legacySources=new Map()
 const localUrl=`${import.meta.env.BASE_URL}local.html`
 let service,storageKey,deviceId,disposed=false,refreshAgain=false,storedCommand=null,cartCommandId=null,stopOrderWatch,dayTimer
@@ -120,10 +134,13 @@ try{
  storageKey=JSON.stringify(['gy-core-cart-v1',props.connection.config.projectId,props.connection.shopId,props.state.shop.generation,props.state.user.uid])
  const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null')
  if(saved){cart.value=saved.cart||[];packageAdjustments.value=saved.packageAdjustments||[];platformId.value=saved.platformId||'';storedCommand=saved.command||null;pendingCommand.value=storedCommand;pendingCause.value=saved.causeCode||'';cartCommandId=saved.cartCommandId||null}
- if((saved?.cart?.length||saved?.bookingId||saved?.pendingPreorder)&&Number.isFinite(businessDay(saved.orderDay)))orderDay.value=saved.orderDay
+ if(saved?.orderDay&&(saved.parkedCarts||saved.cart?.length||saved.bookingId||saved.pendingPreorder||storedCommand)&&Number.isFinite(businessDay(saved.orderDay)))orderDay.value=saved.orderDay
+ for(const [day,draft] of Object.entries(saved?.parkedCarts||{})){
+  if(Number.isFinite(businessDay(day))&&Array.isArray(draft?.cart)&&Array.isArray(draft.packageAdjustments)&&typeof draft.platformId==='string')parkedCarts.set(day,draft)
+ }
  bookingId.value=saved?.bookingId||''
  pendingPreorder.value=saved?.pendingPreorder||null
- if(operator.value&&(bookingId.value||pendingPreorder.value))tab.value='order-entry'
+ if(operator.value&&(bookingId.value||pendingPreorder.value||orderDay.value!==today.value))tab.value='order-entry'
 }catch{storageReady.value=false;error.value='เก็บตะกร้าบนเครื่องไม่ได้ กรุณาอนุญาตพื้นที่จัดเก็บแล้วเปิดหน้านี้ใหม่'}
 const context=()=>({projectId:props.connection.config.projectId,shopId:props.connection.shopId,generation:props.state.shop?.generation,uid:props.state.user?.uid,deviceId,online:online.value,ready:props.state.serverReady===true,protocolCertified:true,role:role.value})
 const ready=computed(()=>initialized.value&&storageReady.value&&online.value&&props.state.serverReady===true&&!!data.value)
@@ -147,7 +164,7 @@ const preview=computed(()=>previewResult.value.order),previewError=computed(()=>
 const shortages=computed(()=>Object.entries(preview.value?.approvedShortages||{}).filter(([,q])=>q>0))
 const canCheckout=computed(()=>orderWorkspace.value&&ready.value&&!locked.value&&(entryMode.value&&!!pendingPreorder.value||!!preview.value&&
  (entryMode.value ? (bookingId.value ? bookingQuote.value!==null&&orderDay.value<=today.value : orderDay.value>=today.value) :
-  posEnabled.value&&!bookingId.value&&!pendingPreorder.value) &&
+  posEnabled.value&&orderDay.value===today.value&&!bookingId.value&&!pendingPreorder.value) &&
  (newPreorder.value||!shortages.value.length||approveShortage.value)))
 const money=c=>new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB'}).format((c||0)/100)
 const amount=q=>new Intl.NumberFormat('th-TH',{maximumFractionDigits:2}).format(q/100)
@@ -255,12 +272,15 @@ function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(n
 function navigate(id){
  const target=id==='sale'?'pos':id
  if(!availableTabs.value.includes(target)&&!(target==='orders'&&operator.value))return
- if(target==='pos'&&(bookingId.value||pendingPreorder.value||cart.value.length&&orderDay.value>today.value)){
-  showToast('กรุณากลับไปจัดการ Pre-order ในหน้าบันทึกออเดอร์ก่อน');return
+ if(target==='pos'){
+  if(bookingId.value||pendingPreorder.value||locked.value&&orderDay.value!==today.value){
+   showToast('กรุณากลับไปจัดการออเดอร์ในหน้าบันทึกออเดอร์ก่อน');return
+  }
+  if(orderDay.value!==today.value)switchCartDay(today.value)
  }
  tab.value=target==='pos'?'sale':target
 }
-const inventoryWorkspace=ref(null),reportVisited=ref(tab.value==='dashboard'),settingsVisited=ref(false),reportRefreshKey=ref(0)
+const inventoryWorkspace=ref(null),reportVisited=ref(tab.value==='dashboard'),settingsVisited=ref(false),reportRefreshKey=ref(0),entryRefreshKey=ref(0)
 async function readStockHistory(options={}){const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config});return loadInventoryHistory({db,shopId:props.connection.shopId,generation:props.state.shop.generation,materials:data.value.materials,display:data.value.display,clearedThroughRevision:Math.max(data.value.shop.inventoryHistoryCutoff||0,options.clearedThroughRevision||0),includePageHistory:true})}
 
 function material(id){return data.value?.materials.find(m=>m.id===id)}
@@ -270,7 +290,7 @@ function orderDate(o){return o.createdAt?.toDate?o.createdAt.toDate().toLocaleSt
 function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g,id,platformId.value);return cents===null?'ยังไม่ตั้งราคา':cents===0?'รวมในราคา':`+${money(cents)}`}
 function selectMenu(id){if(!orderWorkspace.value||!canCompose.value||orderDraftLocked.value||channelPaused.value)return;cartLauncher.value?.capture(id);selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
-function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId,orderDay:orderDay.value,bookingId:bookingId.value,pendingPreorder:pendingPreorder.value}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
+function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,parkedCarts:Object.fromEntries(parkedCarts),command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId,orderDay:orderDay.value,bookingId:bookingId.value,pendingPreorder:pendingPreorder.value}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
 function draftLine(){
  const line={menuId:menu.value.id,qty:quantity.value,note:lineNote.value.trim()}
  if(menuGroups.value.length)line.selections=menuGroups.value.flatMap(g=>g.optionIds.filter(id=>choices.value[g.id][id]>0).map(id=>({groupId:g.id,id,selectionQty:choices.value[g.id][id]})))
@@ -371,7 +391,7 @@ function finish(value){
  inventoryWorkspace.value?.acknowledge(value)
  if(value.kind==='cancel'){const orderId=value.result?.orderId;const old=data.value?.orders.find(o=>o.opId===orderId),sourceId=old?.sourceLegacyId||legacySources.get(orderId);if(sourceId){const row=legacyOrders.value.find(o=>o.orderId===sourceId);if(row)row.status='cancelled';legacySources.delete(orderId)}}
  if(value.rejected){pendingCommand.value=null;storedCommand=null;save();error.value=value.code==='NOT_SUBMITTED'?'รายการนี้ยังไม่ได้ส่ง สามารถตรวจและบันทึกแบบร่างใหม่ได้':'หยุดรายการที่ยังไม่สำเร็จแล้ว กรุณาตรวจแบบร่างกับยอดล่าสุดก่อนบันทึก';return}
-  if(value.kind==='sale'&&!value.abandoned&&value.opId===cartCommandId){if(bookingId.value)orderDay.value=today.value;bookingId.value='';cart.value=[];packageAdjustments.value=[];packageReviewState.isOpen=false;cartOpen.value=false;receiptState.order=projectReceipt({...value.result,opId:value.opId},data.value);receiptState.isOpen=true}
+ if(value.kind==='sale'&&!value.abandoned&&value.opId===cartCommandId){leavePreorder();receiptState.order=projectReceipt({...value.result,opId:value.opId},data.value);receiptState.isOpen=true}
  cancelId.value='';pendingCommand.value=null;storedCommand=null;cartCommandId=null;approveShortage.value=false;save()
  if(!inventoryWorkspace.value?.model.inventorySaving){
   if(value.abandoned)showToast('หยุดบิลแล้ว ตะกร้ายังอยู่')
@@ -390,26 +410,53 @@ function checkout(){
 }
 function setOrderDay(day){
  const target=businessDay(day)
- if(!orderDraftLocked.value&&!bookingId.value&&Number.isFinite(target)&&target<=businessDay(today.value)+366)orderDay.value=day
+ if(day&&day!==orderDay.value&&!orderDraftLocked.value&&!bookingId.value&&Number.isFinite(target)&&target<=businessDay(today.value)+366)switchCartDay(day)
+}
+function parkCart(){
+ if(cart.value.length||packageAdjustments.value.length||platformId.value&&platformId.value!==platformIds.value[0]){
+  parkedCarts.set(orderDay.value,{cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value})
+ }
+}
+function restoreCart(day){
+ const draft=parkedCarts.get(day)
+ parkedCarts.delete(day)
+ cart.value=draft?.cart||[]
+ packageAdjustments.value=draft?.packageAdjustments||[]
+ platformId.value=draft?.platformId||platformIds.value[0]||''
+}
+function closeCartEditors(){
+ selectedMenu.value='';cartOpen.value=false;packageReviewState.isOpen=false;answerClear(false);approveShortage.value=false
+}
+function switchCartDay(day){
+ parkCart();orderDay.value=day;restoreCart(day);cartCommandId=null;closeCartEditors()
+}
+function recoverCart(day){
+ if(locked.value||bookingId.value||pendingPreorder.value||todayCartHasLines.value||!expiredCarts.value.some(draft=>draft.day===day))return
+ if(orderDay.value!==today.value)switchCartDay(today.value)
+ restoreCart(day)
+ closeCartEditors()
 }
 function openDailySale(order){receiptState.order=order;receiptState.isOpen=true}
-async function openPreorder(row){
+function openPreorder(row){
  if(locked.value||pendingPreorder.value)return
- if(bookingId.value!==row.id&&cart.value.length){
-  const proceed=await productModel.confirmDialog({title:'เปิด Pre-order นี้?',message:'รายการในตะกร้าปัจจุบันจะถูกแทนที่',confirmText:'เปิด Pre-order',cancelText:'กลับไปตรวจตะกร้า'})
-  if(!proceed||locked.value||pendingPreorder.value)return
- }
  if(bookingId.value!==row.id){
   try{
    const draft=JSON.parse(row.draftJson)
    if(!Array.isArray(draft.lines)||!draft.lines.length||!Array.isArray(draft.packageAdjustments))throw new Error()
-   orderDay.value=dayKey(row.pickupDay)
+   const day=dayKey(row.pickupDay)
+   if(day!==orderDay.value)return
+   if(!bookingId.value)parkCart()
+   closeCartEditors()
    bookingId.value=row.id;platformId.value=row.platformId;cart.value=draft.lines;packageAdjustments.value=draft.packageAdjustments
   }catch{showToast('เปิดรายการ Pre-order นี้ไม่ได้','error');return}
  }
  cartOpen.value=true
 }
-function leavePreorder(){bookingId.value='';cart.value=[];packageAdjustments.value=[];cartOpen.value=false}
+function leavePreorder(){
+ if(bookingId.value){bookingId.value='';restoreCart(orderDay.value)}
+ else{cart.value=[];packageAdjustments.value=[]}
+ closeCartEditors()
+}
 async function cancelPreorder(){
  if(locked.value||!ready.value||!bookingId.value)return
  const id=bookingId.value
@@ -461,7 +508,8 @@ function loadOrders(){
  ordersTask=(async()=>{try{const orders=await service.orders();if(!disposed&&data.value)data.value={...data.value,orders}}catch{if(!disposed)error.value='โหลดบิลไม่ได้ กรุณาเชื่อมต่อแล้วกดโหลดข้อมูลล่าสุด'}})().finally(()=>{ordersTask=null})
  return ordersTask
 }
-function reloadEverything(){
+function reloadEverything(refreshEntry=false){
+ if(refreshEntry&&tab.value==='order-entry')entryRefreshKey.value++
  if(reloadTask)return reloadTask
  reloading.value=true
  reloadTask=(async()=>{if(!storageReady.value)save();await refresh();await recoverPending();if(tab.value==='dashboard')reportRefreshKey.value++;if(tab.value==='orders'&&!disposed)await loadOrders()})().finally(()=>{reloading.value=false;reloadTask=null})
@@ -486,6 +534,9 @@ function startOrderWatch(){
  },()=>{if(!disposed&&operator.value&&online.value)showToast('โหลดลำดับเมนูไม่ได้ กรุณาโหลดข้อมูลล่าสุด','error')})}catch{showToast('ยังโหลดลำดับเมนูไม่ได้ กรุณาโหลดข้อมูลล่าสุด','error')}
 }
 watch([role,online,()=>props.state.serverReady],startOrderWatch)
+watch([today,locked],()=>{
+ if(tab.value==='sale'&&!locked.value&&orderDay.value!==today.value)switchCartDay(today.value)
+})
 watch([cart,platformId,packageAdjustments,orderDay,bookingId],()=>{approveShortage.value=false;if(storageKey)save()},{deep:true})
 watch([platformIds,()=>cart.value.length],()=>{
  if(!cart.value.length&&!pendingCommand.value&&!platformIds.value.includes(platformId.value))platformId.value=platformIds.value[0]||''
@@ -526,3 +577,8 @@ onUnmounted(()=>{disposed=true;stopOrderWatch?.();answerClear(false);window.remo
 <style scoped src="./productWorkspace.css"></style>
 <style scoped src="@/components/pos/productSelection.css"></style>
 <style scoped src="@/components/inventory/stockForms.css"></style>
+<style scoped>
+.expired-carts{display:grid;gap:8px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:12px;font-size:.8125rem}
+.expired-carts h3{font-weight:600}.expired-carts p{color:var(--text-muted)}
+.expired-carts li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:4px;border-top:1px solid var(--border-subtle)}
+</style>
