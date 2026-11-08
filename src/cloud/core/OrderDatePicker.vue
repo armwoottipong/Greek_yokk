@@ -44,7 +44,7 @@ import {businessDay,dayKey,monthOf,offsetMonth} from './orderEntry.js'
 const props=defineProps({day:String,today:String,month:String,max:String,disabled:Boolean,state:String,orderDays:Set,draftDays:{type:Set,default:()=>new Set()}})
 const emit=defineEmits(['update:day','update:month','retry'])
 const min='0001-01-01'
-const orderSticker=`${import.meta.env.BASE_URL}brand/order-sticker.svg`
+const orderSticker=`${import.meta.env.BASE_URL}brand/order-sticker.svg?v=cream`
 const weekdays=['จ.','อ.','พ.','พฤ.','ศ.','ส.','อา.']
 const arrows={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}
 const asDate=value=>new Date(`${value}T00:00:00Z`)
@@ -102,12 +102,12 @@ async function moveDay(event){
 .calendar-days button[aria-pressed=true]:disabled .calendar-date-number{opacity:1}
 .calendar-cart,.calendar-order{position:absolute;inset-inline-end:3px;pointer-events:none;transform-origin:bottom right}
 .calendar-cart{inset-block-start:2px;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--bg-card);color:var(--accent-brand)}
-.calendar-order{inset-block-end:1px;width:21px;height:21px;border-radius:8px;transform:rotate(10deg)}
+.calendar-order{inset-block-end:1px;width:21px;height:21px;transform:rotate(10deg)}
 .calendar-note{min-height:32px;color:var(--text-muted);font-size:.75rem}
 .calendar-legend,.calendar-legend span{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .calendar-legend{gap:6px 16px}
 .calendar-legend svg{color:var(--accent-brand)}
-.calendar-legend img{border-radius:8px}
+.calendar-days button:not([aria-pressed=true]) .calendar-order,.calendar-legend img{filter:drop-shadow(0 0 1px var(--accent-brand))}
 @media(prefers-reduced-motion:no-preference){
  .calendar-days button{transition:background-color 150ms ease,color 150ms ease,transform 150ms ease}
  .calendar-days button:active:not(:disabled){transform:scale(.97)}
