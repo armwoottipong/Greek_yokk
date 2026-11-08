@@ -2,6 +2,7 @@
  <section class="pos-catalog" aria-label="เลือกสินค้า">
   <header class="pos-catalog-heading"><div><h3>เลือกเมนู</h3><p>เลือกชามโปรด แล้วเพิ่มลงออเดอร์</p></div><span>{{ menus.length }} เมนู</span></header>
   <div class="pos-catalog-controls">
+   <label class="pos-search"><span>ค้นหาเมนู</span><div><Search :size="17" aria-hidden="true"/><input type="search" data-pos-search aria-label="ค้นหาเมนู" :value="search" placeholder="ชื่อเมนูหรือรายละเอียด" @input="$emit('update:search',$event.target.value)"></div></label>
    <div class="pos-channel">
     <span class="pos-control-label">ช่องทางขาย</span>
     <div class="pos-channel-control">
@@ -20,7 +21,6 @@
      </button>
     </div>
    </div>
-   <label class="pos-search"><span>ค้นหาเมนู</span><div><Search :size="17" aria-hidden="true"/><input type="search" data-pos-search aria-label="ค้นหาเมนู" :value="search" placeholder="ชื่อเมนูหรือรายละเอียด" @input="$emit('update:search',$event.target.value)"></div></label>
   </div>
   <div class="pos-catalog-scroll">
    <div v-if="menus.length" class="pos-menu-grid"><PosMenuCard v-for="menu in menus" :key="menu.id" :menu="menu" :disabled="disabled" :price="priceFor(menu)" :cart-quantity="cartQuantities[menu.id]||0" :out-of-stock="unavailableFor(menu)" @select="$emit('select-menu',$event)"/></div>
@@ -67,7 +67,7 @@ function selectChannel(id){
 </script>
 <style scoped>
 .pos-catalog{display:flex;flex-direction:column;min-width:0;gap:16px;flex:1;container-type:inline-size}.pos-catalog-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.pos-catalog-heading h3{font-size:1.125rem;font-weight:600}.pos-catalog-heading p{font-size:.75rem;color:var(--text-muted);margin-top:4px}.pos-catalog-heading>span{font-size:.75rem;white-space:nowrap;color:var(--text-muted)}
-.pos-catalog-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:14px}
+.pos-catalog-controls{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
 .pos-channel,.pos-search{min-width:0}
 .pos-control-label,.pos-search>span{display:block;font-size:.75rem;font-weight:500;margin-bottom:8px;color:var(--text-main)}
 .pos-channel-control{position:relative;min-width:0}
