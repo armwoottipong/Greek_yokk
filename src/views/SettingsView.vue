@@ -116,14 +116,21 @@
 
     <!-- Section 2: Platform & Channel GP Rates -->
     <div id="settings-platforms" data-settings="platforms" v-show="activeSettingsSection === 'platforms'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
-      <section v-if="store.cloud && store.savePosEnabled" data-pos-setting class="grid gap-2 border-b border-stone-100 pb-4">
-        <AppCheckbox :model-value="posEnabledDraft" variant="switch" label="เปิดใช้หน้าขาย POS"
+      <section v-if="store.cloud && store.savePosEnabled" data-pos-setting class="pos-setting">
+        <AppCheckbox class="pos-setting-toggle" :model-value="posEnabledDraft" variant="switch" label="เปิดใช้หน้าขาย POS"
           aria-describedby="pos-setting-help" :disabled="posSettingSaving || store.settingsBlocked" @update:model-value="setPosEnabled">
-          <strong>เปิดใช้หน้าขาย POS</strong>
+          <span class="pos-setting-body">
+            <span class="pos-setting-icon"><Monitor :size="18" aria-hidden="true"/></span>
+            <span class="pos-setting-copy">
+              <strong>เปิดใช้หน้าขาย POS</strong>
+              <span id="pos-setting-help">แสดงเมนู POS บนทุกเครื่องของร้าน</span>
+            </span>
+            <span class="pos-setting-state" :data-enabled="store.posEnabled!==false && !posSettingSaving" role="status">
+              {{ posSettingSaving ? 'กำลังบันทึก…' : store.posEnabled!==false ? 'เปิดอยู่' : 'ปิดอยู่' }}
+            </span>
+          </span>
         </AppCheckbox>
-        <p id="pos-setting-help" class="settings-gp-help">กำหนดการแสดงหน้าขาย POS สำหรับทุกเครื่องของร้าน</p>
-        <p v-if="posSettingSaving" role="status" class="settings-gp-help">กำลังบันทึกสถานะ POS…</p>
-        <p v-if="posSettingError" role="alert" class="settings-gp-error">{{ posSettingError }}</p>
+        <p v-if="posSettingError" role="alert" class="pos-setting-error">{{ posSettingError }}</p>
       </section>
       <ChannelSettings v-if="store.cloud && store.changeChannel" :model="store"/>
       <template v-else>
@@ -299,6 +306,7 @@ import { usePosStore } from '@/stores/posStore'
 import {
   Cloud,
   Store,
+  Monitor,
   Database,
   RefreshCw,
   Download,
@@ -473,3 +481,22 @@ async function confirmResetDemo() {
   }
 }
 </script>
+
+<style scoped>
+.pos-setting{border:1px solid var(--border-subtle);border-radius:12px}
+.pos-setting-toggle{display:flex;width:100%;min-height:64px;padding:10px 12px;border-radius:inherit}
+.pos-setting-toggle.app-checkbox--disabled{opacity:1}
+.pos-setting-toggle.app-checkbox--disabled :deep(.app-checkbox-control){opacity:.55}
+.pos-setting-body{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px 10px;width:100%}
+.pos-setting-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:8px;background:var(--bg-soft);color:var(--accent-brand)}
+.pos-setting-copy{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
+.pos-setting-copy strong{font-size:.875rem;font-weight:650;color:var(--text-main)}
+#pos-setting-help{font-size:.75rem;line-height:1.55;color:var(--text-muted)}
+.pos-setting-state{justify-self:start;padding:3px 8px;border-radius:6px;background:var(--bg-soft);color:var(--text-muted);font-size:.75rem;font-weight:600;white-space:nowrap}
+.pos-setting-state[data-enabled=true]{background:var(--accent-soft);color:var(--accent-brand)}
+.pos-setting-error{padding:0 12px 10px;font-size:.8125rem;color:var(--accent-red)}
+@media(max-width:480px){
+ .pos-setting-body{grid-template-columns:34px minmax(0,1fr);row-gap:4px}
+ .pos-setting-state{grid-column:2}
+}
+</style>
