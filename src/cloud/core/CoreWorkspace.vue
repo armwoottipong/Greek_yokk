@@ -3,7 +3,7 @@
   <p v-if="data?.display.trial" class="trial-banner"><strong>ข้อมูลทดสอบ — ยังไม่ใช่ยอดร้านปัจจุบัน</strong><br>จากไฟล์สำรอง {{ sourceDate }} · <a :href="localUrl">เปิดระบบเดิม</a></p>
   <p v-if="!data" class="loading-copy">{{ loading ? 'กำลังโหลดข้อมูลร้านจากเซิร์ฟเวอร์…' : 'ยังโหลดข้อมูลร้านไม่ได้ กดโหลดข้อมูลล่าสุดเพื่อลองใหม่' }}</p>
   <template v-else>
-   <section v-if="operator" v-show="tab==='sale'" class="pos-workspace" aria-label="ขายสินค้า">
+   <section v-if="operator&&posEnabled" v-show="tab==='sale'" class="pos-workspace" aria-label="ขายสินค้า">
     <p v-if="channelPaused" class="error" role="status">{{ explain({code:'CHANNEL_PAUSED'}) }}</p>
     <PosCatalog :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="locked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
     <CartPanel :model="productModel" :presentation="mobileCart?'drawer':'side-drawer'" :open="cartOpen" :checkout-pending="activeAction==='sale'" :disabled="locked" @request-close="cartOpen=false" @checkout="checkout">
@@ -86,7 +86,14 @@ defineEmits(['sign-out'])
 const activeAction=ref(''),reloading=ref(false),pendingChecks=ref(1)
 const pendingCause=ref('')
 const pendingLabel=computed(()=>({sale:'บันทึกยอดขาย',cancel:'คืนบิล',inventory:'รับเข้าสต็อก',produce:'ผลิตตามสูตร',stock_count:'ตรวจนับสต็อก',menu:'บันทึกเมนู',addon:'บันทึกตัวเลือกเสริม',group:'บันทึกกลุ่มตัวเลือก',channel:'บันทึกช่องทางขาย',platform_gp:'บันทึกช่องทางและ GP',material_archive:'จัดเก็บวัตถุดิบ',material_delete:'ลบวัตถุดิบ',material_metadata:'แก้ข้อมูลวัตถุดิบ'}[pendingCommand.value?.kind]||'บันทึกข้อมูลร้าน'))
-const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),tab=ref(operator.value?'sale':'dashboard'),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
+const data=shallowRef(null),loading=ref(false),busy=ref(false),online=ref(navigator.onLine),error=ref(''),pendingCommand=ref(null),storageReady=ref(true),initialized=ref(false)
+const posEnabled=computed(()=>{
+ const live=props.state.shop,loaded=data.value?.shop
+ const shop=loaded?.generation===live?.generation&&loaded?.revision>live?.revision?loaded:live
+ return shop?.posEnabled!==false
+})
+const availableTabs=computed(()=>roleTabs(role.value).filter(id=>id!=='pos'||posEnabled.value))
+const tab=ref(operator.value&&posEnabled.value?'sale':'dashboard')
 const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
 const legacyLookup=ref(''),legacySources=new Map()
@@ -117,7 +124,7 @@ const sourceDate=computed(()=>String(data.value?.display.sourceDate||'ไม่�
 const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return {};if(!platformIds.value.includes(platformId.value))return {error:explain({code:'CHANNEL_PAUSED'})};assertOptionAvailability(cart.value);return {order:service.previewSale({platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value)})}}catch(e){return {error:explain(e)}}})
 const preview=computed(()=>previewResult.value.order),previewError=computed(()=>previewResult.value.error)
 const shortages=computed(()=>Object.entries(preview.value?.approvedShortages||{}).filter(([,q])=>q>0))
-const canCheckout=computed(()=>ready.value&&!locked.value&&!!preview.value&&(!shortages.value.length||approveShortage.value))
+const canCheckout=computed(()=>posEnabled.value&&ready.value&&!locked.value&&!!preview.value&&(!shortages.value.length||approveShortage.value))
 const money=c=>new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB'}).format((c||0)/100)
 const amount=q=>new Intl.NumberFormat('th-TH',{maximumFractionDigits:2}).format(q/100)
 const plain=v=>JSON.parse(JSON.stringify(toRaw(v)))
@@ -133,9 +140,20 @@ const pageTitle=computed(()=>({dashboard:'ภาพรวม & งบต้น�
 const historyModule=computed(()=>({dashboard:'all',sale:'pos',stock:'stock',menu:'menu',addon:'addon',orders:'pos',settings:'system'})[tab.value]||'all')
 const historyLabel=computed(()=>({all:'ประวัติทั้งระบบ',pos:'ยอดขายและบิล',stock:'ประวัติสต็อก',menu:'ประวัติการจัดการเมนู',addon:'ประวัติการจัดการตัวเลือกเสริม',system:'ประวัติระบบและการตั้งค่า'})[historyModule.value])
 function openPageHistory(){void inventoryWorkspace.value?.model.openActivityLog(historyModule.value)}
-const productModel=reactive({cloud:true,modals:{receipt:receiptState,packageReview:packageReviewState},get role(){return role.value},get availableTabs(){return roleTabs(role.value)},get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get addonGroups(){return inventoryWorkspace.value?.model.addonGroups||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab:navigate,get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get materials(){return data.value?.materials.map(m=>({...m,isDeleted:m.deleted}))||[]},get packageLocked(){return locked.value||!ready.value},get packageAdjustments(){return packageAdjustments.value},get cartPackagePlan(){return projectCloudPackages(data.value,cart.value,packageAdjustments.value)},savePackageAdjustments,resetPackageAdjustment(id){if(!locked.value)packageAdjustments.value=packageAdjustments.value.filter(a=>a.materialId!==id)},resetPackageAdjustments(){if(!locked.value)packageAdjustments.value=[]},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value){cart.value=[];packageAdjustments.value=[]}},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
+const productModel=reactive({cloud:true,modals:{receipt:receiptState,packageReview:packageReviewState},get role(){return role.value},get availableTabs(){return availableTabs.value},get menus(){return inventoryWorkspace.value?.model.menus||projectMenus(data.value)},get addons(){return inventoryWorkspace.value?.model.addons||[]},get addonGroups(){return inventoryWorkspace.value?.model.addonGroups||[]},get lowStockMaterials(){return inventoryWorkspace.value?.model.lowStockMaterials||[]},get totalInventoryValuation(){return inventoryWorkspace.value?.model.totalInventoryValuation||0},get projectedInventoryValuation(){return inventoryWorkspace.value?.model.projectedInventoryValuation||0},get draftInventoryValuationDiff(){return inventoryWorkspace.value?.model.draftInventoryValuationDiff||0},get currentTab(){return tab.value==='sale'?'pos':tab.value},get connected(){return ready.value},get account(){return props.state.user?.email||''},switchTab:navigate,get cart(){return projectCart(cart.value,data.value)},get currentPlatformId(){return platformId.value},get currentPlatform(){return productPlatforms.value.find(p=>p.id===platformId.value)},get checkoutDisabled(){return !canCheckout.value},get cartSummary(){const p=preview.value||{},subtotal=(p.subtotalCents||0)/100;return {subtotal,gpPercent:(data.value?.shop.catalog.platforms[platformId.value]?.gpBasisPoints||0)/100,gpAmount:(p.gpCents||0)/100,netRevenue:(p.netCents??p.subtotalCents??0)/100,totalIngredientCost:(p.ingredientCostCents||0)/100,totalPackagingCost:(p.packagingCostCents||0)/100,totalFoodCost:((p.ingredientCostCents||0)+(p.packagingCostCents||0))/100,grossProfit:(p.grossProfitCents||0)/100}},get materials(){return data.value?.materials.map(m=>({...m,isDeleted:m.deleted}))||[]},get packageLocked(){return locked.value||!ready.value},get packageAdjustments(){return packageAdjustments.value},get cartPackagePlan(){return projectCloudPackages(data.value,cart.value,packageAdjustments.value)},savePackageAdjustments,resetPackageAdjustment(id){if(!locked.value)packageAdjustments.value=packageAdjustments.value.filter(a=>a.materialId!==id)},resetPackageAdjustments(){if(!locked.value)packageAdjustments.value=[]},updateCartQty,removeFromCart(index){if(!locked.value)cart.value.splice(index,1)},clearCart(){if(!locked.value){cart.value=[];packageAdjustments.value=[]}},confirmDialog(){return new Promise(resolve=>{clearAnswer=resolve;clearConfirm.value=true})}})
 Object.defineProperty(productModel,'activeUsers',{get:()=>activeUsers.value})
 const settingsModel=reactive({cloud:true,showToast,
+ get posEnabled(){return posEnabled.value},
+ async savePosEnabled(enabled,expected){
+  if(role.value!=='admin'||!ready.value||locked.value||!shopAccess)return {ok:false,message:'กรุณารอให้ระบบพร้อมแล้วลองอีกครั้ง'}
+  try{
+   await shopAccess.savePosEnabled(enabled,expected)
+   await refresh()
+   return {ok:true}
+  }catch(error){
+   return {ok:false,message:error.message==='POS_SETTING_CONFLICT'?'สถานะ POS เปลี่ยนจากอีกเครื่อง กรุณาตรวจค่าล่าสุดแล้วลองอีกครั้ง':'ยังยืนยันการบันทึกสถานะ POS ไม่ได้ กรุณาตรวจการเชื่อมต่อแล้วลองอีกครั้ง'}
+  }
+ },
  get allowedEmails(){return props.state.shop?.allowedEmails||{}},
  get invitations(){return invitations.value},
  get userRoles(){return props.state.shop?.userRoles||{}},
@@ -209,8 +227,8 @@ function assertOptionAvailability(lines) {
 }
 function toggleChoice(g,id){if(!locked.value)choices.value[g.id][id]=choices.value[g.id][id]?0:1}
 function menuUnavailable(m){try{const c=data.value.shop.catalog.menus[m.id];if(channelPaused.value||c.groupId||c.groupIds?.length)return false;return Object.values(service.previewSale({platformId:platformId.value,lines:[{menuId:m.id,qty:1,optionIds:[]}]}).approvedShortages||{}).some(q=>q>0)}catch{return false}}
-function navigate(id){const target=id==='sale'?'pos':id;if(!roleTabs(role.value).includes(target)&&!(target==='orders'&&operator.value))return;tab.value=target==='pos'?'sale':target}
-const inventoryWorkspace=ref(null),reportVisited=ref(!operator.value),settingsVisited=ref(false),reportRefreshKey=ref(0)
+function navigate(id){const target=id==='sale'?'pos':id;if(!availableTabs.value.includes(target)&&!(target==='orders'&&operator.value))return;tab.value=target==='pos'?'sale':target}
+const inventoryWorkspace=ref(null),reportVisited=ref(tab.value==='dashboard'),settingsVisited=ref(false),reportRefreshKey=ref(0)
 async function readStockHistory(options={}){const {db}=getFirebaseClient({mode:props.connection.mode,config:props.connection.config});return loadInventoryHistory({db,shopId:props.connection.shopId,generation:props.state.shop.generation,materials:data.value.materials,display:data.value.display,clearedThroughRevision:Math.max(data.value.shop.inventoryHistoryCutoff||0,options.clearedThroughRevision||0),includePageHistory:true})}
 
 function material(id){return data.value?.materials.find(m=>m.id===id)}
@@ -218,7 +236,7 @@ function materialName(id){return material(id)?.name||id}
 function name(kind,id){return data.value?.display[kind]?.[id]?.name||id}
 function orderDate(o){return o.createdAt?.toDate?o.createdAt.toDate().toLocaleString('th-TH'):''}
 function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g,id,platformId.value);return cents===null?'ยังไม่ตั้งราคา':cents===0?'รวมในราคา':`+${money(cents)}`}
-function selectMenu(id){if(locked.value||channelPaused.value)return;cartLauncher.value?.capture(id);selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
+function selectMenu(id){if(!posEnabled.value||locked.value||channelPaused.value)return;cartLauncher.value?.capture(id);selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
 function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
 function draftLine(){
@@ -387,7 +405,12 @@ watch([platformIds,()=>cart.value.length],()=>{
  if(!cart.value.length&&!pendingCommand.value&&!platformIds.value.includes(platformId.value))platformId.value=platformIds.value[0]||''
 })
 watch(()=>JSON.stringify(shortages.value),()=>{approveShortage.value=false})
-watch(role,()=>{shopAccess?.watchInvitations();const current=tab.value==='sale'?'pos':tab.value;if(!roleTabs(role.value).includes(current)&&!(current==='orders'&&operator.value))tab.value='dashboard';if(!operator.value){selectedMenu.value='';cancelId.value='';cartOpen.value=false;packageReviewState.isOpen=false;reportVisited.value=true}})
+watch(role,()=>{shopAccess?.watchInvitations();const current=tab.value==='sale'?'pos':tab.value;if(!availableTabs.value.includes(current)&&!(current==='orders'&&operator.value))tab.value='dashboard';if(!operator.value){selectedMenu.value='';cancelId.value='';cartOpen.value=false;packageReviewState.isOpen=false;reportVisited.value=true}})
+watch(posEnabled,enabled=>{
+ if(enabled)return
+ selectedMenu.value='';cartOpen.value=false;packageReviewState.isOpen=false;answerClear(false)
+ if(tab.value==='sale')tab.value='dashboard'
+})
 watch(tab,value=>{if(value!=='sale')cartOpen.value=false;if(value==='orders')void loadOrders();if(value==='dashboard')reportVisited.value=true;if(value==='settings')settingsVisited.value=true})
 watch(()=>data.value?.shop.catalogRevision,(revision,previous)=>{
  if(previous===undefined||revision===previous)return

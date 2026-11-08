@@ -10,6 +10,22 @@ vi.mock('../../src/cloud/firebaseClient.js',()=>({getFirebaseClient:()=>({db:{}}
 vi.mock('../../src/cloud/shopAccess.js',async original=>({...await original(),createShopAccess:()=>({watch(){},watchInvitations(){},heartbeat:async()=>{},close(){}})}))
 async function openCart(w){const button=w.find('[data-cart-open]');if(button.exists()&&button.attributes('aria-expanded')!=='true')await button.trigger('click');await flushPromises()}
 const state={user:{uid:'u',email:'u@example.com'},shop:{generation:'g1',revision:1,allowedEmails:{'u@example.com':true},userRoles:{'u@example.com':'admin'}},serverReady:true}
+it('hides the POS while the shop has it disabled and keeps the cart for re-enabling',async()=>{
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises()
+  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+  await w.setProps({state:{...state,shop:{...state.shop,posEnabled:false}}})
+  await flushPromises()
+  expect(w.find('[data-pos-menu]').exists()).toBe(false)
+  expect(w.findAll('button').some(button=>button.text()==='แคชเชียร์ (POS)')).toBe(false)
+  await w.setProps({state:{...state,shop:{...state.shop,posEnabled:true}}})
+  await flushPromises()
+  const cart=w.getComponent(CartPanel)
+  expect(cart.props('model').cart).toHaveLength(1)
+  expect(cart.props('model').availableTabs).toContain('pos')
+ }finally{w.unmount()}
+})
 it.each([true,false])('uses the stock picture and group activation in cloud option picking (active=%s)',async active=>{
  const d=await h.load()
  d.shop.catalog.groups={G:{id:'G',name:'Choices',active,optionIds:['A'],min:0,max:1,allowRepeat:false,pricingMode:'included'}}

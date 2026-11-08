@@ -6,6 +6,7 @@ import {buildCorePolicy} from '../../scripts/core-policy.mjs'
 import {compileCoreImport} from '../../scripts/core-import.js'
 import {coreSource} from '../fixtures/coreSource.js'
 import {createCoreTransport} from '../../src/cloud/core/transport.js'
+import {createShopAccess} from '../../src/cloud/shopAccess.js'
 let env
 const ROOT='shops/proof-shop',GEN=ROOT+'/generations/g1',alice='alice@example.com',bob='bob@example.com'
 const claims=email=>({email,email_verified:true,firebase:{sign_in_provider:'google.com'}})
@@ -69,6 +70,30 @@ function runtime(uid='alice'){
  const context={projectId:'demo-greek-yogg',shopId:'proof-shop',generation:'g1',uid,deviceId:'one',online:true,ready:true}
  return createCoreTransport({db:db(uid),getContext:()=>context})
 }
+it('allows only an admin to change POS availability and keeps returns available while disabled',async()=>{
+ const {root,documents}=importedShop(0)
+ root.userRoles[bob]='manager'
+ await seed(root,documents)
+ const admin=runtime(),manager=runtime('bob')
+ const sale={opId:'BEFORE-POS-OFF',kind:'sale',payload:{platformId:root.catalog.platformIds[0],lines:[{menuId:root.catalog.menuIds[0],qty:1,optionIds:[]}]}}
+ await admin.commit(sale)
+ const {shop:current}=await admin.snapshot()
+ const access=createShopAccess({db:db(),shopId:'proof-shop',getShop:()=>current,getUser:()=>({uid:'alice',email:alice})})
+ try{
+  const change={posEnabled:false,revision:current.revision+1,lastOpKind:'pos_setting',lastOpId:'POS-OFF'}
+  await assertFails(updateDoc(doc(db('bob'),ROOT),change))
+  await assertFails(updateDoc(doc(db(),ROOT),{...change,posEnabled:'false'}))
+  await assertFails(updateDoc(doc(db(),ROOT),{...change,catalogRevision:current.catalogRevision+1}))
+  await access.savePosEnabled(false,true)
+  expect((await manager.snapshot()).shop).toMatchObject({posEnabled:false,catalogRevision:current.catalogRevision})
+  await expect(access.savePosEnabled(true,true)).rejects.toThrow('POS_SETTING_CONFLICT')
+  await expect(manager.commit({...sale,opId:'AFTER-POS-OFF'})).rejects.toMatchObject({code:'POS_DISABLED'})
+  expect(await admin.commit(sale)).toMatchObject({opId:sale.opId})
+  await admin.commit({opId:'RETURN-WHILE-POS-OFF',kind:'cancel',payload:{orderId:sale.opId}})
+  await access.savePosEnabled(true,false)
+  await manager.commit({...sale,opId:'AFTER-POS-ON'})
+ }finally{access.close()}
+})
 it.each([0,1,2,7,13,14,15,16])('preserves the %i-material sale and cancellation with strict email checks',async count=>{
  const {root,documents}=importedShop(count);await seed(root,documents)
  const api=runtime(),before=await api.snapshot(),menuIds=root.catalog.menuIds,platformId=root.catalog.platformIds[0]

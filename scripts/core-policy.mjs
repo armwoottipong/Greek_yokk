@@ -50,6 +50,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
  match /shops/{s} {
   allow get: if signedIn();
   ${legacyTestAuth?'':"allow update: if request.resource.data.lastOpKind=='access' && accessRoot();"}
+  ${legacyTestAuth?'':"allow update: if request.resource.data.lastOpKind=='pos_setting' && posSettingRoot();"}
   allow update: if request.resource.data.lastOpKind=='sale_set' && validRoot(s);
   allow update: if request.resource.data.lastOpKind=='stock_in' && stockRoot(s);
   allow update: if request.resource.data.lastOpKind=='package_stock_in' && packageStockRoot(s);
@@ -264,6 +265,7 @@ export function buildCorePolicy({shopId='greek-yogg',compact=true,legacyTestAuth
    body=replace(body,'(i<4 || counter(o,i,root.catalog))','(i<4 || i>=15 || counter(o,i,root.catalog))')
   }
   if(name==='validRoot'){
+   body=replace(body,"resource.data.status == 'active' &&","resource.data.status == 'active' && resource.data.get('posEnabled',true)==true &&")
    // Bind the immutable complete price/coverage certificate here. Row7 moves
    // to the receipt, keeping this validator at ten dependent document reads.
    body=replace(body,'touchedAt(s,resource.data.generation,o,7) &&','')

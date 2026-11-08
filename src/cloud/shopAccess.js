@@ -63,6 +63,23 @@ export function createShopAccess({db,shopId,getUser,getShop=()=>null,onPresence=
     return map
    });guard();return result}finally{saving=false}
   },
+  async savePosEnabled(enabled,expected){
+   const user=getUser(),generation=getShop()?.generation
+   if(typeof enabled!=='boolean'||typeof expected!=='boolean'||!user?.uid||!generation)throw new Error('NOT_READY')
+   const guard=()=>{if(disposed||getUser()?.uid!==user.uid||getShop()?.generation!==generation)throw new Error('SESSION_CHANGED')}
+   const opId=crypto.randomUUID()
+   await sdk.runTransaction(db,async tx=>{
+    guard()
+    const snapshot=await tx.get(root)
+    guard()
+    const live=snapshot.data()
+    if(live?.status!=='active'||live.generation!==generation)throw new Error('SHOP_NOT_READY')
+    if(shopRole(live,user.email)!=='admin')throw new Error('ACCESS_DENIED')
+    if((live.posEnabled!==false)!==expected)throw new Error('POS_SETTING_CONFLICT')
+    if(enabled!==expected)tx.update(root,{posEnabled:enabled,revision:live.revision+1,lastOpKind:'pos_setting',lastOpId:opId})
+   })
+   guard()
+  },
   close(){disposed=true;inviteEpoch++;inviteStop?.();stop?.();stop=null;onPresence([]);onInvitations([])}
  }
 }

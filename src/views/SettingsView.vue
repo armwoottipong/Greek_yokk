@@ -116,6 +116,15 @@
 
     <!-- Section 2: Platform & Channel GP Rates -->
     <div id="settings-platforms" data-settings="platforms" v-show="activeSettingsSection === 'platforms'" class="editorial-card p-4 sm:p-6 bg-white space-y-4">
+      <section v-if="store.cloud && store.savePosEnabled" data-pos-setting class="grid gap-2 border-b border-stone-100 pb-4">
+        <AppCheckbox :model-value="posEnabledDraft" variant="switch" label="เปิดใช้หน้าขาย POS"
+          aria-describedby="pos-setting-help" :disabled="posSettingSaving || store.settingsBlocked" @update:model-value="setPosEnabled">
+          <strong>เปิดใช้หน้าขาย POS</strong>
+        </AppCheckbox>
+        <p id="pos-setting-help" class="settings-gp-help">กำหนดการแสดงหน้าขาย POS สำหรับทุกเครื่องของร้าน</p>
+        <p v-if="posSettingSaving" role="status" class="settings-gp-help">กำลังบันทึกสถานะ POS…</p>
+        <p v-if="posSettingError" role="alert" class="settings-gp-error">{{ posSettingError }}</p>
+      </section>
       <ChannelSettings v-if="store.cloud && store.changeChannel" :model="store"/>
       <template v-else>
       <div class="flex items-center gap-3 border-b border-stone-100 pb-3">
@@ -321,6 +330,22 @@ const settingsSections = store.cloud ? [
 ]
 const gasUrlInput = ref(store.gasApiUrl)
 const fileInput = ref(null)
+const posEnabledDraft=ref(store.posEnabled!==false),posSettingSaving=ref(false),posSettingError=ref('')
+watch(()=>store.posEnabled,value=>{posEnabledDraft.value=value!==false})
+async function setPosEnabled(enabled){
+  const expected=store.posEnabled!==false
+  if(posSettingSaving.value||store.settingsBlocked||enabled===expected)return
+  posEnabledDraft.value=enabled
+  posSettingSaving.value=true
+  posSettingError.value=''
+  try{
+    const result=await store.savePosEnabled(enabled,expected)
+    if(!result.ok)throw new Error(result.message||'ยังยืนยันการบันทึกสถานะ POS ไม่ได้')
+  }catch(error){
+    posEnabledDraft.value=store.posEnabled!==false
+    posSettingError.value=error.message
+  }finally{posSettingSaving.value=false}
+}
 const gpDraft = ref({})
 const gpSaveError = ref('')
 const gpSaving=ref(false),gpConflict=ref(false),gpRevision=ref(null)

@@ -52,6 +52,14 @@ export function accessPolicy(shopId){return `
    n.email is string && n.email.size()<=254 && root.allowedEmails.get(n.email,false)==true &&
    root.userRoles.get(n.email,'')==n.role && n.createdBy==request.auth.uid && n.createdAt==request.time && n.status=='pending';
  }
+ function posSettingRoot() {
+  let b=resource.data;
+  let n=request.resource.data;
+  return adminIdentity(b) && b.status=='active' && n.posEnabled is bool &&
+   n.diff(b).affectedKeys().hasOnly(['posEnabled','revision','lastOpId','lastOpKind']) &&
+   n.revision==b.revision+1 && n.revision is int && n.revision<=9007199254740991 &&
+   n.lastOpId is string && n.lastOpId.matches('^[A-Za-z0-9_-]{1,200}$');
+ }
  function presenceWrite(uid) {
   let p=request.resource.data;
   return signedIn() && uid==request.auth.uid && p.keys().hasAll(['email','displayName','photoURL','lastSeen']) &&

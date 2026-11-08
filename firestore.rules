@@ -156,14 +156,14 @@ function CH(d) {
  }
 function CI(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/preparedSales/$(a)/certificates/bill; }
 function BP(n,a) { return a=='menu' ? n.get('rawRecipe',n.recipe) : n.recipe; }
-function h(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('check'+string(i)); }
+function s(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('check'+string(i)); }
 function CJ(g,o) { return o.kind=='material_archive' && o.deleted==false || getAfter(BZ(g,o.opId)).data.opId==o.opId; }
-function s(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('type'+string(i)); }
+function u(g,a,i) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/$('type'+string(i)); }
 function CK(g,a,b) {
-  return getAfter(s(g,a,b)).data.opId==a && getAfter(s(g,a,b+1)).data.opId==a &&
-   getAfter(s(g,a,b+2)).data.opId==a && getAfter(s(g,a,b+3)).data.opId==a &&
-   getAfter(s(g,a,b+4)).data.opId==a && getAfter(s(g,a,b+5)).data.opId==a &&
-   getAfter(s(g,a,b+6)).data.opId==a && getAfter(s(g,a,b+7)).data.opId==a;
+  return getAfter(u(g,a,b)).data.opId==a && getAfter(u(g,a,b+1)).data.opId==a &&
+   getAfter(u(g,a,b+2)).data.opId==a && getAfter(u(g,a,b+3)).data.opId==a &&
+   getAfter(u(g,a,b+4)).data.opId==a && getAfter(u(g,a,b+5)).data.opId==a &&
+   getAfter(u(g,a,b+6)).data.opId==a && getAfter(u(g,a,b+7)).data.opId==a;
  }
 function BQ(g) {
  let a=U();
@@ -195,7 +195,7 @@ function Z(a) {
   let d=a.userRoles[c];
   return b.email_verified && b.firebase.sign_in_provider=='google.com' && d.matches('^(admin|manager)$');
  }
-function u(a) {
+function h(a) {
   return AQ(a) && DI(a)=='admin';
  }
 function M() {
@@ -206,17 +206,17 @@ function M() {
   return b.email_verified && b.firebase.sign_in_provider=='google.com' && d.matches('^(admin|manager)$');
  }
 function AJ() {
-  return u(getAfter(/databases/$(d0)/documents/shops/greek-yogg).data);
+  return h(getAfter(/databases/$(d0)/documents/shops/greek-yogg).data);
  }
 match /shops/greek-yogg/invitations/{id} {
 function DJ() {
   let n=B();
   let a=getAfter(/databases/$(d0)/documents/shops/greek-yogg).data;
-  return u(a) && n.keys().hasOnly(['email','role','createdBy','createdAt','status']) &&
+  return h(a) && n.keys().hasOnly(['email','role','createdBy','createdAt','status']) &&
    n.email is string && n.email.size()<=254 && a.allowedEmails.get(n.email,false)==true &&
    a.userRoles.get(n.email,'')==n.role && n.createdBy==D() && n.createdAt==request.time && n.status=='pending';
  }
-allow read: if Q() && (u(U()));
+allow read: if Q() && (h(U()));
    allow create: if M() && (id.matches('^[A-Za-z0-9_-]{1,200}$') && DJ());
 }
 match /shops/greek-yogg/presence/{v0} {
@@ -733,8 +733,8 @@ function AW(g,o) {
  }
 function AX(g,a) { return /databases/$(d0)/documents/shops/greek-yogg/generations/$(g)/operations/$(a)/referenceProofs/admitted; }
 function AY(g,a,o) {
-  return o.kind=='addon' || getAfter(h(g,a,0)).data.opId==a && getAfter(h(g,a,1)).data.opId==a &&
-   getAfter(h(g,a,2)).data.opId==a && getAfter(h(g,a,3)).data.opId==a;
+  return o.kind=='addon' || getAfter(s(g,a,0)).data.opId==a && getAfter(s(g,a,1)).data.opId==a &&
+   getAfter(s(g,a,2)).data.opId==a && getAfter(s(g,a,3)).data.opId==a;
  }
 function FH(g,a,o) {
  let b=L();
@@ -884,7 +884,7 @@ function FS(g,a,p) {
    a=='channel_'+p.opId && p.opId.matches('^[A-Za-z0-9_-]{1,120}$') && p.uid==D() &&
    p.revision==b.revision && !exists(E(g,p.opId)) && FR(p.catalog,b.catalog,p.input);
  }
-allow read: if Q() && Z(U()) && (N(g) && (!id.matches('^channel_.*$') || u(L())));
+allow read: if Q() && Z(U()) && (N(g) && (!id.matches('^channel_.*$') || h(L())));
    allow create: if M() && ((B().kind=='sale_set' && FP(g,id,B())) || (id.matches('^channel_.*$') && AJ() && FS(g,id,B())));
 
    allow update: if M() && (FQ(g));
@@ -1052,7 +1052,7 @@ return b.status=='active' && b.generation==g && C(i,0,31) && c=='channel_'+strin
    (i==0 || get(CM(g,a,i-1)).data.opId==a) &&
    CX(p.catalog,e,p.input,i*2) && CX(p.catalog,e,p.input,i*2+1);
  }
-allow read: if Q() && Z(U()) && (N(g) && (!v1.matches('^channel_.*$') || u(L())));
+allow read: if Q() && Z(U()) && (N(g) && (!v1.matches('^channel_.*$') || h(L())));
    allow create: if M() && (v1.matches('^channel_.*$') ? AJ() && GJ(g,id,v1,B()) : GI(g,id,v1,B()));
 }
 match /shops/greek-yogg/generations/{g}/preparedSales/{id}/certificates/{v1} {
@@ -1706,7 +1706,7 @@ function IK() {
       let b=A().generation;
 let c=A();
 let d=o.materialIds;
-return c.status == 'active' && H(a,c,['returnMaterials']) &&
+return c.status == 'active' && c.get('posEnabled',true)==true && H(a,c,['returnMaterials']) &&
         a.returnMaterials is map && a.returnMaterials.values().hasOnly([true]) && a.returnMaterials.keys().toSet()==c.get('returnMaterials',{}).keys().concat(d).toSet() && a.revision == c.revision + 1 && o.opId == a.lastOpId && o.uid == D() && o.shopRevision == a.revision &&
         o.ingredientCostCents == int(CC(o,true) * 100.0 + 0.5) &&
         (d.size()>=7 ? (K(b,o,0) && K(b,o,1) && K(b,o,2) && K(b,o,3) &&
@@ -1977,8 +1977,8 @@ function JG(g,o,a) {
    d.addonKeys==o.addonKeys && d.materialIds==o.materialIds && d.billOperands==o.billOperands && d.lines==o.lines && (o.materialIds.size()>=3 || d.lineOptionQuantities==o.lineOptionQuantities);
  }
 function BJ(g,a,o) {
-  return o.kind=='addon' || getAfter(h(g,a,4)).data.opId==a && getAfter(h(g,a,5)).data.opId==a &&
-   getAfter(h(g,a,6)).data.opId==a && getAfter(h(g,a,7)).data.opId==a;
+  return o.kind=='addon' || getAfter(s(g,a,4)).data.opId==a && getAfter(s(g,a,5)).data.opId==a &&
+   getAfter(s(g,a,6)).data.opId==a && getAfter(s(g,a,7)).data.opId==a;
  }
 function BK(c,b,o,i) {
  let a=b.platformIds.concat(['_','_','_','_'])[i];
@@ -2051,7 +2051,7 @@ function JL() {
   let b=a.keys().join('|');
   let c=n.userRoles;
   let d=A();
-return u(d) && a is map && a.size()>0 && a.size()<=50 && a.values().hasOnly([true]) &&
+return h(d) && a is map && a.size()>0 && a.size()<=50 && a.values().hasOnly([true]) &&
    b==b.lower() && b.matches('^[^ |@]+@[^ |@]+([|][^ |@]+@[^ |@]+)*$') &&
    c is map && c.keys().toSet()==a.keys().toSet() && c.values().hasOnly(['viewer','manager','admin']) &&
    c.get('armwoottipong@gmail.com','')=='admin' && c.get(request.auth.token.email.lower(),'')=='admin' &&
@@ -2059,9 +2059,18 @@ return u(d) && a is map && a.size()>0 && a.size()<=50 && a.values().hasOnly([tru
    n.revision==d.revision+1 && n.revision is int && n.revision<=9007199254740991 &&
    n.lastOpKind=='access' && n.lastOpId is string && n.lastOpId.matches('^[A-Za-z0-9_-]{1,200}$');
  }
+function JM() {
+  let b=A();
+  let n=B();
+  return h(b) && b.status=='active' && n.posEnabled is bool &&
+   H(n,b,['posEnabled']) &&
+   n.revision==b.revision+1 && n.revision is int && n.revision<=9007199254740991 &&
+   n.lastOpId is string && n.lastOpId.matches('^[A-Za-z0-9_-]{1,200}$');
+ }
 allow get: if AQ(A());
-  function JM() { let a=B().get('lastOpKind',''); return (a=='access' && JL()) || (a=='sale_set' && IK()) || (a=='stock_in' && IL()) || (a=='package_stock_in' && JC()) || (a=='produce' && IS()) || (a=='cancel' && IR()) || (a=='command_abort' && JJ()) || (a=='history_clear' && JF()) || (a=='stock_count' && IU()) || (a=='switch_lot' && IT()) || (a=='material_create' && IX()) || (a=='material_archive' && IY()) || (a=='material_metadata' && IZ()) || (a=='material_measure' && JA()) || (a=='material_details' && JD()) || (a=='material_type' && JB()) || (a=='production_recipe' && IW()) || (a=='menu' && IP()) || (a=='addon' && IQ()) || (a=='group' && IV()) || (a=='catalog' && IN()) || (a=='material_delete' && JE()) || (a=='platform_gp' && u(A()) && JH()) || (a=='channel' && u(A()) && JK()); }
-allow update: if Z(A()) && (JM());
+  function JN() { let a=B().get('lastOpKind',''); return (a=='access' && JL()) || (a=='pos_setting' && JM()) || (a=='sale_set' && IK()) || (a=='stock_in' && IL()) || (a=='package_stock_in' && JC()) || (a=='produce' && IS()) || (a=='cancel' && IR()) || (a=='command_abort' && JJ()) || (a=='history_clear' && JF()) || (a=='stock_count' && IU()) || (a=='switch_lot' && IT()) || (a=='material_create' && IX()) || (a=='material_archive' && IY()) || (a=='material_metadata' && IZ()) || (a=='material_measure' && JA()) || (a=='material_details' && JD()) || (a=='material_type' && JB()) || (a=='production_recipe' && IW()) || (a=='menu' && IP()) || (a=='addon' && IQ()) || (a=='group' && IV()) || (a=='catalog' && IN()) || (a=='material_delete' && JE()) || (a=='platform_gp' && h(A()) && JH()) || (a=='channel' && h(A()) && JK()); }
+allow update: if Z(A()) && (JN());
+
 
 
 

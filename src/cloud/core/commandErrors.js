@@ -20,6 +20,7 @@ const messages={
  STALE_INVENTORY_DRAFT:'ยอดร้านเปลี่ยนแล้ว กรุณาตรวจแบบร่างกับข้อมูลล่าสุดก่อนบันทึก',
  PRICE_REVIEW_REQUIRED:'ราคาเมนูเปลี่ยนแล้ว กรุณาหยุดบิลที่ยังไม่สำเร็จและตรวจราคาในตะกร้าใหม่',
  CATALOG_REVIEW_REQUIRED:'เมนูหรือตัวเลือกเปลี่ยนแล้ว กรุณาหยุดบิลที่ยังไม่สำเร็จและตรวจตะกร้ากับข้อมูลล่าสุดก่อนยืนยันใหม่',
+ POS_DISABLED:'ร้านปิดหน้าขาย POS ไว้แล้ว ตะกร้ายังอยู่',
  PENDING_RESULT:'ยังยืนยันผลรายการเดิมไม่ได้ กรุณาตรวจผลก่อนบันทึกรายการใหม่',
 }
 export function commandErrorMessage(error){return messages[error?.causeCode]||messages[error?.code||error?.message]||null}

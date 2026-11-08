@@ -242,6 +242,7 @@ export function createCoreTransport({db,getContext}){
   if(!/^[A-Za-z0-9_-]{1,120}$/.test(command.opId||''))throw fail('INVALID_COMMAND_ID')
   const saved=await receipt(command.kind,command.opId);if(saved)return checkReceipt(s,command,saved)
   const initial=await snapshot();guard(s)
+  if(command.kind==='sale'&&initial.shop.posEnabled===false)throw fail('POS_DISABLED')
   if(command.kind==='channel'){
    const {nextShop}=plan(s,command,initial.shop,initial.materials).f
    const display=await getDocFromServer(doc(db,`${gen(s)}/display/catalog`));guard(s)
@@ -259,6 +260,7 @@ export function createCoreTransport({db,getContext}){
    const receiptRef=doc(db,`${gen(s)}/${collectionFor(command.kind)}/${command.opId}`),existing=await t.get(receiptRef)
    if(existing.exists())return checkReceipt(s,command,existing.data())
    const shop=shopDoc.data(),ids=shop.materialIds||shop.catalog.summaryMaterials,materials=[]
+   if(command.kind==='sale'&&shop.posEnabled===false)throw fail('POS_DISABLED')
    attemptedRevision=shop.revision
    for(const id of ids){const m=await t.get(doc(db,`${gen(s)}/materials/${id}`));if(!m.exists())throw fail('INCOMPLETE_INVENTORY');materials.push(m.data())}
    attemptedMaterials=materials
