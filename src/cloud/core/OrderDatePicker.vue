@@ -12,14 +12,12 @@
   <div ref="calendar" class="calendar-days" role="group" aria-label="วันในเดือนที่แสดง" @keydown="moveDay">
    <span v-for="weekday in weekdays" :key="weekday" class="calendar-weekday" aria-hidden="true">{{ weekday }}</span>
    <span v-for="blank in leadingDays" :key="`blank-${blank}`" aria-hidden="true"></span>
-   <button v-for="date in dates" :key="date" type="button" :data-calendar-day="date" :aria-label="dateLabel(date)" :aria-pressed="date===day" :aria-current="date===today?'date':undefined" :disabled="!selectable(date)" :tabindex="date===tabStop?0:-1" @click="select(date)">
+   <button v-for="date in dates" :key="date" type="button" :data-calendar-day="date" :class="{'calendar-day--marked':draftDays.has(date)||orderDays.has(date)}" :aria-label="dateLabel(date)" :aria-pressed="date===day" :aria-current="date===today?'date':undefined" :disabled="!selectable(date)" :tabindex="date===tabStop?0:-1" @click="select(date)">
     <span class="calendar-date-number">{{ Number(date.slice(-2)) }}</span>
-    <Transition name="calendar-sticker">
-     <span v-if="draftDays.has(date)" class="calendar-cart" data-calendar-cart aria-hidden="true"><ShoppingCart :size="11" /></span>
-    </Transition>
-    <Transition name="calendar-sticker">
-     <img v-if="orderDays.has(date)" :src="orderSticker" alt="" width="21" height="21" class="calendar-order" data-calendar-order />
-    </Transition>
+    <span class="calendar-stickers" aria-hidden="true">
+     <Transition name="calendar-sticker"><span v-if="draftDays.has(date)" class="calendar-cart" data-calendar-cart></span></Transition>
+     <Transition name="calendar-sticker"><img v-if="orderDays.has(date)" :src="date===day?lightOrderSticker:darkOrderSticker" alt="" width="19" height="19" class="calendar-order" data-calendar-order /></Transition>
+    </span>
    </button>
   </div>
   <div class="calendar-note" aria-live="polite">
@@ -27,8 +25,8 @@
    <span v-else-if="state==='loading'">กำลังตรวจประวัติเดือนนี้…</span>
    <span v-else-if="state==='offline'">เชื่อมต่อเพื่อดูประวัติย้อนหลัง</span>
    <div v-else class="calendar-legend">
-    <span><ShoppingCart :size="14" aria-hidden="true" />มีตะกร้าร่าง</span>
-    <span><img :src="orderSticker" alt="" width="18" height="18" />มีออเดอร์</span>
+    <span><span class="calendar-cart" aria-hidden="true"></span>มีตะกร้าร่าง</span>
+    <span><img :src="darkOrderSticker" alt="" width="18" height="18" />มีออเดอร์</span>
    </div>
   </div>
  </section>
@@ -36,7 +34,7 @@
 
 <script setup>
 import {computed,nextTick,ref,watch} from 'vue'
-import {CalendarDays,ChevronLeft,ChevronRight,ShoppingCart} from 'lucide-vue-next'
+import {CalendarDays,ChevronLeft,ChevronRight} from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import IconButton from '@/components/ui/IconButton.vue'
 import {businessDay,dayKey,monthOf,offsetMonth} from './orderEntry.js'
@@ -44,7 +42,8 @@ import {businessDay,dayKey,monthOf,offsetMonth} from './orderEntry.js'
 const props=defineProps({day:String,today:String,month:String,max:String,disabled:Boolean,state:String,orderDays:Set,draftDays:{type:Set,default:()=>new Set()}})
 const emit=defineEmits(['update:day','update:month','retry'])
 const min='0001-01-01'
-const orderSticker=`${import.meta.env.BASE_URL}brand/order-sticker.svg?v=cream`
+const lightOrderSticker=`${import.meta.env.BASE_URL}brand/order-sticker.svg?v=cream`
+const darkOrderSticker=`${import.meta.env.BASE_URL}brand/order-sticker-dark.svg`
 const weekdays=['จ.','อ.','พ.','พฤ.','ศ.','ส.','อา.']
 const arrows={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}
 const asDate=value=>new Date(`${value}T00:00:00Z`)
@@ -100,14 +99,15 @@ async function moveDay(event){
 .calendar-days button:disabled .calendar-date-number{opacity:.55}
 .calendar-days button[aria-pressed=true]:disabled{background:var(--accent-brand)}
 .calendar-days button[aria-pressed=true]:disabled .calendar-date-number{opacity:1}
-.calendar-cart,.calendar-order{position:absolute;inset-inline-end:3px;pointer-events:none;transform-origin:bottom right}
-.calendar-cart{inset-block-start:2px;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--bg-card);color:var(--accent-brand)}
-.calendar-order{inset-block-end:1px;width:21px;height:21px;transform:rotate(10deg)}
+.calendar-day--marked .calendar-date-number{display:inline-block;transform:translateY(-6px)}
+.calendar-stickers{position:absolute;inset-inline-end:3px;inset-block-end:2px;display:flex;align-items:center;gap:1px;max-width:calc(100% - 5px);pointer-events:none}
+.calendar-cart{display:inline-block;width:17px;height:17px;background-color:var(--accent-brand);mask:url('@/assets/calendar-draft-cart.svg') center/contain no-repeat}
+.calendar-stickers .calendar-cart,.calendar-order{min-width:0;transform-origin:bottom right}
+.calendar-order{width:19px;height:19px;object-fit:contain;transform:rotate(7deg)}
+.calendar-days button[aria-pressed=true] .calendar-cart{background-color:var(--bg-card)}
 .calendar-note{min-height:32px;color:var(--text-muted);font-size:.75rem}
 .calendar-legend,.calendar-legend span{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .calendar-legend{gap:6px 16px}
-.calendar-legend svg{color:var(--accent-brand)}
-.calendar-days button:not([aria-pressed=true]) .calendar-order,.calendar-legend img{filter:drop-shadow(0 0 1px var(--accent-brand))}
 @media(prefers-reduced-motion:no-preference){
  .calendar-days button{transition:background-color 150ms ease,color 150ms ease,transform 150ms ease}
  .calendar-days button:active:not(:disabled){transform:scale(.97)}
@@ -115,7 +115,8 @@ async function moveDay(event){
  @keyframes sticker-place{from{opacity:0;scale:.65;translate:0 -3px}}
 }
 @media(max-width:480px){
- .calendar-order{width:17px;height:17px;inset-inline-end:2px}
- .calendar-cart{inset-inline-end:2px}
+ .calendar-stickers{inset-inline-end:2px}
+ .calendar-stickers .calendar-cart{width:14px;height:14px}
+ .calendar-order{width:16px;height:16px}
 }
 </style>
