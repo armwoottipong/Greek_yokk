@@ -125,7 +125,7 @@ onScopeDispose(()=>{disposed=true})
 <style scoped>
 .order-entry{display:grid;gap:12px;min-width:0;font-size:.8125rem;container-type:inline-size}
 .order-entry-overview{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);align-items:start;gap:24px}
-.order-entry-summary{display:grid;gap:12px;min-width:0}
+.order-entry-summary{display:grid;gap:12px;min-width:0;padding:12px;border:1px solid var(--border-subtle);border-radius:16px}
 .order-entry h3{font-size:1.125rem;font-weight:600}
 .order-entry header p,.order-entry-linked{color:var(--text-muted)}
 .order-entry-total{display:grid;gap:4px;padding:12px;background:var(--bg-soft);border-radius:10px;color:var(--text-muted)}
