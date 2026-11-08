@@ -1,7 +1,7 @@
 <template>
  <section class="order-entry" aria-label="บันทึกออเดอร์ตามวัน">
   <div class="order-entry-overview">
-   <OrderDatePicker v-model:month="visibleMonth" class="order-entry-surface" :day="day" :today="today" :max="latestDay" :disabled="dateLocked" :state="calendarState" :order-days="orderDays" @update:day="$emit('update:day',$event)" @retry="retryMonth(visibleMonth)" />
+   <OrderDatePicker v-model:month="visibleMonth" class="order-entry-surface" :day="day" :today="today" :max="latestDay" :disabled="dateLocked" :state="calendarState" :order-days="orderDays" :draft-days="draftDays" @update:day="$emit('update:day',$event)" @retry="retryMonth(visibleMonth)" />
    <section class="order-entry-summary order-entry-surface" aria-labelledby="order-entry-summary-title">
     <header><h3 id="order-entry-summary-title">สรุปออเดอร์</h3><p>{{ displayDate(day) }}</p></header>
     <div class="order-entry-total"><span>ยอดขายจริง</span><strong>{{ salesReady ? `฿${money(daily.metrics.totalSales)}` : '—' }}</strong></div>
@@ -16,48 +16,34 @@
      <h4>เมนูขายดี</h4>
      <ul><li v-for="row in daily.menus.slice(0,3)" :key="row.id"><span>{{ row.label }}</span><strong>{{ money(row.qty) }} ชาม</strong></li></ul>
     </div>
+    <div v-if="linked" class="order-entry-linked">
+     <span>กำลังเปิด Pre-order · ตะกร้าร่างเก็บแยกไว้</span>
+     <Button variant="quiet" size="compact" :disabled="blocked" @click="$emit('leave-preorder')">ออกจากรายการนี้</Button>
+    </div>
+    <Button data-order-details variant="secondary" aria-haspopup="dialog" aria-controls="order-entry-details" @click="detailsOpen=true"><ListOrdered :size="18" aria-hidden="true" />ดูรายละเอียดออเดอร์<ChevronRight :size="16" aria-hidden="true" /></Button>
    </section>
   </div>
-  <section class="order-entry-records order-entry-surface" aria-labelledby="order-entry-records-title">
-   <header><h3 id="order-entry-records-title">ออเดอร์วันที่เลือก</h3><p>{{ displayDate(day) }}</p></header>
-   <div v-if="linked" class="order-entry-linked">
-    <span>กำลังเปิด Pre-order · ตะกร้าร่างของวันนี้เก็บแยกไว้</span>
-    <Button variant="quiet" size="compact" :disabled="blocked" @click="$emit('leave-preorder')">ออกจากรายการนี้</Button>
-   </div>
-   <p v-if="dailyState==='loading'" role="status">กำลังโหลดออเดอร์ของวันที่เลือก…</p>
-   <div v-else-if="dailyState==='error'" class="order-entry-linked"><p role="alert">โหลดออเดอร์ของวันที่เลือกไม่ได้</p><Button variant="quiet" size="compact" @click="retryMonth(activeMonth)">ลองใหม่</Button></div>
-   <p v-else-if="dailyState==='offline'" role="status">เชื่อมต่อเพื่อดูออเดอร์ของวันที่เลือก</p>
-   <p v-else-if="!sales.length&&!bookings.length" class="order-entry-empty">ยังไม่มีออเดอร์ในวันที่เลือก</p>
-   <ul v-if="sales.length||bookings.length" class="order-entry-list">
-    <li v-for="sale in sales" :key="sale.reportKey">
-     <div><strong>{{ sale.platformName || 'ยอดขาย' }}</strong><small v-if="sale.status==='cancelled'">คืนบิลแล้ว</small><small>{{ sale.items?.map(item=>item.menuName+' × '+item.qty).join(' · ') }}</small></div>
-     <span>฿{{ money(sale.subtotal) }}</span>
-     <Button variant="quiet" size="compact" @click="$emit('open-sale',sale)">ดูบิล</Button>
-    </li>
-    <li v-for="booking in bookings" :key="booking.id">
-     <div><strong>Pre-order</strong><small>{{ data.display.platforms?.[booking.platformId]?.name || booking.platformId }}</small></div>
-     <span>฿{{ money(booking.quoteCents/100) }}</span>
-     <Button variant="quiet" size="compact" :disabled="blocked" @click="$emit('open-preorder',booking)">เปิดออเดอร์</Button>
-    </li>
-   </ul>
-  </section>
+  <OrderDetailsDialog :open="detailsOpen" :date="displayDate(day)" :sales="sales" :bookings="bookings" :display="data.display" :state="dailyState" :blocked="blocked" @request-close="detailsOpen=false" @retry="retryMonth(activeMonth)" @open-sale="$emit('open-sale',$event)" @open-preorder="$emit('open-preorder',$event)" />
  </section>
 </template>
 
 <script setup>
 import {computed,onScopeDispose,ref,shallowReactive,watch} from 'vue'
+import {ChevronRight,ListOrdered} from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import {buildDashboard,money} from '@/domain/dashboard'
 import {businessDateKey} from '@/domain/businessDate.js'
 import {businessDay,dayKey,monthOf,offsetMonth,scheduledSummary} from './orderEntry.js'
 import OrderDatePicker from './OrderDatePicker.vue'
+import OrderDetailsDialog from './OrderDetailsDialog.vue'
 import {projectReportOrders} from './reportProjection.js'
 
-const props=defineProps({day:String,today:String,data:Object,service:Object,revision:Number,refreshKey:Number,ready:Boolean,blocked:Boolean,dateLocked:Boolean,linked:Boolean})
+const props=defineProps({day:String,today:String,data:Object,service:Object,revision:Number,refreshKey:Number,ready:Boolean,blocked:Boolean,dateLocked:Boolean,linked:Boolean,draftDays:Set})
 defineEmits(['update:day','open-sale','open-preorder','leave-preorder'])
 const dateFormat=new Intl.DateTimeFormat('th-TH',{dateStyle:'long',timeZone:'UTC'})
 const displayDate=value=>dateFormat.format(new Date(value+'T00:00:00Z'))
 const activeMonth=computed(()=>monthOf(props.day)),visibleMonth=ref(activeMonth.value)
+const detailsOpen=ref(false)
 const latestDay=computed(()=>dayKey(businessDay(props.today)+366))
 const reports=shallowReactive(new Map())
 let pending=false,disposed=false
@@ -140,9 +126,9 @@ onScopeDispose(()=>{disposed=true})
 .order-entry{display:grid;gap:12px;min-width:0;font-size:.8125rem;container-type:inline-size}
 .order-entry-overview{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);align-items:start;gap:12px}
 .order-entry-surface{min-width:0;padding:16px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:16px}
-.order-entry-summary,.order-entry-records{display:grid;gap:12px}
+.order-entry-summary{display:grid;gap:12px}
 .order-entry h3{font-size:1.125rem;font-weight:600}
-.order-entry header p,.order-entry-empty,.order-entry-records>p{color:var(--text-muted)}
+.order-entry header p,.order-entry-linked{color:var(--text-muted)}
 .order-entry-total{display:grid;gap:4px;padding:12px;background:var(--bg-soft);border-radius:10px;color:var(--text-muted)}
 .order-entry-total strong{color:var(--accent-brand);font-size:1.625rem;font-variant-numeric:tabular-nums}
 .order-entry-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
@@ -156,10 +142,7 @@ onScopeDispose(()=>{disposed=true})
 .order-entry-menus li{min-height:26px}
 .order-entry-menus li span{overflow-wrap:anywhere}
 .order-entry-menus li strong{white-space:nowrap}
-.order-entry-list li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--border-subtle)}
-.order-entry-list li>div{min-width:0;overflow-wrap:anywhere}
-.order-entry-list small{display:block;color:var(--text-muted)}
-.order-entry-list li>span{font-variant-numeric:tabular-nums;white-space:nowrap}
+.order-entry-summary>[data-order-details]{justify-content:space-between;gap:8px;color:var(--accent-brand)}
 @container(max-width:660px){.order-entry-overview{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:480px){.order-entry-surface{padding:12px}.order-entry-list li{gap:4px}}
+@media(max-width:480px){.order-entry-surface{padding:12px}}
 </style>

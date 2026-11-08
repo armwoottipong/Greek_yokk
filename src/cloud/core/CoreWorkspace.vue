@@ -5,7 +5,7 @@
   <template v-else>
    <section v-if="operator&&(posEnabled||entryMode)" v-show="orderWorkspace" class="pos-workspace" :aria-label="entryMode?'บันทึกออเดอร์':'ขายสินค้า'">
     <OrderEntryPanel v-if="entryMode" :day="orderDay" :today="today" :data="data" :service="service" :revision="data.shop.revision" :refresh-key="entryRefreshKey" :ready="ready"
-      :blocked="locked||!!pendingPreorder" :date-locked="orderDraftLocked||!!bookingId" :linked="!!bookingId"
+      :blocked="locked||!!pendingPreorder" :date-locked="orderDraftLocked||!!bookingId" :linked="!!bookingId" :draft-days="draftDays"
       @update:day="setOrderDay" @open-sale="openDailySale" @open-preorder="openPreorder" @leave-preorder="leavePreorder"/>
     <section v-if="entryMode&&expiredCarts.length" class="expired-carts" aria-labelledby="expired-carts-title">
      <h3 id="expired-carts-title">ตะกร้าร่างจากวันก่อน</h3>
@@ -119,6 +119,12 @@ const orderAction=computed(()=>entryMode.value?(pendingPreorder.value?'ตรว
 const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
 const cart=ref([]),platformId=ref(''),selectedMenu=ref(''),choices=ref({}),quantity=ref(1),lineNote=ref(''),approveShortage=ref(false),cancelId=ref(''),legacyOrders=ref([])
 const parkedCarts=shallowReactive(new Map())
+const draftDays=computed(()=>{
+ const days=new Set()
+ for(const [day,draft] of parkedCarts)if(draft.cart.length)days.add(day)
+ if(!bookingId.value&&cart.value.length)days.add(orderDay.value)
+ return days
+})
 const todayCartHasLines=computed(()=>!!(orderDay.value===today.value&&!bookingId.value?cart.value:parkedCarts.get(today.value)?.cart)?.length)
 const expiredCarts=computed(()=>{
  const drafts=new Map(parkedCarts)

@@ -13,28 +13,38 @@
    <span v-for="weekday in weekdays" :key="weekday" class="calendar-weekday" aria-hidden="true">{{ weekday }}</span>
    <span v-for="blank in leadingDays" :key="`blank-${blank}`" aria-hidden="true"></span>
    <button v-for="date in dates" :key="date" type="button" :data-calendar-day="date" :aria-label="dateLabel(date)" :aria-pressed="date===day" :aria-current="date===today?'date':undefined" :disabled="!selectable(date)" :tabindex="date===tabStop?0:-1" @click="select(date)">
-    {{ Number(date.slice(-2)) }}<span v-if="orderDays.has(date)" class="calendar-order-dot" aria-hidden="true"></span>
+    <span class="calendar-date-number">{{ Number(date.slice(-2)) }}</span>
+    <Transition name="calendar-sticker">
+     <span v-if="draftDays.has(date)" class="calendar-cart" data-calendar-cart aria-hidden="true"><ShoppingCart :size="11" /></span>
+    </Transition>
+    <Transition name="calendar-sticker">
+     <img v-if="orderDays.has(date)" :src="orderSticker" alt="" width="21" height="21" class="calendar-order" data-calendar-order />
+    </Transition>
    </button>
   </div>
   <div class="calendar-note" aria-live="polite">
    <template v-if="state==='error'"><span>โหลดประวัติเดือนนี้ไม่ได้</span><Button variant="quiet" size="compact" @click="$emit('retry')">ลองใหม่</Button></template>
    <span v-else-if="state==='loading'">กำลังตรวจประวัติเดือนนี้…</span>
    <span v-else-if="state==='offline'">เชื่อมต่อเพื่อดูประวัติย้อนหลัง</span>
-   <span v-else><i class="calendar-legend-dot" aria-hidden="true"></i> มีออเดอร์ · วันย้อนหลังที่ไม่มีออเดอร์เลือกไม่ได้</span>
+   <div v-else class="calendar-legend">
+    <span><ShoppingCart :size="14" aria-hidden="true" />มีตะกร้าร่าง</span>
+    <span><img :src="orderSticker" alt="" width="18" height="18" />มีออเดอร์</span>
+   </div>
   </div>
  </section>
 </template>
 
 <script setup>
 import {computed,nextTick,ref,watch} from 'vue'
-import {CalendarDays,ChevronLeft,ChevronRight} from 'lucide-vue-next'
+import {CalendarDays,ChevronLeft,ChevronRight,ShoppingCart} from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import IconButton from '@/components/ui/IconButton.vue'
 import {businessDay,dayKey,monthOf,offsetMonth} from './orderEntry.js'
 
-const props=defineProps({day:String,today:String,month:String,max:String,disabled:Boolean,state:String,orderDays:Set})
+const props=defineProps({day:String,today:String,month:String,max:String,disabled:Boolean,state:String,orderDays:Set,draftDays:{type:Set,default:()=>new Set()}})
 const emit=defineEmits(['update:day','update:month','retry'])
 const min='0001-01-01'
+const orderSticker=`${import.meta.env.BASE_URL}brand/order-sticker.svg`
 const weekdays=['จ.','อ.','พ.','พฤ.','ศ.','ส.','อา.']
 const arrows={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}
 const asDate=value=>new Date(`${value}T00:00:00Z`)
@@ -49,7 +59,7 @@ const dates=computed(()=>{
 })
 const selectable=date=>!props.disabled&&date<=props.max&&(date>=props.today||props.orderDays.has(date))
 const tabStop=computed(()=>dates.value.includes(focusDay.value)&&selectable(focusDay.value)?focusDay.value:dates.value.find(selectable))
-const dateLabel=date=>dateFormat.format(asDate(date))+(props.orderDays.has(date)?' มีออเดอร์':'')
+const dateLabel=date=>[dateFormat.format(asDate(date)),props.draftDays.has(date)&&'มีตะกร้าร่าง',props.orderDays.has(date)&&'มีออเดอร์'].filter(Boolean).join(' · ')
 watch(()=>props.day,day=>{focusDay.value=day})
 function select(date){
  if(!selectable(date))return
@@ -79,16 +89,33 @@ async function moveDay(event){
 .calendar-heading,.calendar-note{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .calendar-heading h3{display:flex;align-items:center;gap:8px;font-size:1.125rem;font-weight:600}
 .calendar-heading h3 svg{color:var(--accent-brand)}
-.calendar-month{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;text-align:center;font-weight:600}
+.calendar-month{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;text-align:center;font-weight:600;background:var(--bg-soft);border-radius:12px}
 .calendar-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
 .calendar-weekday{padding:4px 0;color:var(--text-muted);font-size:.75rem}
-.calendar-days button{position:relative;min-height:44px;border-radius:8px;font-variant-numeric:tabular-nums}
+.calendar-days button{position:relative;min-height:48px;border-radius:10px;background:var(--accent-soft);font-variant-numeric:tabular-nums}
 .calendar-days button:hover:not(:disabled){background:var(--bg-soft)}
 .calendar-days button[aria-current=date]{box-shadow:inset 0 0 0 1px var(--accent-brand);font-weight:600}
 .calendar-days button[aria-pressed=true],.calendar-days button[aria-pressed=true]:hover{background:var(--accent-brand);color:var(--bg-card);font-weight:600}
-.calendar-days button:disabled{opacity:.38;cursor:not-allowed}
-.calendar-order-dot,.calendar-legend-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor}
-.calendar-order-dot{position:absolute;bottom:5px;left:calc(50% - 2.5px)}
+.calendar-days button:disabled{background:transparent;cursor:not-allowed}
+.calendar-days button:disabled .calendar-date-number{opacity:.55}
+.calendar-days button[aria-pressed=true]:disabled{background:var(--accent-brand)}
+.calendar-days button[aria-pressed=true]:disabled .calendar-date-number{opacity:1}
+.calendar-cart,.calendar-order{position:absolute;inset-inline-end:3px;pointer-events:none;transform-origin:bottom right}
+.calendar-cart{inset-block-start:2px;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--bg-card);color:var(--accent-brand)}
+.calendar-order{inset-block-end:1px;width:21px;height:21px;border-radius:8px;transform:rotate(10deg)}
 .calendar-note{min-height:32px;color:var(--text-muted);font-size:.75rem}
-.calendar-legend-dot{margin-inline-end:4px;color:var(--accent-brand);vertical-align:middle}
+.calendar-legend,.calendar-legend span{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.calendar-legend{gap:6px 16px}
+.calendar-legend svg{color:var(--accent-brand)}
+.calendar-legend img{border-radius:8px}
+@media(prefers-reduced-motion:no-preference){
+ .calendar-days button{transition:background-color 150ms ease,color 150ms ease,transform 150ms ease}
+ .calendar-days button:active:not(:disabled){transform:scale(.97)}
+ .calendar-sticker-enter-active{animation:sticker-place 220ms cubic-bezier(.16,1,.3,1)}
+ @keyframes sticker-place{from{opacity:0;scale:.65;translate:0 -3px}}
+}
+@media(max-width:480px){
+ .calendar-order{width:17px;height:17px;inset-inline-end:2px}
+ .calendar-cart{inset-inline-end:2px}
+}
 </style>
