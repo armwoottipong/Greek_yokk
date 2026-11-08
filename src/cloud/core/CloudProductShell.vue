@@ -68,7 +68,8 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
 }
 
 .product-content--order-entry :deep(.pos-menu-card) {
-  border: 1px solid var(--control-border);
+  border: 1px solid var(--border-subtle);
+  border-color: color-mix(in srgb, var(--border-subtle) 75%, var(--control-border));
 }
 
 .product-content--stock :deep(.stock-table-surface),
