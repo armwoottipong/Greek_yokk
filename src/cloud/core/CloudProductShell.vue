@@ -28,7 +28,12 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
 .product-content.product-content--options{display:flex;flex-direction:column;overflow:hidden;padding:0;background:var(--bg-card)}
 .product-content.product-content--menu{padding:0;background:var(--bg-card)}
 .product-shell{display:flex;width:100%;height:100dvh;min-width:0;background:var(--bg-primary);color:var(--text-main);overflow:hidden}.product-main{display:flex;flex:1;flex-direction:column;min-width:0;min-height:0}.product-content{flex:1;min-height:0;overflow:auto;padding:24px;outline:none}.brand-page-header{min-height:var(--panel-header-height);display:flex;align-items:center;justify-content:space-between;padding:16px 24px;gap:16px;background:var(--bg-card);flex-shrink:0}.header-page-title{min-width:0}.header-page-title h2{font-size:1rem;font-weight:600;line-height:1.5}.header-page-title p{font-size:.75rem;line-height:1.6;color:var(--text-muted);margin-top:3px}.header-quick-actions{display:flex;gap:6px;flex-shrink:0}.mobile-menu-toggle{display:none;place-items:center;width:44px;height:44px;color:var(--accent-brand);border-radius:12px}.mobile-menu-toggle:focus-visible{outline:2px solid var(--accent-brand);outline-offset:2px}
-@media(max-width:1199px){.mobile-menu-toggle{display:grid;position:fixed;left:82px;top:12px;z-index:70}.mobile-menu-toggle[aria-expanded=true]{left:10px;color:var(--bg-card)}.brand-page-header{padding-left:66px}.header-quick-actions span{display:none}}
+@media(max-width:1199px){
+ .brand-page-header{position:relative;padding-left:66px}
+ .mobile-menu-toggle{display:grid;position:absolute;left:16px;top:50%;transform:translateY(-50%);z-index:70}
+ .mobile-menu-toggle[aria-expanded=true]{position:fixed;left:10px;top:12px;transform:none;color:var(--bg-card)}
+ .header-quick-actions span{display:none}
+}
 @media(max-width:767px){.mobile-menu-toggle{left:10px}.brand-page-header{padding:12px 12px 12px 66px;gap:8px}.header-page-title h2{font-size:.875rem}.header-page-title p{display:none}.product-content{padding:16px}.header-quick-actions{gap:0}}
 </style>
 <style scoped>
