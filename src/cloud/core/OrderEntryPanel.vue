@@ -1,8 +1,8 @@
 <template>
  <section class="order-entry" aria-label="บันทึกออเดอร์ตามวัน">
   <div class="order-entry-overview">
-   <OrderDatePicker v-model:month="visibleMonth" class="order-entry-surface" :day="day" :today="today" :max="latestDay" :disabled="dateLocked" :state="calendarState" :order-days="orderDays" :draft-days="draftDays" @update:day="$emit('update:day',$event)" @retry="retryMonth(visibleMonth)" />
-   <section class="order-entry-summary order-entry-surface" aria-labelledby="order-entry-summary-title">
+   <OrderDatePicker v-model:month="visibleMonth" :day="day" :today="today" :max="latestDay" :disabled="dateLocked" :state="calendarState" :order-days="orderDays" :draft-days="draftDays" @update:day="$emit('update:day',$event)" @retry="retryMonth(visibleMonth)" />
+   <section class="order-entry-summary" aria-labelledby="order-entry-summary-title">
     <header><h3 id="order-entry-summary-title">สรุปออเดอร์</h3><p>{{ displayDate(day) }}</p></header>
     <div class="order-entry-total"><span>ยอดขายจริง</span><strong>{{ salesReady ? `฿${money(daily.metrics.totalSales)}` : '—' }}</strong></div>
     <dl class="order-entry-metrics">
@@ -124,9 +124,8 @@ onScopeDispose(()=>{disposed=true})
 
 <style scoped>
 .order-entry{display:grid;gap:12px;min-width:0;font-size:.8125rem;container-type:inline-size}
-.order-entry-overview{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);align-items:start;gap:12px}
-.order-entry-surface{min-width:0;padding:16px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:16px}
-.order-entry-summary{display:grid;gap:12px}
+.order-entry-overview{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);align-items:start;gap:24px}
+.order-entry-summary{display:grid;gap:12px;min-width:0}
 .order-entry h3{font-size:1.125rem;font-weight:600}
 .order-entry header p,.order-entry-linked{color:var(--text-muted)}
 .order-entry-total{display:grid;gap:4px;padding:12px;background:var(--bg-soft);border-radius:10px;color:var(--text-muted)}
@@ -144,5 +143,4 @@ onScopeDispose(()=>{disposed=true})
 .order-entry-menus li strong{white-space:nowrap}
 .order-entry-summary>[data-order-details]{justify-content:space-between;gap:8px;color:var(--accent-brand)}
 @container(max-width:660px){.order-entry-overview{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:480px){.order-entry-surface{padding:12px}}
 </style>

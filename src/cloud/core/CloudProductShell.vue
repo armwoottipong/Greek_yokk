@@ -8,7 +8,7 @@
     <div class="header-page-title" :inert="mobileOpen||undefined"><h2>{{ title }}</h2><p>{{ model.connected?'ข้อมูลร้านจาก Firebase · ใช้ร่วมกันทุกเครื่อง':'ขาดการเชื่อมต่อ · เก็บตะกร้าไว้แล้ว ยังบันทึกไม่ได้' }}</p></div>
     <div class="header-quick-actions" :inert="mobileOpen||undefined"><Button v-if="model.role!=='viewer'" variant="quiet" size="compact" :disabled="busy" :aria-label="historyLabel" @click="$emit('history')"><History :size="17"/><span>ประวัติ</span></Button><Button variant="quiet" size="compact" :loading="loading" :disabled="busy||!online||loading" aria-label="โหลดข้อมูลล่าสุด" @click="$emit('reload')"><RefreshCw :size="17"/><span>โหลดข้อมูลล่าสุด</span></Button><Button variant="quiet" size="compact" :disabled="busy" aria-label="ออกจากระบบ" @click="$emit('sign-out')"><LogOut :size="17"/><span>ออกจากระบบ</span></Button></div>
    </header>
-   <main id="cloud-main" ref="main" tabindex="-1" :inert="mobileOpen||undefined" class="product-content" :class="{ 'product-content--stock': model.currentTab === 'stock', 'product-content--options': model.currentTab === 'addon', 'product-content--menu': model.currentTab === 'menu' }"><slot/></main>
+   <main id="cloud-main" ref="main" tabindex="-1" :inert="mobileOpen||undefined" class="product-content" :class="{ 'product-content--stock': model.currentTab === 'stock', 'product-content--options': model.currentTab === 'addon', 'product-content--menu': model.currentTab === 'menu', 'product-content--order-entry': model.currentTab === 'order-entry' }"><slot/></main>
   </div>
  </div>
 </template>
@@ -37,15 +37,17 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
 @media(max-width:767px){.mobile-menu-toggle{left:10px}.brand-page-header{padding:12px 12px 12px 66px;gap:8px}.header-page-title h2{font-size:.875rem}.header-page-title p{display:none}.product-content{padding:16px}.header-quick-actions{gap:0}}
 </style>
 <style scoped>
-.product-content--stock {
-  --stock-page-inset: 24px;
+.product-content--stock,
+.product-content--order-entry {
+  --workspace-page-inset: 24px;
   background: var(--bg-card);
-  padding-inline: var(--stock-page-inset);
+  padding-inline: var(--workspace-page-inset);
 }
 
 @media (max-width: 767px) {
-  .product-content--stock {
-    --stock-page-inset: 16px;
+  .product-content--stock,
+  .product-content--order-entry {
+    --workspace-page-inset: 16px;
   }
 }
 
@@ -60,7 +62,8 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
   padding: 0;
 }
 
-.product-content--stock :deep(.stock-search > .app-search) {
+.product-content--stock :deep(.stock-search > .app-search),
+.product-content--order-entry :deep(.pos-search > div) {
   border: 1px solid var(--border-subtle);
 }
 
@@ -72,7 +75,7 @@ watch(()=>props.model.currentTab,async()=>{mobileOpen.value=false;await nextTick
 }
 
 .product-content--stock :deep(.stock-table-surface) {
-  margin-inline: calc(-1 * var(--stock-page-inset));
+  margin-inline: calc(-1 * var(--workspace-page-inset));
 }
 
 .product-content--stock :deep(.stock-table-surface .stock-inventory-table) {
