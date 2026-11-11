@@ -12,6 +12,7 @@
    <div class="cart-lines">
     <article v-for="(item,index) in store.cart" :key="index" :data-cart-item="index" :data-cart-line="index" class="cart-line">
      <div class="cart-line-title">
+      <span class="cart-line-image"><EntityImage :entity-id="item.menu.id" :image="item.menu.image" :emoji="item.menu.emoji" /></span>
       <h4>{{ item.menu.name }}</h4>
       <strong class="cart-line-price font-number">฿{{ money(itemPrice(item,store.currentPlatformId)) }}</strong>
      </div>
@@ -45,6 +46,7 @@ import {usePosStore} from '@/stores/posStore'
 import {money} from '@/domain/dashboard'
 import Button from '@/components/ui/Button.vue'
 import IconButton from '@/components/ui/IconButton.vue'
+import EntityImage from '@/components/images/EntityImage.vue'
 import CartDetailsDialog from './CartDetailsDialog.vue'
 import {itemPrice} from './cartPrices'
 
@@ -74,9 +76,10 @@ async function clearCart(){
 .cart-info,.cart-remove,.cart-quantity :deep(.ui-button){width:44px;min-height:44px}
 .cart-info{color:var(--accent-brand);background:var(--bg-soft)}
 .cart-lines{border-block:1px solid var(--border-subtle)}
-.cart-line{display:grid;gap:4px;padding:8px 0;min-width:0}
+.cart-line{display:grid;gap:6px;padding:10px 0;min-width:0}
 .cart-line + .cart-line{border-top:1px solid var(--border-subtle)}
-.cart-line-title{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:8px}
+.cart-line-title{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:10px}
+.cart-line-image{width:48px;height:48px;border-radius:10px;background:var(--bg-soft)}
 .cart-line-title h4{font-size:.9375rem;font-weight:600;overflow-wrap:anywhere;line-height:1.45}
 .cart-line-price{color:var(--accent-brand);font-size:1.125rem;font-weight:650;white-space:nowrap}
 .cart-quantity{display:flex;align-items:center;background:var(--bg-soft);border-radius:10px}

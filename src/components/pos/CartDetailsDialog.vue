@@ -2,20 +2,29 @@
  <DialogFrame :open="open" id="pos-cart-details" title="รายละเอียดออเดอร์" :description="model.currentPlatform?.name" presentation="sheet" width="520px" compact @request-close="$emit('close')">
   <div class="order-details">
    <section aria-labelledby="order-detail-items">
-    <h4 id="order-detail-items">เมนูและราคา</h4>
-    <article v-for="({item,ingredients},index) in lines" :key="index" class="order-detail-line">
-     <header><h5>{{ item.menu.name }}</h5><strong>฿{{ money(itemPrice(item,platform)) }}</strong></header>
-     <p class="order-detail-muted">{{ item.qty }} ชาม · ราคาเมนู ฿{{ money(menuPrice(item.menu,platform)) }} / ชาม</p>
+    <h4 id="order-detail-items">รายการในออเดอร์</h4>
+    <article v-for="({item,ingredients,groups},index) in lines" :key="index" class="order-detail-line">
+     <header class="order-detail-product">
+      <span class="order-detail-photo"><EntityImage :entity-id="item.menu.id" :image="item.menu.image" :emoji="item.menu.emoji" /></span>
+      <div class="order-detail-identity">
+       <h5>{{ item.menu.name }}</h5>
+       <p class="order-detail-muted">{{ item.qty }} ชาม · เมนู ฿{{ money(menuPrice(item.menu,platform)) }}/ชาม</p>
+      </div>
+      <strong>฿{{ money(itemPrice(item,platform)) }}</strong>
+     </header>
      <div v-if="item.selectedAddons?.length" class="order-detail-options">
-      <p class="order-detail-muted">ตัวเลือกต่อชาม</p>
-      <ul>
-       <li v-for="addon in item.selectedAddons" :key="`${addon.groupId || ''}:${addon.id}`">
-        <span>{{ addon.name }}{{ addon.selectionQty>1 ? ' ×'+addon.selectionQty : '' }}<small v-if="addon.groupName">{{ addon.groupName }}</small></span>
-        <span>{{ addonPrice(addon,platform)===0 ? 'รวมในราคา' : '+฿'+money(addonPrice(addon,platform)) }}</span>
-       </li>
-      </ul>
+      <h6>ตัวเลือกต่อชาม</h6>
+      <div v-for="[groupId,group] in groups" :key="groupId" class="order-detail-option-group">
+       <p v-if="group.name" class="order-detail-muted">{{ group.name }}</p>
+       <ul>
+        <li v-for="addon in group.options" :key="addon.id">
+         <span>{{ addon.name }}{{ addon.selectionQty>1 ? ' ×'+addon.selectionQty : '' }}</span>
+         <span>{{ addonPrice(addon,platform)===0 ? 'รวมในราคา' : '+฿'+money(addonPrice(addon,platform)) }}</span>
+        </li>
+       </ul>
+      </div>
      </div>
-     <OrderIngredients :rows="ingredients" />
+     <OrderIngredients class="order-detail-ingredients" :rows="ingredients" />
      <p v-if="item.note" class="order-detail-note"><b>หมายเหตุ</b> {{ item.note }}</p>
     </article>
    </section>
@@ -29,10 +38,10 @@
      </li>
     </ul>
    </section>
-   <section aria-labelledby="order-detail-revenue">
+   <section class="order-detail-revenue" aria-labelledby="order-detail-revenue">
     <h4 id="order-detail-revenue">ยอดชำระและรายรับ</h4>
     <dl>
-     <div><dt>ยอดชำระ</dt><dd>฿{{ amount(summary.subtotal) }}</dd></div>
+     <div class="order-detail-payable"><dt>ยอดชำระ</dt><dd>฿{{ amount(summary.subtotal) }}</dd></div>
      <div data-order-gp><dt>หัก GP ({{ summary.gpPercent }}%)</dt><dd>−฿{{ amount(summary.gpAmount) }}</dd></div>
      <div class="order-detail-total" data-order-net><dt>ร้านได้รับหลังหัก GP</dt><dd>฿{{ amount(summary.netRevenue) }}</dd></div>
     </dl>
@@ -66,29 +75,42 @@ const props=defineProps({open:Boolean,model:{type:Object,required:true},packageI
 defineEmits(['close'])
 const summary=computed(()=>props.model.cartSummary)
 const platform=computed(()=>props.model.currentPlatformId)
-const lines=computed(()=>props.open?props.model.cart.map(item=>({item,ingredients:lineIngredients(item,props.model.materials||[])})):[])
+const lines=computed(()=>props.open?props.model.cart.map(item=>{
+ const groups=new Map()
+ for(const addon of item.selectedAddons||[]){
+  const id=addon.groupId||addon.groupName||''
+  if(!groups.has(id))groups.set(id,{name:addon.groupName,options:[]})
+  groups.get(id).options.push(addon)
+ }
+ return {item,groups,ingredients:lineIngredients(item,props.model.materials||[])}
+}):[])
 const packages=computed(()=>props.packageItems.map(item=>({item,material:props.model.materials?.find(row=>row.id===item.materialId)})))
 const formatAmount=new Intl.NumberFormat('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}).format
 const amount=value=>formatAmount(value??0)
 </script>
 
 <style scoped>
-.order-details{display:grid;gap:20px;font-size:.875rem;line-height:1.55}
-.order-details section{min-width:0}
-.order-details h4{font-size:.9375rem;font-weight:650;padding-bottom:6px;border-bottom:1px solid var(--border-subtle)}
-.order-detail-line{display:grid;gap:4px;padding:8px 0;border-bottom:1px solid var(--border-subtle)}
-.order-detail-line:last-child{border-bottom:0;padding-bottom:0}
-.order-detail-line header,.order-detail-options li,.order-details dl>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
-.order-detail-line h5,.order-detail-note b{font-weight:600}
-.order-detail-line header>strong,.order-details dd,.order-detail-options li>span:last-child,.order-detail-packages li>span:last-child{font-variant-numeric:tabular-nums;text-align:end;white-space:nowrap}
-.order-detail-muted,.order-detail-options small{font-size:.75rem;color:var(--text-muted)}
-.order-detail-options{display:grid;gap:4px;margin-top:3px;padding:6px 9px;background:var(--bg-soft);border-radius:8px}
-.order-detail-options small{display:block}
-.order-detail-options ul,.order-details dl,.order-detail-packages{display:grid;gap:5px}
+.order-details{display:grid;gap:22px;font-size:.875rem;line-height:1.55;color:var(--text-main)}
+.order-details>section{display:grid;gap:10px;min-width:0}
+.order-details h4{font-size:1rem;font-weight:650}
+.order-detail-line{display:grid;gap:0;border:1px solid var(--border-subtle);border-radius:12px;overflow:hidden}
+.order-detail-product{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px;background:var(--bg-soft)}
+.order-detail-photo{width:44px;height:44px;border-radius:8px;background:var(--bg-card)}
+.order-detail-identity h5{font-weight:650;overflow-wrap:anywhere}
+.order-detail-product>strong,.order-detail-payable dd{color:var(--accent-brand);font-size:1rem;font-weight:700}
+.order-detail-options li,.order-details dl>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:baseline}
+.order-detail-product>strong,.order-details dd,.order-detail-options li>span:last-child,.order-detail-packages li>span:last-child{font-variant-numeric:tabular-nums;text-align:end;white-space:nowrap}
+.order-detail-muted,.order-detail-options li>span:last-child{font-size:.75rem;color:var(--text-muted)}
+.order-detail-options,.order-detail-line .order-detail-ingredients,.order-detail-note{padding:12px;border-top:1px solid var(--border-subtle)}
+.order-detail-options,.order-detail-option-group,.order-detail-options ul{display:grid;gap:5px}
+.order-detail-options{gap:9px}
+.order-detail-options h6,.order-detail-note b,.order-detail-line :deep(.order-ingredients>p:first-child){font-size:.8125rem;font-weight:650;color:var(--text-main)}
+.order-detail-line .order-detail-ingredients{border-radius:0;background:transparent}
 .order-detail-note{white-space:pre-wrap;overflow-wrap:anywhere}
-.order-details dl,.order-detail-packages{padding-top:8px}
-.order-detail-total{font-weight:650}
+.order-detail-packages,.order-details dl{display:grid;gap:7px;border-top:1px solid var(--border-subtle);padding-top:9px}
+.order-detail-revenue{padding:12px;border-radius:12px;background:var(--bg-soft)}
+.order-detail-total{border-top:1px solid var(--border-subtle);padding-top:7px;font-weight:650}
 .order-detail-packages li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:8px}
 .order-detail-image{width:28px;height:28px;border-radius:6px;background:var(--bg-soft)}
-@media(max-width:767px){.order-details{gap:16px}.order-detail-back{width:100%}}
+@media(max-width:767px){.order-details{gap:18px}.order-detail-back{width:100%}}
 </style>

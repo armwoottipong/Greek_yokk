@@ -5,6 +5,22 @@ import CartPanel from '../../src/components/pos/CartPanel.vue'
 import PosCatalog from '../../src/components/pos/PosCatalog.vue'
 import Receipt from '../../src/components/modals/ReceiptModal.vue'
 
+it('shows the menu photo in the cart and keeps order details in named sections',async()=>{
+ const store=createTestStore();store.resetDemoData()
+ const menu=store.menus[0];menu.image='/fruit-trio.jpg'
+ store.executeAddToCart(menu,[],2)
+ const w=mount(CartPanel,{props:{presentation:'panel'},attachTo:document.body})
+ try{
+  expect(w.get('[data-cart-line] img').attributes('src')).toBe(menu.image)
+  await w.get('[data-cart-details]').trigger('click')
+  const popup=document.getElementById('pos-cart-details')
+  expect(popup.querySelector('.order-detail-line img').getAttribute('src')).toBe(menu.image)
+  expect([...popup.querySelectorAll('.order-details > section > h4')].map(heading=>heading.textContent)).toEqual([
+   'รายการในออเดอร์','บรรจุภัณฑ์','ยอดชำระและรายรับ','ต้นทุนและกำไรประมาณการ'
+  ])
+ }finally{w.unmount()}
+})
+
 it('shows GP deductions and net revenue in the details popup and updates after switching',async()=>{
  const store=createTestStore();store.resetDemoData();store.executeAddToCart(store.menus[0],[],2)
  const w=mount(CartPanel,{props:{presentation:'panel'},attachTo:document.body})
