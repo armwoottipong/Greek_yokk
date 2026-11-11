@@ -3,7 +3,7 @@
   <div class="order-details">
    <section aria-labelledby="order-detail-items">
     <h4 id="order-detail-items">เมนูและราคา</h4>
-    <article v-for="(item,index) in model.cart" :key="index" class="order-detail-line">
+    <article v-for="({item,ingredients},index) in lines" :key="index" class="order-detail-line">
      <header><h5>{{ item.menu.name }}</h5><strong>฿{{ money(itemPrice(item,platform)) }}</strong></header>
      <p class="order-detail-muted">{{ item.qty }} ชาม · ราคาเมนู ฿{{ money(menuPrice(item.menu,platform)) }} / ชาม</p>
      <div v-if="item.selectedAddons?.length" class="order-detail-options">
@@ -15,6 +15,7 @@
        </li>
       </ul>
      </div>
+     <OrderIngredients :rows="ingredients" />
      <p v-if="item.note" class="order-detail-note"><b>หมายเหตุ</b> {{ item.note }}</p>
     </article>
    </section>
@@ -58,11 +59,14 @@ import DialogFrame from '@/components/ui/DialogFrame.vue'
 import EntityImage from '@/components/images/EntityImage.vue'
 import {money} from '@/domain/dashboard'
 import {menuPrice,addonPrice,itemPrice} from './cartPrices'
+import OrderIngredients from './OrderIngredients.vue'
+import {lineIngredients} from './orderIngredients'
 
 const props=defineProps({open:Boolean,model:{type:Object,required:true},packageItems:{type:Array,required:true}})
 defineEmits(['close'])
 const summary=computed(()=>props.model.cartSummary)
 const platform=computed(()=>props.model.currentPlatformId)
+const lines=computed(()=>props.open?props.model.cart.map(item=>({item,ingredients:lineIngredients(item,props.model.materials||[])})):[])
 const packages=computed(()=>props.packageItems.map(item=>({item,material:props.model.materials?.find(row=>row.id===item.materialId)})))
 const formatAmount=new Intl.NumberFormat('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}).format
 const amount=value=>formatAmount(value??0)

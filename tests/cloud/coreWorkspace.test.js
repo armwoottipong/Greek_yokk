@@ -94,6 +94,20 @@ it('shows only recorded past dates and keeps refunded bills outside daily totals
   expect(h.report.mock.calls.filter(([range])=>range.end===sold)).toHaveLength(1)
  }finally{w.unmount()}
 })
+it('shows saved options and ingredient quantities in the daily order details',async()=>{
+ const today='2026-11-11',data=await h.load()
+ data.materials=[{id:'HONEY',name:'น้ำผึ้ง',unit:'กรัม',inventoryType:'ingredient'}]
+ const receipt={opId:'fruit',status:'committed',createdAt:`${today}T12:00:00+07:00`,platformId:'P',subtotalCents:6900,gpCents:0,netCents:6900,ingredientCostCents:1000,packagingCostCents:0,grossProfitCents:5900,
+  lines:[{menuId:'M',catalog:{name:'Fruit Trio'},qty:2,totalCents:6900,note:'แยกน้ำผึ้ง',optionIds:['KIWI']}],inventory:[{materialId:'HONEY',needed:1600,take:1600,shortage:0,packagingCostCents:0}]}
+ data.display.addons.KIWI={name:'กีวี'}
+ const w=mount(OrderEntryPanel,{props:{day:today,today,data,ready:true,service:{report:async()=>({receipts:[receipt]})}},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises();await w.get('[data-order-details]').trigger('click')
+  const row=w.get('.order-details-row')
+  expect(row.get('.order-details-items').text()).toMatch(/Fruit Trio.*ตัวเลือกต่อชาม.*กีวี.*แยกน้ำผึ้ง/)
+  expect(row.get('[aria-label="วัตถุดิบรวมในบิล"]').text()).toMatch(/น้ำผึ้ง\s*16 กรัม/)
+ }finally{w.unmount()}
+})
 it('opens Dashboard menu rankings for the selected order day on each visit',async()=>{
  const today=dayKey(businessDay()),sold=dayKey(businessDay()-1)
  h.report.mockResolvedValue({legacyOrders:[{orderId:'past',createdAt:`${sold}T12:00:00+07:00`,subtotal:69,gpAmount:0,netRevenue:69,foodCost:19,grossProfit:50,items:[{menuId:'M',menuName:'Greek',qty:2}]}]})
@@ -355,6 +369,25 @@ it('combines identical prepared items but keeps different notes on separate bill
  expect(details[1].get('.order-detail-note').text()).toContain('แยกน้ำผึ้ง')
  expect(details[2].get('.order-detail-note').text()).toContain('ไม่ใส่น้ำผึ้ง')
  w.unmount()
+})
+it('shows the selected Fruit Trio options and recipe quantities per bowl in cart details',async()=>{
+ const d=await h.load(),catalog=d.shop.catalog
+ const ids=['BERRY','MANGO','KIWI']
+ Object.assign(catalog.menus.M,{recipe:{HONEY:800},groupIds:['FRUIT']})
+ catalog.groups.FRUIT={id:'FRUIT',name:'ผลไม้',active:true,pricingMode:'included',min:3,max:3,optionIds:ids,optionPrices:{P:{}}}
+ catalog.addons=Object.fromEntries(ids.map(id=>[id,{active:true,recipe:{[id]:2000},pricesCents:{P:0}}]))
+ d.display.menus.M.name='Fruit Trio'
+ d.display.addons={BERRY:{name:'สตรอว์เบอร์รี'},MANGO:{name:'มะม่วง'},KIWI:{name:'กีวี'}}
+ d.materials=[{id:'HONEY',name:'น้ำผึ้ง'},...ids.map(id=>({id,name:d.display.addons[id].name}))].map(row=>({...row,unit:'กรัม',inventoryType:'ingredient',stock:10000}))
+ sessionStorage.setItem(JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u']),JSON.stringify({platformId:'P',cart:[{menuId:'M',qty:2,selections:ids.map(id=>({id,groupId:'FRUIT',selectionQty:1}))}]}))
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises();await openCart(w);await w.get('[data-cart-details]').trigger('click')
+  const line=w.get('.order-detail-line')
+  expect(line.get('.order-detail-options').text()).toContain('มะม่วง')
+  expect(line.get('[aria-label="วัตถุดิบต่อชาม"]').text()).toMatch(/น้ำผึ้ง\s*8 กรัม.*16 กรัม/)
+  expect(line.get('[aria-label="วัตถุดิบต่อชาม"]').text()).toMatch(/กีวี\s*20 กรัม.*40 กรัม/)
+ }finally{w.unmount()}
 })
 it('opens the trial workspace, retains cart after uncertain results, and only clears after a server receipt',async()=>{
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}});await flushPromises()

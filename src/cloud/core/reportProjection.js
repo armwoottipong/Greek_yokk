@@ -22,11 +22,17 @@ function nativeOrder(o,data){
  if(o.origin==='legacy'&&o.sourceLegacyId&&typeof o.sourceLegacyJson==='string'){
   let original;try{original=JSON.parse(o.sourceLegacyJson)}catch{fail('REPORT_INVALID_DATA')}
   if(original.orderId!==o.sourceLegacyId)fail('REPORT_INVALID_DATA')
-  return {...original,reportKey:`firebase:${o.opId}`,orderId:o.opId,sourceLegacyId:o.sourceLegacyId,status:o.status,createdAt:iso(o.createdAt),platformId:o.platformId,items:(original.items||[]).map(i=>({...i,menuId:normalizedId(i.menuId,'menus',data)}))}
+  return {...original,ingredients:legacyIngredients(original,data),reportKey:`firebase:${o.opId}`,orderId:o.opId,sourceLegacyId:o.sourceLegacyId,status:o.status,createdAt:iso(o.createdAt),platformId:o.platformId,items:(original.items||[]).map(i=>({...i,menuId:normalizedId(i.menuId,'menus',data)}))}
  }
  if(!['committed','cancelled'].includes(o.status)||!o.opId||financial.some(k=>!Number.isSafeInteger(o[k]))||['subtotalCents','gpCents','ingredientCostCents','packagingCostCents'].some(k=>o[k]<0)||o.netCents!==o.subtotalCents-o.gpCents||o.grossProfitCents!==o.netCents-o.ingredientCostCents-o.packagingCostCents||!Array.isArray(o.lines)||!o.lines.length||o.lines.some(l=>!Number.isSafeInteger(l.qty)||l.qty<1||!Number.isSafeInteger(l.totalCents))||o.lines.reduce((n,l)=>n+l.totalCents,0)!==o.subtotalCents)fail('REPORT_INVALID_DATA')
  const items=projectReceiptItems(o,data)
- return {packagePlan:receiptPackagePlan(o),expectedPackagingShortageCost:receiptExpectedPackageShortage(o),reportKey:`firebase:${o.opId}`,orderId:o.opId,status:o.status,createdAt:iso(o.createdAt),platformId:o.platformId,platformName:data.display.platforms?.[o.platformId]?.name||o.platformId,
+ const ingredients=(o.inventory||[]).flatMap(row=>{
+  if(!(row.needed>0)||o.billOperands?.packageSnapshots?.[row.materialId])return []
+  const material=data.materials.find(m=>m.id===row.materialId)
+  if(material?.inventoryType!=='ingredient')return []
+  return [{materialId:row.materialId,name:material.name||row.materialId,unit:material.unit,qty:row.needed/100}]
+ })
+ return {ingredients,packagePlan:receiptPackagePlan(o),expectedPackagingShortageCost:receiptExpectedPackageShortage(o),reportKey:`firebase:${o.opId}`,orderId:o.opId,status:o.status,createdAt:iso(o.createdAt),platformId:o.platformId,platformName:data.display.platforms?.[o.platformId]?.name||o.platformId,
   subtotal:o.subtotalCents/100,gpAmount:o.gpCents/100,netRevenue:o.netCents/100,ingredientCost:o.ingredientCostCents/100,packagingCost:o.packagingCostCents/100,foodCost:(o.ingredientCostCents+o.packagingCostCents)/100,grossProfit:o.grossProfitCents/100,items,
   shortageCostRecorded:!(o.inventory||[]).some(r=>r.shortage>0&&!o.billOperands?.packageSnapshots?.[r.materialId]),stockShortages:(o.inventory||[]).filter(r=>r.shortage>0).map(r=>{const m=data.materials.find(m=>m.id===r.materialId);return {materialId:r.materialId,materialName:m?.name||r.materialId,unit:m?.unit||'',qty:r.shortage/100,inventoryType:o.billOperands?.packageSnapshots?.[r.materialId]?'packaging':'unknown'}})}
 }
@@ -37,6 +43,16 @@ function normalizedId(id,kind,data){
  // even when a raw ID happens to resemble another entity's encoded ID.
  const encoded=encodeLegacyId(id)
  return known[encoded]||catalog[encoded]?encoded:id
+}
+function legacyIngredients(order,data){
+ const rows=new Map()
+ for(const row of [...(order.inventoryAllocations||[]),...(order.stockShortages||[])]){
+  const material=data.materials?.find(m=>m.id===encodeLegacyId(row.materialId))||data.materials?.find(m=>m.id===row.materialId)
+  if((row.inventoryType||material?.inventoryType)!=='ingredient'||!Number.isFinite(Number(row.qty))||Number(row.qty)<=0)continue
+  const previous=rows.get(row.materialId)?.qty||0
+  rows.set(row.materialId,{materialId:row.materialId,name:row.materialName||material?.name||row.materialId,unit:row.unit||material?.unit,qty:previous+Number(row.qty)})
+ }
+ return [...rows.values()]
 }
 export function projectReportOrders({receipts=[],legacyOrders=[]},data){
  const legacyIds=new Set()
@@ -49,6 +65,6 @@ export function projectReportOrders({receipts=[],legacyOrders=[]},data){
  return [...receipts.map(o=>nativeOrder(o,data)),...legacyOrders.filter(o=>!migrated.has(o.orderId)).map((o,index)=>{
   if(!o||typeof o!=='object'||Array.isArray(o))fail('REPORT_INVALID_DATA')
   if(o.status!=='cancelled'&&['subtotal','gpAmount','netRevenue','foodCost','grossProfit'].some(k=>o[k]===null||o[k]===undefined||!Number.isFinite(Number(o[k]))))fail('REPORT_INVALID_DATA')
-  return {...o,reportKey:`legacy:${index}`,createdAt:iso(o.createdAt),platformId:normalizedId(o.platformId,'platforms',data),items:(o.items||[]).map(i=>({...i,menuId:normalizedId(i.menuId,'menus',data)}))}
+  return {...o,ingredients:legacyIngredients(o,data),reportKey:`legacy:${index}`,createdAt:iso(o.createdAt),platformId:normalizedId(o.platformId,'platforms',data),items:(o.items||[]).map(i=>({...i,menuId:normalizedId(i.menuId,'menus',data)}))}
  })]
 }

@@ -1,6 +1,6 @@
 import {groupAvailability} from './groupAvailability.js'
 import {applyDisplayOrder} from '../../domain/catalogOrdering.js'
-const recipeRows=recipe=>Object.entries(recipe||{}).filter(([,q])=>q>0).map(([materialId,q])=>({materialId,qty:q/100}))
+export const recipeRows=recipe=>Object.entries(recipe||{}).filter(([,q])=>q>0).map(([materialId,q])=>({materialId,qty:q/100}))
 const prices=values=>Object.fromEntries(Object.entries(values||{}).map(([id,v])=>[id,v/100]))
 const visible=(data,collection,id)=>!data.display?.[collection]?.[id]?.deleted
 export function catalogMenus(data){

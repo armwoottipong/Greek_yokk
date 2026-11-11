@@ -19,7 +19,7 @@
     </div>
    </section>
   </div>
-  <OrderDetailsDialog :open="detailsOpen" :date="displayDate(day)" :sales="sales" :bookings="bookings" :display="data.display" :state="dailyState" :blocked="blocked" @request-close="detailsOpen=false" @retry="retryMonth(activeMonth)" @open-sale="$emit('open-sale',$event)" @open-preorder="$emit('open-preorder',$event)" />
+  <OrderDetailsDialog :open="detailsOpen" :date="displayDate(day)" :sales="sales" :bookings="bookings" :data="data" :state="dailyState" :blocked="blocked" @request-close="detailsOpen=false" @retry="retryMonth(activeMonth)" @open-sale="$emit('open-sale',$event)" @open-preorder="$emit('open-preorder',$event)" />
  </section>
 </template>
 

@@ -17,8 +17,19 @@
        <strong class="order-details-amount">{{ row.amount }}</strong>
       </div>
       <ul v-if="row.items.length" class="order-details-items" aria-label="รายการเมนู">
-       <li v-for="(item,index) in row.items" :key="index"><span>{{ item.name }}</span><strong>× {{ item.qty }}</strong></li>
+       <li v-for="(item,index) in row.items" :key="index" class="order-details-item">
+        <div class="order-details-item-title"><span>{{ item.menuName || item.menuId }}</span><strong>× {{ item.qty }} ชาม</strong></div>
+        <div v-if="item.selectedAddons?.length" class="order-details-choices">
+         <p>ตัวเลือกต่อชาม</p>
+         <ul>
+          <li v-for="option in item.selectedAddons" :key="`${option.groupId || ''}:${option.id}`">{{ option.name || option.id }}<template v-if="option.selectionQty>1"> ×{{ option.selectionQty }}</template><template v-if="option.groupName"> · {{ option.groupName }}</template></li>
+         </ul>
+        </div>
+        <p v-if="item.note" class="order-details-note">หมายเหตุ {{ item.note }}</p>
+        <OrderIngredients v-if="group.kind==='preorder'" :rows="item.ingredients" label="วัตถุดิบต่อชามตามสูตรปัจจุบัน" />
+       </li>
       </ul>
+      <OrderIngredients :rows="row.ingredients" label="วัตถุดิบรวมในบิล" />
       <Button v-if="group.kind==='preorder'" variant="quiet" size="compact" :disabled="blocked" @click="openRow('open-preorder',row.source)">เปิด Pre-order <ChevronRight :size="14" aria-hidden="true" /></Button>
       <Button v-else variant="quiet" size="compact" @click="openRow('open-sale',row.source)">ดูใบเสร็จ <ChevronRight :size="14" aria-hidden="true" /></Button>
      </li>
@@ -33,9 +44,12 @@ import {computed,ref} from 'vue'
 import {CalendarClock,ChevronRight,ReceiptText,RotateCcw} from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import DialogFrame from '@/components/ui/DialogFrame.vue'
+import OrderIngredients from '@/components/pos/OrderIngredients.vue'
+import {lineIngredients} from '@/components/pos/orderIngredients'
 import {money} from '@/domain/dashboard'
+import {projectCart} from './productPresentation'
 
-const props=defineProps({open:Boolean,date:String,sales:Array,bookings:Array,display:Object,state:String,blocked:Boolean})
+const props=defineProps({open:Boolean,date:String,sales:Array,bookings:Array,data:Object,state:String,blocked:Boolean})
 const emit=defineEmits(['request-close','retry','open-sale','open-preorder'])
 const heading=ref(null)
 const timeFormat=new Intl.DateTimeFormat('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})
@@ -50,16 +64,18 @@ function openRow(event,row){
 function bookingItems(booking){
  try{
   const {lines}=JSON.parse(booking.draftJson)
-  return lines.map(line=>({name:props.display?.menus?.[line.menuId]?.name||line.menuId,qty:line.qty}))
+  return projectCart(lines,props.data).map(item=>({...item,menuName:item.menu.name,ingredients:lineIngredients(item,props.data.materials||[])}))
  }catch{return []}
 }
 const groups=computed(()=>{
+ if(!props.open)return []
+ const display=props.data.display
  const sold=[],cancelled=[]
  for(const sale of props.sales){
   const list=sale.status==='cancelled'?cancelled:sold
-  list.push({id:sale.reportKey,source:sale,platform:sale.platformName||props.display?.platforms?.[sale.platformId]?.name||'ไม่ระบุช่องทาง',time:timeFormat.format(new Date(sale.createdAt)),amount:formatAmount(sale.subtotal),items:(sale.items||[]).map(item=>({name:item.menuName||item.menuId,qty:item.qty}))})
+  list.push({id:sale.reportKey,source:sale,platform:sale.platformName||display?.platforms?.[sale.platformId]?.name||'ไม่ระบุช่องทาง',time:timeFormat.format(new Date(sale.createdAt)),amount:formatAmount(sale.subtotal),items:sale.items||[],ingredients:sale.ingredients})
  }
- const preorders=props.bookings.map(booking=>({id:booking.id,source:booking,platform:props.display?.platforms?.[booking.platformId]?.name||booking.platformId,amount:formatAmount(booking.quoteCents/100),items:bookingItems(booking)}))
+ const preorders=props.bookings.map(booking=>({id:booking.id,source:booking,platform:display?.platforms?.[booking.platformId]?.name||booking.platformId,amount:formatAmount(booking.quoteCents/100),items:bookingItems(booking)}))
  return [{kind:'sale',title:'บิลขาย',icon:ReceiptText,rows:sold},{kind:'preorder',title:'Pre-order รอดำเนินการ',icon:CalendarClock,rows:preorders},{kind:'cancelled',title:'คืนบิลแล้ว',icon:RotateCcw,rows:cancelled}].filter(group=>group.rows.length)
 })
 </script>
@@ -69,18 +85,22 @@ const groups=computed(()=>{
 .order-details-heading p{margin-top:4px;font-size:.8125rem;color:var(--text-muted)}
 .order-details{display:grid;gap:16px;color:var(--text-muted)}
 .order-details-empty{padding:16px 0}
-.order-details-error,.order-details-group header,.order-details-row-main,.order-details-items li{display:flex;align-items:center;gap:8px}
+.order-details-error,.order-details-group header,.order-details-row-main,.order-details-item-title{display:flex;align-items:baseline;gap:8px}
 .order-details-group header{padding:8px 0;border-bottom:1px solid var(--border-subtle);color:var(--accent-brand)}
 .order-details-group h4{font-weight:600;color:var(--text-main)}
 .order-details-group header span{margin-inline-start:auto;font-size:.75rem;color:var(--text-muted);white-space:nowrap}
 .order-details-row{display:grid;gap:8px;padding:12px 0;border-bottom:1px solid var(--border-subtle)}
-.order-details-row-main,.order-details-items li,.order-details-error{justify-content:space-between}
+.order-details-row-main,.order-details-item-title,.order-details-error{justify-content:space-between}
 .order-details-row-main>div{min-width:0}
 .order-details-row-main>div strong,.order-details-row-main>div span{display:block;overflow-wrap:anywhere}
 .order-details-row-main strong,.order-details-items strong{font-weight:600;color:var(--text-main)}
 .order-details-row-main span,.order-details-items{font-size:.8125rem}
 .order-details-amount,.order-details-items strong{white-space:nowrap;font-variant-numeric:tabular-nums}
 .order-details-items{display:grid;gap:4px;padding:8px 12px;background:var(--bg-soft);border-radius:10px}
-.order-details-items li>span{min-width:0;overflow-wrap:anywhere}
+.order-details-item{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.order-details-item + .order-details-item{border-top:1px solid var(--border-subtle);padding-top:6px}
+.order-details-choices ul{padding-inline-start:1rem;list-style:disc}
+.order-details-choices p,.order-details-note{font-size:.75rem}
+.order-details-note{white-space:pre-wrap}
 .order-details-row>.ui-button{justify-self:end;gap:4px}
 </style>
