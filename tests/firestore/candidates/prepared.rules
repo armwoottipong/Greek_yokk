@@ -18,7 +18,7 @@ service cloud.firestore {
         q.values().hasOnly(g.allowRepeat ? (g.max<=3 ? [0,1,2,3] : [0,1,2,3,4,5,6,7,8,9,10,11]) : [0,1]) && q.values().removeAll([0]).size()==q.size()-1 && count>=g.min && count<=g.max;
     }
     function compatibleGroupPricing(a,b) {
-      return a.max<=3 && b.max<=3 || a.pricingMode=='included' || b.pricingMode=='included';
+      return a.max<=3 && b.max<=3 || (a.max<=3 || b.max<=3) && (a.pricingMode=='included' || b.pricingMode=='included');
     }
     function groupSelectionPrice(g,q,c,platform) {
       let ids=q.keys().removeAll(['_']);
@@ -28,22 +28,13 @@ service cloud.firestore {
         : groupExtra(g.optionPrices[platform],c.addonPrices[platform],ids,q);
     }
     function sumChoice(q,a,b,id) { return q[id]==a[id]+b[id]; }
-    function sharedChoices(q,a,b,ids) {
-      let padded=ids.concat(['_','_','_']);
-      return sumChoice(q,a,b,padded[0]) && sumChoice(q,a,b,padded[1]) && sumChoice(q,a,b,padded[2]) &&
-        (ids.size()<=3 || sumChoice(q,a,b,padded[3]) && sumChoice(q,a,b,padded[4]) && sumChoice(q,a,b,padded[5]) &&
-          (ids.size()<=6 || sumChoice(q,a,b,padded[6]) && sumChoice(q,a,b,padded[7]) && sumChoice(q,a,b,padded[8]) &&
-            (ids.size()<=9 || sumChoice(q,a,b,padded[9]) && sumChoice(q,a,b,padded[10]))));
-    }
     function combinedChoices(q,a,b) {
       let onlyA=a.keys().removeAll(b.keys());
       let onlyB=b.keys().removeAll(a.keys());
       let ids=a.keys().removeAll(onlyA).removeAll(['_']);
-      let delta=q.diff(a);
-      return delta.unchangedKeys().hasAll(onlyA) && q.diff(b).unchangedKeys().hasAll(onlyB) &&
-        (ids.size()==0 || (a.values().hasOnly([0,1]) && b.values().hasOnly([0,1])
-          ? q.values().hasOnly([0,1,2]) && q.values().removeAll([2]).size()==q.size()-ids.size() && delta.changedKeys().hasAll(ids)
-          : sharedChoices(q,a,b,ids)));
+      let shared=ids.concat(['_','_','_']);
+      return q.diff(a).unchangedKeys().hasAll(onlyA) && q.diff(b).unchangedKeys().hasAll(onlyB) &&
+        (ids.size()==0 || sumChoice(q,a,b,shared[0]) && sumChoice(q,a,b,shared[1]) && sumChoice(q,a,b,shared[2]));
     }
     function multiLine(c,m,l,o) {
       let ids=m.groupIds;
