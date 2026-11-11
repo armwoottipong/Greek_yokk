@@ -46,13 +46,15 @@ it('commits addon/group/two-group menu with the sixteen-guard source and preserv
  const sale={kind:'sale',opId:'OLD_BILL',payload:{platformId:base.shop.catalog.platformIds[0],lines:[{menuId:base.shop.catalog.menuIds[0],qty:1,optionIds:[]}],approvedShortages:{}}}
  await api.commit(sale)
  const warehouseBefore=(await api.snapshot()).materials
- await api.commit(addon(base.shop));for(const id of ['G','H'])await api.commit(group(base.shop,id));await api.commit(menu(base.shop))
+ await api.commit(addon(base.shop));const fruit=group(base.shop,'G');fruit.payload.input.pricingMode='included';await api.commit(fruit)
+ const extras=group(base.shop,'H');extras.payload.input.max=11
+ await api.commit(extras);await api.commit(menu(base.shop))
  const edit=addon(base.shop);edit.opId='EDIT';edit.payload.input.pricesCents[base.shop.catalog.platformIds[0]]=2000
  expect((await api.commit(edit)).kind).toBe('catalog');expect((await api.commit(edit)).input.pricesCents[base.shop.catalog.platformIds[0]]).toBe(2000)
  await expect(api.commit({...edit,payload:{...edit.payload,display:{name:'forged',emoji:''}}})).rejects.toThrow('COMMAND_ID_COLLISION')
  expect((await api.snapshot()).materials).toEqual(warehouseBefore)
  expect((await api.commit({kind:'cancel',opId:'CANCEL',payload:{orderId:'OLD_BILL'}})).kind).toBe('cancel')
- const after=await api.snapshot();expect(after.shop.catalog.groups.G.multiMenuIds).toEqual(['NEW_MENU'])
+ const after=await api.snapshot();expect(after.shop.catalog.groups.G.multiMenuIds).toEqual(['NEW_MENU']);expect(after.shop.catalog.groups.H.max).toBe(11)
 })
 it.each(['omitCheck','omitAdmitted','omitInputProof','forgedInput','omitDisplay','forgedDisplay','forgedStock'])('denies %s atomically',async tamper=>{
  const base=await seed(),{db,api}=setup(),command={...menu(base.shop),opId:'FORGED'};command.payload.input.groupIds=[]

@@ -99,6 +99,31 @@ it('preserves group/addon pairs when the same addon appears in two groups on six
  const c={opId:'TWO-GROUPS',kind:'sale',payload:{platformId:'P',lines:Array.from({length:6},()=>({menuId:'SIMPLE',qty:1,selections:[{groupId:'G',id:'A0',selectionQty:1},{groupId:'G',id:'A1',selectionQty:1},{groupId:'G',id:'A2',selectionQty:1},{groupId:'H',id:'A0',selectionQty:3}]}))}}
  expect((await api.commit(c)).lines).toHaveLength(6);expect((await api.commit(c)).opId).toBe(c.opId)
 })
+it('sells three included fruits and eleven paid add-ons in the same bowl',async()=>{
+ const base=multiGroupFixture({options:11,fourLots:true}),catalog=base.shop.catalog
+ Object.assign(catalog.groups.H,{max:11,allowRepeat:false})
+ await seedSetCatalog(env,base)
+ const {api}=setup(env.authenticatedContext('cashier').firestore())
+ const selections=[...catalog.addonIds.slice(0,3).map(id=>({groupId:'G',id})),...catalog.addonIds.map(id=>({groupId:'H',id}))]
+ const command={opId:'FRUIT-AND-EXTRAS',kind:'sale',payload:{platformId:'P',lines:[{menuId:'SIMPLE',qty:1,selections}]}}
+ const receipt=await api.commit(command)
+ expect(receipt.lines[0].optionQuantities.A0).toBe(2)
+ expect(Object.keys(receipt.lines[0].groupSelections.H)).toHaveLength(12)
+ const extra=catalog.addonIds.reduce((sum,id)=>sum+(catalog.groups.H.optionPrices.P[id]??catalog.addonPrices.P[id]),0)
+ expect(receipt.subtotalCents).toBe(catalog.menus.SIMPLE.pricesCents.P+extra)
+ await api.commit({kind:'cancel',opId:'RETURN-FRUIT-AND-EXTRAS',payload:{orderId:receipt.opId}})
+ expect((await api.snapshot()).materials.map(m=>m.stock)).toEqual(base.materials.map(m=>m.stock))
+})
+it('rejects an expanded pair of two paid groups before preparing the sale',async()=>{
+ const base=multiGroupFixture({options:11}),catalog=base.shop.catalog
+ Object.assign(catalog.groups.G,{min:0,max:11,pricingMode:'extra',allowRepeat:true})
+ Object.assign(catalog.groups.H,{max:11})
+ await seedSetCatalog(env,base)
+ const {api}=setup(env.authenticatedContext('cashier').firestore())
+ const command={opId:'PAID-CHOICES',kind:'sale',payload:{platformId:'P',lines:[{menuId:'SIMPLE',qty:1,selections:[]}]}}
+ await expect(api.commit(command)).rejects.toThrow('SALE_PRICED_OPTION_LIMIT')
+ expect((await api.snapshot()).shop.revision).toBe(base.shop.revision)
+})
 async function seedExpanded(raw=coreSource()){
  const p=compileCoreImport(raw,{shopId:'proof-shop',generation:'g_trial_test',sourceSha256:'a'.repeat(64)})
  p.shop.generation='g1';p.documents=p.documents.map(d=>({...d,path:d.path.replace('/g_trial_test/','/g1/')}))

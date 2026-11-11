@@ -104,25 +104,18 @@ it('saves a new option, its group price and menu assignment through one group ac
  expect(snapshot().materials.map(m=>m.stock)).toEqual(beforeDelete.materials.map(m=>m.stock))
  model.close()
 })
-it('explains the two-group selection limit before creating or attaching records',async()=>{
+it('binds two groups while preserving each selection limit',async()=>{
  const {model,snapshot}=fixture()
- const input={name:'Many choices',minSelections:0,maxSelections:4,pricingMode:'included',allowRepeat:false,options:[{addonId:'A0'}]}
+ const input={name:'Many choices',minSelections:0,maxSelections:11,pricingMode:'included',allowRepeat:false,options:[{addonId:'A0'}]}
  expect(await model.saveAddonGroup({...input,menuIds:['SIMPLE']})).toMatchObject({ok:true})
  const large=model.addonGroups.find(group=>group.name===input.name)
  const next={...input,name:'Second group',maxSelections:2}
- const revision=snapshot().shop.revision
- const issue='แต่ละกลุ่มต้องเลือกได้ไม่เกิน 3 รายการ'
- expect(await model.saveAddonGroup({...next,menuIds:['SIMPLE']})).toMatchObject({ok:false,message:expect.stringContaining(issue)})
- expect(snapshot().shop.revision).toBe(revision)
- expect(await model.saveAddonGroup(next)).toMatchObject({ok:true})
+ expect(await model.saveAddonGroup({...next,menuIds:['SIMPLE']})).toMatchObject({ok:true})
  const second=model.addonGroups.find(group=>group.name===next.name)
- const menu=model.menus.find(item=>item.id==='SIMPLE')
- expect(await model.saveMenu({...menu,addonGroupIds:[large.id,second.id]})).toMatchObject({ok:false,message:expect.stringContaining(issue)})
- expect(await model.saveAddonGroup({...large,maxSelections:3})).toMatchObject({ok:true})
- expect(await model.saveAddonGroup({...second,menuIds:['SIMPLE']})).toMatchObject({ok:true})
  expect(snapshot().shop.catalog.menus.SIMPLE.groupIds).toEqual([large.id,second.id])
- expect(await model.saveAddonGroup({...large,maxSelections:4})).toMatchObject({ok:false,message:expect.stringContaining(issue)})
- expect(await model.saveAddonGroup({...large,maxSelections:4,menuIds:[]})).toMatchObject({ok:true})
+ expect(snapshot().shop.catalog.groups[large.id].max).toBe(11)
+ expect(await model.saveAddonGroup({...large,maxSelections:10})).toMatchObject({ok:true})
+ expect(await model.saveAddonGroup({...large,maxSelections:11,menuIds:[]})).toMatchObject({ok:true})
  expect(snapshot().shop.catalog.menus.SIMPLE.groupId).toBe(second.id)
  model.close()
 })

@@ -1,8 +1,9 @@
 // Core v1 planner. Rules independently validate every persisted result.
 import { summarySale,summarySaleFromLines } from './sale.js'
 import { preparedSale } from './prepared.js'
+import { supportsCloudGroupPricing } from '../../../domain/addonGroups.js'
 
-// Two groups, each at most three units; preserve group/addon pairs.
+// Each group keeps its configured selection count and price for every add-on.
 export function summaryMultiGroupSale(shop,materials,lines,options={}){
   const c=shop.catalog,platform=options.platformId||'P'
   const canonical=lines.map(line=>{
@@ -24,12 +25,13 @@ export function summaryMultiGroupSale(shop,materials,lines,options={}){
     }
     if(!menu?.active||!Array.isArray(ids)||ids.length!==2||new Set(ids).size!==2||!Array.isArray(line.selections)||!Number.isSafeInteger(line.qty)||line.qty<1||line.qty>1000000)throw new Error('Invalid multi-group line')
     const groups=Object.fromEntries(ids.map(id=>[id,c.groups[id]]))
-    if(Object.values(groups).some(g=>!g?.active||g.max>3))throw new Error('Unsupported multi-group profile')
+    if(Object.values(groups).some(g=>!g?.active))throw new Error('Unsupported multi-group profile')
+    if(!supportsCloudGroupPricing(Object.values(groups)))throw new Error('SALE_PRICED_OPTION_LIMIT')
     const groupSelections=Object.fromEntries(ids.map(id=>[id,{_:0}])),quantities={_:0},seen=new Set()
     let extra=0
     for(const choice of line.selections){
       const g=groups[choice.groupId],a=c.addons[choice.id],qty=choice.selectionQty??1,key=JSON.stringify([choice.groupId,choice.id])
-      if(!g||!a||a.active===false||!g.optionIds.includes(choice.id)||!Number.isSafeInteger(qty)||qty<1||qty>3||(!g.allowRepeat&&qty!==1)||seen.has(key))throw new Error('Invalid multi-group selection')
+      if(!g||!a||a.active===false||!g.optionIds.includes(choice.id)||!Number.isSafeInteger(qty)||qty<1||qty>g.max||(!g.allowRepeat&&qty!==1)||seen.has(key))throw new Error('Invalid multi-group selection')
       seen.add(key);groupSelections[g.id][choice.id]=qty;quantities[choice.id]=(quantities[choice.id]||0)+qty
       if(g.pricingMode==='extra')extra+=(g.optionPrices[platform][choice.id]??c.addonPrices[platform][choice.id])*qty
     }

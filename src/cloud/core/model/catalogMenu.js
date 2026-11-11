@@ -1,4 +1,5 @@
 import { summaryMenu } from './catalog.js'
+import { supportsCloudGroupPricing } from '../../../domain/addonGroups.js'
 
 // Prepared recipe and two-group menu binding planner.
 export function summaryPreparedMenu(shop,materials,input,options){
@@ -7,7 +8,7 @@ export function summaryPreparedMenu(shop,materials,input,options){
   const assigned=menu=>menu?.groupIds?.length?menu.groupIds:menu?.groupId?[menu.groupId]:[]
   const old=shop?.catalog?.menus?.[input?.id],previous=assigned(old),next=input?.groupIds??assigned(input)
   if(old&&Object.hasOwn(old,'rawRecipe')&&!hasRaw)throw new Error('Declared recipe cannot be discarded')
-  if(!Array.isArray(next)||next.length>2||new Set(next).size!==next.length||next.some(id=>!shop.catalog.groups?.[id]?.active||next.length===2&&!(shop.catalog.groups[id].max<=3)))throw new Error('Invalid menu group binding')
+  if(!Array.isArray(next)||next.length>2||new Set(next).size!==next.length||next.some(id=>!shop.catalog.groups?.[id]?.active)||!supportsCloudGroupPricing(next.map(id=>shop.catalog.groups[id])))throw new Error('Invalid menu group binding')
   const canonical={...structuredClone(input)}
   delete canonical.groupIds;delete canonical.groupId
   if(next.length===1)canonical.groupId=next[0]

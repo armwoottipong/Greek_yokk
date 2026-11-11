@@ -53,11 +53,15 @@ export function groupError(group, addons) {
   return ''
 }
 
+export function supportsCloudGroupPricing(groups) {
+  return groups.length !== 2 || groups.some(group => group.pricingMode === 'included') ||
+    groups.every(group => Number(group.maxSelections ?? group.max) <= 3)
+}
+
 export function cloudGroupBindingIssue(groups) {
   if (groups.length > 2) return 'เมนูหนึ่งใช้ได้สูงสุด 2 กลุ่มตัวเลือก'
   if (groups.some(group => !group || group.isActive === false)) return 'เลือกได้เฉพาะกลุ่มที่เปิดใช้งาน'
-  const oversized = groups.length === 2 && groups.find(group => Number(group.maxSelections) > 3)
-  return oversized ? `เมื่อใช้ 2 กลุ่ม แต่ละกลุ่มต้องเลือกได้ไม่เกิน 3 รายการ · ${oversized.name} ตั้งไว้ ${oversized.maxSelections}` : ''
+  return supportsCloudGroupPricing(groups) ? '' : 'เมื่อใช้ 2 กลุ่มคิดเงินเพิ่ม แต่ละกลุ่มเลือกได้สูงสุด 3 รายการ'
 }
 
 export function menuGroups(menu, groups) {

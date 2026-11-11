@@ -1,6 +1,6 @@
 import {encodeGroupAvailability} from './groupAvailability.js'
 import {planLegacyOptionMigration} from './legacyOptionMigration.js'
-import {cloudGroupBindingIssue,duplicateNewStockOption} from '../../domain/addonGroups.js'
+import {cloudGroupBindingIssue,duplicateNewStockOption,supportsCloudGroupPricing} from '../../domain/addonGroups.js'
 import {catalogAddons,catalogGroups,catalogMenus} from './catalogPresentation.js'
 import {toScaledExact} from '../conversion.js'
 import {detachMaterialCommands} from './catalogDetachment.js'
@@ -87,7 +87,7 @@ export function createCatalogBindings({snapshot,mutate,error}){
     }
     if(selected!==wasLinked){
      const entry={kind:'menu',payload:menuPayload({...menu,addonGroupIds,hasAddons:addonGroupIds.length>0})}
-     if(!selected&&(input.isActive===false||current.length===2&&Number(input.maxSelections)>3))detachBeforeGroup.push(entry)
+     if(!selected&&(input.isActive===false||!supportsCloudGroupPricing(current.map(key=>groups.get(key)))))detachBeforeGroup.push(entry)
      else menuEntries.push(entry)
     }
    }

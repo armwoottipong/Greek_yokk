@@ -2,6 +2,7 @@
 // catalogue limits. Original records are archived separately by core-import.
 import {normalizeDatabase} from '../src/domain/database.js'
 import {aggregateRequirements} from '../src/domain/inventory.js'
+import {supportsCloudGroupPricing} from '../src/domain/addonGroups.js'
 import {toScaledExact} from '../src/cloud/conversion.js'
 import {encodeLegacyId as key} from '../src/cloud/paths.js'
 import {installLotMap} from '../src/cloud/core/model/lots.js'
@@ -34,7 +35,7 @@ export function projectCoreSource(raw){
  const types=new Map(d.materials.map(m=>[key(m.id),m.inventoryType]))
  const menus=Object.fromEntries(d.menus.map(m=>{
   const id=key(m.id),bound=m.hasAddons===false?[]:(m.addonGroupIds||[]).map(key),rawRecipe=recipe(m.recipe),hasPackage=m.hasPackage!==false
-  if(bound.length>2||bound.some(id=>!groups[id]||bound.length===2&&groups[id].max>3))throw new Error('Unsupported menu groups')
+  if(bound.length>2||bound.some(id=>!groups[id])||!supportsCloudGroupPricing(bound.map(id=>groups[id])))throw new Error('Unsupported menu groups')
   const options=bound.length||m.hasAddons===false?[]:addonIds
   const effective=Object.fromEntries(Object.entries(rawRecipe).filter(([id])=>hasPackage||types.get(id)!=='packaging'))
   const choiceMaterials=Object.fromEntries(options.map(id=>[id,Object.keys(addons[id].recipe)]))

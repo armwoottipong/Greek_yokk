@@ -2,6 +2,7 @@ import {summaryMenuQuantity} from './model/recipe.js'
 import {summaryCatalog,summaryAddon} from './model/catalog.js'
 import {summaryPreparedMenu} from './model/catalogMenu.js'
 import {summaryGroup} from './model/catalogGroup.js'
+import {supportsCloudGroupPricing} from '../../domain/addonGroups.js'
 const fail=code=>Object.assign(new Error(code),{code})
 const map=x=>x&&typeof x==='object'&&!Array.isArray(x)
 const integer=(n,min=0,max=1000000000)=>Number.isSafeInteger(n)&&n>=min&&n<=max
@@ -33,8 +34,9 @@ export function planCatalogCommand(shop,materials,command,uid='preview'){
  if(!Array.isArray(c?.summaryMaterials)||c.summaryMaterials.length>16)throw fail('INVALID_CATALOG_STATE')
  const registry=shop.materialIds||materials.map(m=>m.id)
  validate(command.kind,p.input,c,materials,registry)
+ if(command.kind==='group'&&(c.groups[p.input.id]?.multiMenuIds||[]).some(menuId=>
+  !supportsCloudGroupPricing(c.menus[menuId].groupIds.map(id=>id===p.input.id?p.input:c.groups[id]))))throw fail('SALE_PRICED_OPTION_LIMIT')
  if(p.input.active&&['menu','group'].includes(command.kind)&&p.input.optionIds.some(id=>c.addons[id]?.active===false))throw fail('INACTIVE_ADDON')
- if(command.kind==='group'&&c.groups[p.input.id]?.multiMenuIds?.length&&p.input.max>3)throw fail('GROUP_MULTI_MENU_LIMIT')
  if(command.kind==='addon'&&p.input.active===false&&(Object.values(c.menus).some(m=>m.active&&m.optionIds.includes(p.entityId))||Object.values(c.groups).some(g=>g.active&&g.optionIds.includes(p.entityId))))throw fail('ADDON_STILL_REFERENCED')
  const entityId=command.kind==='addon'?p.entityId:p.input.id
  if(!id(entityId))throw fail('INVALID_CATALOG_INPUT')

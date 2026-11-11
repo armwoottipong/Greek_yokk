@@ -53,7 +53,6 @@
    <p class="menu-editor-help" role="status">เลือกแล้ว {{ pickerIds.length }} จาก 2 กลุ่ม</p>
    <label v-for="group in store.addonGroups" :key="group.id" class="group-picker-row" :data-picker-group="group.id"><span><strong>{{ group.name }}</strong><small>{{ group.pricingMode==='included'?'รวมในราคาเมนู':'คิดเงินเพิ่มตามตัวเลือก' }} · เลือก {{ group.minSelections }}–{{ group.maxSelections }} {{ group.allowRepeat?'ที่':'ชนิด' }} · {{ group.options.length }} ตัวเลือก</small><small v-if="!pickerIds.includes(group.id) && pickerIssue(group.id)">{{ pickerIssue(group.id) }}</small></span><input type="checkbox" :checked="pickerIds.includes(group.id)" :disabled="!pickerIds.includes(group.id) && !!pickerIssue(group.id)" :aria-label="`เลือกกลุ่ม ${group.name}`" @change="togglePickerGroup(group.id,$event.target.checked)"/></label>
    <p v-if="!store.addonGroups.length" class="menu-editor-empty">ยังไม่มีกลุ่มตัวเลือก สร้างกลุ่มแรกได้ด้านล่าง</p>
-   <p v-if="store.cloud" class="menu-editor-help">เมื่อใช้ 2 กลุ่ม แต่ละกลุ่มต้องกำหนดให้เลือกได้สูงสุด 3</p>
    <Button variant="quiet" data-create-group-from-menu @click="createGroupFromPicker"><Plus :size="16" aria-hidden="true"/>สร้างกลุ่มตัวเลือก</Button>
   </div>
   <template #footer><Button variant="quiet" @click="closePicker">ยกเลิก</Button><Button @click="finishPicker">เสร็จสิ้น</Button></template>

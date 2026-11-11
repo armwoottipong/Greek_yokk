@@ -13,14 +13,38 @@ service cloud.firestore {
     function linePath(s,g,id,i) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/orders/$(id)/lineProofs/$(i); }
     function preparedPath(s,g,id,i) { return /databases/$(database)/documents/shops/$(s)/generations/$(g)/preparedSales/$(id)/lineProofs/$(i); }
     function groupSelection(g,q) {
-      let count=smallSelectionCount(q);
-      return g.active && g.max<=3 && q.size()<=4 && q._==0 && q.keys().hasOnly(g.optionIds.concat(['_'])) &&
-        q.values().hasOnly(g.allowRepeat ? [0,1,2,3] : [0,1]) && q.values().removeAll([0]).size()==q.size()-1 && count>=g.min && count<=g.max;
+      let count=g.allowRepeat ? (g.max<=3 ? smallSelectionCount(q) : selectionCount(q)) : q.size()-1;
+      return g.active && q.size()<=g.max+1 && q._==0 && q.keys().hasOnly(g.optionIds.concat(['_'])) &&
+        q.values().hasOnly(g.allowRepeat ? (g.max<=3 ? [0,1,2,3] : [0,1,2,3,4,5,6,7,8,9,10,11]) : [0,1]) && q.values().removeAll([0]).size()==q.size()-1 && count>=g.min && count<=g.max;
+    }
+    function compatibleGroupPricing(a,b) {
+      return a.max<=3 && b.max<=3 || a.pricingMode=='included' || b.pricingMode=='included';
     }
     function groupSelectionPrice(g,q,c,platform) {
-      return g.pricingMode=='included' ? 0 : smallGroupExtra(g.optionPrices[platform],c.addonPrices[platform],q.keys().removeAll(['_']),q);
+      let ids=q.keys().removeAll(['_']);
+      return g.pricingMode=='included' ? 0 : ids.size()<=3
+        ? smallGroupExtra(g.optionPrices[platform],c.addonPrices[platform],ids,q) : q.values().hasOnly([0,1])
+        ? groupUnitExtra(g.optionPrices[platform],c.addonPrices[platform],ids.concat(['_','_','_','_','_','_','_','_','_','_','_']))
+        : groupExtra(g.optionPrices[platform],c.addonPrices[platform],ids,q);
     }
-    function sumChoice(q,a,b,id) { return q[id]==a.get(id,0)+b.get(id,0); }
+    function sumChoice(q,a,b,id) { return q[id]==a[id]+b[id]; }
+    function sharedChoices(q,a,b,ids) {
+      let padded=ids.concat(['_','_','_']);
+      return sumChoice(q,a,b,padded[0]) && sumChoice(q,a,b,padded[1]) && sumChoice(q,a,b,padded[2]) &&
+        (ids.size()<=3 || sumChoice(q,a,b,padded[3]) && sumChoice(q,a,b,padded[4]) && sumChoice(q,a,b,padded[5]) &&
+          (ids.size()<=6 || sumChoice(q,a,b,padded[6]) && sumChoice(q,a,b,padded[7]) && sumChoice(q,a,b,padded[8]) &&
+            (ids.size()<=9 || sumChoice(q,a,b,padded[9]) && sumChoice(q,a,b,padded[10]))));
+    }
+    function combinedChoices(q,a,b) {
+      let onlyA=a.keys().removeAll(b.keys());
+      let onlyB=b.keys().removeAll(a.keys());
+      let ids=a.keys().removeAll(onlyA).removeAll(['_']);
+      let delta=q.diff(a);
+      return delta.unchangedKeys().hasAll(onlyA) && q.diff(b).unchangedKeys().hasAll(onlyB) &&
+        (ids.size()==0 || (a.values().hasOnly([0,1]) && b.values().hasOnly([0,1])
+          ? q.values().hasOnly([0,1,2]) && q.values().removeAll([2]).size()==q.size()-ids.size() && delta.changedKeys().hasAll(ids)
+          : sharedChoices(q,a,b,ids)));
+    }
     function multiLine(c,m,l,o) {
       let ids=m.groupIds;
       let a=c.groups[ids[0]];
@@ -28,16 +52,14 @@ service cloud.firestore {
       let x=l.groupSelections[ids[0]];
       let y=l.groupSelections[ids[1]];
       let q=l.optionQuantities;
-      let selected=l.optionIds.concat(['_','_','_','_','_','_']);
       let extra=groupSelectionPrice(a,x,c,o.platformId)+groupSelectionPrice(b,y,c,o.platformId);
       return l.keys().hasOnly(['menuId','qty','optionIds','optionQuantities','catalog','groups','groupSelections','note','totalCents']) &&
         m.active && l.catalog==m && ids.size()==2 && ids.toSet().size()==2 && integer(l.qty,1,1000000) && l.note is string && l.note.size()<=1000 &&
         l.groups.keys().toSet()==ids.toSet() && l.groups[ids[0]]==a && l.groups[ids[1]]==b && l.groupSelections.keys().toSet()==ids.toSet() &&
-        groupSelection(a,x) && groupSelection(b,y) && l.optionIds.size()<=6 && l.optionIds.toSet().size()==l.optionIds.size() &&
+        compatibleGroupPricing(a,b) && groupSelection(a,x) && groupSelection(b,y) && l.optionIds.size()<=11 && l.optionIds.toSet().size()==l.optionIds.size() &&
         l.optionIds.toSet()==q.keys().removeAll(['_']).toSet() && l.optionIds.hasOnly(o.addonKeys.values()) && q._==0 &&
         q.keys().toSet()==x.keys().toSet().union(y.keys().toSet()) &&
-        sumChoice(q,x,y,selected[0]) && sumChoice(q,x,y,selected[1]) && sumChoice(q,x,y,selected[2]) &&
-        sumChoice(q,x,y,selected[3]) && sumChoice(q,x,y,selected[4]) && sumChoice(q,x,y,selected[5]) &&
+        combinedChoices(q,x,y) &&
         l.totalCents==(m.pricesCents[o.platformId]+extra)*l.qty;
     }
     function stagedLine(c,m,l,o) { return m.get('groupIds',[]).size()>0 ? multiLine(c,m,l,o) : validLine(c,m,l,o); }
@@ -93,7 +115,7 @@ service cloud.firestore {
       return (count>0 ? p.get(ids[0],base[ids[0]])*q[ids[0]] : 0)+(count>1 ? p.get(ids[1],base[ids[1]])*q[ids[1]] : 0)+(count>2 ? p.get(ids[2],base[ids[2]])*q[ids[2]] : 0);
     }
     function smallSelectionCount(q) {
-      let values=q.values().concat([0,0,0,0]);
+      let values=q.values().concat([0,0,0]);
       return values[0]+values[1]+values[2]+values[3];
     }
     function groupExtra(p,base,ids,q) {
@@ -457,7 +479,7 @@ service cloud.firestore {
       let ids=assignedGroups(m);
       return ids is list && ids.size()<=2 && ids.toSet().size()==ids.size() && ids.hasOnly(c.groupIds) &&
         (ids.size()==0 || m.optionIds==[] && m.min==0 && m.max==0 && m.priceMode=='addon' && c.groups[ids[0]].active) &&
-        (ids.size()<2 || m.get('groupId','')=='' && c.groups[ids[1]].active && c.groups[ids[0]].max<=3 && c.groups[ids[1]].max<=3);
+        (ids.size()<2 || m.get('groupId','')=='' && c.groups[ids[1]].active && compatibleGroupPricing(c.groups[ids[0]],c.groups[ids[1]]));
     }
     function menuData(c,key) {
       let m=c.menus[key];
@@ -1026,7 +1048,7 @@ service cloud.firestore {
         integer(g.min,0,11) && integer(g.max,1,11) && g.min<=g.max && (g.allowRepeat || g.min<=g.optionIds.size()) &&
         g.optionPrices.keys().toSet()==c.platformIds.toSet() &&
         g.menuIds is list && g.menuIds.toSet().size()==g.menuIds.size() && g.menuIds.hasOnly(c.menuIds) &&
-        g.get('multiMenuIds',[]).toSet().size()==g.get('multiMenuIds',[]).size() && g.get('multiMenuIds',[]).hasOnly(g.menuIds) && (g.get('multiMenuIds',[]).size()==0 || g.max<=3);
+        g.get('multiMenuIds',[]).toSet().size()==g.get('multiMenuIds',[]).size() && g.get('multiMenuIds',[]).hasOnly(g.menuIds);
     }
     function groupPriceKeys(c,g,i) {
       let p=c.platformIds.concat(['_','_','_','_'])[i];

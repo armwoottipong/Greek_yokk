@@ -88,10 +88,9 @@ it('freezes proof documents after the sale commits',async()=>{
   await assertFails(setDoc(doc(db,preparedPath(sale.order.opId,0)),preparedProof(sale,0,sale.order.lines.slice(0,1))))
   await assertFails(deleteDoc(doc(db,preparedPath(sale.order.opId,0))))
 })
-it('denies expanding or forging the multi-menu reverse index on a bound group',async()=>{
+it('denies forging the multi-menu reverse index when increasing a bound group limit',async()=>{
   const base=multiGroupFixture(),db=env.authenticatedContext('cashier').firestore();await seedSetCatalog(env,base)
   const expanded=summaryGroup(base.shop,base.materials,{...base.shop.catalog.groups.G,max:4})
-  await assertFails(summaryCatalogBatch(db,expanded).commit())
   expanded.nextShop.catalog.groups.G.multiMenuIds=[];expanded.operation.entitySnapshot.multiMenuIds=[]
   await assertFails(summaryCatalogBatch(db,expanded).commit())
 })

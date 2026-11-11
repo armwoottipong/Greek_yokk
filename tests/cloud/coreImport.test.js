@@ -23,6 +23,15 @@ it('preserves a fifth menu and sixteenth protected material instead of truncatin
  expect(Object.values(last.recipeIndex.menus)).toContain(100)
  expect(p.documents.filter(d=>d.data.kind==='menus')).toHaveLength(5)
 })
+it('preserves the individual limits of both imported menu groups',()=>{
+ const raw=coreSource()
+ raw.addons=Array.from({length:11},(_,index)=>({id:`A${index}`,name:`Choice ${index}`,isActive:true,prices:{P:10},recipe:[{materialId:'M0',qty:1}]}))
+ raw.addonGroups=[{id:'fruit',name:'Fruit',minSelections:3,maxSelections:3,pricingMode:'included',allowRepeat:false,options:raw.addons.slice(0,6).map(({id})=>({addonId:id}))},
+  {id:'extra',name:'Extra',minSelections:0,maxSelections:11,pricingMode:'extra',allowRepeat:false,options:raw.addons.map(({id})=>({addonId:id}))}]
+ Object.assign(raw.menus[0],{hasAddons:true,addonGroupIds:['fruit','extra']})
+ const {catalog}=compileCoreImport(raw,options).shop
+ expect(catalog.menus[catalog.menuIds[0]].groupIds.map(id=>catalog.groups[id].max)).toEqual([3,11])
+})
 it('rejects unknown source data, invalid reverse indexes and mismatched stock rather than silently importing',()=>{
  expect(()=>compileCoreImport({...source(),unknown:'secret'},options)).toThrow('Unknown')
  const p=compileCoreImport(source(),options),m=p.documents.filter(d=>d.path.includes('/materials/')).map(d=>d.data)
