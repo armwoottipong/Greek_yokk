@@ -73,7 +73,7 @@ const groups=computed(()=>{
  const sold=[],cancelled=[]
  for(const sale of props.sales){
   const list=sale.status==='cancelled'?cancelled:sold
-  list.push({id:sale.reportKey,source:sale,platform:sale.platformName||display?.platforms?.[sale.platformId]?.name||'ไม่ระบุช่องทาง',time:timeFormat.format(new Date(sale.createdAt)),amount:formatAmount(sale.subtotal),items:sale.items||[],ingredients:sale.ingredients})
+  list.push({id:sale.reportKey,source:sale,platform:sale.platformName||display?.platforms?.[sale.platformId]?.name||'ไม่ระบุช่องทาง',time:sale.saleDay?'บันทึกย้อนหลัง':timeFormat.format(new Date(sale.createdAt)),amount:formatAmount(sale.subtotal),items:sale.items||[],ingredients:sale.ingredients})
  }
  const preorders=props.bookings.map(booking=>({id:booking.id,source:booking,platform:display?.platforms?.[booking.platformId]?.name||booking.platformId,amount:formatAmount(booking.quoteCents/100),items:bookingItems(booking)}))
  return [{kind:'sale',title:'บิลขาย',icon:ReceiptText,rows:sold},{kind:'preorder',title:'Pre-order รอดำเนินการ',icon:CalendarClock,rows:preorders},{kind:'cancelled',title:'คืนบิลแล้ว',icon:RotateCcw,rows:cancelled}].filter(group=>group.rows.length)

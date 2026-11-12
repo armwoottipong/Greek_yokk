@@ -20,7 +20,8 @@ export const orderEntryPolicy=String.raw`
  function saleSurface(b,n) {
   let id=n.lastOpId;
   return id.matches('ENTRY-PRE-[0-9]{1,16}-[a-f0-9-]{36}_[a-f0-9-]{36}') ? consumePreorderRoot(b,n,id.split('_')[0]) :
-   operationKeysChanged(n,b,['returnMaterials']) && (id.matches('ENTRY-[0-9]{5}-[a-f0-9-]{36}') ?
+   operationKeysChanged(n,b,['returnMaterials']) && (id.matches('ENTRY-BACK-[0-9]{5}-[a-f0-9-]{36}') ?
+    int(id[11:16])<shopDay() : id.matches('ENTRY-[0-9]{5}-[a-f0-9-]{36}') ?
     id[6:11]==string(shopDay()) : b.get('posEnabled',true)==true);
  }
  function consumePreorderRoot(b,n,id) {

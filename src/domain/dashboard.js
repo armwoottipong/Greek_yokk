@@ -5,6 +5,7 @@ const dayTime=key=>Date.parse(`${key}T00:00:00Z`)
 const keyOf=date=>date.toISOString().slice(0,10)
 export const money=value=>new Intl.NumberFormat('th-TH',{maximumFractionDigits:2}).format(value || 0)
 export const dateLabel=key=>key ? new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'2-digit',timeZone:'Asia/Bangkok'}).format(new Date(`${key}T12:00:00+07:00`)) : 'ทั้งหมด'
+export const orderSaleDay=order=>order.saleDay||businessDateKey(order.createdAt??'')
 
 export function dashboardRange(period,today=businessDateKey()) {
  if(period==='all') return {start:null,end:null}
@@ -34,8 +35,11 @@ function metricsFor(orders){
 export function buildDashboard(source,range){
  let start=range.start,end=range.end || range.start
  if(start && end && start>end) [start,end]=[end,start]
- const orders=source.filter(o=>{const day=o.createdAt ? businessDateKey(o.createdAt) : '';return o.status !== 'cancelled' && day && (!start || day>=start) && (!end || day<=end)}).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))
- const first=start || (orders.length?businessDateKey(orders.at(-1).createdAt):null),last=end || (orders.length?businessDateKey(orders[0].createdAt):null)
+ const sales=source.filter(order=>order.status!=='cancelled').map(order=>({order,day:orderSaleDay(order)}))
+  .filter(({day})=>day&&(!start||day>=start)&&(!end||day<=end))
+  .sort((a,b)=>b.day.localeCompare(a.day)||new Date(b.order.createdAt)-new Date(a.order.createdAt))
+ const orders=sales.map(({order})=>order)
+ const first=start||sales.at(-1)?.day,last=end||sales[0]?.day
  const span=first && last ? (dayTime(last)-dayTime(first))/dayMs+1 : 0
  const bucket=span>180?'month':span>60?'week':'day'
  const bucketKey=day=>bucket==='month'?`${day.slice(0,7)}-01`:bucket==='week'?keyOf(new Date(dayTime(first)+Math.floor((dayTime(day)-dayTime(first))/(7*dayMs))*7*dayMs)):day
@@ -49,8 +53,8 @@ export function buildDashboard(source,range){
   }
  }
  const channels=new Map(),menus=new Map()
- for(const order of orders){
-  grouped.get(bucketKey(businessDateKey(order.createdAt)))?.push(order)
+ for(const {order,day} of sales){
+  grouped.get(bucketKey(day))?.push(order)
   const id=order.platformId || order.platformName || 'unknown'
   if(!channels.has(id)) channels.set(id,{id,label:order.platformName || 'ไม่ระบุช่องทาง',orders:[]})
   channels.get(id).orders.push(order)

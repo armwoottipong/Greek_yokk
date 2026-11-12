@@ -27,9 +27,8 @@
 import {computed,onScopeDispose,ref,shallowReactive,watch} from 'vue'
 import {ArrowUpRight,ChartNoAxesCombined,ChevronRight,ListOrdered} from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
-import {money} from '@/domain/dashboard'
-import {businessDateKey} from '@/domain/businessDate.js'
-import {businessDay,dayKey,monthOf,offsetMonth,scheduledSummary} from './orderEntry.js'
+import {money,orderSaleDay} from '@/domain/dashboard'
+import {backdatedSaleDay,businessDay,dayKey,monthOf,offsetMonth,scheduledSummary} from './orderEntry.js'
 import OrderDatePicker from './OrderDatePicker.vue'
 import OrderDetailsDialog from './OrderDetailsDialog.vue'
 import {projectReportOrders} from './reportProjection.js'
@@ -87,7 +86,7 @@ async function loadNextMonth(){
   const byDay=new Map(entry.byDay)
   if(entry.onlyToday)byDay.delete(start)
   for(const row of projectReportOrders(report,data).sort((a,b)=>b.createdAt.localeCompare(a.createdAt))){
-   const day=businessDateKey(row.createdAt)
+   const day=orderSaleDay(row)
    if(day<start||day>end)continue
    if(!byDay.has(day))byDay.set(day,[])
    byDay.get(day).push(row)
@@ -105,9 +104,9 @@ function retryMonth(month){
 watch([()=>props.revision,()=>props.refreshKey,()=>props.today,()=>props.ready],([revision,refreshKey,today,ready],[oldRevision,oldRefreshKey,oldToday,oldReady])=>{
  const consecutive=ready&&oldReady&&revision===oldRevision+1&&refreshKey===oldRefreshKey&&today===oldToday
  const kind=props.data.shop.lastOpKind
- if(consecutive&&kind==='sale_set'){
+ if(consecutive&&kind==='sale_set'&&!backdatedSaleDay(props.data.shop.lastOpId)){
   const month=monthOf(today),entry=reports.get(month)
-  // A sale is server-dated today. Keep older verified days and reread today only.
+  // Keep older verified days for sales recorded on the current business day.
   if(entry?.byDay)reports.set(month,{...entry,state:'refresh',onlyToday:true})
   else reports.delete(month)
  }else if(!consecutive||!['preorder_create','preorder_cancel'].includes(kind))reports.clear()

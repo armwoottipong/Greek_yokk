@@ -95,6 +95,22 @@ it('records manual sales with POS off, keeps future orders out of receipts and c
  await expect(api.commit({...sale,opId:id+'_11234567-0123-0123-0123-012345678901'})).rejects.toMatchObject({code:'PREORDER_NO_LONGER_PENDING'})
  await api.commit({kind:'sale',opId:'ENTRY-'+day+'-01234567-0123-0123-0123-012345678901',payload})
 })
+it('commits and cancels a backdated sale as a manager with POS disabled',async()=>{
+ const {root,documents}=importedShop(16)
+ root.posEnabled=false;root.userRoles[bob]='manager'
+ await seed(root,documents)
+ const api=runtime('bob'),before=await api.snapshot(),day=businessDay()
+ const payload={platformId:root.catalog.platformIds[0],lines:[{menuId:root.catalog.menuIds[0],qty:1,optionIds:[]}]}
+ const idFor=value=>`ENTRY-BACK-${value}-01234567-0123-0123-0123-012345678901`
+ await expect(api.commit({kind:'sale',opId:idFor(day+1),payload})).rejects.toMatchObject({code:'ORDER_ENTRY_DAY_CHANGED'})
+ const opId=idFor(day-2)
+ await api.commit({kind:'sale',opId,payload})
+ const recorded=await api.receipt('sale',opId)
+ expect(recorded.createdAt.toMillis()).toBeGreaterThan(Date.now()-86400000)
+ expect((await api.snapshot()).materials.some((m,i)=>m.stock<before.materials[i].stock)).toBe(true)
+ await api.commit({kind:'cancel',opId:'BACKDATED-RETURN',payload:{orderId:opId}})
+ expect((await api.snapshot()).materials.map(m=>m.stock)).toEqual(before.materials.map(m=>m.stock))
+})
 it('allows only an admin to change POS availability and keeps returns available while disabled',async()=>{
  const {root,documents}=importedShop(0)
  root.userRoles[bob]='manager'

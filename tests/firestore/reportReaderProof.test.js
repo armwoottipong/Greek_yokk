@@ -6,6 +6,7 @@ import {buildCorePolicy} from '../../scripts/core-policy.mjs'
 import {createReportReader} from '../../src/cloud/core/reportReader.js'
 import {projectReportOrders} from '../../src/cloud/core/reportProjection.js'
 import {buildDashboard} from '../../src/domain/dashboard.js'
+import {businessDay} from '../../src/cloud/core/orderEntry.js'
 let env
 beforeAll(async()=>{env=await createRulesTest({rules:buildCorePolicy({legacyTestAuth:true,shopId:'proof-shop'})})})
 beforeEach(async()=>{await env.clearFirestore()})
@@ -38,4 +39,20 @@ it('does not turn permission errors or a missing legacy archive into empty finan
  const api=reader(),guest=reader(true)
  try{await expect(api.read({start:null,end:null},{legacyOrderCount:1})).rejects.toThrow('REPORT_INCOMPLETE_HISTORY');await expect(guest.read({start:null,end:null})).rejects.toMatchObject({code:'permission-denied'})}
  finally{api.close();guest.close()}
+})
+it('retrieves a backdated receipt exactly once, only for its selected sale day',async()=>{
+ const f=summaryFixture(),saleDay='2026-10-26',recordedDay='2026-10-27'
+ const id=`ENTRY-BACK-${businessDay(saleDay)}-01234567-0123-0123-0123-012345678901`
+ await env.withSecurityRulesDisabled(async c=>{
+  const db=c.firestore(),batch=writeBatch(db)
+  batch.set(doc(db,root),f.shop)
+  batch.set(doc(db,`${base}/orders/${id}`),receipt(id,`${recordedDay}T12:00:00+07:00`))
+  await batch.commit()
+ })
+ const api=reader()
+ try{
+  expect((await api.read({start:saleDay})).receipts.map(row=>row.opId)).toEqual([id])
+  expect((await api.read({start:recordedDay})).receipts).toEqual([])
+  expect((await api.read({start:saleDay,end:recordedDay})).receipts.map(row=>row.opId)).toEqual([id])
+ }finally{api.close()}
 })

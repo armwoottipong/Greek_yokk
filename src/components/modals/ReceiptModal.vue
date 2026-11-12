@@ -14,8 +14,12 @@
             <span class="text-stone-400">Order ID:</span>
             <span class="font-bold">{{ order.orderId }}</span>
           </div>
+          <div v-if="order.saleDay" class="flex justify-between">
+            <span class="text-stone-400">วันที่ขาย</span>
+            <span>{{ dateLabel(order.saleDay) }}</span>
+          </div>
           <div class="flex justify-between">
-            <span class="text-stone-400">วันที่-เวลา:</span>
+            <span class="text-stone-400">{{ order.saleDay ? 'บันทึกเมื่อ' : 'วันที่-เวลา:' }}</span>
             <span>{{ formattedDate }}</span>
           </div>
           <div class="flex justify-between">
@@ -103,6 +107,7 @@
 import DialogFrame from '@/components/ui/DialogFrame.vue'
 import { computed } from 'vue'
 import { usePosStore } from '@/stores/posStore'
+import { dateLabel } from '@/domain/dashboard'
 import { Printer } from 'lucide-vue-next'
 
 const props=defineProps({model:Object,teleport:Boolean})

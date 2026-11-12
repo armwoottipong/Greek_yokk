@@ -9,15 +9,16 @@
       @update:day="setOrderDay" @open-sale="openDailySale" @open-preorder="openPreorder" @leave-preorder="leavePreorder" @open-menu-report="openMenuReport"/>
     <section v-if="entryMode&&expiredCarts.length" class="expired-carts" aria-labelledby="expired-carts-title">
      <h3 id="expired-carts-title">ตะกร้าร่างจากวันก่อน</h3>
-     <p>{{ todayCartHasLines ? 'จัดการตะกร้าของวันนี้ก่อนย้ายตะกร้าร่าง' : 'ย้ายมาวันนี้เพื่อแก้ไขหรือบันทึกต่อ' }}</p>
+     <p>{{ todayCartHasLines ? 'เลือกวันเดิมเพื่อบันทึกย้อนหลัง หรือจัดการตะกร้าวันนี้ก่อนย้ายตะกร้าร่าง' : 'เลือกวันเดิมเพื่อบันทึกย้อนหลัง หรือย้ายตะกร้าร่างมาวันนี้' }}</p>
      <ul><li v-for="draft in expiredCarts" :key="draft.day"><span>{{ dateLabel(draft.day) }} · {{ draft.quantity }} ชาม</span><Button data-recover-cart size="compact" variant="secondary" :disabled="locked||!!bookingId||!!pendingPreorder||todayCartHasLines" @click="recoverCart(draft.day)">ย้ายมาวันนี้</Button></li></ul>
     </section>
     <p v-if="orderWorkspace&&channelPaused" class="error" role="status">{{ explain({code:'CHANNEL_PAUSED'}) }}</p>
-    <PosCatalog v-if="canCompose" :inline-toolbar="entryMode" :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="orderDraftLocked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
+    <PosCatalog :inline-toolbar="entryMode" :menus="filteredMenus" :platforms="productPlatforms" :platform-id="platformId" :cart-quantities="cartQuantities" v-model:search="searchQuery" :disabled="orderDraftLocked" :price-for="m=>m.prices[platformId]||0" :unavailable-for="menuUnavailable" @platform="setPlatform" @select-menu="selectMenu"/>
     <CartPanel :model="productModel" :presentation="mobileCart?'drawer':'side-drawer'" :open="cartOpen" :checkout-pending="['sale','preorder'].includes(activeAction)" :disabled="orderDraftLocked" :action-label="orderAction" @request-close="cartOpen=false" @checkout="checkout">
      <template #review>
       <div v-if="entryMode||shortages.length||previewError" class="cart-cloud-review">
        <p v-if="entryMode">{{ newPreorder ? 'Pre-order สำหรับวันที่ '+orderDay : bookingId ? 'บันทึกยอดขายจาก Pre-order วันที่ '+orderDay : 'บันทึกยอดขายวันที่ '+orderDay }}</p>
+       <p v-if="backdatedEntry">ยอดขายเข้าวันที่เลือก และตัดสต็อกปัจจุบันเมื่อบันทึก</p>
        <p v-if="entryMode&&bookingQuote!==null&&preview&&preview.subtotalCents!==bookingQuote">ยอดจองเดิม {{ money(bookingQuote) }} · ตรวจราคาปัจจุบันก่อนบันทึก</p>
        <section v-if="!newPreorder&&shortages.length" class="shortage"><h3>สต็อกไม่พอ</h3><p v-for="[id,q] in shortages" :key="id">{{ materialName(id) }} ขาด {{ amount(q) }} {{ material(id)?.unit }}</p><label><input v-model="approveShortage" type="checkbox" :disabled="locked"> ยืนยันขายตามจำนวนที่ขาดข้างต้น</label></section>
        <p v-if="previewError" class="error" role="alert">{{ previewError }}</p>
@@ -25,7 +26,7 @@
       </div>
      </template>
     </CartPanel>
-    <CartLauncher ref="cartLauncher" :active="orderWorkspace&&(canCompose||cartQuantity>0)" :quantity="cartQuantity" :open="cartOpen" :busy="busy" @open="cartOpen=true"/>
+    <CartLauncher ref="cartLauncher" :active="orderWorkspace" :quantity="cartQuantity" :open="cartOpen" :busy="busy" @open="cartOpen=true"/>
    </section>
    <CloudDashboardWorkspace v-if="reportVisited" v-show="tab==='dashboard'" :active="tab==='dashboard'" :read-only="!operator" :ready="ready" :revision="state.shop.revision" :refresh-key="reportRefreshKey" :menu-report-request="menuReportRequest" :data="data" :service="service" :modals="productModel.modals" :inventory-model="inventoryWorkspace?.model" @navigate="productModel.switchTab"/>
    <CloudStockWorkspace v-if="operator" ref="inventoryWorkspace" v-show="['stock','menu','addon'].includes(tab)" :current-tab="tab" :data="data" :service="service" :execute="send" :ready="ready" :blocked="locked" :storage-key="`gy-inventory-drafts-v1:${storageKey}`" :read-history="readStockHistory" @open-orders="navigate('orders')" @return-bill="requestBillReturn"/>
@@ -85,7 +86,7 @@ import {withLatestMenuOrder} from '../../domain/catalogOrdering.js'
 import {maxSaleLines} from './model/limits.js'
 import {businessDateKey} from '../../domain/businessDate.js'
 import {dateLabel} from '../../domain/dashboard.js'
-import {businessDay,dayKey} from './orderEntry.js'
+import {backdatedPrefix,backdatedSaleDay,businessDay,dayKey,FIRST_ENTRY_DAY} from './orderEntry.js'
 const props=defineProps({connection:{type:Object,required:true},state:{type:Object,required:true}})
 provide('catalog-images',{watch:(...args)=>service.images.watch(...args),save:(...args)=>service.images.save(...args)})
 const role=computed(()=>shopRole(props.state.shop,props.state.user?.email)),operator=computed(()=>canOperate(role.value))
@@ -113,7 +114,7 @@ const today=ref(businessDateKey()),orderDay=ref(today.value),bookingId=ref(''),p
 const entryMode=computed(()=>tab.value==='order-entry')
 const orderWorkspace=computed(()=>tab.value==='sale'||entryMode.value)
 const newPreorder=computed(()=>entryMode.value&&!bookingId.value&&orderDay.value>today.value)
-const canCompose=computed(()=>!entryMode.value||orderDay.value>=today.value||!!bookingId.value)
+const backdatedEntry=computed(()=>entryMode.value&&!bookingId.value&&orderDay.value<today.value)
 const bookingQuote=computed(()=>data.value?.shop.preorders?.[bookingId.value]?.quoteCents??null)
 const orderAction=computed(()=>entryMode.value?(pendingPreorder.value?'ตรวจผล Pre-order':newPreorder.value?'บันทึก Pre-order':'บันทึกยอดขายและตัดสต็อก'):undefined)
 const packageAdjustments=ref([]),packageReviewState=reactive({isOpen:false})
@@ -169,7 +170,7 @@ const previewResult=computed(()=>{try{if(!cart.value.length||!data.value)return 
 const preview=computed(()=>previewResult.value.order),previewError=computed(()=>previewResult.value.error)
 const shortages=computed(()=>Object.entries(preview.value?.approvedShortages||{}).filter(([,q])=>q>0))
 const canCheckout=computed(()=>orderWorkspace.value&&ready.value&&!locked.value&&(entryMode.value&&!!pendingPreorder.value||!!preview.value&&
- (entryMode.value ? (bookingId.value ? bookingQuote.value!==null&&orderDay.value<=today.value : orderDay.value>=today.value) :
+ (entryMode.value ? (!bookingId.value||bookingQuote.value!==null&&orderDay.value<=today.value) :
   posEnabled.value&&orderDay.value===today.value&&!bookingId.value&&!pendingPreorder.value) &&
  (newPreorder.value||!shortages.value.length||approveShortage.value)))
 const money=c=>new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB'}).format((c||0)/100)
@@ -295,9 +296,12 @@ async function readStockHistory(options={}){const {db}=getFirebaseClient({mode:p
 function material(id){return data.value?.materials.find(m=>m.id===id)}
 function materialName(id){return material(id)?.name||id}
 function name(kind,id){return data.value?.display[kind]?.[id]?.name||id}
-function orderDate(o){return o.createdAt?.toDate?o.createdAt.toDate().toLocaleString('th-TH'):''}
+function orderDate(o){
+ const saleDay=backdatedSaleDay(o.opId)
+ return saleDay?`${dateLabel(saleDay)} · บันทึกย้อนหลัง`:o.createdAt?.toDate?o.createdAt.toDate().toLocaleString('th-TH'):''
+}
 function optionPrice(g,id){const cents=optionCents(data.value,menu.value,g,id,platformId.value);return cents===null?'ยังไม่ตั้งราคา':cents===0?'รวมในราคา':`+${money(cents)}`}
-function selectMenu(id){if(!orderWorkspace.value||!canCompose.value||orderDraftLocked.value||channelPaused.value)return;cartLauncher.value?.capture(id);selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
+function selectMenu(id){if(!orderWorkspace.value||orderDraftLocked.value||channelPaused.value)return;cartLauncher.value?.capture(id);selectedMenu.value=id;quantity.value=1;lineNote.value='';lineError.value='';choices.value=Object.fromEntries(menuGroups.value.map(g=>[g.id,Object.fromEntries(g.optionIds.map(id=>[id,0]))]))}
 function lineDescription(l){return l.selections?l.selections.map(s=>`${name('addons',s.id)} × ${s.selectionQty}`).join(', '):(l.optionIds||[]).map(id=>name('addons',id)).join(', ')}
 function save(){try{sessionStorage.setItem(storageKey,JSON.stringify({cart:cart.value,packageAdjustments:packageAdjustments.value,platformId:platformId.value,parkedCarts:Object.fromEntries(parkedCarts),command:pendingCommand.value,causeCode:pendingCause.value,cartCommandId,orderDay:orderDay.value,bookingId:bookingId.value,pendingPreorder:pendingPreorder.value}));storageReady.value=true;return true}catch{storageReady.value=false;error.value='เก็บตะกร้าไม่ได้ กรุณาเปิดพื้นที่จัดเก็บก่อนบันทึก';return false}}
 function draftLine(){
@@ -418,12 +422,15 @@ function checkout(){
  if(!canCheckout.value)return
  if(entryMode.value&&(newPreorder.value||pendingPreorder.value)){void savePreorder();return}
  const id=crypto.randomUUID()
- cartCommandId=entryMode.value?(bookingId.value?bookingId.value+'_'+id:'ENTRY-'+businessDay(orderDay.value)+'-'+id):id
+ const day=businessDay(orderDay.value)
+ if(bookingId.value)cartCommandId=`${bookingId.value}_${id}`
+ else if(backdatedEntry.value)cartCommandId=backdatedPrefix(day)+id
+ else cartCommandId=entryMode.value?`ENTRY-${day}-${id}`:id
  void send({opId:cartCommandId,kind:'sale',payload:{platformId:platformId.value,lines:plain(cart.value),packages:cloudPackageOperands(data.value,cart.value,packageAdjustments.value),subtotalCents:preview.value.subtotalCents,expectedCatalogRevision:data.value.shop.catalogRevision,approvedShortages:Object.fromEntries(shortages.value)}})
 }
 function setOrderDay(day){
  const target=businessDay(day)
- if(day&&day!==orderDay.value&&!orderDraftLocked.value&&!bookingId.value&&Number.isFinite(target)&&target<=businessDay(today.value)+366)switchCartDay(day)
+ if(day>=FIRST_ENTRY_DAY&&day!==orderDay.value&&!orderDraftLocked.value&&!bookingId.value&&target<=businessDay(today.value)+366)switchCartDay(day)
 }
 function parkCart(){
  if(cart.value.length||packageAdjustments.value.length||platformId.value&&platformId.value!==platformIds.value[0]){

@@ -2,6 +2,7 @@ import {receiptPackagePlan,receiptExpectedPackageShortage} from './packageReceip
 import {catalogMenus,recipeRows} from './catalogPresentation.js'
 import {projectReceiptItems} from './receiptPresentation.js'
 import {groupAvailability} from './groupAvailability.js'
+import {backdatedSaleDay} from './orderEntry.js'
 // Read-only views of canonical cloud quantities and prices for the original UI.
 export function projectMenus(data){
  return catalogMenus(data).filter(menu=>menu.isActive!==false)
@@ -32,5 +33,5 @@ export function projectReceipt(receipt,data){
  if(receipt.origin==='legacy'&&receipt.sourceLegacyJson){const original=JSON.parse(receipt.sourceLegacyJson);return {...original,orderId:receipt.opId,status:receipt.status,sourceLegacyId:receipt.sourceLegacyId}}
  const p=receipt.platformId
  const timestamp=receipt.createdAt
- return {packagePlan:receiptPackagePlan(receipt),expectedPackagingShortageCost:receiptExpectedPackageShortage(receipt),orderId:receipt.opId,createdAt:timestamp?.seconds?new Date(timestamp.seconds*1000).toISOString():typeof timestamp==='string'?timestamp:'',platformName:data.display.platforms?.[p]?.name||p,subtotal:(receipt.subtotalCents||0)/100,gpAmount:(receipt.gpCents||0)/100,netRevenue:(receipt.netCents??receipt.subtotalCents??0)/100,ingredientCost:(receipt.ingredientCostCents||0)/100,packagingCost:(receipt.packagingCostCents||0)/100,foodCost:((receipt.ingredientCostCents||0)+(receipt.packagingCostCents||0))/100,items:projectReceiptItems(receipt,data),stockShortages:(receipt.inventory||[]).filter(row=>row.shortage>0).map(row=>{const m=data.materials.find(m=>m.id===row.materialId);return {materialId:row.materialId,materialName:m?.name||row.materialId,unit:m?.unit||'',inventoryType:m?.inventoryType,qty:row.shortage/100}})}
+ return {saleDay:backdatedSaleDay(receipt.opId),packagePlan:receiptPackagePlan(receipt),expectedPackagingShortageCost:receiptExpectedPackageShortage(receipt),orderId:receipt.opId,createdAt:timestamp?.seconds?new Date(timestamp.seconds*1000).toISOString():typeof timestamp==='string'?timestamp:'',platformName:data.display.platforms?.[p]?.name||p,subtotal:(receipt.subtotalCents||0)/100,gpAmount:(receipt.gpCents||0)/100,netRevenue:(receipt.netCents??receipt.subtotalCents??0)/100,ingredientCost:(receipt.ingredientCostCents||0)/100,packagingCost:(receipt.packagingCostCents||0)/100,foodCost:((receipt.ingredientCostCents||0)+(receipt.packagingCostCents||0))/100,items:projectReceiptItems(receipt,data),stockShortages:(receipt.inventory||[]).filter(row=>row.shortage>0).map(row=>{const m=data.materials.find(m=>m.id===row.materialId);return {materialId:row.materialId,materialName:m?.name||row.materialId,unit:m?.unit||'',inventoryType:m?.inventoryType,qty:row.shortage/100}})}
 }

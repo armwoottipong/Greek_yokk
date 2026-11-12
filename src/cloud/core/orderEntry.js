@@ -4,7 +4,10 @@ export const PREORDER_LIMIT=24
 export const PREORDER_ID=/^ENTRY-PRE-(\d{1,16})-[a-f0-9-]{36}$/
 const scheduledSale=/^(ENTRY-PRE-\d{1,16}-[a-f0-9-]{36})_[a-f0-9-]{36}$/
 const dailySale=/^ENTRY-(\d{5})-[a-f0-9-]{36}$/
+const backdatedSale=/^ENTRY-BACK-(\d{5})-[a-f0-9-]{36}$/
 const dayMs=86400000
+export const FIRST_ENTRY_DAY='1970-01-01'
+export const LAST_BACKDATED_DAY=99999
 
 export function businessDay(date=businessDateKey()){
  const ms=Date.parse(date+'T00:00:00Z')
@@ -18,13 +21,19 @@ export function offsetMonth(month,offset){
  return date.toISOString().slice(0,10)
 }
 export const scheduledOrderId=id=>scheduledSale.exec(id)?.[1]
-export const isOrderEntry=id=>dailySale.test(id)||scheduledSale.test(id)
+export const backdatedPrefix=day=>`ENTRY-BACK-${String(day).padStart(5,'0')}-`
+export function backdatedSaleDay(id){
+ const day=backdatedSale.exec(id)?.[1]
+ return day===undefined?null:dayKey(Number(day))
+}
+export const isOrderEntry=id=>dailySale.test(id)||scheduledSale.test(id)||backdatedSale.test(id)
 
 export function consumePreorder(shop,nextShop,opId,today=businessDay()){
  const id=scheduledOrderId(opId)
  if(!id){
   const day=dailySale.exec(opId)?.[1]
-  if(day&&Number(day)!==today)throw Object.assign(new Error('ORDER_ENTRY_DAY_CHANGED'),{code:'ORDER_ENTRY_DAY_CHANGED'})
+  const past=backdatedSale.exec(opId)?.[1]
+  if(day&&Number(day)!==today||past&&Number(past)>=today)throw Object.assign(new Error('ORDER_ENTRY_DAY_CHANGED'),{code:'ORDER_ENTRY_DAY_CHANGED'})
   return nextShop
  }
  const schedule=shop.preorders?.[id]

@@ -1,6 +1,7 @@
 import {encodeLegacyId} from '../paths.js'
 import {receiptPackagePlan,receiptExpectedPackageShortage} from './packageReceipt.js'
 import {projectReceiptItems} from './receiptPresentation.js'
+import {backdatedSaleDay} from './orderEntry.js'
 const fail=code=>{throw Object.assign(new Error(code),{code})}
 const dateKey=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value
 export function reportRangeBounds(range){
@@ -32,7 +33,7 @@ function nativeOrder(o,data){
   if(material?.inventoryType!=='ingredient')return []
   return [{materialId:row.materialId,name:material.name||row.materialId,unit:material.unit,qty:row.needed/100}]
  })
- return {ingredients,packagePlan:receiptPackagePlan(o),expectedPackagingShortageCost:receiptExpectedPackageShortage(o),reportKey:`firebase:${o.opId}`,orderId:o.opId,status:o.status,createdAt:iso(o.createdAt),platformId:o.platformId,platformName:data.display.platforms?.[o.platformId]?.name||o.platformId,
+ return {ingredients,packagePlan:receiptPackagePlan(o),expectedPackagingShortageCost:receiptExpectedPackageShortage(o),reportKey:`firebase:${o.opId}`,orderId:o.opId,status:o.status,saleDay:backdatedSaleDay(o.opId),createdAt:iso(o.createdAt),platformId:o.platformId,platformName:data.display.platforms?.[o.platformId]?.name||o.platformId,
   subtotal:o.subtotalCents/100,gpAmount:o.gpCents/100,netRevenue:o.netCents/100,ingredientCost:o.ingredientCostCents/100,packagingCost:o.packagingCostCents/100,foodCost:(o.ingredientCostCents+o.packagingCostCents)/100,grossProfit:o.grossProfitCents/100,items,
   shortageCostRecorded:!(o.inventory||[]).some(r=>r.shortage>0&&!o.billOperands?.packageSnapshots?.[r.materialId]),stockShortages:(o.inventory||[]).filter(r=>r.shortage>0).map(r=>{const m=data.materials.find(m=>m.id===r.materialId);return {materialId:r.materialId,materialName:m?.name||r.materialId,unit:m?.unit||'',qty:r.shortage/100,inventoryType:o.billOperands?.packageSnapshots?.[r.materialId]?'packaging':'unknown'}})}
 }

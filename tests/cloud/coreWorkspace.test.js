@@ -67,7 +67,7 @@ it('parks each date cart and restores it after changing date and reopening the p
   await w.get(`[data-calendar-day="${tomorrow}"]`).trigger('click');expect(qty()).toBe(2)
  }finally{w.unmount()}
 })
-it('shows only recorded past dates and keeps refunded bills outside daily totals',async()=>{
+it('allows empty past dates and keeps refunded bills outside daily totals',async()=>{
  const today=dayKey(businessDay()),month=`${today.slice(0,7)}-01`
  const previous=businessDay(month)-1, sold=dayKey(previous), refunded=dayKey(previous-1), empty=dayKey(previous-2)
  const order=(day,status)=>({orderId:day,createdAt:`${day}T12:00:00+07:00`,status,subtotal:69,gpAmount:0,netRevenue:69,foodCost:19,grossProfit:50,items:[{menuId:'M',menuName:'Greek',qty:2}]})
@@ -77,11 +77,11 @@ it('shows only recorded past dates and keeps refunded bills outside daily totals
   await flushPromises();await w.get('[aria-label="เดือนก่อนหน้า"]').trigger('click');await flushPromises()
   const date=day=>w.get(`[data-calendar-day="${day}"]`)
   const summary=()=>w.get('[aria-labelledby="order-entry-summary-title"]').text()
-  expect(date(empty).element.disabled).toBe(true)
+  expect(date(empty).element.disabled).toBe(false)
   expect(date(sold).element.disabled).toBe(false)
   await date(sold).trigger('click')
   expect(summary()).toContain('฿69');expect(summary()).toContain('1 บิล')
-  expect(w.find('[data-pos-menu="M"]').exists()).toBe(false)
+  expect(w.find('[data-pos-menu="M"]').exists()).toBe(true)
   await date(refunded).trigger('click')
   expect(summary()).toContain('0 บิล')
   expect(date(refunded).get('[data-calendar-order]').attributes('src')).toContain('order-sticker.svg?v=cream')
@@ -152,20 +152,35 @@ it('restores the independent day cart after inspecting a saved preorder on that 
   await w.get('.order-entry-linked button').trigger('click');expect(qty()).toBe(1)
  }finally{w.unmount()}
 })
-it('lets the operator explicitly recover an expired draft without opening an empty past date',async()=>{
+it('lets the operator explicitly move a past draft to today',async()=>{
  const yesterday=dayKey(businessDay()-1)
  const key=JSON.stringify(['gy-core-cart-v1','demo','shop','g1','u'])
  sessionStorage.setItem(key,JSON.stringify({orderDay:yesterday,cart:[{menuId:'M',qty:2,optionIds:[]}],platformId:'P'}))
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state},global:{stubs:{teleport:true}}})
  try{
   await flushPromises()
-  expect(w.get(`[data-calendar-day="${yesterday}"]`).element.disabled).toBe(true)
-  expect(w.find('[data-pos-menu="M"]').exists()).toBe(false)
+  expect(w.get(`[data-calendar-day="${yesterday}"]`).element.disabled).toBe(false)
+  expect(w.find('[data-pos-menu="M"]').exists()).toBe(true)
   await w.get('[data-recover-cart]').trigger('click')
   expect(w.get(`[data-calendar-day="${dayKey(businessDay())}"]`).attributes('aria-pressed')).toBe('true')
   expect(w.getComponent(CartPanel).props('model').cart[0].qty).toBe(2)
   expect(w.find('[data-recover-cart]').exists()).toBe(false)
   expect(h.execute).not.toHaveBeenCalled()
+ }finally{w.unmount()}
+})
+it('submits a sale for an empty past day through the existing cart',async()=>{
+ const past=dayKey(businessDay()-1),today=dayKey(businessDay())
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:{...state,shop:{...state.shop,posEnabled:false}}},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises()
+  if(past.slice(0,7)!==today.slice(0,7))await w.get('[aria-label="เดือนก่อนหน้า"]').trigger('click')
+  await w.get(`[data-calendar-day="${past}"]`).trigger('click')
+  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+  await openCart(w)
+  expect(w.get('.cart-cloud-review').text()).toContain('ตัดสต็อกปัจจุบัน')
+  await w.get('[data-checkout]').trigger('click');await flushPromises()
+  expect(h.execute).toHaveBeenCalledWith(expect.objectContaining({kind:'sale',opId:expect.stringMatching(`^ENTRY-BACK-${businessDay()-1}-`)}))
+  expect(h.savePreorder).not.toHaveBeenCalled()
  }finally{w.unmount()}
 })
 it('updates sales for today after a sale without rereading historical receipts in the month',async()=>{
@@ -190,11 +205,11 @@ it('reports a failed month separately from an empty month and can retry it',asyn
  try{
   await flushPromises()
   expect(w.get('.calendar-note').text()).toContain('โหลดประวัติเดือนนี้ไม่ได้')
-  expect(w.get(`[data-calendar-day="${past}"]`).element.disabled).toBe(true)
+  expect(w.get(`[data-calendar-day="${past}"]`).element.disabled).toBe(false)
   expect(w.get(`[data-calendar-day="${today}"]`).element.disabled).toBe(false)
   expect(w.get('.order-entry-total').text()).toContain('—')
   await w.get('.calendar-note button').trigger('click');await flushPromises()
-  expect(w.get(`[data-calendar-day="${past}"]`).element.disabled).toBe(false)
+  expect(w.get(`[data-calendar-day="${past}"]`).find('[data-calendar-order]').exists()).toBe(true)
   expect(report).toHaveBeenCalledTimes(2)
  }finally{w.unmount()}
 })

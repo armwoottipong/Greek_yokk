@@ -13,6 +13,13 @@ const platform=encodeLegacyId('P'),menu=encodeLegacyId('M')
 const data={shop:{catalog:{menus:{[menu]:{}},platforms:{[platform]:{}}}},display:{menus:{[menu]:{name:'Renamed'}},addons:{A:{name:'Extra'}},platforms:{[platform]:{name:'Store'}}},materials:[]}
 const native=(patch={})=>({opId:'N',status:'committed',createdAt:{seconds:Date.parse('2026-10-26T17:00:00Z')/1000,nanoseconds:0},platformId:platform,subtotalCents:10000,gpCents:3000,netCents:7000,ingredientCostCents:2000,packagingCostCents:500,grossProfitCents:4500,lines:[{menuId:menu,qty:1,totalCents:10000,catalog:{name:'Original',priceMode:'addon'},optionIds:['A'],optionQuantities:{A:1}}],inventory:[],...patch})
 const old=(patch={})=>({orderId:'N',createdAt:'2026-10-27T08:00:00+07:00',platformId:'P',platformName:'Store',subtotal:50,gpAmount:0,netRevenue:50,foodCost:10,grossProfit:40,items:[{menuId:'M',menuName:'Original',qty:2}],...patch})
+it('attributes a backdated bill to the selected day while keeping its recorded timestamp',()=>{
+ const day='2026-10-25',dayNumber=Date.parse(day+'T00:00:00Z')/86400000
+ const [row]=projectReportOrders({receipts:[native({opId:`ENTRY-BACK-${dayNumber}-01234567-0123-0123-0123-012345678901`})]},data)
+ expect(row).toMatchObject({saleDay:day,createdAt:'2026-10-26T17:00:00.000Z'})
+ expect(buildDashboard([row],{start:day,end:day}).metrics.totalSales).toBe(100)
+ expect(buildDashboard([row],{start:'2026-10-27',end:'2026-10-27'}).metrics.totalSales).toBe(0)
+})
 it('maps recorded cents and historical names, never today prices, while retaining separate source identities',()=>{
  const rows=projectReportOrders({receipts:[native()],legacyOrders:[old()]},data)
  expect(rows).toHaveLength(2);expect(new Set(rows.map(o=>o.reportKey)).size).toBe(2)

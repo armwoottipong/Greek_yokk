@@ -37,11 +37,11 @@ import {computed,nextTick,ref,watch} from 'vue'
 import {CalendarDays,ChevronLeft,ChevronRight} from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import IconButton from '@/components/ui/IconButton.vue'
-import {businessDay,dayKey,monthOf,offsetMonth} from './orderEntry.js'
+import {businessDay,dayKey,FIRST_ENTRY_DAY,monthOf,offsetMonth} from './orderEntry.js'
 
 const props=defineProps({day:String,today:String,month:String,max:String,disabled:Boolean,state:String,orderDays:Set,draftDays:{type:Set,default:()=>new Set()}})
 const emit=defineEmits(['update:day','update:month','retry'])
-const min='0001-01-01'
+const min=FIRST_ENTRY_DAY
 const lightOrderSticker=`${import.meta.env.BASE_URL}brand/order-sticker.svg?v=cream`
 const darkOrderSticker=`${import.meta.env.BASE_URL}brand/order-sticker-dark.svg`
 const weekdays=['จ.','อ.','พ.','พฤ.','ศ.','ส.','อา.']
@@ -56,7 +56,7 @@ const dates=computed(()=>{
  const end=businessDay(offsetMonth(props.month,1))
  return Array.from({length:end-start},(_,index)=>dayKey(start+index))
 })
-const selectable=date=>!props.disabled&&date<=props.max&&(date>=props.today||props.orderDays.has(date))
+const selectable=date=>!props.disabled&&date>=min&&date<=props.max
 const tabStop=computed(()=>dates.value.includes(focusDay.value)&&selectable(focusDay.value)?focusDay.value:dates.value.find(selectable))
 const dateLabel=date=>[dateFormat.format(asDate(date)),props.draftDays.has(date)&&'มีตะกร้าร่าง',props.orderDays.has(date)&&'มีออเดอร์'].filter(Boolean).join(' · ')
 watch(()=>props.day,day=>{focusDay.value=day})
