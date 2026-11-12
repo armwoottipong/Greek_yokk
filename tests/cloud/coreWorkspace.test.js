@@ -6,10 +6,10 @@ import OrderEntryPanel from '../../src/cloud/core/OrderEntryPanel.vue'
 import {summaryFixture} from '../firestore/summaryFixture.js'
 import {materialRegistryShop} from '../firestore/summaryMaterialAuthor.js'
 import {businessDay,dayKey} from '../../src/cloud/core/orderEntry.js'
-const h=vi.hoisted(()=>({recover:vi.fn(),discardUnsent:vi.fn(),abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn(),savePreorder:vi.fn()}))
+const h=vi.hoisted(()=>({recover:vi.fn(),discardUnsent:vi.fn(),abandon:vi.fn(),execute:vi.fn(),load:vi.fn(),pending:vi.fn(),preview:vi.fn(),orders:vi.fn(),history:vi.fn(),report:vi.fn(),legacyReceipt:vi.fn(),savePreorder:vi.fn(),cancelPreorder:vi.fn()}))
 const historyReader=vi.hoisted(()=>vi.fn())
 vi.mock('../../src/cloud/core/inventoryHistory.js',()=>({loadInventoryHistory:historyReader}))
-vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({images:{watch:(_kind,_id,cb)=>{cb({dataURL:"",revision:0});return ()=>{}},save:vi.fn()},load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,recover:h.recover,discardUnsent:h.discardUnsent,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,savePreorder:h.savePreorder,close:()=>{}})}))
+vi.mock('../../src/cloud/core/workspace.js',()=>({createCoreWorkspace:()=>({images:{watch:(_kind,_id,cb)=>{cb({dataURL:"",revision:0});return ()=>{}},save:vi.fn()},load:h.load,previewSale:h.preview,previewInventory:()=>true,execute:h.execute,abandon:h.abandon,pending:h.pending,recover:h.recover,discardUnsent:h.discardUnsent,reconcile:async()=>({ok:true,value:null}),orders:h.orders,history:h.history,legacyReceipt:h.legacyReceipt,report:h.report,savePreorder:h.savePreorder,cancelPreorder:h.cancelPreorder,close:()=>{}})}))
 vi.mock('../../src/cloud/firebaseClient.js',()=>({getFirebaseClient:()=>({db:{}})}))
 vi.mock('../../src/cloud/shopAccess.js',async original=>({...await original(),createShopAccess:()=>({watch(){},watchInvitations(){},heartbeat:async()=>{},close(){}})}))
 async function openCart(w){const button=w.find('[data-cart-open]');if(button.exists()&&button.attributes('aria-expanded')!=='true')await button.trigger('click');await flushPromises()}
@@ -94,17 +94,28 @@ it('allows empty past dates and keeps refunded bills outside daily totals',async
   expect(h.report.mock.calls.filter(([range])=>range.end===sold)).toHaveLength(1)
  }finally{w.unmount()}
 })
-it('shows saved options and ingredient quantities in the daily order details',async()=>{
+it('shows menu photos and recorded line prices before expanding choices and bill costs',async()=>{
  const today='2026-11-11',data=await h.load()
  data.materials=[{id:'HONEY',name:'น้ำผึ้ง',unit:'กรัม',inventoryType:'ingredient'}]
  const receipt={opId:'fruit',status:'committed',createdAt:`${today}T12:00:00+07:00`,platformId:'P',subtotalCents:6900,gpCents:0,netCents:6900,ingredientCostCents:1000,packagingCostCents:0,grossProfitCents:5900,
   lines:[{menuId:'M',catalog:{name:'Fruit Trio'},qty:2,totalCents:6900,note:'แยกน้ำผึ้ง',optionIds:['KIWI']}],inventory:[{materialId:'HONEY',needed:1600,take:1600,shortage:0,packagingCostCents:0}]}
  data.display.addons.KIWI={name:'กีวี'}
- const w=mount(OrderEntryPanel,{props:{day:today,today,data,ready:true,service:{report:async()=>({receipts:[receipt]})}},global:{stubs:{teleport:true}}})
+ const photo='data:image/png;base64,cGhvdG8='
+ const w=mount(OrderEntryPanel,{props:{day:today,today,data,ready:true,service:{report:async()=>({receipts:[receipt]})}},global:{stubs:{teleport:true},provide:{'catalog-images':{watch:(_kind,id,callback)=>{if(id==='M')callback({dataURL:photo});return ()=>{}}}}}})
  try{
   await flushPromises();await w.get('[data-order-details]').trigger('click')
   const row=w.get('.order-details-row')
-  expect(row.get('.order-details-items').text()).toMatch(/Fruit Trio.*ตัวเลือกต่อชาม.*กีวี.*แยกน้ำผึ้ง/)
+  expect(w.get('.dialog-frame-panel--side-drawer').exists()).toBe(true)
+  const item=row.get('.order-details-item')
+  expect(item.get('img').attributes('src')).toBe(photo)
+  expect(item.get('summary').text()).toMatch(/Fruit Trio.*2 ชาม.*฿69/)
+  expect(item.get('details').element.open).toBe(false)
+  item.get('details').element.open=true
+  expect(item.text()).toMatch(/ตัวเลือกต่อชาม.*กีวี.*แยกน้ำผึ้ง/)
+  const costs=row.get('details.order-details-costs')
+  expect(costs.element.open).toBe(false)
+  costs.element.open=true
+  expect(costs.text()).toMatch(/ต้นทุนวัตถุดิบ\s*฿10.*ต้นทุนบรรจุภัณฑ์\s*฿0.*ต้นทุนขายรวม\s*฿10/)
   expect(row.get('[aria-label="วัตถุดิบรวมในบิล"]').text()).toMatch(/น้ำผึ้ง\s*16 กรัม/)
  }finally{w.unmount()}
 })
@@ -135,7 +146,9 @@ it('opens Dashboard menu rankings for the selected order day on each visit',asyn
 it('restores the independent day cart after inspecting a saved preorder on that date',async()=>{
  const pickup=businessDay()+1, date=dayKey(pickup)
  const d=await h.load()
+ h.preview.mockReturnValue({subtotalCents:20700,ingredientCostCents:3000,packagingCostCents:600,lines:[{totalCents:20700}]})
  d.shop.preorders={booked:{pickupDay:pickup,platformId:'P',quoteCents:20700,draftJson:JSON.stringify({lines:[{menuId:'M',qty:3,optionIds:[]}],packageAdjustments:[]})}}
+ vi.stubGlobal('matchMedia',query=>({matches:query.includes('767px'),addEventListener(){},removeEventListener(){}}))
  const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:{...state,shop:{...state.shop,posEnabled:false}}},global:{stubs:{teleport:true}}})
  try{
   await flushPromises()
@@ -148,8 +161,58 @@ it('restores the independent day cart after inspecting a saved preorder on that 
   expect(cell.find('[data-calendar-cart]').exists()).toBe(true)
   expect(cell.find('[data-calendar-order]').exists()).toBe(true)
   await w.get('[data-order-details]').trigger('click')
+  const drawer=w.get('#order-entry-details .dialog-frame-panel--drawer')
+  const preorder=drawer.get('[aria-label="Pre-order รอดำเนินการ"]')
+  expect(preorder.get('.order-details-item').findComponent({name:'EntityImage'}).props('entityId')).toBe('M')
+  expect(preorder.get('.order-details-item summary').text()).toMatch(/3 ชาม.*฿207/)
+  const costs=preorder.get('details.order-details-costs')
+  expect(costs.element.open).toBe(false)
+  expect(costs.text()).toMatch(/ต้นทุนประมาณการ.*ต้นทุนขายรวม\s*฿36/)
   await w.get('.order-entry-list button').trigger('click');expect(qty()).toBe(3)
   await w.get('.order-entry-linked button').trigger('click');expect(qty()).toBe(1)
+ }finally{w.unmount();vi.unstubAllGlobals()}
+})
+it('cancels a pending preorder only after confirmation and preserves the date cart',async()=>{
+ const day=businessDay(),id='ENTRY-PRE-1-01234567-0123-0123-0123-012345678901',d=await h.load()
+ d.shop.preorders={[id]:{pickupDay:day,platformId:'P',quoteCents:6900,draftJson:JSON.stringify({lines:[{menuId:'M',qty:1,optionIds:[]}],packageAdjustments:[]})}}
+ h.cancelPreorder.mockReset().mockImplementation(async()=>{
+  h.load.mockResolvedValue({...d,shop:{...d.shop,revision:2,lastOpKind:'preorder_cancel',preorders:{}}})
+ })
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:{...state,shop:{...state.shop,posEnabled:false}}},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises()
+  await w.get('[data-pos-menu="M"]').trigger('click');await w.get('form.line-form').trigger('submit')
+  await w.get('[data-order-details]').trigger('click')
+  await w.get('[data-order-cancel-preorder]').trigger('click')
+  expect(w.get('#cloud-cancel-preorder').text()).toContain('ยอดสต็อกจะเท่าเดิม')
+  await w.get('#cloud-cancel-preorder .ui-button--secondary').trigger('click')
+  expect(h.cancelPreorder).not.toHaveBeenCalled()
+  await w.get('[data-order-cancel-preorder]').trigger('click')
+  await w.get('#cloud-cancel-preorder .ui-button--danger').trigger('click');await flushPromises()
+  expect(h.cancelPreorder).toHaveBeenCalledExactlyOnceWith(id)
+  expect(h.execute).not.toHaveBeenCalled()
+  expect(w.find('[data-order-cancel-preorder]').exists()).toBe(false)
+  expect(w.getComponent(CartPanel).props('model').cart[0].qty).toBe(1)
+ }finally{w.unmount()}
+})
+it('returns a sold preorder from the drawer through the sale cancellation command',async()=>{
+ const id='ENTRY-PRE-1-01234567-0123-0123-0123-012345678901_11234567-0123-0123-0123-012345678901'
+ const d=await h.load(),receipt={opId:id,status:'committed',createdAt:new Date().toISOString(),platformId:'P',subtotalCents:6900,gpCents:0,netCents:6900,ingredientCostCents:1000,packagingCostCents:0,grossProfitCents:5900,lines:[{menuId:'M',qty:1,totalCents:6900}]}
+ h.report.mockResolvedValue({receipts:[receipt]})
+ h.execute.mockImplementationOnce(async command=>{
+  h.load.mockResolvedValue({...d,shop:{...d.shop,revision:2,lastOpKind:'cancel'}})
+  h.report.mockResolvedValue({receipts:[{...receipt,status:'cancelled'}]})
+  return {ok:true,value:{kind:'cancel',opId:command.opId,result:{orderId:id}}}
+ })
+ const w=mount(CoreWorkspace,{props:{connection:{config:{projectId:'demo'},shopId:'shop'},state:{...state,shop:{...state.shop,posEnabled:false}}},global:{stubs:{teleport:true}}})
+ try{
+  await flushPromises();await w.get('[data-order-details]').trigger('click')
+  await w.get('[data-order-return-preorder]').trigger('click')
+  expect(h.execute).not.toHaveBeenCalled()
+  await w.get('#cloud-cancel-order .ui-button--primary').trigger('click');await flushPromises()
+  expect(h.execute).toHaveBeenCalledWith(expect.objectContaining({kind:'cancel',payload:{orderId:id}}))
+  expect(w.find('[data-order-return-preorder]').exists()).toBe(false)
+  expect(w.get('#order-entry-details').text()).toContain('คืนบิลแล้ว')
  }finally{w.unmount()}
 })
 it('lets the operator explicitly move a past draft to today',async()=>{

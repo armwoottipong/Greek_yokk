@@ -6,7 +6,7 @@
    <section v-if="operator&&(posEnabled||entryMode)" v-show="orderWorkspace" class="pos-workspace" :aria-label="entryMode?'บันทึกออเดอร์':'ขายสินค้า'">
     <OrderEntryPanel v-if="entryMode" :day="orderDay" :today="today" :data="data" :service="service" :revision="data.shop.revision" :refresh-key="entryRefreshKey" :ready="ready"
       :blocked="locked||!!pendingPreorder" :date-locked="orderDraftLocked||!!bookingId" :linked="!!bookingId" :draft-days="draftDays"
-      @update:day="setOrderDay" @open-sale="openDailySale" @open-preorder="openPreorder" @leave-preorder="leavePreorder" @open-menu-report="openMenuReport"/>
+      @update:day="setOrderDay" @open-sale="openDailySale" @return-sale="requestBillReturn" @open-preorder="openPreorder" @cancel-preorder="requestPreorderCancel" @leave-preorder="leavePreorder" @open-menu-report="openMenuReport"/>
     <section v-if="entryMode&&expiredCarts.length" class="expired-carts" aria-labelledby="expired-carts-title">
      <h3 id="expired-carts-title">ตะกร้าร่างจากวันก่อน</h3>
      <p>{{ todayCartHasLines ? 'เลือกวันเดิมเพื่อบันทึกย้อนหลัง หรือจัดการตะกร้าวันนี้ก่อนย้ายตะกร้าร่าง' : 'เลือกวันเดิมเพื่อบันทึกย้อนหลัง หรือย้ายตะกร้าร่างมาวันนี้' }}</p>
@@ -22,7 +22,7 @@
        <p v-if="entryMode&&bookingQuote!==null&&preview&&preview.subtotalCents!==bookingQuote">ยอดจองเดิม {{ money(bookingQuote) }} · ตรวจราคาปัจจุบันก่อนบันทึก</p>
        <section v-if="!newPreorder&&shortages.length" class="shortage"><h3>สต็อกไม่พอ</h3><p v-for="[id,q] in shortages" :key="id">{{ materialName(id) }} ขาด {{ amount(q) }} {{ material(id)?.unit }}</p><label><input v-model="approveShortage" type="checkbox" :disabled="locked"> ยืนยันขายตามจำนวนที่ขาดข้างต้น</label></section>
        <p v-if="previewError" class="error" role="alert">{{ previewError }}</p>
-       <Button v-if="entryMode&&bookingId" variant="quiet" size="compact" :disabled="locked" @click="cancelPreorder">ยกเลิก Pre-order นี้</Button>
+       <Button v-if="entryMode&&bookingId" variant="quiet" size="compact" :disabled="locked||!ready" @click="requestPreorderCancel(bookingId)">ยกเลิก Pre-order นี้</Button>
       </div>
      </template>
     </CartPanel>
@@ -47,6 +47,10 @@
  </DialogFrame>
  <DialogFrame :open="!!cancelId" id="cloud-cancel-order" title="ยืนยันคืนบิล" :busy="busy" @request-close="cancelId=''"><p>ระบบจะยกเลิกยอดขาย และคืนวัตถุดิบกับบรรจุภัณฑ์ที่ตัดไปเข้าล็อตเดิม</p><p v-if="cancelId" class="muted">บิล {{ cancelId }}</p><p v-if="error" class="error" role="alert">{{ error }}</p><template #footer><Button variant="secondary" :disabled="busy" @click="cancelId=''">เก็บบิลไว้</Button><Button :disabled="locked||!ready" :loading="activeAction==='cancel'" @click="cancelOrder(cancelId)">ยืนยันคืนบิล</Button></template></DialogFrame>
  <DialogFrame :open="clearConfirm" id="cloud-clear-cart" title="ล้างตะกร้านี้?" @request-close="answerClear(false)"><p>รายการสินค้า ท็อปปิ้ง และหมายเหตุที่ยังไม่ได้ชำระจะถูกล้าง</p><template #footer><Button variant="secondary" @click="answerClear(false)">เก็บออเดอร์ไว้</Button><Button variant="danger" @click="answerClear(true)">ล้างตะกร้า</Button></template></DialogFrame>
+ <DialogFrame :open="!!preorderCancelId" :busy="busy" id="cloud-cancel-preorder" title="ยกเลิก Pre-order นี้?" @request-close="preorderCancelId=''">
+  <p>รายการจะออกจากยอดจองของร้าน และยอดสต็อกจะเท่าเดิม</p>
+  <template #footer><Button variant="secondary" :disabled="busy" @click="preorderCancelId=''">เก็บรายการไว้</Button><Button variant="danger" :loading="busy" :disabled="locked||!ready" @click="cancelPreorder">ยืนยันยกเลิก</Button></template>
+ </DialogFrame>
 </template>
 
 <script setup>
@@ -111,6 +115,7 @@ const posEnabled=computed(()=>{
 const availableTabs=computed(()=>roleTabs(role.value).filter(id=>id!=='pos'||posEnabled.value))
 const tab=ref(operator.value?(posEnabled.value?'sale':'order-entry'):'dashboard')
 const today=ref(businessDateKey()),orderDay=ref(today.value),bookingId=ref(''),pendingPreorder=ref(null)
+const preorderCancelId=ref('')
 const entryMode=computed(()=>tab.value==='order-entry')
 const orderWorkspace=computed(()=>tab.value==='sale'||entryMode.value)
 const newPreorder=computed(()=>entryMode.value&&!bookingId.value&&orderDay.value>today.value)
@@ -477,15 +482,19 @@ function leavePreorder(){
  else{cart.value=[];packageAdjustments.value=[]}
  closeCartEditors()
 }
+function requestPreorderCancel(id){
+ if(!locked.value&&ready.value&&!pendingPreorder.value&&data.value?.shop.preorders?.[id])preorderCancelId.value=id
+}
 async function cancelPreorder(){
- if(locked.value||!ready.value||!bookingId.value)return
- const id=bookingId.value
- const confirmed=await productModel.confirmDialog({title:'ยกเลิก Pre-order นี้?',message:'รายการจะออกจากยอดจองของร้าน',confirmText:'ยกเลิก Pre-order',cancelText:'เก็บรายการไว้'})
- if(!confirmed||locked.value||!ready.value||bookingId.value!==id)return
+ const id=preorderCancelId.value
+ if(locked.value||!ready.value||!id||pendingPreorder.value)return
  busy.value=true
- try{await service.cancelPreorder(id);leavePreorder();await reloadAfterWrite();showToast('ยกเลิก Pre-order แล้ว','success')}
- catch(e){showToast(explain(e),'error');await refresh()}
- finally{busy.value=false}
+ try{
+  await service.cancelPreorder(id)
+  if(bookingId.value===id)leavePreorder()
+  await reloadAfterWrite();showToast('ยกเลิก Pre-order แล้ว','success')
+ }catch(e){showToast(explain(e),'error');await refresh()}
+ finally{preorderCancelId.value='';busy.value=false}
 }
 async function savePreorder(){
  const input=pendingPreorder.value||{id:'ENTRY-PRE-'+data.value.shop.revision+'-'+crypto.randomUUID(),pickupDay:businessDay(orderDay.value),

@@ -19,7 +19,7 @@
     </div>
    </section>
   </div>
-  <OrderDetailsDialog :open="detailsOpen" :date="displayDate(day)" :sales="sales" :bookings="bookings" :data="data" :state="dailyState" :blocked="blocked" @request-close="detailsOpen=false" @retry="retryMonth(activeMonth)" @open-sale="$emit('open-sale',$event)" @open-preorder="$emit('open-preorder',$event)" />
+  <OrderDetailsDialog :open="detailsOpen" :date="displayDate(day)" :sales="sales" :bookings="bookings" :data="data" :preview-sale="service.previewSale" :state="dailyState" :blocked="blocked||!ready" @request-close="detailsOpen=false" @retry="retryMonth(activeMonth)" @open-sale="$emit('open-sale',$event)" @return-sale="$emit('return-sale',$event)" @open-preorder="$emit('open-preorder',$event)" @cancel-preorder="$emit('cancel-preorder',$event)" />
  </section>
 </template>
 
@@ -34,7 +34,7 @@ import OrderDetailsDialog from './OrderDetailsDialog.vue'
 import {projectReportOrders} from './reportProjection.js'
 
 const props=defineProps({day:String,today:String,data:Object,service:Object,revision:Number,refreshKey:Number,ready:Boolean,blocked:Boolean,dateLocked:Boolean,linked:Boolean,draftDays:Set})
-defineEmits(['update:day','open-sale','open-preorder','leave-preorder','open-menu-report'])
+defineEmits(['update:day','open-sale','return-sale','open-preorder','cancel-preorder','leave-preorder','open-menu-report'])
 const dateFormat=new Intl.DateTimeFormat('th-TH',{dateStyle:'long',timeZone:'UTC'})
 const displayDate=value=>dateFormat.format(new Date(value+'T00:00:00Z'))
 const activeMonth=computed(()=>monthOf(props.day)),visibleMonth=ref(activeMonth.value)

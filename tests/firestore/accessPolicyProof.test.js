@@ -93,6 +93,17 @@ it('records manual sales with POS off, keeps future orders out of receipts and c
  expect(after.shop.preorders).toEqual({})
  expect(after.materials.some((m,i)=>m.stock<before[i].stock)).toBe(true)
  await expect(api.commit({...sale,opId:id+'_11234567-0123-0123-0123-012345678901'})).rejects.toMatchObject({code:'PREORDER_NO_LONGER_PENDING'})
+ await api.commit({kind:'cancel',opId:'RETURN-CONVERTED-PREORDER',payload:{orderId:sale.opId}})
+ const returned=await api.snapshot()
+ expect(returned.shop.preorders).toEqual({})
+ expect(returned.materials.map(m=>m.lotQty)).toEqual(before.map(m=>m.lotQty))
+ const pending={...input,id:'ENTRY-PRE-'+returned.shop.revision+'-11234567-0123-0123-0123-012345678901'}
+ await api.savePreorder(pending)
+ await api.cancelPreorder(pending.id)
+ const cancelled=await api.snapshot()
+ expect(cancelled.shop.preorders).toEqual({})
+ expect(cancelled.materials.map(m=>m.lotQty)).toEqual(returned.materials.map(m=>m.lotQty))
+ expect(await api.receipt('sale',pending.id)).toBeNull()
  await api.commit({kind:'sale',opId:'ENTRY-'+day+'-01234567-0123-0123-0123-012345678901',payload})
 })
 it('commits and cancels a backdated sale as a manager with POS disabled',async()=>{
