@@ -7,7 +7,7 @@
   <Teleport to="body"><FilterDropdown id="dashboard-date-filter" title="ช่วงเวลารายงาน" :open="datesOpen" :anchor="dateAnchor" :values="range" @close="datesOpen=false" @apply="applyRange" /></Teleport>
   <template v-if="reportReady">
   <div class="dashboard-summary" aria-label="สรุปยอดขายในช่วงวันที่เลือก">
-   <section class="dashboard-sales"><span>ยอดขายรวม</span><strong data-sales-total class="font-number">฿{{ money(metrics.totalSales) }}</strong><p>{{ metrics.orderCount }} บิล <span>เฉลี่ย ฿{{ money(metrics.avgOrderValue) }} / บิล</span></p></section>
+   <section class="dashboard-sales"><span>ยอดขายก่อนหัก GP</span><strong data-sales-total class="font-number">฿{{ money(metrics.totalSales) }}</strong><p>{{ metrics.orderCount }} บิล <span>เฉลี่ย ฿{{ money(metrics.avgOrderValue) }} / บิล</span></p></section>
    <dl class="dashboard-metrics"><div><dt>ค่าธรรมเนียมช่องทาง</dt><dd class="font-number">฿{{ money(metrics.totalGp) }}</dd><small>{{ percent(metrics.totalGp,metrics.totalSales) }}% ของยอดขาย · รับสุทธิ ฿{{ money(metrics.netRevenue) }}</small></div><div><dt>ต้นทุนขายรวม</dt><dd class="font-number">฿{{ money(metrics.totalFoodCost) }}</dd><small>วัตถุดิบ ฿{{ money(metrics.totalIngredientCost) }} · Package ฿{{ money(metrics.totalPackagingCost) }}</small></div><div><dt>กำไรขั้นต้น</dt><dd class="font-number" :class="{'is-negative':metrics.grossProfit<0}">฿{{ money(metrics.grossProfit) }}</dd><small>{{ money(metrics.margin) }}% ของรายรับหลังค่าธรรมเนียม</small></div></dl>
   </div>
   <p class="dashboard-accounting-note">กำไรขั้นต้นตามที่บันทึกในบิล ยังไม่หักค่าเช่า ค่าแรง และค่าใช้จ่ายอื่น</p>
