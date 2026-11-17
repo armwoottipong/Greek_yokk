@@ -582,7 +582,9 @@ it('opens the original receipt only after its matching server-confirmed sale',as
  expect(w.find('.receipt-paper').exists()).toBe(false)
  await w.get('[data-retry-command]').trigger('click');await flushPromises()
  expect(w.get('.receipt-paper').text()).toContain('฿69')
- expect(w.get('.receipt-paper').text()).toContain(h.execute.mock.calls.at(-1)[0].opId)
+ const orderId=h.execute.mock.calls.at(-1)[0].opId
+ expect(w.get('.receipt-bill-number').text()).toBe(`…${orderId.slice(-8)}`)
+ expect(w.get('.receipt-bill-number').attributes('title')).toBe(orderId)
  w.unmount()
 })
 
