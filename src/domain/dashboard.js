@@ -6,6 +6,7 @@ const keyOf=date=>date.toISOString().slice(0,10)
 export const money=value=>new Intl.NumberFormat('th-TH',{maximumFractionDigits:2}).format(value || 0)
 export const dateLabel=key=>key ? new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',year:'2-digit',timeZone:'Asia/Bangkok'}).format(new Date(`${key}T12:00:00+07:00`)) : 'ทั้งหมด'
 export const orderSaleDay=order=>order.saleDay||businessDateKey(order.createdAt??'')
+export const orderPlatformId=order=>order.platformId||order.platformName||'unknown'
 
 export function dashboardRange(period,today=businessDateKey()) {
  if(period==='all') return {start:null,end:null}
@@ -55,7 +56,7 @@ export function buildDashboard(source,range){
  const channels=new Map(),menus=new Map()
  for(const {order,day} of sales){
   grouped.get(bucketKey(day))?.push(order)
-  const id=order.platformId || order.platformName || 'unknown'
+  const id=orderPlatformId(order)
   if(!channels.has(id)) channels.set(id,{id,label:order.platformName || 'ไม่ระบุช่องทาง',orders:[]})
   channels.get(id).orders.push(order)
   for(const item of order.items || []){

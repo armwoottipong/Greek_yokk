@@ -17,7 +17,24 @@
   <template v-if="view!=='inventory'">
    <section v-if="!report.orders.length" class="dashboard-empty"><ChartNoAxesCombined :size="32" aria-hidden="true"/><h3>ยังไม่มีคำสั่งซื้อในช่วงนี้</h3><p>ลองเลือกช่วงวันที่อื่น หรือเริ่มบันทึกการขายที่หน้าแคชเชียร์</p><button v-if="!store.readOnly" type="button" class="dashboard-primary" @click="store.switchTab('pos')">ไปหน้าแคชเชียร์</button></section>
    <template v-else>
-    <section v-if="view==='overview'" class="dashboard-panel"><DashboardTrend :rows="report.trend" :bucket="report.bucket" /></section>
+    <section v-if="view==='overview'" class="dashboard-panel">
+     <DashboardTrend :rows="trendReport.trend" :bucket="trendReport.bucket">
+      <template #filters>
+       <button ref="platformAnchor" type="button" data-trend-platforms class="dashboard-date-button dashboard-platform-button" :aria-label="'กรองแพลตฟอร์ม · '+(trendPlatform?.label || 'ทุกแพลตฟอร์ม')" aria-haspopup="dialog" aria-controls="dashboard-platform-filter" :aria-expanded="platformsOpen" @click="platformsOpen=true">
+        <SlidersHorizontal :size="16" aria-hidden="true"/><span>{{ trendPlatform?.label || 'ทุกแพลตฟอร์ม' }}</span><ChevronDown :size="14" aria-hidden="true"/>
+       </button>
+      </template>
+     </DashboardTrend>
+     <Teleport to="body"><FilterDropdown id="dashboard-platform-filter" title="กรองแพลตฟอร์ม" :open="platformsOpen" :anchor="platformAnchor" :include-dates="false" :fields="platformFields" :values="{platform:trendPlatform?.id ?? ''}" @close="platformsOpen=false" @apply="trendPlatformId=$event.platform" /></Teleport>
+    </section>
+    <section v-if="view==='overview'" class="dashboard-panel" aria-labelledby="dashboard-platform-profit">
+     <div class="dashboard-section-heading"><h3 id="dashboard-platform-profit">กำไรขั้นต้นแยกตามแพลตฟอร์ม</h3></div>
+     <dl class="dashboard-platform-profits">
+      <div v-for="channel in profitChannels" :key="channel.id" :data-platform-profit="channel.id">
+       <dt>{{ channel.label }}</dt><dd class="font-number" :class="{'is-negative':channel.grossProfit<0}">{{ channel.grossProfit<0?'−':'' }}฿{{ money(Math.abs(channel.grossProfit)) }}</dd>
+      </div>
+     </dl>
+    </section>
     <div v-if="view==='overview'" class="dashboard-two-columns"><section class="dashboard-panel"><DashboardBreakdown title="ยอดขายตามช่องทาง" subtitle="ช่องทางไหนสร้างยอดขายให้ร้าน" :rows="channelRows" allow-donut /></section><section class="dashboard-panel"><DashboardBreakdown title="เมนูขายดี" subtitle="5 อันดับตามจำนวนขาย ไม่รวมตัวเลือกเสริม" :rows="menuRows.slice(0,5)" unit="ชิ้น" /><button type="button" class="dashboard-text-button" @click="view='menus'">ดูเมนูทั้งหมด<ArrowRight :size="14" aria-hidden="true"/></button></section></div>
     <template v-if="view==='channels'">
      <section class="dashboard-panel"><DashboardBreakdown title="สัดส่วนยอดขายตามช่องทาง" subtitle="สลับรูปแบบแท่งหรือวงแหวนเพื่อเปรียบเทียบ" :rows="channelRows" allow-donut /></section>
@@ -37,9 +54,9 @@
 </template>
 <script setup>
 import {computed,ref,watch,onMounted,onActivated,onUnmounted} from 'vue'
-import {CalendarDays,ChevronDown,ChartNoAxesCombined,Store,Utensils,Package,ArrowRight,ReceiptText} from 'lucide-vue-next'
+import {CalendarDays,ChevronDown,ChartNoAxesCombined,Store,Utensils,Package,ArrowRight,ReceiptText,SlidersHorizontal} from 'lucide-vue-next'
 import {usePosStore} from '@/stores/posStore'
-import {buildDashboard,dashboardRange,money,dateLabel} from '@/domain/dashboard'
+import {buildDashboard,dashboardRange,money,dateLabel,orderPlatformId,orderSaleDay} from '@/domain/dashboard'
 import {businessDateKey} from '@/domain/businessDate'
 import FilterDropdown from '@/components/ui/FilterDropdown.vue'
 import AppChoiceGroup from '@/components/ui/AppChoiceGroup.vue'
@@ -51,6 +68,7 @@ const props=defineProps({model:Object,reportReady:{type:Boolean,default:true},me
 const emit=defineEmits(['range-change'])
 const store=props.model||usePosStore()
 const period=ref(store.dashboardPeriod || 'today'),range=ref(dashboardRange(period.value)),view=ref('overview'),datesOpen=ref(false),dateAnchor=ref(null),orderOffset=ref(0)
+const platformsOpen=ref(false),platformAnchor=ref(null),trendPlatformId=ref('')
 const inventoryGrouping=ref('category')
 const inventoryGroupOptions=[{value:'category',label:'หมวดหมู่'},{value:'material',label:'วัตถุดิบ'}]
 let lastDay=businessDateKey(),dayTimer
@@ -66,6 +84,19 @@ onUnmounted(()=>clearInterval(dayTimer))
 const periods=[{value:'today',label:'วันนี้'},{value:'week',label:'7 วัน'},{value:'month',label:'30 วัน'},{value:'all',label:'ทั้งหมด'}]
 const views=[{id:'overview',label:'ภาพรวม',icon:ChartNoAxesCombined},{id:'channels',label:'ช่องทางขาย',icon:Store},{id:'menus',label:'เมนูขายดี',icon:Utensils},{id:'inventory',label:'คลังวัตถุดิบ',icon:Package}]
 const report=computed(()=>buildDashboard(store.orders,range.value)),metrics=computed(()=>report.value.metrics)
+const profitChannels=computed(()=>[...report.value.channels].sort((a,b)=>b.grossProfit-a.grossProfit))
+const trendPlatform=computed(()=>report.value.channels.find(channel=>channel.id===trendPlatformId.value))
+const platformFields=computed(()=>[{key:'platform',label:'แพลตฟอร์ม',defaultValue:'',options:[{id:'',label:'ทุกแพลตฟอร์ม'},...report.value.channels]}])
+const trendReport=computed(()=>{
+ const current=report.value,platform=trendPlatform.value
+ if(!platform)return current
+ // Keep every date in the report so zero-sale periods and bucket boundaries stay visible.
+ const dates=range.value.start?range.value:{start:orderSaleDay(current.orders.at(-1)),end:orderSaleDay(current.orders[0])}
+ return buildDashboard(current.orders.filter(order=>orderPlatformId(order)===platform.id),dates)
+})
+watch([view,()=>props.reportReady,()=>report.value.orders.length],([tab,ready,count])=>{
+ if(tab!=='overview'||!ready||!count)platformsOpen.value=false
+})
 const rangeLabel=computed(()=>!range.value.start?'ทุกช่วงเวลา':range.value.start===range.value.end?dateLabel(range.value.start):`${dateLabel(range.value.start)} – ${dateLabel(range.value.end)}`)
 const channelRows=computed(()=>report.value.channels.map(c=>({id:c.id,label:c.label,value:c.totalSales})))
 const menuRows=computed(()=>report.value.menus.map(m=>({id:m.id,label:m.label,value:m.qty})))

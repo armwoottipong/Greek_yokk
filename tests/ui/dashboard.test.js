@@ -3,9 +3,38 @@ import {mount} from '@vue/test-utils'
 import DashboardView from '../../src/views/DashboardView.vue'
 import FilterDropdown from '../../src/components/ui/FilterDropdown.vue'
 import DashboardBreakdown from '../../src/components/dashboard/DashboardBreakdown.vue'
+import DashboardTrend from '../../src/components/dashboard/DashboardTrend.vue'
 import {createTestStore,material} from '../helpers/createStore'
 vi.mock('canvas-confetti',()=>({default:()=>{}}))
 const sale=(id,date)=>({orderId:id,createdAt:date,platformId:'P',platformName:'หน้าร้าน',subtotal:100,gpAmount:0,netRevenue:100,foodCost:30,grossProfit:70,items:[{menuId:'M',menuName:'โยเกิร์ต',qty:1}]})
+it('shows each channel profit and filters only the trend using the shared filter dialog',async()=>{
+ const s=createTestStore(),day='2026-10-10T10:00:00Z'
+ s.orders=[sale('SHOP',day),{...sale('DELIVERY',day),platformId:'D',platformName:'Delivery',gpAmount:75,netRevenue:25,grossProfit:-5},
+  {...sale('REFUND',day),platformId:'D',platformName:'Delivery',status:'cancelled'}]
+ const w=mount(DashboardView)
+ try{
+  await w.get('[data-period="all"]').trigger('click')
+  expect(w.get('[data-platform-profit="P"]').text()).toMatch(/หน้าร้าน\s*฿70/)
+  expect(w.get('[data-platform-profit="D"]').text()).toMatch(/Delivery\s*−฿5/)
+  const trend=w.getComponent(DashboardTrend)
+  expect(trend.props('rows')[0]).toMatchObject({totalSales:200,grossProfit:65})
+  await w.get('[data-trend-platforms]').trigger('click')
+  const dialog=document.querySelector('#dashboard-platform-filter')
+  expect(dialog.querySelector('[data-filter-dropdown]')).not.toBeNull()
+  expect(dialog.querySelector('.filter-dates')).toBeNull()
+  const select=dialog.querySelector('select')
+  select.value='D';select.dispatchEvent(new Event('change',{bubbles:true}))
+  dialog.querySelector('[data-apply-filters]').click();await w.vm.$nextTick()
+  expect(trend.props('rows')[0]).toMatchObject({totalSales:100,totalFoodCost:30,grossProfit:-5})
+  expect(w.get('[data-sales-total]').text()).toContain('200')
+  expect(w.get('[data-trend-platforms]').text()).toContain('Delivery')
+  await w.get('[data-trend-platforms]').trigger('click')
+  document.querySelector('#dashboard-platform-filter .filter-reset').click()
+  await w.vm.$nextTick()
+  document.querySelector('#dashboard-platform-filter [data-apply-filters]').click();await w.vm.$nextTick()
+  expect(trend.props('rows')[0].grossProfit).toBe(65)
+ }finally{w.unmount()}
+})
 async function selectInventoryGrouping(wrapper,value){
  const group=wrapper.get('[role="radiogroup"][aria-label="แสดงมูลค่าคลังตาม"]')
  await group.get(`input[value="${value}"]`).setValue(true)
