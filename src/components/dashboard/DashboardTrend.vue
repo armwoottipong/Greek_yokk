@@ -1,6 +1,6 @@
 <template>
  <div ref="chartRoot" class="dashboard-trend" @keydown.esc.stop="clearSelection">
-  <div class="dashboard-section-heading"><div><h3>แนวโน้มยอดขายและต้นทุน</h3><p>{{ bucketLabel }} · {{ rows.length }} ช่วงเวลา</p></div><div class="dashboard-trend-controls"><slot name="filters"/><SegmentedControl v-model="mode" label="รูปแบบกราฟ" :options="modes" :button-attrs="option=>({'data-chart-mode':option.value})"/></div></div>
+  <div class="dashboard-section-heading"><div><h3>แนวโน้มยอดขายและต้นทุน</h3><p>{{ bucketLabel }} · {{ rows.length }} ช่วงเวลา<template v-if="platformLabel"> · {{ platformLabel }}</template></p></div><SegmentedControl v-model="mode" label="รูปแบบกราฟ" :options="modes" :button-attrs="option=>({'data-chart-mode':option.value})"/></div>
   <div class="dashboard-legend"><span v-for="s in series" :key="s.key"><i :style="{background:s.color}"></i>{{ s.label }}</span></div>
   <div v-if="mode==='table'" class="dashboard-table-wrap"><table><caption class="sr-only">รายรับและต้นทุนรายช่วง</caption><thead><tr><th>ช่วงเวลา</th><th>บิล</th><th v-for="s in series" :key="s.key">{{ s.label }}</th></tr></thead><tbody><tr v-for="row in rows" :key="row.date"><th>{{ dateLabel(row.date) }}</th><td>{{ row.orderCount }}</td><td v-for="s in series" :key="s.key">฿{{ money(row[s.key]) }}</td></tr></tbody></table></div>
   <figure v-else :key="mode" class="dashboard-chart-reveal">
@@ -40,7 +40,7 @@ import {ChartNoAxesColumn,ChartNoAxesCombined,Table2} from 'lucide-vue-next'
 import {money,dateLabel} from '@/domain/dashboard'
 import ChartTooltip from '@/components/ui/ChartTooltip.vue'
 import {useChartTooltip} from '@/composables/useChartTooltip'
-const props=defineProps({rows:{type:Array,required:true},bucket:{type:String,default:'day'}})
+const props=defineProps({rows:{type:Array,required:true},bucket:{type:String,default:'day'},platformLabel:String})
 const mode=ref('line'),hovered=ref(null),tooltipId=`trend-${useId()}`
 const {tooltip,showTooltip,hideTooltip}=useChartTooltip()
 const active=computed(()=>tooltip.value?.selection || hovered.value)

@@ -20,6 +20,11 @@
         <div v-if="includeDates" class="filter-presets" aria-label="เลือกช่วงเวลาลัด">
           <button v-for="preset in presets" :key="preset.days" type="button" :aria-pressed="presetMatches(preset.days)" @click="selectPreset(preset.days)">{{ preset.label }}</button>
         </div>
+        <fieldset v-if="checkboxGroup?.options.length" class="filter-checkbox-group">
+          <legend class="filter-date-heading">{{ checkboxGroup.label }}</legend>
+          <AppCheckbox v-for="option in checkboxGroup.options" :key="option.id" v-model="draft[checkboxGroup.key]" :value="option.id" :label="option.label" />
+          <p v-if="checkboxGroup.hint">{{ checkboxGroup.hint }}</p>
+        </fieldset>
         </div>
         <div v-if="includeDates" class="filter-dates">
         <div class="filter-date-heading">เลือกช่วงวันที่</div>
@@ -51,7 +56,7 @@ import DateRangeCalendar from './DateRangeCalendar.vue'
 
 const props=defineProps({
   id:{type:String,required:true},title:{type:String,default:'ตัวกรอง'},open:Boolean,
-  teleport:Boolean,includeDates:{type:Boolean,default:true},anchor:{type:Object,default:null},values:{type:Object,required:true},fields:{type:Array,default:()=>[]}
+  teleport:Boolean,includeDates:{type:Boolean,default:true},anchor:{type:Object,default:null},values:{type:Object,required:true},fields:{type:Array,default:()=>[]},checkboxGroup:Object
 })
 const emit=defineEmits(['close','apply'])
 const draft=ref({})
@@ -75,6 +80,7 @@ onUnmounted(()=>window.removeEventListener('resize',positionPanel))
 function reset(){
   draft.value={...props.values,...(props.includeDates?{start:null,end:null}:{})}
   props.fields.forEach(field=>{draft.value[field.key]=field.defaultValue ?? 'all'})
+  if(props.checkboxGroup)draft.value[props.checkboxGroup.key]=[]
 }
 function presetRange(days){
   if(!days) return {start:null,end:null}
@@ -98,6 +104,9 @@ function apply(){emit('apply',{...draft.value,...(props.includeDates?{end:draft.
 .filter-close{width:44px;height:44px;display:grid;place-items:center;border-radius:8px;color:var(--text-muted)}.filter-close:hover{background:var(--bg-soft)}
 .filter-body{padding:14px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border-subtle) transparent}
 .filter-config,.filter-dates{min-width:0}
+.filter-checkbox-group{display:grid;min-width:0;overflow-wrap:anywhere}
+.filter-checkbox-group legend{padding:0;margin-bottom:2px}
+.filter-checkbox-group p{margin-top:4px;color:var(--text-muted);line-height:1.5}
 .filter-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:16px}.single-field{grid-template-columns:1fr}
 .filter-field>span{display:block;margin-bottom:6px;font-size:11px;font-weight:500;color:var(--text-muted)}
 .filter-date-heading{display:flex;align-items:center;gap:7px;font-weight:600;margin-bottom:9px;color:var(--text-muted)}

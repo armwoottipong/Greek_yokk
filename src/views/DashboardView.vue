@@ -4,7 +4,7 @@
    <p class="dashboard-workspace-caption">ยอดขาย ต้นทุน และสิ่งที่ควรดูแลวันนี้</p>
    <div class="dashboard-date-controls"><SegmentedControl v-model="period" label="ช่วงเวลารายงาน" :options="periods" :button-attrs="option=>({'data-period':option.value})" @update:model-value="selectPeriod"/><button ref="dateAnchor" type="button" data-dashboard-dates class="dashboard-date-button" aria-haspopup="dialog" :aria-expanded="datesOpen" @click="datesOpen=true"><CalendarDays :size="16" aria-hidden="true" />{{ rangeLabel }}<ChevronDown :size="14" aria-hidden="true" /></button></div>
   </header>
-  <Teleport to="body"><FilterDropdown id="dashboard-date-filter" title="ช่วงเวลารายงาน" :open="datesOpen" :anchor="dateAnchor" :values="range" @close="datesOpen=false" @apply="applyRange" /></Teleport>
+  <FilterDropdown teleport id="dashboard-date-filter" title="ช่วงเวลารายงาน" :open="datesOpen" :anchor="dateAnchor" :values="{...range,platforms:trendPlatformIds}" :checkbox-group="platformCheckboxes" @close="datesOpen=false" @apply="applyReportFilters" />
   <template v-if="reportReady">
   <div class="dashboard-summary" aria-label="สรุปยอดขายในช่วงวันที่เลือก">
    <section class="dashboard-sales"><span>ยอดขายก่อนหัก GP</span><strong data-sales-total class="font-number">฿{{ money(metrics.totalSales) }}</strong><p>{{ metrics.orderCount }} บิล <span>เฉลี่ย ฿{{ money(metrics.avgOrderValue) }} / บิล</span></p></section>
@@ -18,14 +18,7 @@
    <section v-if="!report.orders.length" class="dashboard-empty"><ChartNoAxesCombined :size="32" aria-hidden="true"/><h3>ยังไม่มีคำสั่งซื้อในช่วงนี้</h3><p>ลองเลือกช่วงวันที่อื่น หรือเริ่มบันทึกการขายที่หน้าแคชเชียร์</p><button v-if="!store.readOnly" type="button" class="dashboard-primary" @click="store.switchTab('pos')">ไปหน้าแคชเชียร์</button></section>
    <template v-else>
     <section v-if="view==='overview'" class="dashboard-panel">
-     <DashboardTrend :rows="trendReport.trend" :bucket="trendReport.bucket">
-      <template #filters>
-       <button ref="platformAnchor" type="button" data-trend-platforms class="dashboard-date-button dashboard-platform-button" :aria-label="'กรองแพลตฟอร์ม · '+(trendPlatform?.label || 'ทุกแพลตฟอร์ม')" aria-haspopup="dialog" aria-controls="dashboard-platform-filter" :aria-expanded="platformsOpen" @click="platformsOpen=true">
-        <SlidersHorizontal :size="16" aria-hidden="true"/><span>{{ trendPlatform?.label || 'ทุกแพลตฟอร์ม' }}</span><ChevronDown :size="14" aria-hidden="true"/>
-       </button>
-      </template>
-     </DashboardTrend>
-     <Teleport to="body"><FilterDropdown id="dashboard-platform-filter" title="กรองแพลตฟอร์ม" :open="platformsOpen" :anchor="platformAnchor" :include-dates="false" :fields="platformFields" :values="{platform:trendPlatform?.id ?? ''}" @close="platformsOpen=false" @apply="trendPlatformId=$event.platform" /></Teleport>
+     <DashboardTrend :rows="trendReport.trend" :bucket="trendReport.bucket" :platform-label="trendPlatformLabel" />
     </section>
     <section v-if="view==='overview'" class="dashboard-panel" aria-labelledby="dashboard-platform-profit">
      <div class="dashboard-section-heading"><h3 id="dashboard-platform-profit">กำไรขั้นต้นแยกตามแพลตฟอร์ม</h3></div>
@@ -54,7 +47,7 @@
 </template>
 <script setup>
 import {computed,ref,watch,onMounted,onActivated,onUnmounted} from 'vue'
-import {CalendarDays,ChevronDown,ChartNoAxesCombined,Store,Utensils,Package,ArrowRight,ReceiptText,SlidersHorizontal} from 'lucide-vue-next'
+import {CalendarDays,ChevronDown,ChartNoAxesCombined,Store,Utensils,Package,ArrowRight,ReceiptText} from 'lucide-vue-next'
 import {usePosStore} from '@/stores/posStore'
 import {buildDashboard,dashboardRange,money,dateLabel,orderPlatformId,orderSaleDay} from '@/domain/dashboard'
 import {businessDateKey} from '@/domain/businessDate'
@@ -68,7 +61,8 @@ const props=defineProps({model:Object,reportReady:{type:Boolean,default:true},me
 const emit=defineEmits(['range-change'])
 const store=props.model||usePosStore()
 const period=ref(store.dashboardPeriod || 'today'),range=ref(dashboardRange(period.value)),view=ref('overview'),datesOpen=ref(false),dateAnchor=ref(null),orderOffset=ref(0)
-const platformsOpen=ref(false),platformAnchor=ref(null),trendPlatformId=ref('')
+const trendPlatforms=ref([])
+const trendPlatformIds=computed(()=>trendPlatforms.value.map(({id})=>id))
 const inventoryGrouping=ref('category')
 const inventoryGroupOptions=[{value:'category',label:'หมวดหมู่'},{value:'material',label:'วัตถุดิบ'}]
 let lastDay=businessDateKey(),dayTimer
@@ -85,17 +79,21 @@ const periods=[{value:'today',label:'วันนี้'},{value:'week',label:'7
 const views=[{id:'overview',label:'ภาพรวม',icon:ChartNoAxesCombined},{id:'channels',label:'ช่องทางขาย',icon:Store},{id:'menus',label:'เมนูขายดี',icon:Utensils},{id:'inventory',label:'คลังวัตถุดิบ',icon:Package}]
 const report=computed(()=>buildDashboard(store.orders,range.value)),metrics=computed(()=>report.value.metrics)
 const profitChannels=computed(()=>[...report.value.channels].sort((a,b)=>b.grossProfit-a.grossProfit))
-const trendPlatform=computed(()=>report.value.channels.find(channel=>channel.id===trendPlatformId.value))
-const platformFields=computed(()=>[{key:'platform',label:'แพลตฟอร์ม',defaultValue:'',options:[{id:'',label:'ทุกแพลตฟอร์ม'},...report.value.channels]}])
+const platformOptions=computed(()=>{
+ const options=new Map([...trendPlatforms.value,...report.value.channels].map(({id,label})=>[id,label]))
+ for(const {id,name} of store.platforms||[])options.set(id,name||options.get(id)||id)
+ return options
+})
+const platformCheckboxes=computed(()=>({key:'platforms',label:'แพลตฟอร์มในกราฟ',hint:'ถ้าไม่เลือก จะแสดงทุกแพลตฟอร์ม',options:[...platformOptions.value].map(([id,label])=>({id,label}))}))
+const trendPlatformLabel=computed(()=>trendPlatformIds.value.length===1
+ ? platformOptions.value.get(trendPlatformIds.value[0])||trendPlatformIds.value[0]
+ : trendPlatformIds.value.length?`${trendPlatformIds.value.length} แพลตฟอร์ม`:'')
 const trendReport=computed(()=>{
- const current=report.value,platform=trendPlatform.value
- if(!platform)return current
+ const current=report.value,selected=new Set(trendPlatformIds.value)
+ if(!selected.size||!current.orders.length)return current
  // Keep every date in the report so zero-sale periods and bucket boundaries stay visible.
  const dates=range.value.start?range.value:{start:orderSaleDay(current.orders.at(-1)),end:orderSaleDay(current.orders[0])}
- return buildDashboard(current.orders.filter(order=>orderPlatformId(order)===platform.id),dates)
-})
-watch([view,()=>props.reportReady,()=>report.value.orders.length],([tab,ready,count])=>{
- if(tab!=='overview'||!ready||!count)platformsOpen.value=false
+ return buildDashboard(current.orders.filter(order=>selected.has(orderPlatformId(order))),dates)
 })
 const rangeLabel=computed(()=>!range.value.start?'ทุกช่วงเวลา':range.value.start===range.value.end?dateLabel(range.value.start):`${dateLabel(range.value.start)} – ${dateLabel(range.value.end)}`)
 const channelRows=computed(()=>report.value.channels.map(c=>({id:c.id,label:c.label,value:c.totalSales})))
@@ -113,6 +111,11 @@ watch(()=>props.menuReportRequest,request=>{
 watch(range,value=>emit('range-change',{...value}),{deep:true,immediate:true})
 function selectPeriod(id){period.value=id;store.dashboardPeriod=id;range.value=dashboardRange(id)}
 function applyRange(value){range.value={start:value.start,end:value.end || value.start};period.value='custom';datesOpen.value=false}
+function applyReportFilters(value){
+ if(value.platforms)trendPlatforms.value=value.platforms.map(id=>({id,label:platformOptions.value.get(id)||id}))
+ if(value.start!==range.value.start||(value.end||value.start)!==range.value.end)applyRange(value)
+ else datesOpen.value=false
+}
 const percent=(part,total)=>total?(part/total*100).toFixed(1):'0'
 const orderDate=order=>order.saleDay?dateLabel(order.saleDay):new Intl.DateTimeFormat('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}).format(new Date(order.createdAt))
 function viewReceipt(order){Object.assign(store.modals.receipt,{isOpen:true,order})}

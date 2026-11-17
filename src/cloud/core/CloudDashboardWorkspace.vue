@@ -37,6 +37,7 @@ const pickupDays=computed(()=>{
 })
 let epoch=0,disposed=false
 const model=reactive({get readOnly(){return props.readOnly},dashboardPeriod:'today',orders:[],modals:props.modals,switchTab:id=>emit('navigate',id),
+ get platforms(){return (props.data.shop?.catalog?.platformIds||[]).map(id=>({id,name:props.data.display?.platforms?.[id]?.name||id}))},
  get activeMaterials(){return props.inventoryModel?.activeMaterials||props.data.materials.map(projectMaterial).filter(m=>!m.isDeleted)},
  get totalInventoryValuation(){return props.inventoryModel?.totalInventoryValuation??this.activeMaterials.reduce((n,m)=>n+Math.max(0,m.stock)*(m.unitCost||0),0)},
  get projectedInventoryValuation(){return props.inventoryModel?.projectedInventoryValuation??this.totalInventoryValuation},
