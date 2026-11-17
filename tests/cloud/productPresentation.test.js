@@ -19,6 +19,7 @@ it('uses frozen receipt group prices and names after the live catalog is changed
  d.shop.catalog.groups.G.pricingMode='extra';d.shop.catalog.groups.G.optionPrices={P:{A:9900}}
  const receipt={opId:'SALE',platformId:'P',status:'committed',subtotalCents:8900,gpCents:0,netCents:8900,ingredientCostCents:100,grossProfitCents:8800,createdAt:{seconds:1},lines:[{menuId:'M',qty:1,totalCents:8900,catalog:{name:'Original bowl'},groupSelections:{G:{_:0,A:1}},groups:{G:{name:'Original group',pricingMode:'extra',optionPrices:{P:{A:2000}}}}}]}
  const row=projectReceipt(receipt,d)
+ expect(row).toMatchObject({status:'committed',grossProfit:88})
  expect(row.items[0]).toMatchObject({menuName:'Original bowl',selectedAddons:[{price:20,groupName:'Original group'}]})
  d.shop.catalog.menus={};d.shop.catalog.groups={}
  expect(()=>projectReceipt(receipt,d)).not.toThrow()

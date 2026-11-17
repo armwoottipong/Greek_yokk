@@ -44,7 +44,7 @@ it('shows the saved fractional GP rate on a receipt even after settings change',
  const w=mount(Receipt)
  try{
   expect(w.text()).toContain('GP (25.5%)')
-  expect(w.text()).toContain('-฿24.23')
+  expect(w.text()).toContain('−฿24.23')
   store.platforms.find(p=>p.id==='PLAT02').gpPercent=30;await flushPromises()
   expect(w.text()).toContain('GP (25.5%)')
  }finally{w.unmount()}

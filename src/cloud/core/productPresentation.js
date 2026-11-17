@@ -33,5 +33,20 @@ export function projectReceipt(receipt,data){
  if(receipt.origin==='legacy'&&receipt.sourceLegacyJson){const original=JSON.parse(receipt.sourceLegacyJson);return {...original,orderId:receipt.opId,status:receipt.status,sourceLegacyId:receipt.sourceLegacyId}}
  const p=receipt.platformId
  const timestamp=receipt.createdAt
- return {saleDay:backdatedSaleDay(receipt.opId),packagePlan:receiptPackagePlan(receipt),expectedPackagingShortageCost:receiptExpectedPackageShortage(receipt),orderId:receipt.opId,createdAt:timestamp?.seconds?new Date(timestamp.seconds*1000).toISOString():typeof timestamp==='string'?timestamp:'',platformName:data.display.platforms?.[p]?.name||p,subtotal:(receipt.subtotalCents||0)/100,gpAmount:(receipt.gpCents||0)/100,netRevenue:(receipt.netCents??receipt.subtotalCents??0)/100,ingredientCost:(receipt.ingredientCostCents||0)/100,packagingCost:(receipt.packagingCostCents||0)/100,foodCost:((receipt.ingredientCostCents||0)+(receipt.packagingCostCents||0))/100,items:projectReceiptItems(receipt,data),stockShortages:(receipt.inventory||[]).filter(row=>row.shortage>0).map(row=>{const m=data.materials.find(m=>m.id===row.materialId);return {materialId:row.materialId,materialName:m?.name||row.materialId,unit:m?.unit||'',inventoryType:m?.inventoryType,qty:row.shortage/100}})}
+ const baht=cents=>Number.isSafeInteger(cents)?cents/100:null
+ const ingredientCost=baht(receipt.ingredientCostCents),packagingCost=baht(receipt.packagingCostCents)
+ return {
+  orderId:receipt.opId,status:receipt.status,saleDay:backdatedSaleDay(receipt.opId),
+  createdAt:timestamp?.seconds?new Date(timestamp.seconds*1000).toISOString():typeof timestamp==='string'?timestamp:'',
+  platformName:data.display.platforms?.[p]?.name||p,
+  subtotal:baht(receipt.subtotalCents),gpAmount:baht(receipt.gpCents),netRevenue:baht(receipt.netCents),
+  ingredientCost,packagingCost,foodCost:ingredientCost===null||packagingCost===null?null:baht(receipt.ingredientCostCents+receipt.packagingCostCents),
+  grossProfit:baht(receipt.grossProfitCents),
+  packagePlan:receiptPackagePlan(receipt),expectedPackagingShortageCost:receiptExpectedPackageShortage(receipt),
+  items:projectReceiptItems(receipt,data),
+  stockShortages:(receipt.inventory||[]).filter(row=>row.shortage>0).map(row=>{
+   const m=data.materials.find(m=>m.id===row.materialId)
+   return {materialId:row.materialId,materialName:m?.name||row.materialId,unit:m?.unit||'',inventoryType:m?.inventoryType,qty:row.shortage/100}
+  })
+ }
 }

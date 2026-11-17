@@ -8,7 +8,8 @@ it('receipt shows recorded outstanding material quantity',()=> {
  const s=createTestStore({storage:{GY_MATERIALS:[material()]}})
  s.modals.receipt={isOpen:true,order:{orderId:'O',createdAt:'2026-10-09T17:20:00Z',subtotal:10,items:[],stockShortages:[{materialId:'X',materialName:'โยเกิร์ต',unit:'g',qty:40}]}}
  const w=mount(ReceiptModal)
- expect(w.text()).toContain('วัตถุดิบขาดค้าง');expect(w.text()).toContain('โยเกิร์ต');expect(w.text()).toContain('40 g');w.unmount()
+ expect(w.text()).toContain('วัตถุดิบขาดค้าง');expect(w.text()).toContain('โยเกิร์ต');expect(w.text()).toContain('40 g')
+ expect(w.get('.receipt-profit').text()).toContain('—');w.unmount()
 })
 it('sales history flags orders with recorded shortages',()=> {
  const s=createTestStore();s.orders=[{orderId:'O',createdAt:new Date().toISOString(),subtotal:10,items:[],stockShortages:[{materialId:'X',qty:40}]}]
@@ -21,5 +22,11 @@ it('receipt retains original commission after platform rate changes',()=> {
 })
 it('receipt shows split costs package adjustments and expected missing cost without charging the customer',()=>{
  const s=createTestStore();s.modals.receipt={isOpen:true,order:{orderId:'PKG',createdAt:new Date().toISOString(),subtotal:100,gpAmount:0,netRevenue:100,ingredientCost:20,packagingCost:2,foodCost:22,expectedPackagingShortageCost:4,items:[],packagePlan:[{materialId:'CUP',materialName:'ถ้วย',baselineQty:1,adjustmentQty:1,requestedQty:2,fulfilledQty:1,shortageQty:1,reason:'separate_bag'}],stockShortages:[{materialId:'CUP',materialName:'ถ้วย',unit:'ใบ',qty:1,inventoryType:'packaging'}]}}
- const w=mount(ReceiptModal);expect(w.text()).toContain('ต้นทุนวัตถุดิบ');expect(w.text()).toContain('ต้นทุนบรรจุภัณฑ์ที่ใช้จริง');expect(w.text()).toContain('ต้นทุน Package ที่ขาด (ไม่รวมกำไร)');expect(w.text()).toContain('ปรับ +1');expect(w.text()).toContain('แยกถุง');expect(w.text()).toContain('บรรจุภัณฑ์ขาด');expect(w.text()).not.toContain('ยอดชำระสุทธิ (Total):฿102');w.unmount()
+ const w=mount(ReceiptModal)
+ try{
+  expect(w.get('img[alt="Yoggie"]').attributes('src')).toContain('/brand/receipt-wordmark.svg')
+  expect(w.get('.receipt-payment').text()).toMatch(/ยอดที่ลูกค้าชำระ\s*฿100\.00/)
+  expect(w.get('.receipt-profit').text()).toMatch(/กำไรต่อบิล\s*฿78\.00/)
+  expect(w.text()).toContain('ต้นทุนวัตถุดิบ');expect(w.text()).toContain('ต้นทุนบรรจุภัณฑ์ที่ใช้จริง');expect(w.text()).toContain('ต้นทุน Package ที่ขาด (ไม่รวมกำไร)');expect(w.text()).toContain('ปรับ +1');expect(w.text()).toContain('แยกถุง');expect(w.text()).toContain('บรรจุภัณฑ์ขาด')
+ }finally{w.unmount()}
 })
