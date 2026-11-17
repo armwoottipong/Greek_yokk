@@ -15,6 +15,23 @@ it('uses the original date controls, channels, receipt and inventory UI with a c
   expect(h.service.report).toHaveBeenLastCalledWith({start:null,end:null})
  }finally{h.w.unmount()}
 })
+it('applies the platform filter to pending preorders without refetching the sales range',async()=>{
+ const {w,service}=mountReport(vi.fn(async()=>({receipts:[]})))
+ const shop={...data.shop,catalog:{...data.shop.catalog,platformIds:['P','D']},
+  preorders:{FIRST:{pickupDay:21000,platformId:'P',quoteCents:10000},SECOND:{pickupDay:21000,platformId:'D',quoteCents:20000}}}
+ try{
+  await w.setProps({data:{...data,shop}});await flushPromises()
+  const summary=()=>w.get('.dashboard-preorders').text()
+  expect(summary()).toContain('ยอดจอง ฿300')
+  await w.get('[data-dashboard-dates]').trigger('click')
+  expect(w.findAll('#dashboard-date-filter input:checked')).toHaveLength(2)
+  await w.get('#dashboard-date-filter input[value="P"]').setValue(false)
+  const calls=service.report.mock.calls.length
+  await w.get('[data-apply-filters]').trigger('click');await flushPromises()
+  expect(summary()).toContain('ยอดจอง ฿200')
+  expect(service.report).toHaveBeenCalledTimes(calls)
+ }finally{w.unmount()}
+})
 it('hides previous financial totals on failure/offline, then recovers on retry',async()=>{
  const report=vi.fn().mockResolvedValueOnce({receipts:[sale()],legacyOrders:[]}).mockRejectedValueOnce(Object.assign(new Error('permission-denied'),{code:'permission-denied'})).mockResolvedValue({receipts:[],legacyOrders:[]})
  const {w}=mountReport(report)

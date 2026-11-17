@@ -7,9 +7,10 @@ import DashboardTrend from '../../src/components/dashboard/DashboardTrend.vue'
 import {createTestStore,material} from '../helpers/createStore'
 vi.mock('canvas-confetti',()=>({default:()=>{}}))
 const sale=(id,date)=>({orderId:id,createdAt:date,platformId:'P',platformName:'หน้าร้าน',subtotal:100,gpAmount:0,netRevenue:100,foodCost:30,grossProfit:70,items:[{menuId:'M',menuName:'โยเกิร์ต',qty:1}]})
-it('shows each channel profit and filters only the trend using the shared filter dialog',async()=>{
+it('starts with every platform checked and filters the whole sales report',async()=>{
  const s=createTestStore(),day='2026-10-10T10:00:00Z'
- s.orders=[sale('SHOP',day),{...sale('DELIVERY',day),platformId:'D',platformName:'Delivery',gpAmount:75,netRevenue:25,grossProfit:-5},
+ s.platforms=[{id:'P',name:'หน้าร้าน'},{id:'D',name:'Delivery'}]
+ s.orders=[sale('SHOP',day),{...sale('DELIVERY',day),platformId:'D',platformName:'Delivery',gpAmount:75,netRevenue:25,grossProfit:-5,items:[{menuId:'D-MENU',menuName:'เมนูเดลิเวอรี',qty:1}]},
   {...sale('REFUND',day),platformId:'D',platformName:'Delivery',status:'cancelled'}]
  const w=mount(DashboardView)
  try{
@@ -21,25 +22,29 @@ it('shows each channel profit and filters only the trend using the shared filter
   await w.get('[data-dashboard-dates]').trigger('click')
   const dialog=document.querySelector('#dashboard-date-filter')
   const platforms=dialog.querySelector('.filter-presets + fieldset')
-  expect(platforms.querySelector('legend').textContent).toBe('แพลตฟอร์มในกราฟ')
-  platforms.querySelector('input[value="P"]').click()
-  await w.vm.$nextTick()
-  platforms.querySelector('input[value="D"]').click()
-  await w.vm.$nextTick()
+  expect(platforms.querySelector('legend').textContent).toBe('แพลตฟอร์ม')
   expect(platforms.querySelectorAll('input:checked')).toHaveLength(2)
   platforms.querySelector('input[value="P"]').click()
   await w.vm.$nextTick()
   dialog.querySelector('[data-apply-filters]').click();await w.vm.$nextTick()
   expect(trend.props('rows')[0]).toMatchObject({netRevenue:25,totalFoodCost:30,grossProfit:-5})
   expect(trend.get('[data-mark="0-netRevenue"]').attributes('aria-label')).toContain('รายรับหลังหัก GP ฿25')
-  expect(w.get('[data-sales-total]').text()).toContain('200')
-  expect(trend.text()).toContain('Delivery')
+  expect(w.get('[data-sales-total]').text()).toBe('฿100')
+  expect(w.find('[data-platform-profit="P"]').exists()).toBe(false)
+  expect(w.find('[data-receipt="SHOP"]').exists()).toBe(false)
+  expect(w.find('[data-receipt="DELIVERY"]').exists()).toBe(true)
+  await w.get('[data-view="menus"]').trigger('click')
+  expect(w.text()).toContain('เมนูเดลิเวอรี')
+  expect(w.text()).not.toContain('โยเกิร์ต')
+  await w.get('[data-view="overview"]').trigger('click')
   expect(w.find('[data-trend-platforms]').exists()).toBe(false)
   await w.get('[data-dashboard-dates]').trigger('click')
   document.querySelector('#dashboard-date-filter .filter-reset').click()
   await w.vm.$nextTick()
   document.querySelector('#dashboard-date-filter [data-apply-filters]').click();await w.vm.$nextTick()
-  expect(trend.props('rows')[0].grossProfit).toBe(65)
+  expect(w.getComponent(DashboardTrend).props('rows')[0].grossProfit).toBe(65)
+  await w.get('[data-dashboard-dates]').trigger('click')
+  expect(document.querySelectorAll('#dashboard-date-filter .filter-checkbox-group input:checked')).toHaveLength(2)
  }finally{w.unmount()}
 })
 async function selectInventoryGrouping(wrapper,value){

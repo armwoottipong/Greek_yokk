@@ -22,8 +22,9 @@
         </div>
         <fieldset v-if="checkboxGroup?.options.length" class="filter-checkbox-group">
           <legend class="filter-date-heading">{{ checkboxGroup.label }}</legend>
-          <AppCheckbox v-for="option in checkboxGroup.options" :key="option.id" v-model="draft[checkboxGroup.key]" :value="option.id" :label="option.label" />
-          <p v-if="checkboxGroup.hint">{{ checkboxGroup.hint }}</p>
+          <div class="filter-checkbox-options">
+            <AppCheckbox v-for="option in checkboxGroup.options" :key="option.id" v-model="draft[checkboxGroup.key]" :value="option.id" :label="option.label" :class="{'is-checked':draft[checkboxGroup.key]?.includes(option.id)}" />
+          </div>
         </fieldset>
         </div>
         <div v-if="includeDates" class="filter-dates">
@@ -80,7 +81,7 @@ onUnmounted(()=>window.removeEventListener('resize',positionPanel))
 function reset(){
   draft.value={...props.values,...(props.includeDates?{start:null,end:null}:{})}
   props.fields.forEach(field=>{draft.value[field.key]=field.defaultValue ?? 'all'})
-  if(props.checkboxGroup)draft.value[props.checkboxGroup.key]=[]
+  if(props.checkboxGroup)draft.value[props.checkboxGroup.key]=props.checkboxGroup.options.map(({id})=>id)
 }
 function presetRange(days){
   if(!days) return {start:null,end:null}
@@ -104,9 +105,12 @@ function apply(){emit('apply',{...draft.value,...(props.includeDates?{end:draft.
 .filter-close{width:44px;height:44px;display:grid;place-items:center;border-radius:8px;color:var(--text-muted)}.filter-close:hover{background:var(--bg-soft)}
 .filter-body{padding:14px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border-subtle) transparent}
 .filter-config,.filter-dates{min-width:0}
-.filter-checkbox-group{display:grid;min-width:0;overflow-wrap:anywhere}
-.filter-checkbox-group legend{padding:0;margin-bottom:2px}
-.filter-checkbox-group p{margin-top:4px;color:var(--text-muted);line-height:1.5}
+.filter-checkbox-group{min-width:0;margin:12px 0 0;padding:0;border:0}
+.filter-checkbox-group legend{padding:0;margin-bottom:8px}
+.filter-checkbox-options{display:grid;gap:6px}
+.filter-checkbox-options>.app-checkbox{width:100%;min-height:44px;padding:8px;border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-card);overflow-wrap:anywhere}
+.filter-checkbox-options>.is-checked{background:var(--accent-soft);border-color:var(--accent-border)}
+@media(max-width:767px){.filter-checkbox-options{grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}.filter-checkbox-group{margin-bottom:16px}}
 .filter-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:16px}.single-field{grid-template-columns:1fr}
 .filter-field>span{display:block;margin-bottom:6px;font-size:11px;font-weight:500;color:var(--text-muted)}
 .filter-date-heading{display:flex;align-items:center;gap:7px;font-weight:600;margin-bottom:9px;color:var(--text-muted)}
